@@ -2,7 +2,7 @@ import { describe, expect, it } from 'bun:test';
 import { TextSelection } from '@tiptap/pm/state';
 import '../test/dom';
 import { makeEditor } from '../test/make-editor';
-import { blockCommands, clearBlockSelection, deleteBlock, deleteEnclosingNode, duplicateBlock, enclosingNode, isInlineAtomSelected, moveBlock, selectBlockAt, selectedBlock } from './block';
+import { blockCommands, clearBlockSelection, deleteBlock, duplicateBlock, enclosingNode, isInlineAtomSelected, moveBlock, selectBlockAt, selectedBlock } from './block';
 
 const para = (text: string) => ({ type: 'paragraph', content: [{ type: 'text', text }] });
 const doc = { type: 'doc', content: [para('one'), para('two'), para('three')] };
@@ -189,30 +189,47 @@ describe('enclosingNode', () => {
   });
 });
 
-describe('deleteEnclosingNode', () => {
-  const inRepeat = {
-    type: 'doc',
-    content: [
-      para('before'),
-      { type: 'repeat', attrs: { each: 'items' }, content: [para('inside')] },
-      para('after'),
-    ],
-  };
+describe('deleteBlock inside a wrapper', () => {
+  const wrap = (type: string, children: unknown[]) => ({ type, content: children });
+  const topLevel = (editor: ReturnType<typeof makeEditor>) => editor.state.doc.content.content.map((n) => n.type.name);
 
-  it('deletes the repeat around the selected block and selects the block that slid into its place', () => {
-    const editor = makeEditor(inRepeat, { touch: true });
-    selectBlockAt(editor, 9); // the paragraph inside the repeat
-    expect(deleteEnclosingNode(editor, 'repeat')).toBe(true);
-    expect(texts(editor)).toEqual(['before', 'after']);
-    expect(selectedBlock(editor)!.node.textContent).toBe('after');
+  it('takes the repeat with it when the block was its only one', () => {
+    const editor = makeEditor({ type: 'doc', content: [para('a'), wrap('repeat', [{ type: 'paragraph' }]), para('b')] }, { touch: true });
+    selectBlockAt(editor, 4); // the sole paragraph inside the repeat
+    expect(deleteBlock(editor)).toBe(true);
+    expect(topLevel(editor)).toEqual(['paragraph', 'paragraph']);
+    expect(selectedBlock(editor)!.node.textContent).toBe('b');
     editor.destroy();
   });
 
-  it('refuses when there is no such wrapper', () => {
-    const editor = makeEditor(inRepeat, { touch: true });
-    selectBlockAt(editor, 0);
-    expect(deleteEnclosingNode(editor, 'repeat')).toBe(false);
-    expect(editor.state.doc.childCount).toBe(3);
+  it('takes only the block when the repeat has another', () => {
+    const editor = makeEditor({ type: 'doc', content: [wrap('repeat', [para('x'), para('y')])] }, { touch: true });
+    selectBlockAt(editor, 1);
+    expect(deleteBlock(editor)).toBe(true);
+    expect(topLevel(editor)).toEqual(['repeat']);
+    expect(editor.state.doc.firstChild!.childCount).toBe(1);
+    expect(editor.state.doc.firstChild!.textContent).toBe('y');
+    editor.destroy();
+  });
+
+  it('takes the section with it the same way', () => {
+    const editor = makeEditor({ type: 'doc', content: [para('a'), wrap('section', [para('x')])] }, { touch: true });
+    selectBlockAt(editor, 4);
+    expect(deleteBlock(editor)).toBe(true);
+    expect(topLevel(editor)).toEqual(['paragraph']);
+    editor.destroy();
+  });
+
+  it('leaves a column standing: its block is emptied, the columns keep their count', () => {
+    const editor = makeEditor(
+      { type: 'doc', content: [wrap('columns', [wrap('column', [para('left')]), wrap('column', [para('right')])])] },
+      { touch: true },
+    );
+    selectBlockAt(editor, 2); // "left"
+    expect(deleteBlock(editor)).toBe(true);
+    expect(topLevel(editor)).toEqual(['columns']);
+    expect(editor.state.doc.firstChild!.childCount).toBe(2);
+    expect(editor.state.doc.firstChild!.firstChild!.textContent).toBe('');
     editor.destroy();
   });
 });

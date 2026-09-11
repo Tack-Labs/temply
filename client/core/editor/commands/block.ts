@@ -120,24 +120,25 @@ export function duplicateBlock(editor: Editor): boolean {
   return true;
 }
 
+/** Wrappers that go with their last block. Each requires at least one
+ *  block, so deleting the only one would leave ProseMirror to put an empty
+ *  paragraph back — a Delete that visibly does nothing, and on the phone,
+ *  where the wrapper itself is never selected, no way to be rid of it. A
+ *  column is not on the list: its blocks can be emptied, but the Columns
+ *  block decides how many columns there are. */
+const GOES_WITH_LAST_BLOCK = new Set(['repeat', 'section']);
+
 export function deleteBlock(editor: Editor): boolean {
   const block = selectedBlock(editor);
   if (!block) return false;
-  deleteNodeAt(editor, block.pos, block.node);
-  return true;
-}
-
-/** Deletes the nearest `typeName` around the selected block — the Repeat a
- *  paragraph sits in — with its contents. The phone has no way to select the
- *  wrapper itself, so its Delete lives in the sheet opened from inside it. */
-export function deleteEnclosingNode(editor: Editor, typeName: string): boolean {
-  const found = enclosingNode(editor, typeName);
-  if (!found) return false;
-  deleteNodeAt(editor, found.pos, found.node);
-  return true;
-}
-
-function deleteNodeAt(editor: Editor, pos: number, node: Node): void {
+  let { pos, node } = block;
+  const $pos = editor.state.doc.resolve(pos);
+  for (let depth = $pos.depth; depth >= 1; depth--) {
+    const parent = $pos.node(depth);
+    if (parent.childCount > 1 || !GOES_WITH_LAST_BLOCK.has(parent.type.name)) break;
+    pos = $pos.before(depth);
+    node = parent;
+  }
   const tr = editor.state.tr.delete(pos, pos + node.nodeSize);
   // Something must stay selected — the action bar has nothing to act on
   // otherwise. Prefer the block that slid into the deleted one's place, then
@@ -155,6 +156,7 @@ function deleteNodeAt(editor: Editor, pos: number, node: Node): void {
   else if (before && before.isBlock) tr.setSelection(NodeSelection.create(doc, pos - before.nodeSize));
   else tr.setSelection(TextSelection.near($at));
   editor.view.dispatch(tr.scrollIntoView());
+  return true;
 }
 
 /** Where a block sits among its siblings, and how many there are. A resolved
