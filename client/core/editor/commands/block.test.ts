@@ -2,7 +2,7 @@ import { describe, expect, it } from 'bun:test';
 import { TextSelection } from '@tiptap/pm/state';
 import '../test/dom';
 import { makeEditor } from '../test/make-editor';
-import { blockCommands, clearBlockSelection, deleteBlock, duplicateBlock, isInlineAtomSelected, moveBlock, selectBlockAt, selectedBlock } from './block';
+import { blockCommands, clearBlockSelection, deleteBlock, duplicateBlock, enclosingNode, isInlineAtomSelected, moveBlock, selectBlockAt, selectedBlock } from './block';
 
 const para = (text: string) => ({ type: 'paragraph', content: [{ type: 'text', text }] });
 const doc = { type: 'doc', content: [para('one'), para('two'), para('three')] };
@@ -153,6 +153,38 @@ describe('a selected inline atom', () => {
     expect(runs(editor, 1)).toBe(' there');
     expect(editor.state.selection).toBeInstanceOf(TextSelection);
     expect(editor.state.selection.from).toBe(8);
+    editor.destroy();
+  });
+});
+
+describe('enclosingNode', () => {
+  const inRepeat = {
+    type: 'doc',
+    content: [
+      para('before'),
+      { type: 'repeat', attrs: { each: 'items' }, content: [para('inside')] },
+    ],
+  };
+
+  it('finds the repeat around a selected block inside it', () => {
+    const editor = makeEditor(inRepeat, { touch: true });
+    // The paragraph inside the repeat: doc(0) > para "before" (0..8) > repeat opens at 8, its paragraph at 9.
+    selectBlockAt(editor, 9);
+    expect(selectedBlock(editor)!.node.textContent).toBe('inside');
+    const found = enclosingNode(editor, 'repeat');
+    expect(found?.node.type.name).toBe('repeat');
+    expect(found?.pos).toBe(8);
+    editor.destroy();
+  });
+
+  it('is null for a block with no such wrapper, and for the wrapper itself', () => {
+    const editor = makeEditor(inRepeat, { touch: true });
+    selectBlockAt(editor, 0);
+    expect(enclosingNode(editor, 'repeat')).toBeNull();
+    // The repeat selected as a node is not inside a repeat.
+    selectBlockAt(editor, 8);
+    expect(selectedBlock(editor)!.node.type.name).toBe('repeat');
+    expect(enclosingNode(editor, 'repeat')).toBeNull();
     editor.destroy();
   });
 });

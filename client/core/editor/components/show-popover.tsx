@@ -7,8 +7,27 @@ import { useVariableOptions } from '../utils/node-options';
 import { useKnownNames } from '../utils/use-known-names';
 import { Popover, PopoverContent, PopoverTrigger } from './popover';
 import { InputAutocomplete } from './ui/input-autocomplete';
-import { useInputDock } from './ui/input-dock';
+import { useInputDock, type InputDockSpec } from './ui/input-dock';
 import { Tooltip, TooltipContent, TooltipTrigger } from './ui/tooltip';
+
+/** The condition as the phone's dock takes it. Shared with the Repeat
+ *  sheet's Show-if row, so the two ask the same question in the same words. */
+export function showIfDockSpec(showIfKey: string, names: (query: string) => string[], onChange: (when: string) => void): InputDockSpec {
+  return {
+    title: 'Show if',
+    fields: [
+      {
+        key: 'condition',
+        label: 'Show if',
+        value: showIfKey,
+        placeholder: 'e.g. isMember',
+        hint: 'Shown only when this is true in the data you send',
+        options: names,
+      },
+    ],
+    onCommit: (values) => onChange(values.condition.trim()),
+  };
+}
 
 type ShowPopoverProps = {
   showIfKey?: string;
@@ -51,23 +70,7 @@ function _ShowPopover(props: ShowPopoverProps) {
             'mly:flex mly:size-7 mly:items-center mly:justify-center mly:gap-1 mly:rounded-md mly:px-1.5 mly:text-sm mly:transition-colors mly:hover:bg-soft-gray',
             showIfKey && 'mly:bg-accent-wash mly:text-accent-ink mly:hover:bg-accent-wash'
           )}
-          onClick={() => {
-            const names = snapshot();
-            dock.open({
-              title: 'Show if',
-              fields: [
-                {
-                  key: 'condition',
-                  label: 'Show if',
-                  value: showIfKey,
-                  placeholder: 'e.g. isMember',
-                  hint: 'Shown only when this is true in the data you send',
-                  options: names,
-                },
-              ],
-              onCommit: (values) => onShowIfKeyValueChange?.(values.condition.trim()),
-            });
-          }}
+          onClick={() => dock.open(showIfDockSpec(showIfKey, snapshot(), (when) => onShowIfKeyValueChange?.(when)))}
         >
           <Eye className="mly:h-3 mly:w-3 mly:stroke-[2.5]" />
         </TooltipTrigger>

@@ -30,6 +30,25 @@ export function selectedBlock(editor: Editor): { node: Node; pos: number; depth:
 }
 
 /**
+ * The nearest node of `typeName` strictly around the selected block — the
+ * Repeat a paragraph sits in, say — or null when there is none, or when the
+ * selected block is that node itself. The phone's tap model never selects a
+ * wrapper (see `tapTransaction`), so a wrapper's settings are reached from
+ * whichever block inside it was tapped; this is how the Style sheet and the
+ * bar find them.
+ */
+export function enclosingNode(editor: Editor, typeName: string): { node: Node; pos: number } | null {
+  const block = selectedBlock(editor);
+  if (!block) return null;
+  const $pos = editor.state.doc.resolve(block.pos);
+  for (let depth = $pos.depth; depth >= 1; depth--) {
+    const node = $pos.node(depth);
+    if (node.type.name === typeName) return { node, pos: $pos.before(depth) };
+  }
+  return null;
+}
+
+/**
  * Whether the action bar's subject is an inline atom — a variable pill —
  * rather than a block. The tap model selects a pill outright because it has
  * settings of its own, but it lives among words, not among blocks: its

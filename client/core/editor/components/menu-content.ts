@@ -1,5 +1,6 @@
 import type { Editor } from '@tiptap/core';
 import type { ComponentType } from 'react';
+import { enclosingNode, selectedBlock } from '../commands/block';
 import { TextBubbleContent } from './text-menu/text-bubble-content';
 import { ImageMenuContent } from './image-menu/image-menu-content';
 import { SpacerMenuContent } from './spacer-menu/spacer-menu-content';
@@ -37,4 +38,13 @@ export function menuContentFor(
   typeName: string
 ): ComponentType<{ editor: Editor }> | null {
   return MENU_CONTENT[typeName] ?? null;
+}
+
+/** Whether the selection has settings for the Style sheet: the selected
+ *  block's own, or those of a Repeat around it. The bar's Style button and
+ *  the sheet's "nothing to show" close read the same answer, so the button
+ *  never offers a sheet that would shut on opening. */
+export function hasStyleContent(editor: Editor): boolean {
+  const typeName = selectedBlock(editor)?.node.type.name;
+  return (!!typeName && menuContentFor(typeName) !== null) || enclosingNode(editor, 'repeat') !== null;
 }

@@ -4,8 +4,9 @@ import type { Editor } from '@tiptap/core';
 import { useEditorState } from '@tiptap/react';
 import type { Transaction } from '@tiptap/pm/state';
 import { useEffect } from 'react';
-import { selectedBlock } from '~/core/editor/commands/block';
-import { menuContentFor } from '~/core/editor/components/menu-content';
+import { enclosingNode, selectedBlock } from '~/core/editor/commands/block';
+import { hasStyleContent, menuContentFor } from '~/core/editor/components/menu-content';
+import { RepeatMenuContent } from '~/core/editor/components/repeat-menu/repeat-menu-content';
 import { TooltipProvider } from '~/core/editor/components/ui/tooltip';
 import { BottomSheet } from './bottom-sheet';
 
@@ -46,6 +47,11 @@ export function StylePanel({ editor, open, onOpenChange, returnFocus }: { editor
     selector: ({ editor }) => (editor ? (selectedBlock(editor)?.node.type.name ?? null) : null),
   });
   const Content = typeName ? menuContentFor(typeName) : null;
+  // A block inside a Repeat carries the repeat's settings below its own: the
+  // tap model never selects the wrapper itself (see enclosingNode), so the
+  // block tapped inside it is where they are found.
+  const inRepeat = useEditorState({ editor, selector: ({ editor }) => (editor ? enclosingNode(editor, 'repeat') !== null : false) });
+  const hasContent = useEditorState({ editor, selector: ({ editor }) => (editor ? hasStyleContent(editor) : false) });
 
   // Both ways the sheet can end up pointing at nothing, and both go through
   // onOpenChange — never through simply rendering less. `open` is the shell's
@@ -86,11 +92,12 @@ export function StylePanel({ editor, open, onOpenChange, returnFocus }: { editor
   // list and the node holding the selection is one this has no entry for; the
   // Style button never offers that state, so neither should the sheet.
   useEffect(() => {
-    if (open && !Content) onOpenChange(false);
-  }, [open, Content, onOpenChange]);
+    if (open && !hasContent) onOpenChange(false);
+  }, [open, hasContent, onOpenChange]);
 
+  const title = Content && typeName ? (LABELS[typeName] ?? typeName) : inRepeat ? LABELS.repeat : 'Style';
   return (
-    <BottomSheet open={open} onOpenChange={onOpenChange} returnFocus={returnFocus} title={typeName ? (LABELS[typeName] ?? typeName) : 'Style'}>
+    <BottomSheet open={open} onOpenChange={onOpenChange} returnFocus={returnFocus} title={title}>
       {/* The menu components use Radix Tooltip and normally get their provider
           from the desktop bubble-menu wrapper; the sheet is their only
           ancestor here, so it supplies one. */}
@@ -102,6 +109,14 @@ export function StylePanel({ editor, open, onOpenChange, returnFocus }: { editor
             read as uneven gaps rather than groups. */}
         <div className="mly-editor flex flex-wrap items-center gap-2 py-1 [&_button]:min-h-11 [&_button]:min-w-11 [&_input]:min-h-11 [&_[data-divider=vertical]]:hidden">
           {Content && editor ? <Content editor={editor} /> : null}
+          {inRepeat && editor ? (
+            <div className="w-full">
+              {/* Named only when it sits under another block's controls; on
+                  its own the sheet's title already says Repeat. */}
+              {Content ? <p className="mt-2 mb-2 text-xs font-medium text-muted">Repeat</p> : null}
+              <RepeatMenuContent editor={editor} />
+            </div>
+          ) : null}
         </div>
       </TooltipProvider>
     </BottomSheet>

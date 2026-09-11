@@ -3,9 +3,9 @@
 import type { Editor } from '@tiptap/core';
 import { useEditorState } from '@tiptap/react';
 import { SlidersHorizontalIcon } from 'lucide-react';
-import { blockCommands, isInlineAtomSelected, selectedBlock } from '~/core/editor/commands/block';
+import { blockCommands, isInlineAtomSelected } from '~/core/editor/commands/block';
 import type { EditorCommand } from '~/core/editor/commands/types';
-import { menuContentFor } from '~/core/editor/components/menu-content';
+import { hasStyleContent } from '~/core/editor/components/menu-content';
 import { pressable } from '~/components/ui/button';
 import { cn } from '~/lib/classname';
 
@@ -31,7 +31,8 @@ function BarButton({ editor, command, className }: { editor: Editor; command: Ed
 
 /**
  * Up, down, Style, duplicate, delete for the selected block. Style only
- * shows for block types that have settings.
+ * shows when there are settings to open: the block's own, or the Repeat's
+ * around it.
  *
  * An inline atom — a variable pill — is selected by the same tap and shows on
  * this same face, but it is not a block: it sits between words, so up, down
@@ -40,9 +41,8 @@ function BarButton({ editor, command, className }: { editor: Editor; command: Ed
  * never be pressed for this kind of selection is only noise.
  */
 export function BlockActionBar({ editor, styleOpen, onStyle }: { editor: Editor; styleOpen: boolean; onStyle: () => void }) {
-  const typeName = useEditorState({ editor, selector: ({ editor }) => selectedBlock(editor)?.node.type.name ?? null });
+  const hasStyle = useEditorState({ editor, selector: ({ editor }) => hasStyleContent(editor) });
   const inlineAtom = useEditorState({ editor, selector: ({ editor }) => isInlineAtomSelected(editor) });
-  const hasStyle = typeName ? menuContentFor(typeName) !== null : false;
   return (
     <div className="flex h-14 items-center gap-1 px-2">
       {inlineAtom ? null : (
