@@ -3,11 +3,14 @@
 import type { Editor } from '@tiptap/core';
 import { useEditorState } from '@tiptap/react';
 import type { Transaction } from '@tiptap/pm/state';
+import { Trash2Icon } from 'lucide-react';
 import { useEffect } from 'react';
-import { enclosingNode, selectedBlock } from '~/core/editor/commands/block';
+import { deleteEnclosingNode, enclosingNode, selectedBlock } from '~/core/editor/commands/block';
 import { hasStyleContent, menuContentFor } from '~/core/editor/components/menu-content';
 import { RepeatMenuContent } from '~/core/editor/components/repeat-menu/repeat-menu-content';
+import { Divider } from '~/core/editor/components/ui/divider';
 import { TooltipProvider } from '~/core/editor/components/ui/tooltip';
+import { Button } from '~/components/ui/button';
 import { BottomSheet } from './bottom-sheet';
 
 const LABELS: Record<string, string> = {
@@ -108,15 +111,25 @@ export function StylePanel({ editor, open, onOpenChange, returnFocus }: { editor
             strip's vertical dividers go: between wrapped 44px targets they
             read as uneven gaps rather than groups. */}
         <div className="mly-editor flex flex-wrap items-center gap-2 py-1 [&_button]:min-h-11 [&_button]:min-w-11 [&_input]:min-h-11 [&_[data-divider=vertical]]:hidden">
-          {Content && editor ? <Content editor={editor} /> : null}
+          {/* The repeat's settings sit above the block's own, the way a pill's
+              fields sit above its text formatting: what the block is part of
+              comes before what it looks like. Delete is here rather than on
+              the bar, whose Delete acts on the block tapped; deleting the
+              repeat takes the block with it, and the sheet closes on losing
+              its block. */}
           {inRepeat && editor ? (
-            <div className="w-full">
-              {/* Named only when it sits under another block's controls; on
-                  its own the sheet's title already says Repeat. */}
-              {Content ? <p className="mt-2 mb-2 text-xs font-medium text-muted">Repeat</p> : null}
+            <div className="flex w-full flex-col gap-2">
+              <div className="flex items-center justify-between">
+                <p className="text-xs font-medium text-muted">Repeat</p>
+                <Button type="button" variant="danger-quiet" size="icon" className="-my-2 size-11" aria-label="Delete repeat" onClick={() => deleteEnclosingNode(editor, 'repeat')}>
+                  <Trash2Icon />
+                </Button>
+              </div>
               <RepeatMenuContent editor={editor} />
+              {Content ? <Divider type="horizontal" /> : null}
             </div>
           ) : null}
+          {Content && editor ? <Content editor={editor} /> : null}
         </div>
       </TooltipProvider>
     </BottomSheet>

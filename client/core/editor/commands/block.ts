@@ -123,7 +123,22 @@ export function duplicateBlock(editor: Editor): boolean {
 export function deleteBlock(editor: Editor): boolean {
   const block = selectedBlock(editor);
   if (!block) return false;
-  const tr = editor.state.tr.delete(block.pos, block.pos + block.node.nodeSize);
+  deleteNodeAt(editor, block.pos, block.node);
+  return true;
+}
+
+/** Deletes the nearest `typeName` around the selected block — the Repeat a
+ *  paragraph sits in — with its contents. The phone has no way to select the
+ *  wrapper itself, so its Delete lives in the sheet opened from inside it. */
+export function deleteEnclosingNode(editor: Editor, typeName: string): boolean {
+  const found = enclosingNode(editor, typeName);
+  if (!found) return false;
+  deleteNodeAt(editor, found.pos, found.node);
+  return true;
+}
+
+function deleteNodeAt(editor: Editor, pos: number, node: Node): void {
+  const tr = editor.state.tr.delete(pos, pos + node.nodeSize);
   // Something must stay selected — the action bar has nothing to act on
   // otherwise. Prefer the block that slid into the deleted one's place, then
   // the block before it, and otherwise a caret at the gap the deletion left.
@@ -133,14 +148,13 @@ export function deleteBlock(editor: Editor): boolean {
   // taken from that gap rather than the start of the document so deleting a
   // pill that opened its paragraph does not jump to the top of the email.
   const doc = tr.doc;
-  const $at = doc.resolve(Math.min(block.pos, doc.content.size));
+  const $at = doc.resolve(Math.min(pos, doc.content.size));
   const next = $at.nodeAfter;
   const before = $at.nodeBefore;
-  if (next && next.isBlock) tr.setSelection(NodeSelection.create(doc, block.pos));
-  else if (before && before.isBlock) tr.setSelection(NodeSelection.create(doc, block.pos - before.nodeSize));
+  if (next && next.isBlock) tr.setSelection(NodeSelection.create(doc, pos));
+  else if (before && before.isBlock) tr.setSelection(NodeSelection.create(doc, pos - before.nodeSize));
   else tr.setSelection(TextSelection.near($at));
   editor.view.dispatch(tr.scrollIntoView());
-  return true;
 }
 
 /** Where a block sits among its siblings, and how many there are. A resolved

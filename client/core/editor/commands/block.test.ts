@@ -2,7 +2,7 @@ import { describe, expect, it } from 'bun:test';
 import { TextSelection } from '@tiptap/pm/state';
 import '../test/dom';
 import { makeEditor } from '../test/make-editor';
-import { blockCommands, clearBlockSelection, deleteBlock, duplicateBlock, enclosingNode, isInlineAtomSelected, moveBlock, selectBlockAt, selectedBlock } from './block';
+import { blockCommands, clearBlockSelection, deleteBlock, deleteEnclosingNode, duplicateBlock, enclosingNode, isInlineAtomSelected, moveBlock, selectBlockAt, selectedBlock } from './block';
 
 const para = (text: string) => ({ type: 'paragraph', content: [{ type: 'text', text }] });
 const doc = { type: 'doc', content: [para('one'), para('two'), para('three')] };
@@ -185,6 +185,34 @@ describe('enclosingNode', () => {
     selectBlockAt(editor, 8);
     expect(selectedBlock(editor)!.node.type.name).toBe('repeat');
     expect(enclosingNode(editor, 'repeat')).toBeNull();
+    editor.destroy();
+  });
+});
+
+describe('deleteEnclosingNode', () => {
+  const inRepeat = {
+    type: 'doc',
+    content: [
+      para('before'),
+      { type: 'repeat', attrs: { each: 'items' }, content: [para('inside')] },
+      para('after'),
+    ],
+  };
+
+  it('deletes the repeat around the selected block and selects the block that slid into its place', () => {
+    const editor = makeEditor(inRepeat, { touch: true });
+    selectBlockAt(editor, 9); // the paragraph inside the repeat
+    expect(deleteEnclosingNode(editor, 'repeat')).toBe(true);
+    expect(texts(editor)).toEqual(['before', 'after']);
+    expect(selectedBlock(editor)!.node.textContent).toBe('after');
+    editor.destroy();
+  });
+
+  it('refuses when there is no such wrapper', () => {
+    const editor = makeEditor(inRepeat, { touch: true });
+    selectBlockAt(editor, 0);
+    expect(deleteEnclosingNode(editor, 'repeat')).toBe(false);
+    expect(editor.state.doc.childCount).toBe(3);
     editor.destroy();
   });
 });
