@@ -68,11 +68,35 @@ describe('collectDataKeys', () => {
   });
 
   test('a document with neither yields empty lists', () => {
-    expect(collectDataKeys({ type: 'doc', content: [{ type: 'paragraph' }] })).toEqual({ conditions: [], variables: [], placeholders: {}, where: {}, urlVariables: [] });
+    expect(collectDataKeys({ type: 'doc', content: [{ type: 'paragraph' }] })).toEqual({ conditions: [], variables: [], placeholders: {}, where: {}, urlVariables: [], lists: [], inList: {} });
   });
 
   test('survives malformed input', () => {
-    expect(collectDataKeys(null)).toEqual({ conditions: [], variables: [], placeholders: {}, where: {}, urlVariables: [] });
-    expect(collectDataKeys('nonsense')).toEqual({ conditions: [], variables: [], placeholders: {}, where: {}, urlVariables: [] });
+    expect(collectDataKeys(null)).toEqual({ conditions: [], variables: [], placeholders: {}, where: {}, urlVariables: [], lists: [], inList: {} });
+    expect(collectDataKeys('nonsense')).toEqual({ conditions: [], variables: [], placeholders: {}, where: {}, urlVariables: [], lists: [], inList: {} });
+  });
+});
+
+describe('collectDataKeys lists', () => {
+  const doc = {
+    type: 'doc',
+    content: [
+      { type: 'paragraph', content: [{ type: 'text', text: 'Hi ' }, { type: 'variable', attrs: { id: 'firstName' } }] },
+      { type: 'repeat', attrs: { each: 'items' }, content: [
+        { type: 'paragraph', content: [{ type: 'variable', attrs: { id: 'name' } }, { type: 'text', text: ' — ' }, { type: 'variable', attrs: { id: 'price' } }] },
+      ] },
+      { type: 'repeat', attrs: { each: 'items' }, content: [{ type: 'paragraph' }] },
+      { type: 'repeat', attrs: { each: ' ' }, content: [{ type: 'paragraph' }] },
+    ],
+  };
+
+  test('names each Repeat key once, skipping a blank one', () => {
+    expect(collectDataKeys(doc).lists).toEqual(['items']);
+  });
+
+  test('says which list a pill is read inside, and nothing for one outside', () => {
+    const keys = collectDataKeys(doc);
+    expect(keys.inList).toEqual({ name: 'items', price: 'items' });
+    expect(keys.variables).toEqual(['firstName', 'name', 'price']);
   });
 });

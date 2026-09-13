@@ -17,6 +17,7 @@ import type { Mail } from '~/db/schema';
 import type { ContentMode } from '../content-mode-switch';
 import {
   initialPreviewData,
+  hasPreviewKeys,
   toPayload,
   type PreviewData,
 } from '../preview-data-panel';
@@ -70,8 +71,7 @@ type RenderVariant = 'preview' | 'html' | 'text';
 const variantFor = (mode: ContentMode): RenderVariant =>
   mode === 'html' ? 'html' : mode === 'text' ? 'text' : 'preview';
 
-const hasKeys = (keys: TemplateDataKeys) =>
-  keys.conditions.length > 0 || keys.variables.length > 0;
+const hasKeys = hasPreviewKeys;
 
 export type TemplateEditorModel = {
   template?: Mail;
@@ -236,10 +236,13 @@ export function useTemplateEditor(props: EmailEditorSandboxProps): TemplateEdito
     placeholders: {},
     where: {},
     urlVariables: [],
+    lists: [],
+    inList: {},
   });
   const [previewData, setPreviewData] = useState<PreviewData>({
     conditions: {},
     variables: {},
+    lists: {},
   });
   const [previewHtml, setPreviewHtml] = useState('');
   // The source view gets its own, indented render; the email in the frame stays
@@ -282,8 +285,7 @@ export function useTemplateEditor(props: EmailEditorSandboxProps): TemplateEdito
   const renderedSignature = useRef('');
   const sourceSignature = useRef('');
   const textSignature = useRef('');
-  const hasPreviewData =
-    previewKeys.conditions.length > 0 || previewKeys.variables.length > 0;
+  const hasPreviewData = hasPreviewKeys(previewKeys);
 
   /** Values for the keys the document has now, keeping anything already typed:
    *  only keys new to the document are seeded, and a key it has lost drops out.
@@ -297,6 +299,9 @@ export function useTemplateEditor(props: EmailEditorSandboxProps): TemplateEdito
       ),
       variables: Object.fromEntries(
         Object.entries(seeded.variables).map(([key, value]) => [key, current.variables[key] ?? value]),
+      ),
+      lists: Object.fromEntries(
+        Object.entries(seeded.lists).map(([key, value]) => [key, current.lists[key] ?? value]),
       ),
     };
   };
@@ -785,7 +790,7 @@ export function useTemplateEditor(props: EmailEditorSandboxProps): TemplateEdito
       return;
     }
     const json = editor?.getJSON();
-    const keys = json ? collectDataKeys(json) : { conditions: [], variables: [], placeholders: {}, where: {}, urlVariables: [] };
+    const keys = json ? collectDataKeys(json) : { conditions: [], variables: [], placeholders: {}, where: {}, urlVariables: [], lists: [], inList: {} };
     const content = JSON.stringify(json);
     try {
       await httpPost('/api/v1/emails/send', {

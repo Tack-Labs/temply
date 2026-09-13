@@ -30,6 +30,13 @@ export type TemplateDataKeys = {
   /** Variables that are destinations — a button's or link's URL, an image's
    *  source. They have no placeholder field, so previews stand one in. */
   urlVariables: string[];
+  /** Keys a Repeat reads — lists. A preview has to send each one, or the
+   *  block renders zero times the moment any data is sent at all. */
+  lists: string[];
+  /** The list a variable is read inside, by name: a pill in a Repeat reads
+   *  the current item before the top level, which is worth showing where
+   *  the sample values are typed. */
+  inList: Record<string, string>;
 };
 
 export type VariableLocation = {
@@ -64,9 +71,12 @@ export function collectDataKeys(content: unknown): TemplateDataKeys {
   const placeholders: Record<string, string> = {};
   const where: Record<string, VariableLocation> = {};
   const urlVariables: string[] = [];
+  const lists: string[] = [];
+  const inList: Record<string, string> = {};
   const seenCondition = new Set<string>();
   const seenVariable = new Set<string>();
   const seenUrl = new Set<string>();
+  const seenList = new Set<string>();
 
   const locate = (name: unknown, block: Node | null) => {
     if (typeof name !== 'string' || !name.trim() || !block || where[name.trim()]) return;
@@ -83,14 +93,22 @@ export function collectDataKeys(content: unknown): TemplateDataKeys {
     list.push(key);
   };
 
-  const walk = (node: Node | null | undefined, block: Node | null) => {
+  const walk = (node: Node | null | undefined, block: Node | null, list: string | null) => {
     if (!node || typeof node !== 'object') return;
     const here = node.type && BLOCK_KINDS.has(node.type) ? node : block;
+    let inside = list;
+    if (node.type === 'repeat') {
+      push(lists, seenList, node.attrs?.each);
+      const each = typeof node.attrs?.each === 'string' ? node.attrs.each.trim() : '';
+      if (each) inside = each;
+    }
 
     push(conditions, seenCondition, node.attrs?.showIfKey);
     if (node.type === 'variable') {
       push(variables, seenVariable, node.attrs?.id);
       locate(node.attrs?.id, here);
+      const name = typeof node.attrs?.id === 'string' ? node.attrs.id.trim() : '';
+      if (name && inside && !(name in inList)) inList[name] = inside;
       const fallback = node.attrs?.fallback;
       const id = typeof node.attrs?.id === 'string' ? node.attrs.id.trim() : '';
       if (id && typeof fallback === 'string' && fallback.trim() && !(id in placeholders)) placeholders[id] = fallback;
@@ -112,9 +130,9 @@ export function collectDataKeys(content: unknown): TemplateDataKeys {
       locate(node.attrs?.src, here);
     }
 
-    for (const child of node.content ?? []) walk(child, here);
+    for (const child of node.content ?? []) walk(child, here, inside);
   };
 
-  walk(content as Node, null);
-  return { conditions, variables, placeholders, where, urlVariables };
+  walk(content as Node, null, null);
+  return { conditions, variables, placeholders, where, urlVariables, lists, inList };
 }

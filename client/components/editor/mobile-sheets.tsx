@@ -166,9 +166,10 @@ export function MobileSheets({
 
       <BottomSheet returnFocus={returnFocus} open={open === 'data'} onOpenChange={close} title="Sample data">
         {model.hasPreviewData ? (
-          /* The panel is the desktop popover's: 28px fields, a 14px checkbox.
-             Grown to the shell's 44px row here, not in the shared panel. */
-          <div className="[&_input[type=checkbox]]:size-6 [&_input[type=text]]:min-h-11 [&_label]:min-h-11">
+          /* The panel is the desktop popover's: 28px fields and steppers, a
+             14px checkbox. Grown to the shell's 44px row here, not in the
+             shared panel. */
+          <div className="[&_button]:min-h-11 [&_button]:min-w-11 [&_input[type=checkbox]]:size-6 [&_input[type=text]]:min-h-11 [&_label]:min-h-11">
             <PreviewDataPanel keys={model.previewKeys} data={model.previewData} onChange={model.setPreviewData} />
           </div>
         ) : (

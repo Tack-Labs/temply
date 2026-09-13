@@ -199,10 +199,10 @@ describe('collectContentFindings — positions', () => {
 });
 
 describe('unresolvedVariables', () => {
-  const keys = { conditions: [], variables: ['firstName', 'orderUrl'], placeholders: {}, where: {}, urlVariables: [] };
+  const keys = { conditions: [], variables: ['firstName', 'orderUrl'], placeholders: {}, where: {}, urlVariables: [], lists: [], inList: {} };
 
   it('is quiet about a pill that carries a placeholder', () => {
-    const withPlaceholder = { conditions: [], variables: ['firstName', 'orderUrl'], placeholders: { firstName: 'there' }, where: {}, urlVariables: [] };
+    const withPlaceholder = { conditions: [], variables: ['firstName', 'orderUrl'], placeholders: { firstName: 'there' }, where: {}, urlVariables: [], lists: [], inList: {} };
     expect(unresolvedVariables(withPlaceholder, {})).toEqual(['orderUrl']);
   });
 
