@@ -1,7 +1,7 @@
 import { API_BURST_PER_MINUTE, PLAN_LIMITS, TEST_API_CALLS_PER_MONTH } from '@temply/shared/plans';
 import { CodeTabs } from '~/components/docs/code-tabs';
 import { Code, H2, H3, P } from '~/components/docs/docs-content';
-import { API_ORIGIN, metaSnippet, renderSnippets, SNIPPET_LANGUAGES } from '~/lib/api-snippets';
+import { API_ORIGIN, errorSnippets, metaSnippet, renderSnippets, sendSnippets, SNIPPET_LANGUAGES } from '~/lib/api-snippets';
 
 const EXAMPLE = 'tpl_AbCd1234';
 
@@ -145,6 +145,24 @@ export function ApiReference() {
       </div>
 
       <div className="mt-10">
+        <H3 id="api-send">Send it</H3>
+        <P>
+          Temply stops at the finished email; your provider delivers it. The
+          subject is the template’s <Code>title</Code>, from the metadata call, and
+          the render’s <Code>html</Code> and <Code>text</Code> are the two parts of
+          one multipart message — send both, so inboxes that prefer plain text get
+          the same email. Resend is shown because it is what Temply itself sends
+          through; any provider takes the same three things.
+        </P>
+        <CodeTabs languages={SNIPPET_LANGUAGES} snippets={sendSnippets(EXAMPLE)} />
+        <P>
+          Cache on <Code>updatedAt</Code> rather than fetching metadata before every
+          send: it moves only when the copy your key serves changes — on publish
+          for a live key, on save for a test key.
+        </P>
+      </div>
+
+      <div className="mt-10">
         <H3 id="api-errors">Errors and limits</H3>
         <P>
           Every error is JSON with a <Code>status</Code>, a <Code>message</Code> you
@@ -167,6 +185,13 @@ export function ApiReference() {
           ({API_BURST_PER_MINUTE.test} for a test key); past that the call is refused
           without counting, and Retry-After says how long to wait.
         </P>
+        <P>
+          Two answers deserve code of their own. A 422 lists the values to add
+          under <Code>missing</Code>, so the fix is in your data, not a retry. A 429
+          carries <Code>Retry-After</Code> in seconds, and the refused call was not
+          counted, so waiting that long and trying again costs nothing.
+        </P>
+        <CodeTabs languages={SNIPPET_LANGUAGES} snippets={errorSnippets(EXAMPLE)} />
         <Fields
           rows={[
             ['Free', `No live keys — a test key with ${TEST_API_CALLS_PER_MONTH.toLocaleString('en-GB')} calls a month.`],
