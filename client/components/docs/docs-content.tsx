@@ -7,12 +7,12 @@ import {
   ArrowUpRightSquare,
   CodeXmlIcon,
   ColumnsIcon,
-  DivideIcon,
   FootprintsIcon,
   Heading1,
   Heading2,
   Heading3,
   ImageIcon,
+  PanelTopIcon,
   List,
   ListOrdered,
   Minus,
@@ -198,17 +198,20 @@ const textBlocks: BlockRow[] = [
     what: 'Indented text with a rule down its left edge.',
     when: 'To set a quote or a pulled-out remark apart from the body copy.',
   },
+];
+
+const componentBlocks: BlockRow[] = [
   {
-    icon: FootprintsIcon,
-    name: 'Footer',
-    what: 'A paragraph in the smaller, quieter footer style.',
-    when: 'For the address, the unsubscribe line, and legal small print at the bottom.',
+    icon: PanelTopIcon,
+    name: 'Headers',
+    what: 'Three designed openings: a logo with text stacked or side by side, or a logo over a cover image.',
+    when: 'To start an email the way most do, then change the words and the picture.',
   },
   {
-    icon: DivideIcon,
-    name: 'Hard Break',
-    what: 'A line break inside the current block.',
-    when: 'When you want a new line without the paragraph spacing a new block adds. Shift+Enter on a desktop, the ↵ key on the phone’s text bar; it is not a block of its own.',
+    icon: FootprintsIcon,
+    name: 'Footers',
+    what: 'Three designed closings, in the smaller footer style: a copyright line, a feedback call to action, a company signature.',
+    when: 'For the address, the unsubscribe line and the legal small print — pick the nearest and edit it down.',
   },
 ];
 
@@ -312,6 +315,7 @@ export function Editor() {
       <BlockGroup id="blocks-media" title="Media" blocks={mediaBlocks} />
       <BlockGroup id="blocks-layout" title="Layout" blocks={layoutBlocks} />
       <BlockGroup id="blocks-advanced" title="Advanced" blocks={advancedBlocks} />
+      <BlockGroup id="blocks-components" title="Components" blocks={componentBlocks} />
 
       <P>
         The slash menu also carries a Components group with pre-built headers

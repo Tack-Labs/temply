@@ -35,6 +35,7 @@ export const EDITOR_SHORTCUTS: ShortcutGroup[] = [
       { keys: '1. ', what: 'Start a numbered list' },
       { keys: '> ', what: 'Start a blockquote' },
       { keys: '**text**', what: 'Bold — *text* italic, `text` code, ~~text~~ struck through' },
+      { keys: 'Shift+Enter', what: 'A new line inside the block, without a new block’s spacing' },
     ],
   },
   {
