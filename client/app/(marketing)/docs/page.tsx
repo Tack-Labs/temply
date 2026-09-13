@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { DocsNav } from '~/components/docs/docs-nav';
 import { ApiReference } from '~/components/docs/api-reference';
+import { DarkMode } from '~/components/docs/dark-mode';
 import { YourTeam } from '~/components/docs/team';
 import {
   CreatingATemplate,
@@ -26,6 +27,7 @@ const sections = [
   { id: 'introduction', label: 'Introduction' },
   { id: 'creating-a-template', label: 'Creating a template' },
   { id: 'brands', label: 'Using brands' },
+  { id: 'dark-mode', label: 'Dark mode' },
   { id: 'team', label: 'Your team' },
   {
     id: 'api',
@@ -89,6 +91,7 @@ export default function DocsPage() {
             <Introduction />
             <CreatingATemplate />
             <UsingBrands />
+            <DarkMode />
             <YourTeam />
             <ApiReference />
             <Editor />
