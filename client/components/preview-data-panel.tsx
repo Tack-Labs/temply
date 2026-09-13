@@ -71,6 +71,8 @@ export function PreviewDataPanel({
   // which values every row will repeat.
   const topLevel = keys.variables.filter((key) => !keys.inList[key]);
   const perList = keys.lists.map((list) => ({ list, variables: keys.variables.filter((key) => keys.inList[key] === list) }));
+  // One column. The panel lives in a 320px popover and a phone sheet, and
+  // two columns there left each field a few characters wide.
   const variableRow = (key: string) => (
     <label key={key} className="flex items-center gap-2">
       <span className="w-24 shrink-0 truncate font-mono text-xs text-muted">{key}</span>
@@ -129,7 +131,7 @@ export function PreviewDataPanel({
       {topLevel.length > 0 && (
         <div className="space-y-1.5">
           <p className="text-2xs font-medium tracking-wide text-faint uppercase">Variables</p>
-          <div className="grid gap-2 sm:grid-cols-2">{topLevel.map(variableRow)}</div>
+          <div className="grid gap-2">{topLevel.map(variableRow)}</div>
         </div>
       )}
 
@@ -156,7 +158,7 @@ export function PreviewDataPanel({
               </div>
             </div>
             {variables.length > 0 ? (
-              <div className="grid gap-2 sm:grid-cols-2">{variables.map(variableRow)}</div>
+              <div className="grid gap-2">{variables.map(variableRow)}</div>
             ) : (
               <p className="text-xs text-muted">No variables inside it yet, so every item reads the same.</p>
             )}
