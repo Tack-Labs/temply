@@ -6,7 +6,7 @@ import { hashApiKey } from '../lib/codes';
 import { checkApiQuota, recordApiCall } from '../lib/api-quota';
 import { checkBurst } from '../lib/rate-limit';
 import { render } from '../render/render';
-import { MissingVariablesError } from '../render/engine';
+import { MissingVariablesError, RepeatNotListError } from '../render/engine';
 import { json, notFound, tooManyRequests, unauthorized, unprocessable } from '../lib/errors';
 import { authPlugin } from '../plugins/auth';
 import { PUBLIC_PREVIEW_ROUTE, PUBLIC_RENDER_ROUTE, PUBLIC_TEMPLATE_ROUTE } from '@temply/shared/api';
@@ -191,6 +191,9 @@ export const publicRoutes = new Elysia()
         // of a real recipient, so the render is refused and says what to add.
         if (error instanceof MissingVariablesError) {
           return unprocessable(error.message, { missing: error.missing });
+        }
+        if (error instanceof RepeatNotListError) {
+          return unprocessable(error.message, { key: error.key });
         }
         throw error;
       }

@@ -283,6 +283,16 @@ export class MissingVariablesError extends Error {
   }
 }
 
+/** A Repeat's key held something other than a list. The caller's data is
+ *  wrong in a way only the caller can fix, so the API answers 422 rather
+ *  than the 500 a bare Error would become. */
+export class RepeatNotListError extends Error {
+  constructor(readonly key: string) {
+    super(`"${key}" must be a list for the Repeat block to read it`);
+    this.name = 'RepeatNotListError';
+  }
+}
+
 /**
  * Root-relative sources ("/brand/logo.png") resolve against the app in a
  * browser tab and against nothing in an inbox or a sandboxed preview frame.
@@ -1779,7 +1789,7 @@ export class Engine {
 
     const values = this.payloadValues.get(each) ?? payloadValue[each] ?? [];
     if (!Array.isArray(values)) {
-      throw new Error(`Payload value for each "${each}" is not an array`);
+      throw new RepeatNotListError(each);
     }
 
     return (

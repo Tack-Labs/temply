@@ -117,6 +117,31 @@ export function ApiReference() {
           same thing the editor’s composing view shows.
         </P>
         <Block>{JSON.stringify({ data: { firstName: 'Ada', isMember: true } }, null, 2)}</Block>
+        <P>
+          A <strong className="font-medium text-ink">Repeat</strong> block reads a list.
+          Its “Repeat over” key names an array in <Code>data</Code>, and the blocks
+          inside come out once per item: a variable inside the block reads the
+          current item first (<Code>{'{{name}}'}</Code> is <Code>items[0].name</Code>,
+          then <Code>items[1].name</Code>…), and falls back to the top level of{' '}
+          <Code>data</Code> when the item has no such field. An empty list, or no
+          key at all, renders the block zero times. A value that is not a list is a
+          422 naming the key.
+        </P>
+        <Block>
+          {JSON.stringify(
+            {
+              data: {
+                firstName: 'Ada',
+                items: [
+                  { name: 'Notebook', price: '£12' },
+                  { name: 'Pen', price: '£3' },
+                ],
+              },
+            },
+            null,
+            2,
+          )}
+        </Block>
       </div>
 
       <div className="mt-10">
@@ -129,7 +154,7 @@ export function ApiReference() {
           rows={[
             ['401', 'No key, an unknown key, or a revoked one.'],
             ['404', 'No template with that id on this account — or, with a live key, one that has never been published.'],
-            ['422', 'Data was sent but a variable has no value. The body lists them under missing.'],
+            ['422', 'Data was sent but a variable has no value — the body lists them under missing — or a Repeat’s key holds something other than a list.'],
             ['429', 'Either the month’s calls are used up, or the key went past its per-minute burst. The message says which; a burst answer carries a Retry-After header in seconds.'],
             ['500', 'The stored template could not be read. Open it in the editor and save.'],
           ]}

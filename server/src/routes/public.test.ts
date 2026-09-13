@@ -362,6 +362,19 @@ describe('POST /api/public/v1/templates/:shortCode/render', () => {
       expect(body.message).toContain('firstName');
     });
 
+    it('422s naming the key when a Repeat is sent something other than a list', async () => {
+      await givePlan(db, OWNER, 'pro');
+      const { fullKey } = await seedKey(OWNER);
+      const REPEAT = '{"type":"doc","content":[{"type":"repeat","attrs":{"each":"items"},"content":[{"type":"paragraph","content":[{"type":"variable","attrs":{"id":"name","fallback":"item"}}]}]}]}';
+      const shortCode = await seedTemplate(OWNER, REPEAT);
+
+      const res = await renderTemplate(shortCode, fullKey, { items: 'Notebook' });
+      expect(res.status).toBe(422);
+      const body = await res.json();
+      expect(body.message).toContain('items');
+      expect(body.message).toContain('list');
+    });
+
     it('never mails the placeholder: an optional pill renders as nothing', async () => {
       await givePlan(db, OWNER, 'pro');
       const { fullKey } = await seedKey(OWNER);
