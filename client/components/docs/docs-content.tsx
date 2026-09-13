@@ -85,6 +85,15 @@ export function P({ children }: { children: ReactNode }) {
 }
 
 /** Inline code and key names. */
+/** A request or response shape, shown as it is sent or arrives. */
+export function Block({ children }: { children: string }) {
+  return (
+    <pre className="mt-5 max-w-2xl overflow-x-auto rounded-md border border-line bg-raised p-4 font-mono text-sm leading-relaxed text-ink">
+      <code>{children}</code>
+    </pre>
+  );
+}
+
 export function Code({ children }: { children: ReactNode }) {
   return (
     <code className="rounded-xs border border-line bg-raised px-1.5 py-0.5 font-mono text-sm text-ink">
@@ -380,6 +389,57 @@ export function Editor() {
           Once you do send data, a key that is missing from it counts as false
           and the block is dropped. So send the key, even when it is false.
         </P>
+        <P>
+          With a block gated on <Code>isMember</Code>, this request keeps it, and
+          the same request with <Code>false</Code> — or without the key — drops it:
+        </P>
+        <Block>{JSON.stringify({ data: { firstName: 'Ada', isMember: true } }, null, 2)}</Block>
+      </div>
+
+      <div className="mt-12">
+        <H3 id="repeat">Repeat</H3>
+        <P>
+          A <strong className="font-medium text-ink">Repeat</strong> block turns a
+          list in your data into a run of blocks. Insert one from the slash menu,
+          set <strong className="font-medium text-ink">Repeat over</strong> to the
+          key that holds the list, and build one item inside it: a line, a card,
+          a row of columns. On render the block comes out once per item, and a
+          variable pill inside it reads the current item first — so{' '}
+          <Code>{'{{name}}'}</Code> is each item’s own name — and the top level of
+          your data when the item has no such field. Anything typed in plainly
+          repeats as written, so a Repeat is only as useful as the pills in it.
+        </P>
+        <P>
+          In the editor a Repeat shows its one item and nothing more, since there
+          is no list to count; the marker in the margin is what tells it apart
+          from ordinary text. A Show if on a block inside the repeat is answered
+          by the item too, so one item can hide a line the next one shows.
+        </P>
+        <P>
+          With <Code>Repeat over</Code> set to <Code>items</Code> and a line inside
+          reading <Code>{'{{name}} — {{price}}'}</Code>, this request renders two
+          lines:
+        </P>
+        <Block>
+          {JSON.stringify(
+            {
+              data: {
+                firstName: 'Ada',
+                items: [
+                  { name: 'Notebook', price: '£12' },
+                  { name: 'Pen', price: '£3' },
+                ],
+              },
+            },
+            null,
+            2,
+          )}
+        </Block>
+        <P>
+          An empty list, or no <Code>items</Code> key at all, renders the block
+          zero times. A value that is not a list is refused with a 422 that names
+          the key.
+        </P>
       </div>
     </section>
   );
@@ -470,13 +530,13 @@ export function CreatingATemplate() {
       {/* The snippet is the one shipped in the editor's own help popover, so
           the docs and the product cannot drift apart. overflow-x-auto keeps a
           long URL inside the block instead of widening the page. */}
-      <pre className="mt-5 max-w-2xl overflow-x-auto rounded-md border border-line bg-raised p-4 font-mono text-sm leading-relaxed text-ink">
+      <Block>
         {`curl -X POST \\
   -H "Authorization: Bearer tply_live_..." \\
   -H "Content-Type: application/json" \\
   -d '{"data":{"firstName":"Ada","isMember":true}}' \\
   ${PUBLIC_API_URL}/templates/tpl_XXXXXXXX/render`}
-      </pre>
+      </Block>
       <P>
         The response carries the rendered <Code>html</Code>, with your data
         already in it, ready to hand to your mail provider. Omit the{' '}

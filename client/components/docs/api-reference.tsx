@@ -1,18 +1,9 @@
 import { API_BURST_PER_MINUTE, PLAN_LIMITS, TEST_API_CALLS_PER_MONTH } from '@temply/shared/plans';
 import { CodeTabs } from '~/components/docs/code-tabs';
-import { Code, H2, H3, P } from '~/components/docs/docs-content';
+import { Block, Code, H2, H3, P } from '~/components/docs/docs-content';
 import { API_ORIGIN, errorSnippets, metaSnippet, renderSnippets, sendSnippets, SNIPPET_LANGUAGES } from '~/lib/api-snippets';
 
 const EXAMPLE = 'tpl_AbCd1234';
-
-/** A response or request shape, shown as it arrives. */
-function Block({ children }: { children: string }) {
-  return (
-    <pre className="mt-5 max-w-2xl overflow-x-auto rounded-md border border-line bg-raised p-4 font-mono text-sm leading-relaxed text-ink">
-      <code>{children}</code>
-    </pre>
-  );
-}
 
 /** A definition list for fields and codes: term, then what it means. */
 function Fields({ rows }: { rows: [string, string][] }) {
