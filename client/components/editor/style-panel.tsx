@@ -4,9 +4,8 @@ import type { Editor } from '@tiptap/core';
 import { useEditorState } from '@tiptap/react';
 import type { Transaction } from '@tiptap/pm/state';
 import { useEffect } from 'react';
-import { enclosingNode, selectedBlock } from '~/core/editor/commands/block';
-import { hasStyleContent, menuContentFor } from '~/core/editor/components/menu-content';
-import { RepeatMenuContent } from '~/core/editor/components/repeat-menu/repeat-menu-content';
+import { selectedBlock } from '~/core/editor/commands/block';
+import { hasStyleContent, menuContentFor, wrappersAround } from '~/core/editor/components/menu-content';
 import { Divider } from '~/core/editor/components/ui/divider';
 import { TooltipProvider } from '~/core/editor/components/ui/tooltip';
 import { BottomSheet } from './bottom-sheet';
@@ -48,10 +47,12 @@ export function StylePanel({ editor, open, onOpenChange, returnFocus }: { editor
     selector: ({ editor }) => (editor ? (selectedBlock(editor)?.node.type.name ?? null) : null),
   });
   const Content = typeName ? menuContentFor(typeName) : null;
-  // A block inside a Repeat carries the repeat's settings below its own: the
-  // tap model never selects the wrapper itself (see enclosingNode), so the
-  // block tapped inside it is where they are found.
-  const inRepeat = useEditorState({ editor, selector: ({ editor }) => (editor ? enclosingNode(editor, 'repeat') !== null : false) });
+  // A block inside a Repeat, a Section or a Columns carries the wrapper's
+  // settings above its own: the tap model never selects the wrapper itself
+  // (see enclosingNodes), so the block tapped inside it is where they are
+  // found. Joined to a string so the selector's answer compares by value.
+  const wrapperKey = useEditorState({ editor, selector: ({ editor }) => (editor ? wrappersAround(editor).join('/') : '') }) ?? '';
+  const wrappers = wrapperKey ? wrapperKey.split('/') : [];
   const hasContent = useEditorState({ editor, selector: ({ editor }) => (editor ? hasStyleContent(editor) : false) });
 
   // Both ways the sheet can end up pointing at nothing, and both go through
@@ -96,7 +97,8 @@ export function StylePanel({ editor, open, onOpenChange, returnFocus }: { editor
     if (open && !hasContent) onOpenChange(false);
   }, [open, hasContent, onOpenChange]);
 
-  const title = Content && typeName ? (LABELS[typeName] ?? typeName) : inRepeat ? LABELS.repeat : 'Style';
+  const innermost = wrappers[wrappers.length - 1];
+  const title = Content && typeName ? (LABELS[typeName] ?? typeName) : innermost ? (LABELS[innermost] ?? innermost) : 'Style';
   return (
     <BottomSheet open={open} onOpenChange={onOpenChange} returnFocus={returnFocus} title={title}>
       {/* The menu components use Radix Tooltip and normally get their provider
@@ -109,16 +111,25 @@ export function StylePanel({ editor, open, onOpenChange, returnFocus }: { editor
             strip's vertical dividers go: between wrapped 44px targets they
             read as uneven gaps rather than groups. */}
         <div className="mly-editor flex flex-wrap items-center gap-2 py-1 [&_button]:min-h-11 [&_button]:min-w-11 [&_input]:min-h-11 [&_[data-divider=vertical]]:hidden">
-          {/* The repeat's settings sit above the block's own, the way a pill's
+          {/* A wrapper's settings sit above the block's own, the way a pill's
               fields sit above its text formatting: what the block is part of
-              comes before what it looks like. */}
-          {inRepeat && editor ? (
-            <div className="flex w-full flex-col gap-2">
-              <p className="text-xs font-medium text-muted">Repeat</p>
-              <RepeatMenuContent editor={editor} />
-              {Content ? <Divider type="horizontal" /> : null}
-            </div>
-          ) : null}
+              comes before what it looks like, outermost first. */}
+          {editor
+            ? wrappers.map((typeName, index) => {
+                const Wrapper = menuContentFor(typeName);
+                if (!Wrapper) return null;
+                const last = index === wrappers.length - 1;
+                return (
+                  <div key={typeName} className="flex w-full flex-col gap-2">
+                    <p className="text-xs font-medium text-muted">{LABELS[typeName] ?? typeName}</p>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Wrapper editor={editor} />
+                    </div>
+                    {Content || !last ? <Divider type="horizontal" /> : null}
+                  </div>
+                );
+              })
+            : null}
           {Content && editor ? <Content editor={editor} /> : null}
         </div>
       </TooltipProvider>

@@ -2,7 +2,7 @@ import { describe, expect, it } from 'bun:test';
 import { TextSelection } from '@tiptap/pm/state';
 import '../test/dom';
 import { makeEditor } from '../test/make-editor';
-import { blockCommands, clearBlockSelection, deleteBlock, duplicateBlock, enclosingNode, isInlineAtomSelected, moveBlock, selectBlockAt, selectedBlock } from './block';
+import { blockCommands, clearBlockSelection, deleteBlock, duplicateBlock, enclosingNodes, isInlineAtomSelected, moveBlock, selectBlockAt, selectedBlock } from './block';
 
 const para = (text: string) => ({ type: 'paragraph', content: [{ type: 'text', text }] });
 const doc = { type: 'doc', content: [para('one'), para('two'), para('three')] };
@@ -157,7 +157,7 @@ describe('a selected inline atom', () => {
   });
 });
 
-describe('enclosingNode', () => {
+describe('enclosingNodes around a repeat', () => {
   const inRepeat = {
     type: 'doc',
     content: [
@@ -171,20 +171,20 @@ describe('enclosingNode', () => {
     // The paragraph inside the repeat: doc(0) > para "before" (0..8) > repeat opens at 8, its paragraph at 9.
     selectBlockAt(editor, 9);
     expect(selectedBlock(editor)!.node.textContent).toBe('inside');
-    const found = enclosingNode(editor, 'repeat');
+    const [found] = enclosingNodes(editor, ['repeat']);
     expect(found?.node.type.name).toBe('repeat');
     expect(found?.pos).toBe(8);
     editor.destroy();
   });
 
-  it('is null for a block with no such wrapper, and for the wrapper itself', () => {
+  it('is empty for a block with no such wrapper, and for the wrapper itself', () => {
     const editor = makeEditor(inRepeat, { touch: true });
     selectBlockAt(editor, 0);
-    expect(enclosingNode(editor, 'repeat')).toBeNull();
+    expect(enclosingNodes(editor, ['repeat'])).toEqual([]);
     // The repeat selected as a node is not inside a repeat.
     selectBlockAt(editor, 8);
     expect(selectedBlock(editor)!.node.type.name).toBe('repeat');
-    expect(enclosingNode(editor, 'repeat')).toBeNull();
+    expect(enclosingNodes(editor, ['repeat'])).toEqual([]);
     editor.destroy();
   });
 });
@@ -230,6 +230,28 @@ describe('deleteBlock inside a wrapper', () => {
     expect(topLevel(editor)).toEqual(['columns']);
     expect(editor.state.doc.firstChild!.childCount).toBe(2);
     expect(editor.state.doc.firstChild!.firstChild!.textContent).toBe('');
+    editor.destroy();
+  });
+});
+
+describe('enclosingNodes', () => {
+  const wrap = (type: string, children: unknown[], attrs?: Record<string, unknown>) => ({ type, content: children, ...(attrs ? { attrs } : {}) });
+
+  it('lists the wrappers around the selected block from the outside in', () => {
+    const editor = makeEditor(
+      { type: 'doc', content: [wrap('section', [wrap('columns', [wrap('column', [para('left')]), wrap('column', [para('right')])])])] },
+      { touch: true },
+    );
+    selectBlockAt(editor, 3); // "left": section opens at 0, columns at 1, column at 2, paragraph at 3
+    expect(selectedBlock(editor)!.node.textContent).toBe('left');
+    expect(enclosingNodes(editor, ['repeat', 'section', 'columns']).map((f) => f.node.type.name)).toEqual(['section', 'columns']);
+    editor.destroy();
+  });
+
+  it('is empty for a top-level block', () => {
+    const editor = makeEditor({ type: 'doc', content: [para('a')] }, { touch: true });
+    selectBlockAt(editor, 0);
+    expect(enclosingNodes(editor, ['repeat', 'section', 'columns'])).toEqual([]);
     editor.destroy();
   });
 });

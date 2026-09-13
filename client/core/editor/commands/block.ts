@@ -30,22 +30,23 @@ export function selectedBlock(editor: Editor): { node: Node; pos: number; depth:
 }
 
 /**
- * The nearest node of `typeName` strictly around the selected block — the
- * Repeat a paragraph sits in, say — or null when there is none, or when the
- * selected block is that node itself. The phone's tap model never selects a
- * wrapper (see `tapTransaction`), so a wrapper's settings are reached from
- * whichever block inside it was tapped; this is how the Style sheet and the
- * bar find them.
+ * The nodes of the given types strictly around the selected block — the
+ * Section and the Columns a paragraph sits in, say — from the outside in.
+ * Empty when there are none, and never including the selected block itself.
+ * The phone's tap model never selects a wrapper (see `tapTransaction`), so a
+ * wrapper's settings are reached from whichever block inside it was tapped;
+ * this is how the Style sheet and the bar find them.
  */
-export function enclosingNode(editor: Editor, typeName: string): { node: Node; pos: number } | null {
+export function enclosingNodes(editor: Editor, typeNames: readonly string[]): Array<{ node: Node; pos: number }> {
   const block = selectedBlock(editor);
-  if (!block) return null;
+  if (!block) return [];
   const $pos = editor.state.doc.resolve(block.pos);
-  for (let depth = $pos.depth; depth >= 1; depth--) {
+  const found: Array<{ node: Node; pos: number }> = [];
+  for (let depth = 1; depth <= $pos.depth; depth++) {
     const node = $pos.node(depth);
-    if (node.type.name === typeName) return { node, pos: $pos.before(depth) };
+    if (typeNames.includes(node.type.name)) found.push({ node, pos: $pos.before(depth) });
   }
-  return null;
+  return found;
 }
 
 /**
