@@ -54,6 +54,7 @@ export function Select(props: SelectProps) {
       icon={icon as LucideIcon | undefined}
       iconClassName={iconClassName}
       className={className}
+      keepFocus
     />
   );
 

@@ -1,6 +1,6 @@
 'use client';
 
-import type { ReactNode } from 'react';
+import type { ComponentProps, ReactNode } from 'react';
 import { CheckIcon, ChevronDownIcon, type LucideIcon } from 'lucide-react';
 import * as DropdownMenuPrimitive from '@radix-ui/react-dropdown-menu';
 import {
@@ -41,6 +41,7 @@ export function DropdownSelect({
   className,
   align = 'start',
   touch = false,
+  keepFocus = false,
 }: {
   /** Accessible name; the trigger has no visible label of its own. */
   label: string;
@@ -62,6 +63,15 @@ export function DropdownSelect({
    *  so a sheet cannot reach the rows with a wrapper class — it has to be asked
    *  for here. Off by default: every desktop dropdown keeps its `size`. */
   touch?: boolean;
+  /** Leaves focus where it is when the menu opens and closes. For a dropdown
+   *  inside the editor's bubble menus: the menu opens on pointerdown and
+   *  moves focus into itself, the editor blurs, and the bubble menu hides on
+   *  blur unless a mousedown inside it came first — which it cannot, since
+   *  mousedown follows pointerdown. The menu then floats at the page's
+   *  corner with nothing to anchor to. The mouse still drives the rows and
+   *  Escape still closes; only the keyboard walk from the trigger is given
+   *  up, and the bubble menu never had one. */
+  keepFocus?: boolean;
 }) {
   const selected = options.find((option) => option.value === value);
 
@@ -92,6 +102,7 @@ export function DropdownSelect({
       <DropdownMenuContent
         align={align}
         className="max-h-72 w-[var(--radix-dropdown-menu-trigger-width)] min-w-[11rem] overflow-y-auto"
+        {...(keepFocus ? KEEP_FOCUS : {})}
       >
         <DropdownMenuPrimitive.RadioGroup value={value} onValueChange={onValueChange}>
           {options.map((option) => (
@@ -119,6 +130,14 @@ export function DropdownSelect({
     </DropdownMenu>
   );
 }
+
+const keepFocusEvent = (event: Event) => event.preventDefault();
+// Radix's DropdownMenu types list onOpenAutoFocus as private, but its menu
+// content composes whatever handler it is handed (react-menu's
+// MenuContentImpl), which is the only way to keep focus where it was at
+// open. Typed as the public props so the spread compiles; should a Radix
+// upgrade stop forwarding it, the bubble-menu symptom above comes back.
+const KEEP_FOCUS = { onOpenAutoFocus: keepFocusEvent, onCloseAutoFocus: keepFocusEvent } as ComponentProps<typeof DropdownMenuContent>;
 
 function Tag({ children }: { children: ReactNode }) {
   return (
