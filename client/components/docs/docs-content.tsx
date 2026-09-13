@@ -414,10 +414,14 @@ export function Editor() {
         </P>
         <FigureRepeat />
         <P>
-          In the editor a Repeat shows its one item and nothing more, since there
-          is no list to count; the marker in the margin is what tells it apart
-          from ordinary text. A Show if on a block inside the repeat is answered
-          by the item too, so one item can hide a line the next one shows.
+          In the editor you edit one item, and the rows the list would add are
+          drawn faded beneath it — as many as the sample data says, two unless
+          you change it in the Data panel — so the rhythm of the repetition is
+          on the canvas while you write. The copies follow every keystroke and
+          take no typing of their own: click one and you are back in the row.
+          The marker in the margin carries the count. A Show if on a block
+          inside the repeat is answered by the item too, so one item can hide a
+          line the next one shows.
         </P>
         <P>
           With <Code>Repeat over</Code> set to <Code>items</Code> and a line inside
