@@ -38,4 +38,13 @@ describe('text commands', () => {
     expect(textCommands.strike.isActive!(editor)).toBe(true);
     editor.destroy();
   });
+
+  it('breaks the line inside the paragraph rather than starting a new block', () => {
+    const editor = makeEditor({ type: 'doc', content: [{ type: 'paragraph', content: [{ type: 'text', text: 'Hello' }] }] });
+    editor.commands.setTextSelection(6);
+    textCommands.lineBreak.run(editor);
+    expect(editor.state.doc.childCount).toBe(1);
+    expect(editor.getHTML()).toMatch(/Hello<br/);
+    editor.destroy();
+  });
 });

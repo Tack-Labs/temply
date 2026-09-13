@@ -208,7 +208,7 @@ const textBlocks: BlockRow[] = [
     icon: DivideIcon,
     name: 'Hard Break',
     what: 'A line break inside the current block.',
-    when: 'When you want a new line without the paragraph spacing a new block adds.',
+    when: 'When you want a new line without the paragraph spacing a new block adds. Shift+Enter on a desktop; the ↵ key on the phone’s text bar.',
   },
 ];
 

@@ -167,6 +167,7 @@ export function TextFormatBar({
         <button type="button" aria-label="Insert variable" onMouseDown={keepFocus} onPointerDown={keepFocus} onClick={openVariable} className={cn('flex h-11 min-w-11 flex-1 items-center justify-center rounded-md text-ink hover:bg-hover', pressable)}>
           <BracesIcon className="size-5" />
         </button>
+        <Toggle editor={editor} command={textCommands.lineBreak} />
         <button
           type="button"
           aria-label="More formatting"

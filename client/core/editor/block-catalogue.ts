@@ -20,15 +20,19 @@ export type CatalogueGroup = {
  * Style at all; its seven fields live in a node-view popover laid out for a
  * mouse. Offering either from `+` would be a dead end; the slash menu keeps
  * them, and a card that arrived from a desktop can still be moved and deleted.
- * The set is explicit because `blockCatalogue()`'s "rest" fallback re-adds
- * anything the group titles do not name.
+ * Hard Break is a line break at the caret, which as a tile could only make
+ * a new block holding one; the phone's text bar has a key for it instead.
+ * Footer, the empty footer block, sat beside Footers, the three designed
+ * ones, and read as the same thing twice — a preset edited down is the
+ * empty one. The set is explicit because `blockCatalogue()`'s "rest"
+ * fallback re-adds anything the group titles do not name.
  */
-export const PHONE_EXCLUDED_TITLES = new Set(['Inline Image', 'Link Card']);
+export const PHONE_EXCLUDED_TITLES = new Set(['Inline Image', 'Link Card', 'Hard Break', 'Footer']);
 
 /** The phone's grouping of the same blocks the slash menu offers. Titles
  *  are matched, not ids, because BlockItem has no stable id for leaves. */
 export const CATALOGUE_GROUPS: Array<{ id: CatalogueGroup['id']; title: string; titles: string[] }> = [
-  { id: 'content', title: 'Content', titles: ['Text', 'Heading 1', 'Heading 2', 'Heading 3', 'Bullet List', 'Numbered List', 'Image', 'Logo', 'Button', 'Hard Break', 'Blockquote', 'Footer'] },
+  { id: 'content', title: 'Content', titles: ['Text', 'Heading 1', 'Heading 2', 'Heading 3', 'Bullet List', 'Numbered List', 'Image', 'Logo', 'Button', 'Blockquote'] },
   { id: 'layout', title: 'Layout', titles: ['Columns', 'Section', 'Divider', 'Spacer'] },
   { id: 'logic', title: 'Logic', titles: ['Repeat', 'Custom HTML'] },
   { id: 'components', title: 'Components', titles: ['Headers', 'Footers'] },
