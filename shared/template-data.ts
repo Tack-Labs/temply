@@ -15,6 +15,12 @@ type Node = {
   content?: Node[] | null;
 };
 
+/** How many items a list is previewed with: enough rows to see the
+ *  repetition, few enough that a sheet stays short. The editor's own
+ *  copies and the sample-data panel read the same numbers. */
+export const LIST_ITEMS_DEFAULT = 2;
+export const LIST_ITEMS_MAX = 5;
+
 export type TemplateDataKeys = {
   /** Keys read by "Show if" — booleans. */
   conditions: string[];

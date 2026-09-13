@@ -1,7 +1,7 @@
 'use client';
 
 import { MinusIcon, PlusIcon } from 'lucide-react';
-import type { TemplateDataKeys } from '@temply/shared/template-data';
+import { LIST_ITEMS_DEFAULT, LIST_ITEMS_MAX, type TemplateDataKeys } from '@temply/shared/template-data';
 import { Button } from '~/components/ui/button';
 
 /**
@@ -22,9 +22,6 @@ export type PreviewData = {
   lists: Record<string, number>;
 };
 
-/** Enough rows to see the repetition; few enough that the sheet stays short. */
-export const LIST_ITEMS_DEFAULT = 2;
-export const LIST_ITEMS_MAX = 5;
 
 /** A destination with no placeholder of its own gets an obvious stand-in,
  *  so a test send has somewhere to point and nobody is asked to invent a

@@ -356,6 +356,35 @@
     opacity: 1;
   }
 
+  /* The rows a Repeat's list would add, under the row being edited. Faded
+     and inert: they are the shape of repetition, not more places to type. A
+     pill inside is static HTML here (the node view only draws the live
+     row), so it is dressed to match the live one. */
+  .mly-repeat-copy {
+    opacity: 0.45;
+    user-select: none;
+    cursor: default;
+
+    & > *:first-child {
+      margin-top: 0;
+    }
+
+    & > *:last-child {
+      margin-bottom: 0;
+    }
+
+    [data-type='variable'] {
+      display: inline-block;
+      border-radius: 9999px;
+      padding: 0 0.375rem;
+      font-family: ui-monospace, monospace;
+      font-size: 0.75rem;
+      line-height: 1.25rem;
+      color: var(--color-accent-ink);
+      background-color: var(--color-accent-wash);
+    }
+  }
+
   [data-type='show'] {
     [data-node-view-content] > div {
       & > *:first-child {

@@ -22,6 +22,7 @@ import {
   type PreviewData,
 } from '../preview-data-panel';
 import { collectDataKeys, type TemplateDataKeys } from '@temply/shared/template-data';
+import { setRepeatPreviewCounts } from '~/core/editor/extensions/repeat-preview';
 import {
   assessSize,
   checkFields,
@@ -305,6 +306,14 @@ export function useTemplateEditor(props: EmailEditorSandboxProps): TemplateEdito
       ),
     };
   };
+
+  // The canvas previews each Repeat with as many rows as the sample data
+  // says. Sent as a transaction so the node views re-render; not a document
+  // change, so nothing is saved or undone by it.
+  useEffect(() => {
+    if (!editor) return;
+    setRepeatPreviewCounts(editor, previewData.lists);
+  }, [editor, previewData.lists]);
 
   /** Re-read the document's data keys. Entering a rendered view does this on
    *  the way in, which is the only route the desktop offers; the phone reaches

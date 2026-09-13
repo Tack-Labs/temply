@@ -11,6 +11,7 @@ import { SlashCommandExtension } from './slash-command/slash-command';
 import { getSlashCommandSuggestions } from './slash-command/slash-command-view';
 import { SelectionExtension } from './selection/selection';
 import { BlockSelection } from '../plugins/block-selection';
+import { RepeatPreview } from './repeat-preview';
 
 type ExtensionsProps = Partial<MailyContextType> & {
   extensions?: AnyExtension[];
@@ -46,6 +47,7 @@ export function extensions(props: ExtensionsProps) {
     InlineImageExtension,
     PlaceholderExtension,
     SelectionExtension,
+    RepeatPreview,
     ...(touch ? [BlockSelection] : []),
   ].filter((ext) => {
     return !extensions.some((e) => e.name === ext.name);
