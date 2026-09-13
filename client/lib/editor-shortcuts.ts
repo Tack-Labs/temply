@@ -44,7 +44,7 @@ export const EDITOR_SHORTCUTS: ShortcutGroup[] = [
       { keys: 'Mod+Shift+Up', what: 'Move the block up' },
       { keys: 'Mod+Shift+Down', what: 'Move the block down' },
       { keys: 'Mod+Shift+D', what: 'Duplicate the block' },
-      { keys: 'Mod+Shift+L', what: 'Select the whole block' },
+      { keys: 'Mod+Shift+Space', what: 'Select the whole block' },
       { keys: 'Mod+Shift+Backspace', what: 'Delete the block' },
     ],
   },

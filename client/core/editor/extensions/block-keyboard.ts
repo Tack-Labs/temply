@@ -114,7 +114,10 @@ export const BlockKeyboardShortcuts = Extension.create({
       'Mod-Shift-d': duplicate,
       'Mod-Shift-Backspace': removeBlock,
       'Mod-Shift-Delete': removeBlock,
-      'Mod-Shift-l': selectBlock,
+      // Not Mod-Shift-L: TextAlign binds that to "align left" and answers
+      // first, so the shortcut never reached here. Space is the one key no
+      // extension or browser claims with these modifiers.
+      'Mod-Shift-Space': selectBlock,
     };
   },
 });
