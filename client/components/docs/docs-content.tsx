@@ -8,7 +8,6 @@ import {
   CodeXmlIcon,
   ColumnsIcon,
   DivideIcon,
-  EraserIcon,
   FootprintsIcon,
   Heading1,
   Heading2,
@@ -210,12 +209,6 @@ const textBlocks: BlockRow[] = [
     name: 'Hard Break',
     what: 'A line break inside the current block.',
     when: 'When you want a new line without the paragraph spacing a new block adds.',
-  },
-  {
-    icon: EraserIcon,
-    name: 'Clear Line',
-    what: 'Deletes the block the cursor is in.',
-    when: 'To remove a block you cannot easily select, without reaching for the mouse.',
   },
 ];
 

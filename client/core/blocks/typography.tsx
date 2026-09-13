@@ -7,7 +7,6 @@ import {
   DivideIcon,
   TextQuote,
   FootprintsIcon,
-  EraserIcon,
 } from 'lucide-react';
 
 export const text: BlockItem = {
@@ -100,16 +99,5 @@ export const footer: BlockItem = {
   command: ({ editor, range }) => {
     // @ts-ignore
     editor.chain().focus().deleteRange(range).setFooter().run();
-  },
-};
-
-export const clearLine: BlockItem = {
-  title: 'Clear Line',
-  description: 'Clear the current line.',
-  searchTerms: ['clear', 'line'],
-  icon: <EraserIcon className="mly:h-4 mly:w-4" />,
-  command: ({ editor, range }) => {
-    // @ts-ignore
-    editor.chain().focus().selectParentNode().deleteSelection().run();
   },
 };

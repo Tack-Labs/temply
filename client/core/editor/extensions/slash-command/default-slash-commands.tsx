@@ -7,7 +7,6 @@ import { bulletList, orderedList } from '@/blocks/list';
 import { BlockGroupItem } from '@/blocks/types';
 import {
   blockquote,
-  clearLine,
   footer,
   hardBreak,
   heading1,
@@ -49,7 +48,6 @@ export const DEFAULT_SLASH_COMMANDS: BlockGroupItem[] = [
       hardBreak,
       blockquote,
       footer,
-      clearLine,
     ],
   },
   {
