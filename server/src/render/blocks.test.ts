@@ -167,6 +167,15 @@ describe('repeat', () => {
     const html = await render(repeated as any, { payload: { items: [] } });
     expect(html).not.toContain('One row');
   });
+
+  it('keeps the paragraph gap between items, and drops it only after the last', async () => {
+    // Each item used to lose its last block's bottom margin, so three items
+    // sat flush against each other while the paragraphs inside them kept
+    // their gaps — the block read as one item with the wrong rhythm.
+    const html = await render(repeated as any, { payload: { items: [{}, {}, {}] } });
+    const margins = [...html.matchAll(/<p[^>]*margin-bottom:\s*(\d+)px[^>]*>One row/g)].map((m) => Number(m[1]));
+    expect(margins).toEqual([20, 20, 0]);
+  });
 });
 
 describe('every insertable block renders', () => {

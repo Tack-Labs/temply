@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'bun:test';
-import { LIST_ITEMS_DEFAULT } from '@temply/shared/template-data';
+import { LIST_ITEMS_DEFAULT, LIST_ITEMS_MAX } from '@temply/shared/template-data';
 import '../test/dom';
 import { makeEditor } from '../test/make-editor';
-import { repeatPreviewCount, repeatPreviewKey, setRepeatPreviewCounts } from './repeat-preview';
+import { repeatPreviewCount, repeatPreviewKey, setRepeatPreviewCount, setRepeatPreviewCounts } from './repeat-preview';
 
 const para = (text: string) => ({ type: 'paragraph', content: [{ type: 'text', text }] });
 const doc = {
@@ -39,6 +39,17 @@ describe('repeat preview counts', () => {
     expect(decorations).toHaveLength(2);
     const attrs = decorations.map((d) => (d.spec as { count: number }).count).sort();
     expect(attrs).toEqual([LIST_ITEMS_DEFAULT, 3].sort());
+    editor.destroy();
+  });
+
+  it('sets one key from a menu, clamped to the panel’s range, keeping the others', () => {
+    const editor = makeEditor(doc);
+    setRepeatPreviewCounts(editor, { items: 4, orders: 1 });
+    setRepeatPreviewCount(editor, 'items', 9);
+    expect(repeatPreviewCount(editor.state, 'items')).toBe(LIST_ITEMS_MAX);
+    setRepeatPreviewCount(editor, 'items', -3);
+    expect(repeatPreviewCount(editor.state, 'items')).toBe(0);
+    expect(repeatPreviewCount(editor.state, 'orders')).toBe(1);
     editor.destroy();
   });
 });

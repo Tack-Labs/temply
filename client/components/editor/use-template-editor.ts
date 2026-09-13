@@ -22,7 +22,8 @@ import {
   type PreviewData,
 } from '../preview-data-panel';
 import { collectDataKeys, type TemplateDataKeys } from '@temply/shared/template-data';
-import { setRepeatPreviewCounts } from '~/core/editor/extensions/repeat-preview';
+import type { Transaction } from '@tiptap/pm/state';
+import { repeatPreviewKey, setRepeatPreviewCounts } from '~/core/editor/extensions/repeat-preview';
 import {
   assessSize,
   checkFields,
@@ -73,6 +74,14 @@ const variantFor = (mode: ContentMode): RenderVariant =>
   mode === 'html' ? 'html' : mode === 'text' ? 'text' : 'preview';
 
 const hasKeys = hasPreviewKeys;
+
+/** Same keys, same numbers — the test both directions of the preview-count
+ *  wire make before sending, so a round trip settles. */
+const sameCounts = (a: Record<string, number>, b: Record<string, number>) => {
+  const keys = new Set([...Object.keys(a), ...Object.keys(b)]);
+  for (const key of keys) if (a[key] !== b[key]) return false;
+  return true;
+};
 
 export type TemplateEditorModel = {
   template?: Mail;
@@ -308,12 +317,28 @@ export function useTemplateEditor(props: EmailEditorSandboxProps): TemplateEdito
   };
 
   // The canvas previews each Repeat with as many rows as the sample data
-  // says. Sent as a transaction so the node views re-render; not a document
-  // change, so nothing is saved or undone by it.
+  // says, and a Repeat's own menu can set that number too. The editor's
+  // plugin is the wire between the two: the sample data is sent down as a
+  // transaction (not a document change, so nothing is saved or undone), and
+  // a count set from the menu comes back up through the same transaction.
+  // Both directions compare first, so neither answers the other forever.
   useEffect(() => {
     if (!editor) return;
-    setRepeatPreviewCounts(editor, previewData.lists);
+    const current = repeatPreviewKey.getState(editor.state)?.counts ?? {};
+    if (!sameCounts(current, previewData.lists)) setRepeatPreviewCounts(editor, previewData.lists);
   }, [editor, previewData.lists]);
+  useEffect(() => {
+    if (!editor) return;
+    const hear = ({ transaction }: { transaction: Transaction }) => {
+      const counts = transaction.getMeta(repeatPreviewKey) as Record<string, number> | undefined;
+      if (!counts) return;
+      setPreviewData((current) => (sameCounts(current.lists, counts) ? current : { ...current, lists: { ...current.lists, ...counts } }));
+    };
+    editor.on('transaction', hear);
+    return () => {
+      editor.off('transaction', hear);
+    };
+  }, [editor]);
 
   /** Re-read the document's data keys. Entering a rendered view does this on
    *  the way in, which is the only route the desktop offers; the phone reaches

@@ -1,7 +1,7 @@
 import { Extension, type Editor } from '@tiptap/core';
 import { Plugin, PluginKey, type EditorState } from '@tiptap/pm/state';
 import { Decoration, DecorationSet } from '@tiptap/pm/view';
-import { LIST_ITEMS_DEFAULT } from '@temply/shared/template-data';
+import { LIST_ITEMS_DEFAULT, LIST_ITEMS_MAX } from '@temply/shared/template-data';
 
 type Counts = Record<string, number>;
 type State = { counts: Counts; decorations: DecorationSet };
@@ -66,6 +66,16 @@ export function repeatPreviewCount(state: EditorState, each: string): number {
  *  to undo, nothing to save. */
 export function setRepeatPreviewCounts(editor: Editor, counts: Counts): void {
   editor.view.dispatch(editor.state.tr.setMeta(repeatPreviewKey, counts).setMeta('addToHistory', false));
+}
+
+/** One key set from a Repeat's own menu, within the panel's range; the
+ *  shell hears the transaction and keeps its sample data in step. */
+export function setRepeatPreviewCount(editor: Editor, each: string, count: number): void {
+  const key = each.trim();
+  if (!key) return;
+  const current = repeatPreviewKey.getState(editor.state)?.counts ?? {};
+  const clamped = Math.min(LIST_ITEMS_MAX, Math.max(0, Math.round(count)));
+  setRepeatPreviewCounts(editor, { ...current, [key]: clamped });
 }
 
 /** The count carried on a node view's decorations, or the default. */

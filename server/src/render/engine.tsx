@@ -42,6 +42,11 @@ interface NodeOptions {
   next?: JSONContent;
 
   payloadValue?: PayloadValue;
+  /** Which item of a Repeat this content belongs to. The margins a Repeat
+   *  trims — the first block's top, the last block's bottom — are the
+   *  block's edges, not each item's: trimming every item left the items
+   *  flush against each other while the blocks inside kept their gaps. */
+  repeatItem?: { index: number; count: number };
 }
 
 export interface MarkType {
@@ -647,8 +652,11 @@ export class Engine {
     const isLastColumnElement = parent?.type === 'column' && !next;
     const isFirstColumnElement = parent?.type === 'column' && !prev;
 
-    const isFirstRepeatElement = parent?.type === 'repeat' && !prev;
-    const isLastRepeatElement = parent?.type === 'repeat' && !next;
+    const { repeatItem } = options || {};
+    const isFirstRepeatElement =
+      parent?.type === 'repeat' && !prev && (!repeatItem || repeatItem.index === 0);
+    const isLastRepeatElement =
+      parent?.type === 'repeat' && !next && (!repeatItem || repeatItem.index === repeatItem.count - 1);
 
     const isFirstShowElement = parent?.type === 'show' && !prev;
     const isLastShowElement = parent?.type === 'show' && !next;
@@ -1794,13 +1802,14 @@ export class Engine {
 
     return (
       <>
-        {values.map((value) => {
+        {values.map((value, index) => {
           return (
             <Fragment key={generateKey()}>
               {this.getMappedContent(node, {
                 ...options,
                 parent: node,
                 payloadValue: value,
+                repeatItem: { index, count: values.length },
               })}
             </Fragment>
           );

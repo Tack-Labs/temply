@@ -341,14 +341,15 @@
   }
 
   [data-type='repeat'] {
-    [data-node-view-content] > div {
-      & > *:first-child {
-        margin-top: 0;
-      }
+    [data-node-view-content] > div > *:first-child {
+      margin-top: 0;
+    }
 
-      & > *:last-child {
-        margin-bottom: 0;
-      }
+    /* The block trims its own edges, not each item's — the renderer's rule.
+       With preview copies under it the live row is not the last item, so its
+       last block keeps the gap the next row follows at. */
+    &:not(:has(.mly-repeat-copy)) [data-node-view-content] > div > *:last-child {
+      margin-bottom: 0;
     }
   }
 
@@ -369,7 +370,8 @@
       margin-top: 0;
     }
 
-    & > *:last-child {
+    /* Only the last copy is the block's last item. */
+    &:not(:has(~ .mly-repeat-copy)) > *:last-child {
       margin-bottom: 0;
     }
 

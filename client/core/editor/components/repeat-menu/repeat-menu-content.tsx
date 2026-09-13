@@ -1,6 +1,10 @@
 import { cn } from '@/editor/utils/classname';
 import { Editor } from '@tiptap/core';
-import { InfoIcon, Pencil } from 'lucide-react';
+import { InfoIcon, MinusIcon, Pencil, PlusIcon } from 'lucide-react';
+import { useEditorState } from '@tiptap/react';
+import { LIST_ITEMS_MAX } from '@temply/shared/template-data';
+import { repeatPreviewCount, setRepeatPreviewCount } from '@/editor/extensions/repeat-preview';
+import { BubbleMenuButton } from '../bubble-menu-button';
 import { useMemo, useRef, useState } from 'react';
 import { selectedBlock } from '@/editor/commands/block';
 import { knownNames } from '@/editor/utils/variable';
@@ -32,6 +36,10 @@ export function RepeatMenuContent({ editor }: { editor: Editor }) {
   const dock = useInputDock();
 
   const eachKey = state?.each || '';
+  // The rows the canvas previews this Repeat with. Read off the editor, so
+  // the sample-data panel and this stepper always show the same number.
+  const previewCount = useEditorState({ editor, selector: ({ editor }) => repeatPreviewCount(editor.state, eachKey) }) ?? 0;
+  const stepPreview = (delta: number) => setRepeatPreviewCount(editor, eachKey, previewCount + delta);
   const autoCompleteOptions = useMemo(() => {
     return processVariables(variables, {
       query: eachKey || '',
@@ -97,6 +105,18 @@ export function RepeatMenuContent({ editor }: { editor: Editor }) {
             <Pencil className="mly:h-3 mly:w-3 mly:shrink-0 mly:stroke-[2.5]" />
           </span>
         </button>
+        <div className={cn(rowClass, 'mly:hover:bg-transparent')}>
+          <span className="mly:shrink-0 mly:text-xs mly:text-gray-500">Preview rows</span>
+          <span className="mly:flex mly:items-center mly:gap-1">
+            <button type="button" aria-label="Fewer preview rows" disabled={previewCount <= 0} onClick={() => stepPreview(-1)} className="mly:flex mly:size-7 mly:items-center mly:justify-center mly:rounded-md mly:hover:bg-soft-gray mly:disabled:opacity-40">
+              <MinusIcon className="mly:h-3 mly:w-3 mly:stroke-[2.5]" />
+            </button>
+            <span className="mly:min-w-6 mly:text-center mly:font-mono mly:tabular-nums" aria-live="polite">{previewCount}</span>
+            <button type="button" aria-label="More preview rows" disabled={previewCount >= LIST_ITEMS_MAX} onClick={() => stepPreview(1)} className="mly:flex mly:size-7 mly:items-center mly:justify-center mly:rounded-md mly:hover:bg-soft-gray mly:disabled:opacity-40">
+              <PlusIcon className="mly:h-3 mly:w-3 mly:stroke-[2.5]" />
+            </button>
+          </span>
+        </div>
       </div>
     );
   }
@@ -177,6 +197,15 @@ export function RepeatMenuContent({ editor }: { editor: Editor }) {
         </form>
       )}
 
+      <Divider />
+      {/* How many rows the canvas draws under the one being edited. The same
+          number the Preview data panel holds; this is the place a person
+          looks for it while writing. */}
+      <div className="mly:flex mly:items-center mly:gap-0.5" title="Rows the canvas previews this Repeat with">
+        <BubbleMenuButton icon={MinusIcon} tooltip="Fewer preview rows" command={() => stepPreview(-1)} disbabled={previewCount <= 0} />
+        <span className="mly:min-w-6 mly:text-center mly:font-mono mly:text-xs mly:text-gray-500 mly:tabular-nums" aria-live="polite">×{previewCount}</span>
+        <BubbleMenuButton icon={PlusIcon} tooltip="More preview rows" command={() => stepPreview(1)} disbabled={previewCount >= LIST_ITEMS_MAX} />
+      </div>
       <Divider />
       <ShowPopover
         showIfKey={state.currentShowIfKey}
