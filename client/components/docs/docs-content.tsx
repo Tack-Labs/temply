@@ -29,6 +29,8 @@ import { BlockList, type BlockRow } from '~/components/docs/block-list';
 import { DemoBrands } from '~/components/docs/demo-brands';
 import { DemoEditor } from '~/components/docs/demo-editor';
 import { DemoShowIf } from '~/components/docs/demo-show-if';
+import { FigureRepeat } from '~/components/docs/figure-repeat';
+import { FigureVariable } from '~/components/docs/figure-variable';
 import { FigureAnatomy } from '~/components/docs/figure-anatomy';
 import { FigureFlow } from '~/components/docs/figure-flow';
 import { ShortcutTable } from '~/components/docs/shortcut-table';
@@ -346,6 +348,7 @@ export function Editor() {
           render never uses it: your data has to carry every value. Button
           labels and link URLs can be variables too.
         </P>
+        <FigureVariable />
         <P>
           In the rendered HTML a variable is a{' '}
           <Code>{'{{name}}'}</Code> placeholder. When you send no data with your
@@ -409,6 +412,7 @@ export function Editor() {
           your data when the item has no such field. Anything typed in plainly
           repeats as written, so a Repeat is only as useful as the pills in it.
         </P>
+        <FigureRepeat />
         <P>
           In the editor a Repeat shows its one item and nothing more, since there
           is no list to count; the marker in the margin is what tells it apart

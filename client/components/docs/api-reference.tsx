@@ -1,5 +1,6 @@
 import { API_BURST_PER_MINUTE, PLAN_LIMITS, TEST_API_CALLS_PER_MONTH } from '@temply/shared/plans';
 import { CodeTabs } from '~/components/docs/code-tabs';
+import { FigureDataMap } from '~/components/docs/figure-data-map';
 import { Block, Code, H2, H3, P } from '~/components/docs/docs-content';
 import { API_ORIGIN, errorSnippets, metaSnippet, renderSnippets, sendSnippets, SNIPPET_LANGUAGES } from '~/lib/api-snippets';
 
@@ -107,6 +108,7 @@ export function ApiReference() {
           get the email with every placeholder intact and every block showing — the
           same thing the editor’s composing view shows.
         </P>
+        <FigureDataMap />
         <Block>{JSON.stringify({ data: { firstName: 'Ada', isMember: true } }, null, 2)}</Block>
         <P>
           A <strong className="font-medium text-ink">Repeat</strong> block reads a list.

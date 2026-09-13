@@ -1,4 +1,5 @@
 import { Code, H2, P } from '~/components/docs/docs-content';
+import { FigureDarkMode } from '~/components/docs/figure-dark-mode';
 
 /**
  * What a dark inbox does to an email, and which part of that Temply can
@@ -65,6 +66,8 @@ export function DarkMode() {
           </tbody>
         </table>
       </div>
+
+      <FigureDarkMode />
 
       <P>
         The declaration only reaches the first kind, and that is the point of
