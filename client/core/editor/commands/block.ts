@@ -124,22 +124,65 @@ export function duplicateBlock(editor: Editor): boolean {
 /** Wrappers that go with their last block. Each requires at least one
  *  block, so deleting the only one would leave ProseMirror to put an empty
  *  paragraph back — a Delete that visibly does nothing, and on the phone,
- *  where the wrapper itself is never selected, no way to be rid of it. A
- *  column is not on the list: its blocks can be emptied, but the Columns
- *  block decides how many columns there are. */
-const GOES_WITH_LAST_BLOCK = new Set(['repeat', 'section']);
+ *  where the wrapper itself is never selected, no way to be rid of it. */
+const GOES_WITH_LAST_BLOCK = new Set(['repeat', 'section', 'blockquote', 'listItem', 'bulletList', 'orderedList']);
 
-export function deleteBlock(editor: Editor): boolean {
+const isEmptyTextblock = (node: Node) => node.isTextblock && node.content.size === 0;
+
+/** Every column holds nothing but one empty block. */
+const columnsAreEmpty = (columns: Node) => {
+  let empty = true;
+  columns.forEach((column) => {
+    if (column.childCount !== 1 || !isEmptyTextblock(column.firstChild!)) empty = false;
+  });
+  return empty;
+};
+
+/**
+ * What Delete takes for the current selection: the block, or the wrapper
+ * that would be left holding nothing without it. A column is the one case
+ * with a rule of its own — the Columns block decides how many columns there
+ * are, so a column is never deleted on its own. Its last block with words in
+ * it is emptied (the delete leaves the empty paragraph the schema requires),
+ * and once every column is empty the Columns block goes. An empty cell beside
+ * a column with content is the one place Delete has nothing to do, and says
+ * so with null, which the bar reads as disabled.
+ */
+function deletionTarget(editor: Editor): { pos: number; node: Node } | null {
   const block = selectedBlock(editor);
-  if (!block) return false;
+  if (!block) return null;
   let { pos, node } = block;
   const $pos = editor.state.doc.resolve(pos);
-  for (let depth = $pos.depth; depth >= 1; depth--) {
+  let depth = $pos.depth;
+  while (depth >= 1) {
     const parent = $pos.node(depth);
+    if (parent.type.name === 'column') {
+      if (parent.childCount > 1 || !isEmptyTextblock(node) || depth < 2) break;
+      const columns = $pos.node(depth - 1);
+      if (!columnsAreEmpty(columns)) return null;
+      depth -= 1;
+      pos = $pos.before(depth);
+      node = columns;
+      depth -= 1;
+      continue;
+    }
     if (parent.childCount > 1 || !GOES_WITH_LAST_BLOCK.has(parent.type.name)) break;
     pos = $pos.before(depth);
     node = parent;
+    depth -= 1;
   }
+  return { pos, node };
+}
+
+/** Whether Delete would change anything for the current selection. */
+export function canDeleteBlock(editor: Editor): boolean {
+  return deletionTarget(editor) !== null;
+}
+
+export function deleteBlock(editor: Editor): boolean {
+  const target = deletionTarget(editor);
+  if (!target) return false;
+  const { pos, node } = target;
   const tr = editor.state.tr.delete(pos, pos + node.nodeSize);
   // Something must stay selected — the action bar has nothing to act on
   // otherwise. Prefer the block that slid into the deleted one's place, then
@@ -209,6 +252,7 @@ export const blockCommands = {
     id: 'delete',
     label: 'Delete',
     icon: Trash2Icon,
+    isEnabled: canDeleteBlock,
     run: (editor: Editor) => {
       deleteBlock(editor);
     },

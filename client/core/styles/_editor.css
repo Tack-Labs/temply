@@ -126,6 +126,25 @@
       margin-block: 32px;
     }
 
+    /* A divider is a one-pixel line, and a finger cannot land on one pixel.
+       On touch the rule keeps its line but grows a hit area either side of
+       it, taken out of the margin so the rhythm on the canvas does not
+       change. */
+    @media (pointer: coarse) {
+      hr:not(:where([class~='not-prose'], [class~='not-prose'] *)) {
+        height: 1px;
+        border: 0;
+        padding-block: 12px;
+        margin-block: 20px;
+        /* The line the desktop draws with border-top, as a background so it
+           can sit in the middle of the hit area. Literal like the rest of
+           the canvas: the email's grey, not the app's. */
+        background: linear-gradient(#e5e7eb, #e5e7eb) center / 100% 1px no-repeat;
+        background-clip: content-box;
+        box-sizing: content-box;
+      }
+    }
+
     .footer:not(:where([class~='not-prose'], [class~='not-prose'] *)) {
       display: block;
       font-size: 13px;

@@ -2,7 +2,7 @@ import { describe, expect, it } from 'bun:test';
 import { TextSelection } from '@tiptap/pm/state';
 import '../test/dom';
 import { makeEditor } from '../test/make-editor';
-import { blockCommands, clearBlockSelection, deleteBlock, duplicateBlock, enclosingNodes, isInlineAtomSelected, moveBlock, selectBlockAt, selectedBlock } from './block';
+import { blockCommands, canDeleteBlock, clearBlockSelection, deleteBlock, duplicateBlock, enclosingNodes, isInlineAtomSelected, moveBlock, selectBlockAt, selectedBlock } from './block';
 
 const para = (text: string) => ({ type: 'paragraph', content: [{ type: 'text', text }] });
 const doc = { type: 'doc', content: [para('one'), para('two'), para('three')] };
@@ -252,6 +252,77 @@ describe('enclosingNodes', () => {
     const editor = makeEditor({ type: 'doc', content: [para('a')] }, { touch: true });
     selectBlockAt(editor, 0);
     expect(enclosingNodes(editor, ['repeat', 'section', 'columns'])).toEqual([]);
+    editor.destroy();
+  });
+});
+
+describe('deleteBlock inside the other wrappers that need a child', () => {
+  const wrap = (type: string, children: unknown[], attrs?: Record<string, unknown>) => ({ type, content: children, ...(attrs ? { attrs } : {}) });
+  const topLevel = (editor: ReturnType<typeof makeEditor>) => editor.state.doc.content.content.map((n) => n.type.name);
+  const item = (text: string) => wrap('listItem', [para(text)]);
+
+  it('takes a list with its only item', () => {
+    const editor = makeEditor({ type: 'doc', content: [para('a'), wrap('orderedList', [item('one')]), para('b')] }, { touch: true });
+    selectBlockAt(editor, 5); // the paragraph inside the item: list opens at 3, item at 4, paragraph at 5
+    expect(selectedBlock(editor)!.node.textContent).toBe('one');
+    expect(deleteBlock(editor)).toBe(true);
+    expect(topLevel(editor)).toEqual(['paragraph', 'paragraph']);
+    editor.destroy();
+  });
+
+  it('takes only the item when the list has another', () => {
+    const editor = makeEditor({ type: 'doc', content: [wrap('bulletList', [item('one'), item('two')])] }, { touch: true });
+    selectBlockAt(editor, 2);
+    expect(deleteBlock(editor)).toBe(true);
+    expect(topLevel(editor)).toEqual(['bulletList']);
+    expect(editor.state.doc.firstChild!.childCount).toBe(1);
+    expect(editor.state.doc.firstChild!.textContent).toBe('two');
+    editor.destroy();
+  });
+
+  it('takes a blockquote with its only block', () => {
+    const editor = makeEditor({ type: 'doc', content: [para('a'), wrap('blockquote', [para('quote')])] }, { touch: true });
+    selectBlockAt(editor, 4);
+    expect(deleteBlock(editor)).toBe(true);
+    expect(topLevel(editor)).toEqual(['paragraph']);
+    editor.destroy();
+  });
+
+  it('takes the columns block when every column is already empty', () => {
+    const editor = makeEditor(
+      { type: 'doc', content: [para('a'), wrap('columns', [wrap('column', [{ type: 'paragraph' }]), wrap('column', [{ type: 'paragraph' }])])] },
+      { touch: true },
+    );
+    selectBlockAt(editor, 5); // the empty paragraph in the first column
+    expect(canDeleteBlock(editor)).toBe(true);
+    expect(deleteBlock(editor)).toBe(true);
+    expect(topLevel(editor)).toEqual(['paragraph']);
+    editor.destroy();
+  });
+
+  it('refuses an empty column cell while another column has content, and the bar knows', () => {
+    const editor = makeEditor(
+      { type: 'doc', content: [wrap('columns', [wrap('column', [{ type: 'paragraph' }]), wrap('column', [para('right')])])] },
+      { touch: true },
+    );
+    selectBlockAt(editor, 2); // the empty paragraph in the first column
+    expect(canDeleteBlock(editor)).toBe(false);
+    expect(blockCommands.remove.isEnabled(editor)).toBe(false);
+    expect(deleteBlock(editor)).toBe(false);
+    expect(editor.state.doc.firstChild!.childCount).toBe(2);
+    editor.destroy();
+  });
+
+  it('empties a column cell that has words, and keeps the columns', () => {
+    const editor = makeEditor(
+      { type: 'doc', content: [wrap('columns', [wrap('column', [para('left')]), wrap('column', [para('right')])])] },
+      { touch: true },
+    );
+    selectBlockAt(editor, 2);
+    expect(canDeleteBlock(editor)).toBe(true);
+    expect(deleteBlock(editor)).toBe(true);
+    expect(editor.state.doc.firstChild!.childCount).toBe(2);
+    expect(editor.state.doc.firstChild!.firstChild!.textContent).toBe('');
     editor.destroy();
   });
 });
