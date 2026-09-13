@@ -1,7 +1,7 @@
 import { isTextSelected } from '@/editor/utils/is-text-selected';
 import { BubbleMenu, findChildren } from '@tiptap/react';
-import { useCallback } from 'react';
-import { sticky } from 'tippy.js';
+import { useCallback, useEffect, useRef } from 'react';
+import { sticky, type Instance } from 'tippy.js';
 import { getRenderContainer } from '../../utils/get-render-container';
 import { EditorBubbleMenuProps } from '../text-menu/text-bubble-menu';
 import { TooltipProvider } from '../ui/tooltip';
@@ -23,24 +23,36 @@ export function RepeatBubbleMenu(props: EditorBubbleMenuProps) {
     return rect;
   }, [editor]);
 
+  // The mirror of the section menu's rule: a Section inside this Repeat,
+  // with the caret in it, sends this menu to the bottom edge rather than
+  // away, so both blocks keep a menu.
+  const sectionIsActiveInside = (e: NonNullable<typeof editor>) => {
+    const repeat = getClosestNodeByName(e, 'repeat');
+    const sectionChild = repeat ? findChildren(repeat.node, (node) => node.type.name === 'section')[0] : null;
+    return !!sectionChild && e.isActive('section');
+  };
+
+  // Placement follows the caret, not the show: the menu is usually already
+  // up when the caret moves into the nested block, so a show-time hook would
+  // be too late. Every transaction re-asks; setProps is a no-op when unchanged.
+  const tippyRef = useRef<Instance | null>(null);
+  useEffect(() => {
+    const place = () => {
+      const placement = sectionIsActiveInside(editor) ? 'bottom' : 'top';
+      const instance = tippyRef.current;
+      if (instance && instance.props.placement !== placement) instance.setProps({ placement });
+    };
+    editor.on('transaction', place);
+    return () => {
+      editor.off('transaction', place);
+    };
+  }, [editor]);
+
   const bubbleMenuProps: EditorBubbleMenuProps = {
     ...props,
     ...(appendTo ? { appendTo: appendTo.current } : {}),
     shouldShow: ({ editor }) => {
-      const activeForNode = getClosestNodeByName(editor, 'repeat');
-      const sectionNodeChildren = activeForNode
-        ? findChildren(activeForNode?.node, (node) => {
-            return node.type.name === 'section';
-          })?.[0]
-        : null;
-      const hasActiveSectionNodeChildren =
-        sectionNodeChildren && editor.isActive('section');
-
-      if (
-        isTextSelected(editor) ||
-        hasActiveSectionNodeChildren ||
-        !editor.isEditable
-      ) {
+      if (isTextSelected(editor) || !editor.isEditable) {
         return false;
       }
 
@@ -48,6 +60,9 @@ export function RepeatBubbleMenu(props: EditorBubbleMenuProps) {
     },
     tippyOptions: {
       offset: [0, 8],
+      onCreate: (instance: Instance) => {
+        tippyRef.current = instance;
+      },
       popperOptions: {
         modifiers: [{ name: 'flip', enabled: false }],
       },
