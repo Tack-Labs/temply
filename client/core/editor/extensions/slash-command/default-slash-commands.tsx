@@ -7,8 +7,6 @@ import { bulletList, orderedList } from '@/blocks/list';
 import { BlockGroupItem } from '@/blocks/types';
 import {
   blockquote,
-  footer,
-  hardBreak,
   heading1,
   heading2,
   heading3,
@@ -45,9 +43,7 @@ export const DEFAULT_SLASH_COMMANDS: BlockGroupItem[] = [
       spacer,
       button,
       linkCard,
-      hardBreak,
       blockquote,
-      footer,
     ],
   },
   {
