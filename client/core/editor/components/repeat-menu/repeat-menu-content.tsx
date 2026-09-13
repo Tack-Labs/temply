@@ -25,6 +25,10 @@ export function RepeatMenuContent({ editor }: { editor: Editor }) {
   const renderVariable = opts?.renderVariable;
   const inputRef = useRef<HTMLInputElement>(null);
   const [isUpdatingKey, setIsUpdatingKey] = useState(false);
+  // Controlled so a click opens it too: a tooltip alone closes on the
+  // pointer going down, which reads as the ⓘ doing nothing to anyone who
+  // clicks it rather than waits on it.
+  const [infoOpen, setInfoOpen] = useState(false);
   const dock = useInputDock();
 
   const eachKey = state?.each || '';
@@ -101,8 +105,8 @@ export function RepeatMenuContent({ editor }: { editor: Editor }) {
     <>
       <div className="mly:flex mly:items-center mly:gap-1.5 mly:px-1.5 mly:text-sm mly:leading-none">
         Repeat
-        <Tooltip>
-          <TooltipTrigger>
+        <Tooltip open={infoOpen} onOpenChange={setInfoOpen}>
+          <TooltipTrigger type="button" aria-label="About Repeat" onClick={() => setInfoOpen(true)}>
             <InfoIcon
               className={cn('mly:size-3 mly:stroke-[2.5] mly:text-gray-500')}
             />
