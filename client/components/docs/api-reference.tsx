@@ -1,6 +1,7 @@
 import { API_BURST_PER_MINUTE, PLAN_LIMITS, TEST_API_CALLS_PER_MONTH } from '@temply/shared/plans';
 import { CodeTabs } from '~/components/docs/code-tabs';
 import { FigureDataMap } from '~/components/docs/figure-data-map';
+import { FigureKeys } from '~/components/docs/figure-keys';
 import { Block, Code, H2, H3, P } from '~/components/docs/docs-content';
 import { API_ORIGIN, errorSnippets, metaSnippet, renderSnippets, sendSnippets, SNIPPET_LANGUAGES } from '~/lib/api-snippets';
 
@@ -52,6 +53,7 @@ export function ApiReference() {
           stops at {TEST_API_CALLS_PER_MONTH.toLocaleString('en-GB')} calls a month.
           Revoking a key takes effect on the next request.
         </P>
+        <FigureKeys />
       </div>
 
       <div className="mt-10">

@@ -1,4 +1,5 @@
 import { Code, H2, P } from '~/components/docs/docs-content';
+import { FigureWorkspace } from '~/components/docs/figure-workspace';
 
 /**
  * Workspaces and roles, in the words the product uses. Kept short: the
@@ -21,6 +22,7 @@ export function YourTeam() {
         review links and send test emails — the same product you have, with
         two exceptions.
       </P>
+      <FigureWorkspace />
       <P>
         Those exceptions are what an <strong className="font-medium text-ink">admin</strong>{' '}
         does: the plan and billing, the API keys, and who is on the team.
