@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from 'bun:test';
+import { afterEach, beforeEach, describe, expect, it } from 'bun:test';
 import { apiKeysTable, assets, brands, mails } from '@temply/shared/schema';
 import { createTestDb, givePlan, type TestDb } from '../test/helpers';
 import {
@@ -8,6 +8,7 @@ import {
   checkTemplateLimit,
   getPlan,
   getStorageUsed,
+  getStripe,
   getUsage,
   planLimits,
   shouldSnapshot,
@@ -17,6 +18,27 @@ let db: TestDb;
 
 beforeEach(() => {
   db = createTestDb();
+});
+
+describe('getStripe', () => {
+  const env = { ...process.env };
+  afterEach(() => { process.env = { ...env }; });
+
+  it('talks to Stripe unless told otherwise', () => {
+    process.env.STRIPE_SECRET_KEY = 'sk_test_x';
+    delete process.env.STRIPE_API_BASE;
+    const stripe = getStripe();
+    expect(stripe.getApiField('host')).toBe('api.stripe.com');
+  });
+
+  it('talks to the host STRIPE_API_BASE names, so a test can stand a fake in', () => {
+    process.env.STRIPE_SECRET_KEY = 'sk_test_x';
+    process.env.STRIPE_API_BASE = 'http://127.0.0.1:3998';
+    const stripe = getStripe();
+    expect(stripe.getApiField('host')).toBe('127.0.0.1');
+    expect(stripe.getApiField('port')).toBe(3998);
+    expect(stripe.getApiField('protocol')).toBe('http');
+  });
 });
 
 async function addTemplates(userId: string, count: number) {

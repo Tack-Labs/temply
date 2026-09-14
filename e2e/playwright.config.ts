@@ -1,7 +1,7 @@
 import { defineConfig, devices } from '@playwright/test';
 import { config as loadEnv } from 'dotenv';
 import { join } from 'node:path';
-import { BASE_URL, API_URL, PORTS, stackEnv } from './env';
+import { BASE_URL, API_URL, FAKES_URL, PORTS, stackEnv } from './env';
 
 loadEnv({ path: join(import.meta.dirname, '.env') });
 
@@ -32,6 +32,16 @@ export default defineConfig({
     },
   ],
   webServer: [
+    {
+      // Started first: the API's requests to Stripe and ImageKit need this
+      // listening before the API itself does.
+      command: 'bun fakes/index.ts',
+      cwd: import.meta.dirname,
+      url: `${FAKES_URL}/__health`,
+      env,
+      reuseExistingServer: false,
+      timeout: 15_000,
+    },
     {
       // PORT steers the Elysia listener onto the e2e stack's own port so the
       // dev server already running on 3001 is left alone.

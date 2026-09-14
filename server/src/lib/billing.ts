@@ -6,10 +6,21 @@ import { PLAN_LIMITS as planLimits, type Plan } from '@temply/shared/plans';
 import { formatBytes } from '@temply/shared/bytes';
 
 
+/** The Stripe client. STRIPE_API_BASE, set only by the e2e stack, points it
+ *  at a fake on localhost; production never sets it and reaches Stripe.
+ *  stripe-node has no basePath config — its base path is always `/v1/` — so
+ *  the fake listens on its own port rather than under a path prefix. */
 export function getStripe(): Stripe {
   const key = process.env.STRIPE_SECRET_KEY;
   if (!key) throw new Error('STRIPE_SECRET_KEY is not set');
-  return new Stripe(key, {});
+  const base = process.env.STRIPE_API_BASE;
+  if (!base) return new Stripe(key, {});
+  const url = new URL(base);
+  return new Stripe(key, {
+    host: url.hostname,
+    port: url.port ? Number(url.port) : url.protocol === 'https:' ? 443 : 80,
+    protocol: url.protocol.replace(':', '') as 'http' | 'https',
+  });
 }
 
 /**
