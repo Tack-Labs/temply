@@ -2,7 +2,7 @@
   "name": "temply",
   "private": true,
   "type": "module",
-  "workspaces": ["shared", "client", "server"],
+  "workspaces": ["shared", "client", "server", "e2e"],
   "scripts": {
     "dev": "bun run dev:server & bun run dev:client & wait",
     "dev:public": "bun run scripts/dev-public.ts",
@@ -10,6 +10,8 @@
     "dev:server": "bun run --filter @temply/server dev",
     "build": "bun run --filter @temply/server build",
     "typecheck": "bun run --filter '*' typecheck",
-    "test": "bun test"
+    "test": "bun test --path-ignore-patterns 'e2e/**'",
+    "e2e": "bun run --filter @temply/e2e test",
+    "e2e:ui": "bun run --filter @temply/e2e ui"
   }
 }

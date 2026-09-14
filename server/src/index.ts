@@ -30,6 +30,10 @@ if (process.env.SENTRY_DSN) {
   });
 }
 
+// Overridable so the e2e stack can run its own instance on a port that
+// doesn't collide with a dev server already listening on the default.
+const port = Number(process.env.PORT) || 3001;
+
 const app = new Elysia()
   // Registered before the route modules and scoped global: a local onError
   // added after .use() never sees errors raised inside the mounted modules,
@@ -61,7 +65,7 @@ const app = new Elysia()
   // must never be reachable directly from the network.
   // The largest legitimate body is a 5 MB image plus multipart framing;
   // anything bigger is refused by Bun before a byte is buffered.
-  .listen({ port: 3001, hostname: '127.0.0.1', maxRequestBodySize: 8 * 1024 * 1024 });
+  .listen({ port, hostname: '127.0.0.1', maxRequestBodySize: 8 * 1024 * 1024 });
 
-console.log('🦊 Elysia server running on http://127.0.0.1:3001');
+console.log(`🦊 Elysia server running on http://127.0.0.1:${port}`);
 export type App = typeof app;

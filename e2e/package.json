@@ -1,0 +1,16 @@
+{
+  "name": "@temply/e2e",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "playwright test",
+    "ui": "playwright test --ui",
+    "install-browsers": "playwright install chromium"
+  },
+  "devDependencies": {
+    "@clerk/testing": "^1.13.0",
+    "@playwright/test": "^1.58.0",
+    "@types/bun": "latest",
+    "dotenv": "^16.4.0"
+  }
+}
