@@ -4,6 +4,10 @@ import { join } from 'node:path';
 /** One id per run: it names every template a test makes, so leftovers say
  *  which run left them. */
 export const RUN_ID = process.env.E2E_RUN_ID ?? Math.random().toString(36).slice(2, 6);
+// Playwright workers are separate processes, each re-executing this module —
+// without writing the id back, every worker (and the DB_PATH below) would
+// pick its own random value instead of sharing the one the config computed.
+process.env.E2E_RUN_ID = process.env.E2E_RUN_ID ?? RUN_ID;
 
 // A dev checkout is already running on 9000/3001 and must not be touched, so
 // the e2e stack gets its own ports throughout. Client is 9101, not 9100: on
