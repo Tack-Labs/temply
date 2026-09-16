@@ -6,11 +6,12 @@ Clerk; tiptap editor core in `client/core/editor`; editing surface in
 :3001 with the renderer in `server/src/render/engine.tsx`. `shared/` holds
 theme types, contrast maths and the preflight checks used by both.
 
-Gates, all of them, before calling anything done: `bun run typecheck` and
-`bun test` from the root; `bun run check:contrast`, `check:editor-contrast`,
-`check:email-dark` and `check:motion` from `client/`. Then verify in the
-browser — there is no DOM component test infra, so the browser is the test
-for UI.
+Gates, all of them, before calling anything done: `bun run typecheck`,
+`bun test` and `bun run e2e` from the root; `bun run check:contrast`,
+`check:editor-contrast`, `check:email-dark` and `check:motion` from
+`client/`. Then the spec is the test for UI: a change to something a
+customer sees ships with its case in `e2e/specs`, and
+`bun run e2e -- <spec>` is green before anything is called done.
 
 ## Two theme systems that never touch
 

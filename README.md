@@ -166,8 +166,9 @@ dev servers but leaves Stripe and Clerk where they point.
 Every one of these before a change is done:
 
 ```bash
-bun run typecheck            # client, server, shared
+bun run typecheck            # client, server, shared, e2e
 bun test                     # server + shared, 340-odd tests
+bun run e2e                  # Playwright against a stack it starts itself; see e2e/README.md
 cd client
 bun run check:contrast       # every token pair meets its contrast threshold
 bun run check:editor-contrast
@@ -175,9 +176,9 @@ bun run check:email-dark     # rendered email stays readable when a client force
 bun run check:motion         # every transition and shadow sits on a token
 ```
 
-Then look at it in a browser — there is no DOM component test
-infrastructure, so the browser is the test for UI. CI (`.github/workflows/ci.yml`)
-runs the same list plus both production builds.
+The spec is the test for UI: a change to something a customer sees ships
+with its case in `e2e/specs`. CI (`.github/workflows/ci.yml`) runs the same
+list plus both production builds, with the browser suite as its own job.
 
 ## Building
 

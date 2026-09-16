@@ -63,3 +63,50 @@ jobs:
       - name: Build server
         run: bun run build
         working-directory: server
+
+  # Independent of `check`: a type error and a broken sign-in should each
+  # show up as its own red mark, and the browser run's twenty-odd minutes
+  # should not wait on the build job. The stack it drives (fakes, the API on
+  # a fresh SQLite, the built client) is started by Playwright's webServer,
+  # so nothing is started here by hand.
+  e2e:
+    name: Browser tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.4.2
+      - name: Install
+        run: bun install --frozen-lockfile
+      # --with-deps also installs Chromium's system libraries, which the
+      # runner image does not carry.
+      - name: Install Chromium
+        run: bunx playwright install --with-deps chromium
+        working-directory: e2e
+      # The Clerk keys are the dev instance's; the two users exist there
+      # with password sign-in. INTERNAL_API_SECRET only has to agree between
+      # the API and the client of this run's fresh stack, so a fixed value
+      # is enough.
+      - name: Run
+        run: bun run e2e
+        env:
+          CI: "1"
+          E2E_RUN_ID: ${{ github.run_id }}
+          NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: ${{ secrets.E2E_CLERK_PUBLISHABLE_KEY }}
+          CLERK_SECRET_KEY: ${{ secrets.E2E_CLERK_SECRET_KEY }}
+          E2E_USER_EMAIL: ${{ secrets.E2E_USER_EMAIL }}
+          E2E_USER_PASSWORD: ${{ secrets.E2E_USER_PASSWORD }}
+          E2E_USER_2_EMAIL: ${{ secrets.E2E_USER_2_EMAIL }}
+          E2E_USER_2_PASSWORD: ${{ secrets.E2E_USER_2_PASSWORD }}
+          INTERNAL_API_SECRET: e2e-internal-secret
+      - name: Artifacts
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright
+          path: |
+            e2e/test-results
+            e2e/playwright-report
+          retention-days: 7
