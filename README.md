@@ -167,7 +167,7 @@ Every one of these before a change is done:
 
 ```bash
 bun run typecheck            # client, server, shared, e2e
-bun test                     # server + shared, 340-odd tests
+bun test                     # server + shared unit tests
 bun run e2e                  # Playwright against a stack it starts itself; see e2e/README.md
 cd client
 bun run check:contrast       # every token pair meets its contrast threshold

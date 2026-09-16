@@ -9,7 +9,9 @@ import { formatBytes } from '@temply/shared/bytes';
 /** The Stripe client. STRIPE_API_BASE, set only by the e2e stack, points it
  *  at a fake on localhost; production never sets it and reaches Stripe.
  *  stripe-node has no basePath config — its base path is always `/v1/` — so
- *  the fake listens on its own port rather than under a path prefix. */
+ *  the fake listens on its own port rather than under a path prefix, and
+ *  the value must be a bare origin (`http://host:port`): only its scheme,
+ *  host and port are read, and a path on it is silently ignored. */
 export function getStripe(): Stripe {
   const key = process.env.STRIPE_SECRET_KEY;
   if (!key) throw new Error('STRIPE_SECRET_KEY is not set');

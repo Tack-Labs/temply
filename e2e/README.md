@@ -24,6 +24,11 @@ First time: `bun run --filter @temply/e2e install-browsers`, and create
 
 Both users exist on the Clerk dev instance with password sign-in.
 
+The stack inherits the shell environment plus `server/.env` and
+`client/.env` (Bun and Next load them from their working directories);
+`stackEnv()` in `env.ts` overrides everything that has to agree between
+the API and the client.
+
 Spec files end in `.e2e.ts`, not `.spec.ts`: Bun's own runner collects
 `*.spec.ts` from anywhere in the repo, and a Playwright file loaded that way
 throws before its first test. `bun run typecheck` from the root covers this
@@ -44,8 +49,8 @@ run before:
 ## CI
 
 `.github/workflows/ci.yml` runs the suite as the `Browser tests` job on
-every push and pull request, alongside the typecheck-and-build job. It
-reads six repository secrets:
+pushes to `main` and `feature/**`, and on every pull request, alongside the
+typecheck-and-build job. It reads six repository secrets:
 
     E2E_CLERK_PUBLISHABLE_KEY
     E2E_CLERK_SECRET_KEY
@@ -54,8 +59,12 @@ reads six repository secrets:
     E2E_USER_2_EMAIL
     E2E_USER_2_PASSWORD
 
-On failure the job uploads `test-results/` (traces, screenshots, video) and
-the HTML report as the `playwright` artifact.
+On failure the job uploads the screenshots under `test-results/` and the
+HTML report as the `playwright` artifact, kept for three days. Traces and
+video are not uploaded: they record every request with its headers, which
+means the test user's Clerk session, and the repository is public. To get a
+trace, reproduce the failure locally (`trace: 'on-first-retry'` is still
+set; `bun run e2e -- --retries=1 --trace on` forces one).
 
 `Browser tests` should be a required check in the branch protection for
 `main`; that is a repository setting, so it needs an admin.
