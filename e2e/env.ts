@@ -53,9 +53,11 @@ export function stackEnv(): Record<string, string> {
     INTERNAL_API_SECRET: process.env.INTERNAL_API_SECRET || 'e2e-internal-secret',
     STRIPE_SECRET_KEY: process.env.STRIPE_SECRET_KEY || 'sk_test_e2e',
     STRIPE_WEBHOOK_SECRET: process.env.STRIPE_WEBHOOK_SECRET || 'whsec_e2e',
-    // The Stripe fake (Task 2) answers on its own port; nothing consumes this
-    // yet.
+    // The Stripe fake answers on its own port. The price id only has to
+    // exist: the checkout route refuses without one, and the fake never
+    // looks at it.
     STRIPE_API_BASE: STRIPE_URL,
+    STRIPE_PRICE_PRO: 'price_e2e_pro',
     IMAGEKIT_PUBLIC_KEY: 'public_e2e',
     IMAGEKIT_PRIVATE_KEY: 'private_e2e',
     IMAGEKIT_URL_ENDPOINT: `${FAKES_URL}/imagekit/cdn`,

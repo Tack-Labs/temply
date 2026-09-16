@@ -1,6 +1,8 @@
 import { clerk, clerkSetup } from '@clerk/testing/playwright';
 import { test as setup, expect } from '@playwright/test';
 import { TEST_USER } from '../env';
+import { fakes } from '../fakes/client';
+import { upgradeToPro } from './plan';
 import { STORAGE_STATE } from './storage-state';
 
 /**
@@ -19,5 +21,15 @@ setup('sign in as the e2e user', async ({ page }) => {
   // PageHeader) — the sign the org-adopt above landed here rather than on
   // /onboarding or bouncing back to /login.
   await expect(page.getByRole('heading', { name: 'Welcome back' })).toBeVisible({ timeout: 30_000 });
+
+  // A fresh database puts the workspace on the Free plan, which allows two
+  // templates in total. Every spec seeds its own and the two browser
+  // projects run at once, so the run needs the Pro allowance; the plan is
+  // read back so a silent failure of the upgrade fails the run here.
+  await upgradeToPro(page.request, fakes);
+  const quota = await page.request.get('/api/v1/quota');
+  expect(quota.ok(), 'the quota endpoint answers').toBeTruthy();
+  expect((await quota.json()).plan, 'the workspace is on Pro').toBe('pro');
+
   await page.context().storageState({ path: STORAGE_STATE });
 });
