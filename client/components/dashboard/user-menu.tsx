@@ -40,11 +40,14 @@ export function UserMenu({ align = 'end', showLabel = true, surface = 'rail' }: 
         {/* With the label the trigger is a rail row: the avatar sits on the
             same 20px line as the nav icons and the workspace avatar above.
             Without it the trigger is a plain icon button. Either way it is
-            named for what it opens: an initial alone is no name, and the
-            name and address are whose account, which the menu repeats. */}
+            named for what it opens, and with the label also for whom: the
+            visible name has to be in the accessible name (WCAG 2.5.3), and
+            a reader of the rail learns who is signed in without opening
+            the menu. An initial alone is no name; the address stays out of
+            the name in both, which the menu repeats. */}
         <button
           type="button"
-          aria-label="Account"
+          aria-label={showLabel ? `Account: ${user?.fullName ?? 'User'}` : 'Account'}
           className={`flex w-full items-center gap-2 rounded-md text-sm ${showLabel ? 'px-2.5 py-1.5' : 'p-1.5'} ${pressable} ${
             surface === 'rail'
               ? 'text-rail-ink hover:bg-rail-hover'

@@ -38,7 +38,7 @@ test.describe('auth', () => {
     // copy is what a phone visitor actually uses. Open it first on the
     // phone project so this test passes on both.
     if (test.info().project.name.startsWith('phone')) await page.getByRole('button', { name: 'Open navigation' }).click();
-    await page.getByRole('button', { name: 'Account', exact: true }).click();
+    await page.getByRole('button', { name: /^Account/ }).click();
     await page.getByRole('menuitem', { name: /sign out/i }).click();
     // signOut({ redirectUrl: '/' }) clears the session and then navigates
     // there itself; racing that with an immediate goto('/dashboard') can
