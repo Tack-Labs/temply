@@ -68,6 +68,9 @@ server/backups/
 # Brainstorming mockups and specs — local working notes, not part of the app.
 .superpowers/
 
+# The e2e stack's own client build, kept apart from the dev server's .next
+/client/.next-e2e/
+
 # Playwright artifacts (e2e/)
 /e2e/.auth/
 /e2e/test-results/

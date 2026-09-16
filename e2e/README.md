@@ -3,7 +3,8 @@
 Playwright, against a stack Playwright starts itself: a fakes server (Stripe,
 ImageKit, Resend), the API on a fresh SQLite, and the built client. The
 stack takes its own ports (client 9101, API 3101, fakes 3999, Stripe 3998)
-so a dev checkout on 9000/3001 is left alone.
+and builds the client into `client/.next-e2e` rather than `.next`, so a dev
+checkout on 9000/3001 is left alone, including the build it serves from.
 
 ## Run
 

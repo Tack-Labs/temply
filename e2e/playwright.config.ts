@@ -68,11 +68,13 @@ export default defineConfig({
     },
     {
       // Built once, served with `next start`: NEXT_PUBLIC_* is baked at
-      // build, so the build runs with the same env as the server.
+      // build, so the build runs with the same env as the server. The build
+      // goes into its own directory (next.config reads NEXT_DIST_DIR) so it
+      // never overwrites the `.next` a dev server on 9000 is serving from.
       command: `bun run build && bunx next start -p ${PORTS.client}`,
       cwd: join(root, 'client'),
       url: BASE_URL,
-      env,
+      env: { ...env, NEXT_DIST_DIR: '.next-e2e' },
       reuseExistingServer: false,
       timeout: 300_000,
     },

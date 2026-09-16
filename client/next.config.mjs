@@ -12,6 +12,11 @@ function devOriginFromEnv() {
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // The e2e stack builds and serves the client while `next dev` is running
+  // from `.next` on 9000; a build into the same directory knocks that dev
+  // server over. Both `next build` and `next start` read this config, so
+  // one variable steers the pair into a directory of their own.
+  distDir: process.env.NEXT_DIST_DIR ?? '.next',
   // A phone on the Wi-Fi or a tunnel reaches the dev server at an address
   // that is not localhost; without this Next refuses their requests for
   // /_next assets as cross-origin. The tunnel host comes from the same
