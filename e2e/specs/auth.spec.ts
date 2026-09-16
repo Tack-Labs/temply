@@ -1,4 +1,4 @@
-import { STORAGE_STATE } from '../setup/storage-state';
+import { clerk, clerkSetup } from '@clerk/testing/playwright';
 import { TEST_USER } from '../env';
 import { test, expect } from '../fixtures/test';
 
@@ -19,9 +19,18 @@ test.describe('auth', () => {
   });
 
   test('signing out ends the session', async ({ browser }) => {
-    // Its own context: the shared storageState must survive for the other specs.
-    const context = await browser.newContext({ storageState: STORAGE_STATE });
+    // A real sign-out revokes the session server-side, not just this
+    // page's copy of it — reusing the shared storageState here would revoke
+    // the token every other test's context is built from. Sign in a session
+    // of its own instead, so the shared one survives the run.
+    await clerkSetup(); // Idempotent (per @clerk/testing's docs); this test runs in its own worker, which hasn't called it yet.
+    // The project's default storageState is the shared signed-in session —
+    // override it with an empty one, or clerk.signIn below fails with
+    // "You're already signed in."
+    const context = await browser.newContext({ storageState: { cookies: [], origins: [] } });
     const page = await context.newPage();
+    await page.goto('/login');
+    await clerk.signIn({ page, signInParams: { strategy: 'password', identifier: TEST_USER.email, password: TEST_USER.password } });
     await page.goto('/dashboard');
 
     // Below `md` the sidebar — and the account trigger inside it — is
