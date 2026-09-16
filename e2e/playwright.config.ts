@@ -1,9 +1,7 @@
 import { defineConfig, devices } from '@playwright/test';
-import { config as loadEnv } from 'dotenv';
 import { join } from 'node:path';
 import { BASE_URL, API_URL, FAKES_URL, PORTS, stackEnv } from './env';
-
-loadEnv({ path: join(import.meta.dirname, '.env') });
+import { STORAGE_STATE } from './setup/storage-state';
 
 const root = join(import.meta.dirname, '..');
 const env = stackEnv();
@@ -23,12 +21,28 @@ export default defineConfig({
     video: 'on-first-retry',
   },
   projects: [
-    { name: 'desktop-chromium', use: { ...devices['Desktop Chrome'], viewport: { width: 1300, height: 900 } } },
+    // Runs once, before either browser project: signs in through Clerk and
+    // saves the result as storageState for both to start from.
+    { name: 'setup', testMatch: /setup\/.*\.setup\.ts/ },
+    {
+      name: 'desktop-chromium',
+      use: { ...devices['Desktop Chrome'], viewport: { width: 1300, height: 900 }, storageState: STORAGE_STATE },
+      dependencies: ['setup'],
+      // editor-phone specs (Task 5) assert phone-only layout and must never
+      // run at desktop width. /setup/ is excluded too: the top-level
+      // testMatch also matches *.setup.ts, so without this every browser
+      // project would additionally collect the setup file as one of its own
+      // tests and sign in a second time.
+      testIgnore: [/setup\//, /editor-phone/],
+    },
     {
       name: 'phone-chromium',
       // iPhone 14: 390px, touch, the mobile UA. Chromium rather than WebKit
       // per commit; WebKit joins in the nightly tier.
-      use: { ...devices['iPhone 14'], defaultBrowserType: 'chromium' },
+      use: { ...devices['iPhone 14'], defaultBrowserType: 'chromium', storageState: STORAGE_STATE },
+      dependencies: ['setup'],
+      // Same double-sign-in reason as desktop-chromium above.
+      testIgnore: /setup\//,
     },
   ],
   webServer: [

@@ -1,5 +1,12 @@
+import { config as loadEnv } from 'dotenv';
 import { mkdirSync } from 'node:fs';
 import { join } from 'node:path';
+
+// Loaded here, ahead of everything below that reads process.env, rather than
+// in the config: a static `import './env'` runs before any of the config's
+// own top-level statements, so a dotenv call placed after that import would
+// still be too late for the alias a few lines down.
+loadEnv({ path: join(import.meta.dirname, '.env') });
 
 /** One id per run: it names every template a test makes, so leftovers say
  *  which run left them. */
@@ -29,6 +36,10 @@ export const DB_PATH = join(tmp, `e2e-${RUN_ID}.db`);
  *  environment (local: e2e/.env, CI: secrets); never from the repo. */
 export const TEST_USER = { email: process.env.E2E_USER_EMAIL ?? '', password: process.env.E2E_USER_PASSWORD ?? '' };
 export const TEST_USER_2 = { email: process.env.E2E_USER_2_EMAIL ?? '', password: process.env.E2E_USER_2_PASSWORD ?? '' };
+
+// @clerk/testing's clerkSetup() reads the publishable key under this exact
+// name; the app and this package's .env both use the NEXT_PUBLIC_ variant.
+process.env.CLERK_PUBLISHABLE_KEY ??= process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
 
 /** The env the API and the client are started with. Everything that must
  *  agree between them is set here once. */
