@@ -12,9 +12,11 @@ test.describe('editor on the phone', () => {
   test('one tap selects a block, a second tap edits it', async ({ page, api, name }) => {
     const t = await api.createTemplate({ title: name('tap'), content: TWO_PARAGRAPHS });
     await page.goto(`/templates/${t.id}`);
-    // The second paragraph, not the first: with nothing selected the editor
-    // keeps an unfocused caret in the first textblock, and the tap model
-    // reads a tap there as a caret move rather than a selection.
+    // Known gap in the tap model, not the design: on an idle document the
+    // editor parks an unfocused caret in the first textblock, and
+    // `tapTransaction` mistakes that caret for "already typing", so the
+    // first tap there edits instead of selecting. The second paragraph is
+    // tapped until that is fixed; the fixme below records the case.
     const para = page.locator('.ProseMirror > p').nth(1);
     await phone.tapBlock(page, para);
     await expect(phone.bar(page).button('Delete')).toBeVisible();
@@ -23,6 +25,18 @@ test.describe('editor on the phone', () => {
     await expect(phone.bar(page).button('Done')).toBeVisible();
     await page.keyboard.type(' typed');
     await expect(para).toContainText('typed');
+  });
+
+  // The same gap, as the test that turns on once it is closed: with nothing
+  // selected the unfocused caret in the first textblock is read as "already
+  // typing" (block-selection.ts, tapTransaction), and the first tap on that
+  // block raises the keyboard instead of the action bar.
+  test.fixme('one tap on the first block selects it', async ({ page, api, name }) => {
+    const t = await api.createTemplate({ title: name('first') });
+    await page.goto(`/templates/${t.id}`);
+    await phone.tapBlock(page, page.locator('.ProseMirror > p').first());
+    await expect(phone.bar(page).button('Delete')).toBeVisible();
+    await expect(page.locator('.ProseMirror-selectednode')).toHaveCount(1);
   });
 
   test('the + sheet inserts a block at the end and selects it', async ({ page, api, name }) => {
