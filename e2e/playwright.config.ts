@@ -17,11 +17,15 @@ export default defineConfig({
   // The first test in each CI worker meets a cold production server; the
   // default 5 s is enough locally and short of it there.
   expect: { timeout: process.env.CI ? 10_000 : 5_000 },
+  // CI records neither a trace nor video: the HTML reporter copies every
+  // attachment into the report that is uploaded as an artifact, and a trace
+  // carries the test user's session cookies. A failure that needs one is
+  // reproduced locally.
   use: {
     baseURL: BASE_URL,
-    trace: 'on-first-retry',
+    trace: process.env.CI ? 'off' : 'on-first-retry',
     screenshot: 'only-on-failure',
-    video: 'on-first-retry',
+    video: process.env.CI ? 'off' : 'on-first-retry',
   },
   projects: [
     // Runs once, before either browser project: signs in through Clerk and
@@ -46,7 +50,7 @@ export default defineConfig({
       dependencies: ['setup'],
       // Same double-sign-in reason as desktop-chromium above. The stack
       // check has no viewport to assert and runs once, on desktop.
-      testIgnore: [/setup\//, /stack/],
+      testIgnore: [/setup\//, /specs\/stack\.e2e\.ts$/],
     },
   ],
   webServer: [

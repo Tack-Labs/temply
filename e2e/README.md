@@ -63,8 +63,8 @@ On failure the job uploads the screenshots under `test-results/` and the
 HTML report as the `playwright` artifact, kept for three days. Traces and
 video are not uploaded: they record every request with its headers, which
 means the test user's Clerk session, and the repository is public. To get a
-trace, reproduce the failure locally (`trace: 'on-first-retry'` is still
-set; `bun run e2e -- --retries=1 --trace on` forces one).
+trace, reproduce the failure locally: outside CI a retry records one, and
+`bun run e2e -- --retries=1 --trace on` forces one.
 
 `Browser tests` should be a required check in the branch protection for
 `main`; that is a repository setting, so it needs an admin.

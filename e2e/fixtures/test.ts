@@ -1,13 +1,19 @@
 import { test as base, expect } from '@playwright/test';
 import { RUN_ID } from '../env';
 import { fakes } from '../fakes/client';
+import type { Recorded } from '../fakes/index';
 import { makeApi } from './api';
 import { emulateCoarsePointer } from './phone';
 
 type Fixtures = {
   /** Names the data a test makes: `e2e <runId> · <project> [· r<retry>] · <title> · <what>`. */
   name: (what: string) => string;
-  fakes: typeof fakes;
+  /** What this test may ask of the fakes: `requests` is scoped to the test,
+   *  and `reset` is left off on purpose (see the fixture). */
+  fakes: {
+    requests: (service: 'stripe' | 'imagekit' | 'resend') => Promise<Recorded[]>;
+    signStripeEvent: typeof fakes.signStripeEvent;
+  };
   api: ReturnType<typeof makeApi>;
 };
 
@@ -52,7 +58,7 @@ export const test = base.extend<Fixtures>({
   // and matches on data it named rather than on counts.
   fakes: async ({}, use) => {
     const startedAt = Date.now();
-    await use({ ...fakes, requests: (service) => fakes.requests(service, startedAt) });
+    await use({ requests: (service) => fakes.requests(service, startedAt), signStripeEvent: fakes.signStripeEvent });
   },
   api: async ({ request }, use) => {
     const api = makeApi(request);

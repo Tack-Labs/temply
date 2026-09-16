@@ -60,6 +60,8 @@ export function stackEnv(): Record<string, string> {
     // even though nothing in the checkout's .env files sets one today.
     SENTRY_DSN: '',
     SENTRY_ENVIRONMENT: 'e2e',
+    NEXT_PUBLIC_SENTRY_DSN: '',
+    NEXT_PUBLIC_SENTRY_ENVIRONMENT: 'e2e',
     NEXT_PUBLIC_APP_URL: BASE_URL,
     API_URL,
     SQLITE_DB_PATH: DB_PATH,
