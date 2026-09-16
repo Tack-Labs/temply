@@ -39,9 +39,12 @@ export function UserMenu({ align = 'end', showLabel = true, surface = 'rail' }: 
       <DropdownMenuTrigger asChild>
         {/* With the label the trigger is a rail row: the avatar sits on the
             same 20px line as the nav icons and the workspace avatar above.
-            Without it the trigger is a plain icon button. */}
+            Without it the trigger is a plain icon button. Either way it is
+            named for what it opens: an initial alone is no name, and the
+            name and address are whose account, which the menu repeats. */}
         <button
           type="button"
+          aria-label="Account"
           className={`flex w-full items-center gap-2 rounded-md text-sm ${showLabel ? 'px-2.5 py-1.5' : 'p-1.5'} ${pressable} ${
             surface === 'rail'
               ? 'text-rail-ink hover:bg-rail-hover'

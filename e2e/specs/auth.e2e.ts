@@ -35,16 +35,10 @@ test.describe('auth', () => {
 
     // Below `md` the sidebar — and the account trigger inside it — is
     // display:none, so it drops out of the accessibility tree; the drawer's
-    // copy is what a phone visitor actually uses. Open it first when present
-    // so this test passes on both the desktop and the phone project.
-    const openNav = page.getByRole('button', { name: 'Open navigation' });
-    if (await openNav.isVisible()) await openNav.click();
-
-    // The app renders its own account control, not Clerk's UserButton, and
-    // it carries no aria-label — its accessible name is whatever text sits
-    // inside it (initials, name, email). The email is the one part of that
-    // text guaranteed to render, name or no name on the Clerk profile.
-    await page.getByRole('button').filter({ hasText: TEST_USER.email }).click();
+    // copy is what a phone visitor actually uses. Open it first on the
+    // phone project so this test passes on both.
+    if (test.info().project.name.startsWith('phone')) await page.getByRole('button', { name: 'Open navigation' }).click();
+    await page.getByRole('button', { name: 'Account', exact: true }).click();
     await page.getByRole('menuitem', { name: /sign out/i }).click();
     // signOut({ redirectUrl: '/' }) clears the session and then navigates
     // there itself; racing that with an immediate goto('/dashboard') can
