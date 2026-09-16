@@ -89,8 +89,12 @@ jobs:
       # with password sign-in. INTERNAL_API_SECRET only has to agree between
       # the API and the client of this run's fresh stack, so a fixed value
       # is enough.
+      # Run from the package, not through `bun run --filter`: Bun prefixes
+      # every line of a filtered script with the package name, and GitHub
+      # reads the `github` reporter's annotations only at column 0.
       - name: Run
-        run: bun run e2e
+        run: bunx playwright test
+        working-directory: e2e
         env:
           CI: "1"
           E2E_RUN_ID: ${{ github.run_id }}
@@ -101,12 +105,15 @@ jobs:
           E2E_USER_2_EMAIL: ${{ secrets.E2E_USER_2_EMAIL }}
           E2E_USER_2_PASSWORD: ${{ secrets.E2E_USER_2_PASSWORD }}
           INTERNAL_API_SECRET: e2e-internal-secret
+      # Screenshots and the report only. A trace or video records the test
+      # user's session cookies and Clerk's testing token, and this
+      # repository's artifacts are public; reproduce locally for a trace.
       - name: Artifacts
         if: failure()
         uses: actions/upload-artifact@v4
         with:
           name: playwright
           path: |
-            e2e/test-results
+            e2e/test-results/**/*.png
             e2e/playwright-report
-          retention-days: 7
+          retention-days: 3
