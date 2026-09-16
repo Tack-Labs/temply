@@ -3,8 +3,11 @@ import { FAKES_URL } from '../env';
 import type { Recorded } from './index';
 
 export const fakes = {
-  async requests(service: 'stripe' | 'imagekit' | 'resend'): Promise<Recorded[]> {
-    return (await fetch(`${FAKES_URL}/__requests?service=${service}`)).json() as Promise<Recorded[]>;
+  /** What a fake has received, or only what it received at or after `since`
+   *  (a `Date.now()` from the same machine, since the fakes stamp with theirs). */
+  async requests(service: 'stripe' | 'imagekit' | 'resend', since = 0): Promise<Recorded[]> {
+    const all = (await (await fetch(`${FAKES_URL}/__requests?service=${service}`)).json()) as Recorded[];
+    return all.filter((r) => r.receivedAt >= since);
   },
   async reset(): Promise<void> {
     await fetch(`${FAKES_URL}/__reset`, { method: 'POST' });

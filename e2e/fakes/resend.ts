@@ -1,6 +1,6 @@
-import type { Recorded } from './index';
+import type { Received } from './index';
 
-export function resendRoutes(record: (r: Recorded) => void) {
+export function resendRoutes(record: (r: Received) => void) {
   return async (req: Request, path: string): Promise<Response | null> => {
     if (req.method === 'POST' && path === '/emails') {
       const body = await req.json();

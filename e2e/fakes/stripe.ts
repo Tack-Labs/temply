@@ -1,9 +1,9 @@
-import type { Recorded } from './index';
+import type { Received } from './index';
 
 /** Just enough of Stripe for the app's three calls. A checkout session's
  *  URL points straight at the app's success page, so a test that presses
  *  Upgrade lands where a real customer would after paying. */
-export function stripeRoutes(appUrl: string, record: (r: Recorded) => void) {
+export function stripeRoutes(appUrl: string, record: (r: Received) => void) {
   return async (req: Request, path: string): Promise<Response | null> => {
     const body = req.method === 'POST' ? Object.fromEntries(new URLSearchParams(await req.text())) : {};
     record({ method: req.method, path, body });

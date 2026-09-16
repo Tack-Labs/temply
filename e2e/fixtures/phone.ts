@@ -8,6 +8,8 @@ import type { Locator, Page } from '@playwright/test';
  * test that asserts what is on screen should not wait on them.
  */
 export async function emulateCoarsePointer(page: Page): Promise<void> {
+  // A CDP session is Chromium's; a WebKit project (the nightly tier) has no
+  // such thing, and will need to skip this or emulate another way.
   const cdp = await page.context().newCDPSession(page);
   await cdp.send('Emulation.setEmulatedMedia', {
     features: [
@@ -21,7 +23,8 @@ export async function emulateCoarsePointer(page: Page): Promise<void> {
  *  a node view draws on its right. */
 async function tap(page: Page, block: Locator): Promise<void> {
   await block.scrollIntoViewIfNeeded();
-  const box = (await block.boundingBox())!;
+  const box = await block.boundingBox();
+  if (!box) throw new Error(`tap: ${block} is not on screen`);
   await page.mouse.click(box.x + 20, box.y + Math.min(10, box.height / 2));
 }
 

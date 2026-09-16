@@ -3,11 +3,14 @@ import { imagekitRoutes, resetImagekit } from './imagekit';
 import { resendRoutes } from './resend';
 import { stripeRoutes } from './stripe';
 
-export type Recorded = { method: string; path: string; body: unknown };
+/** What a fake received, stamped with when: tests run in parallel against
+ *  this one process, so a test tells its own requests apart by time. */
+export type Recorded = { method: string; path: string; body: unknown; receivedAt: number };
+export type Received = Omit<Recorded, 'receivedAt'>;
 type Service = 'stripe' | 'imagekit' | 'resend';
 
 const recorded: Record<Service, Recorded[]> = { stripe: [], imagekit: [], resend: [] };
-const record = (service: Service) => (r: Recorded) => { recorded[service].push(r); };
+const record = (service: Service) => (r: Received) => { recorded[service].push({ ...r, receivedAt: Date.now() }); };
 
 const stripeHandler = stripeRoutes(BASE_URL, record('stripe'));
 const handlers: Record<'imagekit' | 'resend', (req: Request, path: string) => Promise<Response | null>> = {

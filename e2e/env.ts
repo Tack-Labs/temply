@@ -1,5 +1,5 @@
 import { config as loadEnv } from 'dotenv';
-import { mkdirSync } from 'node:fs';
+import { mkdirSync, readdirSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 
 // Loaded here, ahead of everything below that reads process.env, rather than
@@ -32,6 +32,15 @@ const tmp = join(import.meta.dirname, '.tmp');
 mkdirSync(tmp, { recursive: true });
 export const DB_PATH = join(tmp, `e2e-${RUN_ID}.db`);
 
+// Earlier runs' databases are removed here, at the start of the next run,
+// rather than by a teardown at the end of their own: the API webServer that
+// holds the file open outlives globalTeardown, so a run cannot delete its
+// own. Only files of other run ids go — this run's, and its -wal/-shm
+// companions, are left for the stack that is about to open them.
+for (const file of readdirSync(tmp)) {
+  if (/^e2e-.+\.db(-wal|-shm)?$/.test(file) && !file.startsWith(`e2e-${RUN_ID}.db`)) rmSync(join(tmp, file), { force: true });
+}
+
 /** The two Clerk users on the dev instance. Passwords come from the
  *  environment (local: e2e/.env, CI: secrets); never from the repo. */
 export const TEST_USER = { email: process.env.E2E_USER_EMAIL ?? '', password: process.env.E2E_USER_PASSWORD ?? '' };
@@ -47,6 +56,10 @@ export function stackEnv(): Record<string, string> {
   return {
     ...process.env as Record<string, string>,
     NODE_ENV: 'test',
+    // A failing e2e run must never page anyone: the DSN is emptied here
+    // even though nothing in the checkout's .env files sets one today.
+    SENTRY_DSN: '',
+    SENTRY_ENVIRONMENT: 'e2e',
     NEXT_PUBLIC_APP_URL: BASE_URL,
     API_URL,
     SQLITE_DB_PATH: DB_PATH,

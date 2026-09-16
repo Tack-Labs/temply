@@ -6,8 +6,8 @@ export const EMPTY_DOC = JSON.stringify({ type: 'doc', content: [{ type: 'paragr
 /**
  * Seeds through the app's own API, as the browser would: `page.request`
  * carries the signed-in cookies through the Next proxy, which adds the
- * identity headers the API trusts. Everything made here is deleted at the
- * end of the test that made it.
+ * identity headers the API trusts. Everything made here, or handed over
+ * with `track`, is deleted at the end of the test that made it.
  */
 export function makeApi(request: APIRequestContext) {
   const made: string[] = [];
@@ -18,6 +18,11 @@ export function makeApi(request: APIRequestContext) {
       const { template } = await res.json();
       made.push(template.id);
       return { id: template.id, title: template.title };
+    },
+    /** A template the test made through the page rather than here, so the
+     *  cleanup owns it from the moment its id is known. */
+    track(id: string): void {
+      if (!made.includes(id)) made.push(id);
     },
     async deleteTemplate(id: string): Promise<void> {
       const res = await request.delete(`/api/v1/templates/${id}`);

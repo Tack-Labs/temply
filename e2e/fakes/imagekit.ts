@@ -1,10 +1,10 @@
-import type { Recorded } from './index';
+import type { Received } from './index';
 
 const files = new Map<string, { bytes: Uint8Array; type: string; name: string }>();
 
 /** Uploads are kept in memory and served back from /cdn, so an image a test
  *  uploads is one the editor can actually draw. */
-export function imagekitRoutes(base: string, record: (r: Recorded) => void) {
+export function imagekitRoutes(base: string, record: (r: Received) => void) {
   return async (req: Request, path: string): Promise<Response | null> => {
     if (req.method === 'POST' && path === '/api/v1/files/upload') {
       const form = await req.formData();

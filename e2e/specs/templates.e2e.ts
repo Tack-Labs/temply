@@ -48,11 +48,13 @@ test.describe('templates', () => {
     await gallery.getByRole('button', { name: /^Start from/ }).first().click();
     await expect(page).toHaveURL(/\/templates\/[0-9a-f-]{36}$/);
     const id = page.url().split('/').pop()!;
-    // Name it so the list shows a row this test owns, then clean up through the API.
+    // Handed to the fixture at once: a failure below would otherwise leave
+    // the row behind for the rest of the run.
+    api.track(id);
+    // Name it so the list shows a row this test owns.
     await renameTo(page, id, name('new'));
     await page.goto('/dashboard/templates');
     await expect(page.getByRole('link', { name: name('new') })).toBeVisible();
-    await api.deleteTemplate(id);
   });
 
   test('a seeded template can be renamed', async ({ page, api, name }) => {

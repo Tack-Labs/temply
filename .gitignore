@@ -71,7 +71,8 @@ server/backups/
 # The e2e stack's own client build, kept apart from the dev server's .next
 /client/.next-e2e/
 
-# Playwright artifacts (e2e/)
+# Playwright artifacts and the local Clerk keys (e2e/)
+/e2e/.env
 /e2e/.auth/
 /e2e/test-results/
 /e2e/playwright-report/

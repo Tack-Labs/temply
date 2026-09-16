@@ -5,7 +5,7 @@ import { makeApi } from './api';
 import { emulateCoarsePointer } from './phone';
 
 type Fixtures = {
-  /** Names the data a test makes: `e2e <runId> · <project> · <title> · <what>`. */
+  /** Names the data a test makes: `e2e <runId> · <project> [· r<retry>] · <title> · <what>`. */
   name: (what: string) => string;
   fakes: typeof fakes;
   api: ReturnType<typeof makeApi>;
@@ -20,6 +20,9 @@ export const test = base.extend<Fixtures>({
   // test against the same database at once, and a shared title would show
   // each run the other's rows.
   //
+  // A retry is part of it too: a row the first attempt left behind would
+  // otherwise answer to the second attempt's name.
+  //
   // `what` is the part a test tells two of its names apart by, so it is
   // never cut: a long test title is what gives way, with an ellipsis. A
   // `what` so long that no title fits at all is a mistake in the test, and
@@ -27,7 +30,8 @@ export const test = base.extend<Fixtures>({
   // also produce.
   name: async ({}, use, testInfo) => {
     await use((what) => {
-      const head = `e2e ${RUN_ID} · ${testInfo.project.name} · `;
+      const attempt = testInfo.retry ? `r${testInfo.retry} · ` : '';
+      const head = `e2e ${RUN_ID} · ${testInfo.project.name} · ${attempt}`;
       const tail = ` · ${what}`;
       const room = NAME_MAX - head.length - tail.length;
       if (room < 1) throw new Error(`name(${JSON.stringify(what)}) leaves no room for the test title in ${NAME_MAX} characters`);
@@ -42,9 +46,13 @@ export const test = base.extend<Fixtures>({
     if (testInfo.project.name.startsWith('phone')) await emulateCoarsePointer(page);
     await use(page);
   },
+  // Every worker talks to the same fake process, so a reset here would wipe
+  // what a test on another worker is about to read. Isolation is by time
+  // instead: this test sees only what the fakes received once it began,
+  // and matches on data it named rather than on counts.
   fakes: async ({}, use) => {
-    await fakes.reset();
-    await use(fakes);
+    const startedAt = Date.now();
+    await use({ ...fakes, requests: (service) => fakes.requests(service, startedAt) });
   },
   api: async ({ request }, use) => {
     const api = makeApi(request);

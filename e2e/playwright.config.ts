@@ -14,6 +14,9 @@ export default defineConfig({
   retries: process.env.CI ? 1 : 0,
   workers: process.env.CI ? 4 : undefined,
   reporter: process.env.CI ? [['github'], ['html', { open: 'never' }]] : [['list']],
+  // The first test in each CI worker meets a cold production server; the
+  // default 5 s is enough locally and short of it there.
+  expect: { timeout: process.env.CI ? 10_000 : 5_000 },
   use: {
     baseURL: BASE_URL,
     trace: 'on-first-retry',
@@ -41,8 +44,9 @@ export default defineConfig({
       // per commit; WebKit joins in the nightly tier.
       use: { ...devices['iPhone 14'], defaultBrowserType: 'chromium', storageState: STORAGE_STATE },
       dependencies: ['setup'],
-      // Same double-sign-in reason as desktop-chromium above.
-      testIgnore: /setup\//,
+      // Same double-sign-in reason as desktop-chromium above. The stack
+      // check has no viewport to assert and runs once, on desktop.
+      testIgnore: [/setup\//, /stack/],
     },
   ],
   webServer: [
@@ -76,7 +80,9 @@ export default defineConfig({
       url: BASE_URL,
       env: { ...env, NEXT_DIST_DIR: '.next-e2e' },
       reuseExistingServer: false,
-      timeout: 300_000,
+      // A cold `next build` on a shared CI runner can take most of five
+      // minutes; the job has the headroom.
+      timeout: 600_000,
     },
   ],
 });

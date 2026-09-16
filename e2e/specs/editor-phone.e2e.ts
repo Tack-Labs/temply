@@ -3,8 +3,9 @@ import { phone } from '../fixtures/phone';
 
 // The canvas is a contenteditable, so the `.ProseMirror` locators below are
 // the one place a DOM selector stands in for a role: ProseMirror's own class
-// names are its public contract for what is selected. Everything else is
-// found the way a screen reader would find it.
+// names are its public contract for what is selected, and a node view's
+// `data-type` is the editor's for what a block is. Everything else is found
+// the way a screen reader would find it.
 const paragraph = (text: string) => ({ type: 'paragraph', content: [{ type: 'text', text }] });
 const TWO_PARAGRAPHS = JSON.stringify({ type: 'doc', content: [paragraph('Hello from e2e'), paragraph('A second paragraph')] });
 
@@ -58,6 +59,8 @@ test.describe('editor on the phone', () => {
     const repeat = page.locator('.ProseMirror [data-type="repeat"]');
     await expect(repeat).toHaveCount(1);
     await phone.tapBlock(page, repeat.locator('p').first());
+    // The tap, not something else, is what Delete acts on.
+    await expect(page.locator('.ProseMirror-selectednode')).toHaveCount(1);
     await phone.bar(page).button('Delete').click();
     await expect(repeat).toHaveCount(0);
   });
