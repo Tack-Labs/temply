@@ -4,7 +4,7 @@ import type { Recorded } from './index';
 
 export const fakes = {
   async requests(service: 'stripe' | 'imagekit' | 'resend'): Promise<Recorded[]> {
-    return (await fetch(`${FAKES_URL}/__requests?service=${service}`)).json();
+    return (await fetch(`${FAKES_URL}/__requests?service=${service}`)).json() as Promise<Recorded[]>;
   },
   async reset(): Promise<void> {
     await fetch(`${FAKES_URL}/__reset`, { method: 'POST' });

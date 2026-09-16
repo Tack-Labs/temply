@@ -19,7 +19,7 @@ test('the stack is wired: the fakes answer and reset', async () => {
     body: 'email=test%40example.com',
   });
   expect(stripeRes.status).toBe(200);
-  const body = await stripeRes.json();
+  const body = (await stripeRes.json()) as { id: string };
   expect(body.id).toMatch(/^cus_/);
   expect(await fakes.requests('stripe')).toHaveLength(1);
 });

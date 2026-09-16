@@ -5,12 +5,14 @@
   "scripts": {
     "test": "playwright test",
     "ui": "playwright test --ui",
-    "install-browsers": "playwright install chromium"
+    "install-browsers": "playwright install chromium",
+    "typecheck": "tsc --noEmit"
   },
   "devDependencies": {
     "@clerk/testing": "^1.13.0",
     "@playwright/test": "^1.58.0",
     "@types/bun": "latest",
-    "dotenv": "^16.4.0"
+    "dotenv": "^16.4.0",
+    "typescript": "5.8.2"
   }
 }

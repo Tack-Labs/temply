@@ -8,7 +8,7 @@ const env = stackEnv();
 
 export default defineConfig({
   testDir: '.',
-  testMatch: ['specs/**/*.spec.ts', 'setup/**/*.setup.ts'],
+  testMatch: ['specs/**/*.e2e.ts', 'setup/**/*.setup.ts'],
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 1 : 0,
