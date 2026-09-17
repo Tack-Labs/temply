@@ -1,8 +1,9 @@
 import { clerk, clerkSetup } from '@clerk/testing/playwright';
 import { test as setup, expect } from '@playwright/test';
 import { writeFileSync } from 'node:fs';
-import { TEST_USER } from '../env';
+import { RUN_ID, TEST_USER } from '../env';
 import { fakes } from '../fakes/client';
+import { EMPTY_DOC } from '../fixtures/api';
 import { WORKSPACES_FILE } from '../fixtures/workspaces';
 import { ensureSecondUser } from './clerk';
 import { upgradeTo } from './plan';
@@ -15,6 +16,9 @@ import { STORAGE_STATE } from './storage-state';
  * is saved as storageState and every spec starts from it.
  */
 setup('sign in as the e2e user', async ({ page }) => {
+  // The sign-in, the checkout, the Clerk writes and a cold editor render
+  // add up to more than the 30 s one spec gets.
+  setup.setTimeout(120_000);
   await clerkSetup();
   expect(TEST_USER.email, 'E2E_USER_EMAIL is set').toBeTruthy();
   await page.goto('/login');
@@ -41,6 +45,17 @@ setup('sign in as the e2e user', async ({ page }) => {
   // and the signed-in user's own id with it, so the second user can be
   // proven to be someone else before their role is touched.
   writeFileSync(WORKSPACES_FILE, JSON.stringify(await ensureSecondUser(session.orgId, session.userId)));
+
+  // The first editor render on a cold `next start` pays a JIT cost that a
+  // spec's 30 s budget should not, and CI's `retries: 1` would otherwise
+  // hide it as a pass-on-retry. One template is opened here and deleted, so
+  // no spec's first test is the one that warms the route.
+  const warm = await page.request.post('/api/v1/templates', { data: { title: `e2e ${RUN_ID} · setup · warm the editor`, content: EMPTY_DOC } });
+  expect(warm.ok(), 'the warm-up template is made').toBeTruthy();
+  const warmId = (await warm.json()).template.id as string;
+  await page.goto(`/templates/${warmId}`);
+  await expect(page.locator('.ProseMirror').getByText('Hello from e2e')).toBeVisible({ timeout: 60_000 });
+  expect((await page.request.delete(`/api/v1/templates/${warmId}`)).ok(), 'the warm-up template is deleted').toBeTruthy();
 
   await page.context().storageState({ path: STORAGE_STATE });
 });

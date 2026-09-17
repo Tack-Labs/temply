@@ -21,6 +21,11 @@ const SECOND_WORKSPACE_NAME = 'e2e second workspace';
 export async function ensureSecondUser(sharedOrgId: string, signedInUserId: string): Promise<Workspaces> {
   const secretKey = process.env.CLERK_SECRET_KEY;
   if (!secretKey) throw new Error('CLERK_SECRET_KEY is not set');
+  // The dev instance is the only one this setup may write to: a production
+  // key in e2e/.env or a CI secret would otherwise have the writes below —
+  // a membership, a demotion, an organization — land on real customers.
+  if (!secretKey.startsWith('sk_test_')) throw new Error('CLERK_SECRET_KEY must be a dev-instance key (sk_test_…)');
+  if (!signedInUserId) throw new Error('the signed-in user has no id; refusing to touch anyone else\'s standing');
   if (!TEST_USER_2.email) throw new Error('E2E_USER_2_EMAIL is not set');
   if (TEST_USER_2.email === TEST_USER.email) throw new Error('E2E_USER_2_EMAIL must name a different user from E2E_USER_EMAIL');
   const clerk = createClerkClient({ secretKey });
@@ -42,7 +47,11 @@ export async function ensureSecondUser(sharedOrgId: string, signedInUserId: stri
     await clerk.organizations.updateOrganizationMembership({ organizationId: sharedOrgId, userId: user.id, role: 'org:member' });
   }
 
-  let second = memberships.data.find((m) => m.organization.id !== sharedOrgId && m.role === 'org:admin')?.organization.id;
+  // The named workspace is preferred: a workspace the user was made admin of
+  // by hand, for a look at something, would otherwise be the one the specs
+  // move between Free and Pro.
+  const own = memberships.data.filter((m) => m.organization.id !== sharedOrgId && m.role === 'org:admin');
+  let second = (own.find((m) => m.organization.name === SECOND_WORKSPACE_NAME) ?? own[0])?.organization.id;
   if (!second) {
     const org = await clerk.organizations.createOrganization({ name: SECOND_WORKSPACE_NAME, createdBy: user.id });
     second = org.id;

@@ -22,7 +22,9 @@ First time: `bun run --filter @temply/e2e install-browsers`, and create
     E2E_USER_2_EMAIL=e2e-2@…
     E2E_USER_2_PASSWORD=…
 
-Both users exist on the Clerk dev instance with password sign-in.
+Both users exist on the Clerk dev instance with password sign-in. The
+secret key has to be a dev-instance one (`sk_test_`): setup refuses any
+other, since it writes memberships and roles through Clerk's backend API.
 
 ### Test data
 
@@ -99,8 +101,9 @@ trace, reproduce the failure locally: outside CI a retry records one, and
 
 ## Layout
 
-    setup/     sign in once, save storageState; the plan and the second user
+    setup/     sign in once, save storageState; the plan, the second user,
+               and one editor open so no spec meets the route cold
     fixtures/  test (name, api, fakes, coarse pointer), phone and editor helpers,
-               the second user's session, the workspace ids
+               the second user's session, the workspace ids, the phone predicate
     fakes/     the three fakes and their client
     specs/     one file per feature

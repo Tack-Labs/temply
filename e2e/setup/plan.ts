@@ -28,7 +28,7 @@ export async function recordedCheckout(fakes: FakesClient): Promise<CheckoutSess
   if (!session) throw new Error('the fake Stripe recorded no checkout session');
   const sent = session.body as Record<string, string>;
   const out = { orgId: sent['metadata[orgId]'], userId: sent['metadata[userId]'], customer: sent.customer };
-  if (!out.orgId || !out.customer) throw new Error(`checkout metadata missing: ${JSON.stringify(out)}`);
+  if (!out.orgId || !out.userId || !out.customer) throw new Error(`checkout metadata missing: ${JSON.stringify(out)}`);
   return out;
 }
 
