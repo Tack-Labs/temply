@@ -17,9 +17,13 @@ import { bubbleMenu, docOf, expectOnScreen, insertHere, insertViaSlash, newLine,
 // places to type, so they are `aria-hidden` by design and a class is all
 // that is left to count them by. `[data-repeat-indicator]` is the strip in
 // the margin — a `role="button"`, but the attribute is what tells it apart
-// from every other button in the canvas. `#slash-command` and `.tippy-box`
-// are the two other exceptions this file needs, both explained where they
-// are used.
+// from every other button in the canvas. `.ProseMirror-selectednode` is the
+// mark ProseMirror puts on a block taken whole: a node selection is a state
+// of the document rather than of the DOM, and nothing else says it happened.
+// `#slash-command` and `.tippy-box` are the two other exceptions this file
+// needs, both explained where they are used. Outside the canvas there is one
+// more: the cheatsheet's keys are `kbd` elements carrying neither a role nor
+// a name, so the element itself is what a case counts and reads.
 
 /** What a test hands the opener below: its own page and its own seeding. */
 type Seeding = { page: Page; api: ReturnType<typeof makeApi>; name: (what: string) => string };
@@ -491,5 +495,169 @@ test.describe('editor on the desktop', () => {
     await expect(pm.locator('p[data-show-if-key]')).toHaveCount(0);
     await expect.poll(async () => JSON.stringify(await docOf(api, t.id)).includes('"showIfKey":"isMember"'),
       { message: 'the saved block no longer carries the condition' }).toBe(false);
+  });
+
+  test('the cheatsheet lists what the editor answers to', async ({ page, api, name }) => {
+    const t = await api.createTemplate({ title: name('cheatsheet') });
+    await openEditor(page, t.id);
+    await page.getByRole('button', { name: 'Keyboard shortcuts' }).click();
+    const sheet = page.getByRole('dialog', { name: 'Keyboard shortcuts' });
+    await expect(sheet).toBeVisible();
+    // The group titles are uppercased in CSS, and an accessible name follows
+    // `text-transform`, so the case is what gives way: the anchors are what
+    // keep "Text" from answering for a heading that merely starts with it.
+    for (const group of ['Insert', 'Write', 'Blocks', 'Text']) {
+      await expect(sheet.getByRole('heading', { name: new RegExp(`^${group}$`, 'i') })).toBeVisible();
+    }
+
+    // The keys are rewritten for the platform the reader is on, and they are
+    // invisible until that resolves — so the text is the wait, and the whole
+    // list in order is what is waited for. A key looked up on its own would
+    // not do: a substring match lets `- ` answer to the `---` row.
+    //
+    // Which set is on screen is the browser's platform, not the host's. This
+    // project runs Playwright's Desktop Chrome descriptor, which reports a
+    // platform of its own, so a Mac running the suite still reads the Ctrl
+    // keys; `process.platform` would ask the wrong machine.
+    const mac = await page.evaluate(() => {
+      const hinted = (navigator as { userAgentData?: { platform?: string } }).userAgentData;
+      return /mac|iphone|ipad|ipod/i.test(hinted?.platform || navigator.platform || navigator.userAgent || '');
+    });
+    const keys = mac
+      ? ['/', '@', '---', '# ', '- ', '1. ', '> ', '**text**', '⇧Enter', '⌘⇧↑', '⌘⇧↓', '⌘⇧D', '⌘⇧Space', '⌘⇧⌫', '⌘B', '⌘I', '⌘U', '⌘Z']
+      : ['/', '@', '---', '# ', '- ', '1. ', '> ', '**text**', 'Shift+Enter', 'Ctrl+Shift+↑', 'Ctrl+Shift+↓', 'Ctrl+Shift+D', 'Ctrl+Shift+Space', 'Ctrl+Shift+Backspace', 'Ctrl+B', 'Ctrl+I', 'Ctrl+U', 'Ctrl+Z'];
+    await expect(sheet.locator('kbd'), 'every shortcut is listed, in its group and in order').toHaveText(keys);
+
+    await sheet.getByRole('button', { name: 'Close' }).click();
+    await expect(sheet).toBeHidden();
+    // The sheet answers to its own shortcut too.
+    await page.keyboard.press('ControlOrMeta+/');
+    await expect(sheet).toBeVisible();
+    await page.keyboard.press('Escape');
+    await expect(sheet).toBeHidden();
+  });
+
+  test('the shortcuts the cheatsheet lists do what it says', async ({ page, api, name }) => {
+    // A template per case, the way the block cases further up take one.
+    // Two cases cannot share a document: `newLine` is the only way to a
+    // fresh top-level line — which every case needs, an input rule having to
+    // start a textblock and a Blocks shortcut reaching only the top-level
+    // block the caret is in — and it asks that the new line be the
+    // document's last block, which the divider, list or quote the case
+    // before left there makes impossible; TrailingNode is not registered, so
+    // nothing puts a paragraph after them. Clicking a line further up
+    // instead is no way round it: a click moves the browser's selection at
+    // once and the editor's own a tick later, and a key pressed in between
+    // is dealt with where the editor still believes the caret is — the end
+    // of the document, where the canvas opened. On a fresh template that is
+    // the line `newLine` clicks, which is why this pattern is the safe one.
+    const open = opener({ page, api, name });
+
+    // Insert: the two characters that open a panel.
+    await open('slash');
+    await newLine(page);
+    await page.keyboard.type('/');
+    await expect(page.locator('#slash-command')).toBeVisible();
+    await page.keyboard.press('Escape');
+    await expect(page.locator('#slash-command')).toBeHidden();
+
+    await open('variable');
+    await newLine(page);
+    await page.keyboard.type('@');
+    const variables = page.locator('.tippy-box').filter({ hasText: 'Variables' });
+    await expect(variables).toBeVisible();
+    // Backspace rather than Escape: taking the `@` away is what ends the
+    // query, and the panel goes with it.
+    await page.keyboard.press('Backspace');
+    await expect(variables).toBeHidden();
+
+    // Insert and Write: the markdown-style inputs, typed as the cheatsheet
+    // writes them. The divider is the one that carries no trailing space —
+    // its rule fires on the third dash.
+    let pm = await open('divider');
+    await newLine(page);
+    await page.keyboard.type('---');
+    await expect(pm.locator('hr')).toHaveCount(1);
+
+    pm = await open('heading');
+    await newLine(page);
+    await page.keyboard.type('# A heading');
+    await expect(pm.locator('h1')).toHaveText('A heading');
+
+    pm = await open('bullet list');
+    await newLine(page);
+    await page.keyboard.type('- An item');
+    await expect(pm.locator('ul > li')).toHaveText('An item');
+
+    pm = await open('numbered list');
+    await newLine(page);
+    await page.keyboard.type('1. First');
+    await expect(pm.locator('ol > li')).toHaveText('First');
+
+    pm = await open('blockquote');
+    await newLine(page);
+    await page.keyboard.type('> A quote');
+    await expect(pm.locator('blockquote')).toContainText('A quote');
+
+    pm = await open('bold markdown');
+    await newLine(page);
+    await page.keyboard.type('**bold**');
+    await expect(pm.locator('strong')).toHaveText('bold');
+
+    pm = await open('line break');
+    await newLine(page);
+    await page.keyboard.type('one');
+    await page.keyboard.press('Shift+Enter');
+    await page.keyboard.type('two');
+    await expect(pm.locator('> p').filter({ hasText: /^onetwo$/ }).locator('br')).toHaveCount(1);
+
+    // Text: the marks. Triple click is how a customer takes one paragraph;
+    // ControlOrMeta+A would take the whole document and mark every line of
+    // it, which these assertions could not tell from a working shortcut.
+    pm = await open('marks');
+    await newLine(page);
+    await page.keyboard.type('marked');
+    const marked = pm.locator('> p').filter({ hasText: /^marked$/ });
+    await marked.click({ clickCount: 3 });
+    // The menu raises on a range the editor has taken into its own state, so
+    // waiting for it is what says the selection is there to be marked.
+    await expect(bubbleMenu(page, 'Bold')).toBeVisible();
+    await page.keyboard.press('ControlOrMeta+B');
+    await expect(marked.locator('strong')).toHaveText('marked');
+    await page.keyboard.press('ControlOrMeta+I');
+    await expect(marked.locator('em')).toHaveText('marked');
+    await page.keyboard.press('ControlOrMeta+U');
+    await expect(marked.locator('u')).toHaveText('marked');
+    await page.keyboard.press('ControlOrMeta+Z');
+    // The line surviving is what says undo took the mark off rather than the
+    // typing with it.
+    await expect(marked).toHaveCount(1);
+    await expect(marked.locator('u')).toHaveCount(0);
+
+    // Blocks: the move, asserted as order. A block that moves onto its own
+    // duplicate reads the same either way, so the two lines are told apart.
+    pm = await open('move a block');
+    await newLine(page);
+    await page.keyboard.type('upper');
+    await page.keyboard.press('Enter');
+    await page.keyboard.type('lower');
+    const pair = pm.locator('> p').filter({ hasText: /^(upper|lower)$/ });
+    await expect(pair).toHaveText(['upper', 'lower']);
+    await page.keyboard.press('ControlOrMeta+Shift+ArrowUp');
+    await expect(pair, 'the block swaps with the one above').toHaveText(['lower', 'upper']);
+    await page.keyboard.press('ControlOrMeta+Shift+ArrowDown');
+    await expect(pair, 'and swaps back with the one below').toHaveText(['upper', 'lower']);
+
+    // Blocks: the selection, the copy and the delete.
+    pm = await open('select a block');
+    await newLine(page);
+    await page.keyboard.type('movable');
+    const movable = pm.getByText('movable', { exact: true });
+    await page.keyboard.press('ControlOrMeta+Shift+Space');
+    await expect(pm.locator('.ProseMirror-selectednode')).toHaveCount(1);
+    await page.keyboard.press('ControlOrMeta+Shift+D');
+    await expect(movable).toHaveCount(2);
+    await page.keyboard.press('ControlOrMeta+Shift+Backspace');
+    await expect(movable).toHaveCount(1);
   });
 });
