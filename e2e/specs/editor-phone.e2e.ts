@@ -1,3 +1,4 @@
+import type { Page } from '@playwright/test';
 import { test, expect } from '../fixtures/test';
 import { phone } from '../fixtures/phone';
 
@@ -7,10 +8,16 @@ import { phone } from '../fixtures/phone';
 // `data-type` is the editor's for what a block is. `[data-editor-bottom-bar]`
 // is the second: the bar's controls share their names with the sheets that
 // open above them, so scoping to the bar is what keeps a name unambiguous.
-// The third is `[inert]`, inside `phone.bar` — the face that is down is
+// The third is `[inert]`, inside `phone.live` — the face that is down is
 // inert rather than unmounted, and Playwright's role engine does not honour
 // inert, so the scope has to. Everything else is found the way a screen
 // reader would find it.
+
+// The header's Done, which ends typing. The input dock's submit carries the
+// same name and stays mounted once a dock has been opened, so the banner is
+// what tells the two apart.
+const done = (page: Page) => page.getByRole('banner').getByRole('button', { name: 'Done', exact: true });
+
 const paragraph = (text: string) => ({ type: 'paragraph', content: [{ type: 'text', text }] });
 const TWO_PARAGRAPHS = JSON.stringify({ type: 'doc', content: [paragraph('Hello from e2e'), paragraph('A second paragraph')] });
 
@@ -30,8 +37,9 @@ test.describe('editor on the phone', () => {
     await expect(page.locator('.ProseMirror-selectednode')).toHaveCount(1);
     await phone.editBlock(page, para);
     // Done is the header's, not the bar's: the text face costs the bar the
-    // room a second copy would need.
-    await expect(page.getByRole('button', { name: 'Done', exact: true })).toBeVisible();
+    // room a second copy would need. The dock's ✓ answers to the same name,
+    // so the header is the scope.
+    await expect(done(page)).toBeVisible();
     await page.keyboard.type(' typed');
     await expect(para).toContainText('typed');
   });
@@ -95,8 +103,10 @@ test.describe('editor on the phone', () => {
     await page.goto(`/templates/${t.id}`);
     await phone.ready(page);
 
-    // Idle: the email's own sections, nothing about a block.
-    const sections = page.getByRole('navigation', { name: 'Editor sections' });
+    // Idle: the email's own sections, nothing about a block. The nav is never
+    // unmounted, only inert, so it is asked for live or it answers in every
+    // state.
+    const sections = page.getByRole('navigation', { name: 'Editor sections' }).and(phone.live(page));
     for (const tab of ['Details', 'Brand', 'Data', 'Checks']) {
       await expect(sections.getByRole('button', { name: new RegExp(`^${tab}`) })).toBeVisible();
     }
@@ -114,7 +124,7 @@ test.describe('editor on the phone', () => {
     for (const control of ['Bold', 'Italic', 'Underline', 'Link', 'Insert variable', 'Line break', 'More formatting']) {
       await expect(phone.bar(page).button(control)).toBeVisible();
     }
-    await page.getByRole('button', { name: 'Done', exact: true }).click();
+    await done(page).click();
     await expect(phone.bar(page).button('Delete')).toBeVisible();
 
     // Idle again: a tap on the margin is how a customer puts a block down.
@@ -123,7 +133,7 @@ test.describe('editor on the phone', () => {
     await expect(phone.bar(page).button('Delete')).toHaveCount(0);
   });
 
-  test('the Aa panel colours, aligns and clears the text', async ({ page, api, name }) => {
+  test('the Aa panel holds the formatting the row cannot, and centres the text', async ({ page, api, name }) => {
     const t = await api.createTemplate({ title: name('aa'), content: TWO_PARAGRAPHS });
     await page.goto(`/templates/${t.id}`);
     await phone.ready(page);

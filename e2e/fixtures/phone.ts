@@ -38,18 +38,18 @@ async function tap(page: Page, block: Locator): Promise<void> {
   await page.mouse.click(box.x + 20, box.y + Math.min(10, box.height / 2));
 }
 
-/**
- * Only what the customer can actually reach. All four faces of the bottom
- * bar stay mounted and the three that are down are `inert`, which takes them
- * out of the browser's accessibility tree — but Playwright's role engine
- * honours `aria-hidden` and `display: none` only, so without this every face
- * answers to its controls' names at once and no assertion about which one is
- * up can fail. `and()`-ing this in is what makes a name mean the live face.
- */
 const live = (page: Page): Locator => page.locator(':not([inert]):not([inert] *)');
 
 export const phone = {
   ready,
+  /** Only what the customer can actually reach. All four faces of the bottom
+   *  bar stay mounted and the three that are down are `inert`, which takes
+   *  them out of the browser's accessibility tree — but Playwright's role
+   *  engine honours `aria-hidden` and `display: none` only, and the faces
+   *  share one stretched grid cell so even a down one keeps its box. `and()`
+   *  this into any locator whose point is which face is up, or it will match
+   *  in every state and assert nothing. */
+  live,
   /** One tap selects the block: the action bar appears, the keyboard does not. */
   tapBlock: tap,
   /** A second tap on the selected block places the caret and brings up the text bar. */
@@ -65,7 +65,7 @@ export const phone = {
     const bar = page.locator('[data-editor-bottom-bar]');
     return {
       button: (name: string) => bar.getByRole('button', { name, exact: true }).and(live(page)),
-      add: () => page.getByRole('button', { name: 'Add block' }),
+      add: () => page.getByRole('button', { name: 'Add block' }).and(live(page)),
     };
   },
   /** A bottom sheet by its name; every one carries a Close button. */
