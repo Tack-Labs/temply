@@ -260,18 +260,24 @@ test.describe('editor on the phone', () => {
     await spacer.getByRole('button', { name: 'Close' }).click();
     await expect(spacer).toBeHidden();
 
-    // A section: the settings a customer reaches for, and the way out.
-    await phone.bar(page).add().click();
-    await phone.sheet(page, 'Add a block').getByRole('button', { name: 'Section', exact: true }).click();
+    // A section: the settings a customer reaches for, and the way out. Two of
+    // them, because one would not tell the two closing rules apart — the
+    // sheet that has nothing left to show closes on that alone. With a
+    // neighbour to fall back on, what is selected after the delete still has
+    // settings, so only the followed position can say the block is gone.
+    const sections = page.locator('.ProseMirror table[data-type="section"]');
+    for (let i = 0; i < 2; i++) {
+      await phone.bar(page).add().click();
+      await phone.sheet(page, 'Add a block').getByRole('button', { name: 'Section', exact: true }).click();
+    }
+    await expect(sections).toHaveCount(2);
     const section = await phone.style(page, 'Section');
     await expect(section).toBeVisible();
     for (const control of ['Border Radius', 'Border Width', 'Margin', 'Padding']) {
       await expect(section.getByRole('button', { name: control })).toBeVisible();
     }
-    // Delete Section leaves the sheet pointing at content that is gone, and
-    // the followed position is what closes it — not the sheet rendering less.
     await section.getByRole('button', { name: 'Delete Section' }).click();
-    await expect(page.locator('.ProseMirror table[data-type="section"]')).toHaveCount(0);
+    await expect(sections).toHaveCount(1);
     await expect(section).toBeHidden();
   });
 
@@ -299,10 +305,19 @@ test.describe('editor on the phone', () => {
     await phone.tapBlock(page, page.locator('.ProseMirror').getByRole('paragraph').filter({ hasText: 'Inside both' }));
     const sheet = await phone.style(page, 'Text');
     await expect(sheet).toBeVisible();
-    await expect(sheet.getByText('Section', { exact: true })).toBeVisible();
-    await expect(sheet.getByText('Repeat', { exact: true })).toBeVisible();
+    // Outermost first is the whole point, and a multi-element locator answers
+    // in DOM order, so the two bands are asserted as a sequence rather than
+    // one at a time. The band labels are the only nodes in the sheet whose
+    // whole text is `Section` or `Repeat` — the Section's own control reads
+    // `Delete Section` and the Repeat's row reads `Repeat over items` — so a
+    // third match would fail this as a count mismatch.
+    await expect(sheet.getByText(/^(Section|Repeat)$/)).toHaveText(['Section', 'Repeat']);
     await expect(sheet.getByRole('button', { name: 'Delete Section' })).toBeVisible();
     await expect(sheet.getByRole('button', { name: 'Repeat over items' })).toBeVisible();
+    // The block's own controls come last, below both bands. Their presence is
+    // asserted here but not their place in the order: they are icon-only and
+    // named through `aria-label`, and the array form that pins a sequence
+    // reads text content, which they have none of.
     await expect(sheet.getByRole('button', { name: 'Bold', exact: true })).toBeVisible();
   });
 });
