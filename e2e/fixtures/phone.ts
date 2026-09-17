@@ -76,6 +76,12 @@ export const phone = {
     await phone.bar(page).button('Style').click();
     return page.getByRole('dialog', { name });
   },
-  /** The input dock: a form named by the surface that opened it. */
-  dock: (page: Page, title: string): Locator => page.getByRole('form', { name: title }),
+  /** The input dock: a form named by the surface that opened it, live like
+   *  the bar. The dock keeps its last spec mounted so its exit can animate,
+   *  and the closed field face collapses the row it sits in rather than
+   *  unmounting it — the form is clipped to nothing but keeps a box of its
+   *  own, which Playwright still reads as visible. So the face's `inert` is
+   *  the only thing that says the dock is shut, and without this filter
+   *  `toBeVisible` would pass in every state. */
+  dock: (page: Page, title: string): Locator => page.getByRole('form', { name: title }).and(live(page)),
 };

@@ -6,7 +6,11 @@ import { phone } from '../fixtures/phone';
 // the one place a DOM selector stands in for a role: ProseMirror's own class
 // names are its public contract for what is selected, and a node view's
 // `data-type` — `data-maily-component` for the blocks named that way — is the
-// editor's for what a block is. `[data-editor-bottom-bar]`
+// editor's for what a block is. A block's own attributes are read the same
+// way, `data-show-if-key` being where a condition lands: it is the only thing
+// on the canvas that says a block now carries one, since the outline the
+// desktop paints is a hover decoration the phone never asks for.
+// `[data-editor-bottom-bar]`
 // is the second: the bar's controls share their names with the sheets that
 // open above them, so scoping to the bar is what keeps a name unambiguous.
 // The third is `[inert]`, inside `phone.live` — the face that is down is
@@ -21,6 +25,16 @@ const done = (page: Page) => page.getByRole('banner').getByRole('button', { name
 
 const paragraph = (text: string) => ({ type: 'paragraph', content: [{ type: 'text', text }] });
 const TWO_PARAGRAPHS = JSON.stringify({ type: 'doc', content: [paragraph('Hello from e2e'), paragraph('A second paragraph')] });
+
+// A saved template's content is the document as a JSON string, so a test that
+// cares what was written parses it rather than searching the text: an
+// attribute read off the block it belongs to says which block carries it, and
+// survives the order the serialiser happens to write attributes in.
+type SavedBlock = { type: string; attrs?: { showIfKey?: string | null; each?: string } };
+const blocks = (saved: { content: string }): SavedBlock[] =>
+  (JSON.parse(saved.content) as { content?: SavedBlock[] }).content ?? [];
+const showIfKeyOf = (saved: { content: string }, index: number) => blocks(saved)[index]?.attrs?.showIfKey;
+const eachOf = (saved: { content: string }) => blocks(saved).find((b) => b.type === 'repeat')?.attrs?.each;
 
 // Every block the + sheet offers, under the heading it sits beneath. The
 // phone's roster is its own, not the slash menu's: what the sheet drops is
@@ -319,5 +333,105 @@ test.describe('editor on the phone', () => {
     // named through `aria-label`, and the array form that pins a sequence
     // reads text content, which they have none of.
     await expect(sheet.getByRole('button', { name: 'Bold', exact: true })).toBeVisible();
+  });
+
+  test('a link is set and removed through the dock', async ({ page, api, name }) => {
+    const t = await api.createTemplate({ title: name('dock link'), content: TWO_PARAGRAPHS });
+    await page.goto(`/templates/${t.id}`);
+    await phone.ready(page);
+    const para = page.locator('.ProseMirror > p').nth(1);
+    await phone.editBlock(page, para);
+    // The line the caret is on, not the document: Mod+A in the canvas selects
+    // every block, and a link applied over that lands on both paragraphs —
+    // which would make the count below say two without saying why.
+    await page.keyboard.press('Home');
+    await page.keyboard.press('Shift+End');
+    await phone.bar(page).button('Link').click();
+
+    const dock = phone.dock(page, 'Link');
+    await expect(dock).toBeVisible();
+    await dock.getByLabel('Link', { exact: true }).fill('https://example.com/offer');
+    // The dock's ✓ answers to Done as well; it is reached through the form,
+    // never through the page, so it cannot collide with the header's.
+    await dock.getByRole('button', { name: 'Done' }).click();
+    await expect(page.locator('.ProseMirror a[href="https://example.com/offer"]')).toHaveCount(1);
+
+    // An empty value is how a link is taken off again.
+    await phone.bar(page).button('Link').click();
+    await expect(dock).toBeVisible();
+    await dock.getByRole('button', { name: 'Clear Link value' }).click();
+    await dock.getByRole('button', { name: 'Done' }).click();
+    await expect(page.locator('.ProseMirror a')).toHaveCount(0);
+  });
+
+  test('a variable is inserted through the dock, and Cancel leaves nothing behind', async ({ page, api, name }) => {
+    const t = await api.createTemplate({ title: name('dock variable'), content: TWO_PARAGRAPHS });
+    await page.goto(`/templates/${t.id}`);
+    await phone.ready(page);
+    await phone.editBlock(page, page.locator('.ProseMirror > p').nth(1));
+    await phone.bar(page).button('Insert variable').click();
+
+    const dock = phone.dock(page, 'Variable');
+    await expect(dock).toBeVisible();
+    await dock.getByLabel('Name', { exact: true }).fill('first_name');
+    await dock.getByLabel('Placeholder', { exact: true }).fill('there');
+    // One ✓ for the surface, not one per field: Done is rendered on the first
+    // row only and commits the placeholder alongside the name.
+    await dock.getByRole('button', { name: 'Done' }).click();
+    const pill = page.locator('.ProseMirror .node-variable');
+    await expect(pill).toHaveCount(1);
+    await expect(pill).toContainText('first_name');
+
+    await phone.bar(page).button('Insert variable').click();
+    await expect(dock).toBeVisible();
+    await dock.getByRole('button', { name: 'Cancel' }).click();
+    await expect(pill).toHaveCount(1);
+  });
+
+  test('a condition is set from the Style sheet, which comes back afterwards', async ({ page, api, name }) => {
+    const t = await api.createTemplate({ title: name('dock show if'), content: TWO_PARAGRAPHS });
+    await page.goto(`/templates/${t.id}`);
+    await phone.ready(page);
+    await phone.tapBlock(page, page.locator('.ProseMirror > p').nth(1));
+    const style = await phone.style(page, 'Text');
+    await expect(style).toBeVisible();
+    await style.getByRole('button', { name: 'Show block conditionally' }).click();
+
+    // The dock takes the screen from the sheet, and hands it back.
+    await expect(style).toBeHidden();
+    const dock = phone.dock(page, 'Show if');
+    await expect(dock).toBeVisible();
+    await dock.getByLabel('Show if', { exact: true }).fill('isMember');
+    await dock.getByRole('button', { name: 'Done' }).click();
+    await expect(style).toBeVisible();
+
+    await expect(page.locator('.ProseMirror > p[data-show-if-key="isMember"]')).toHaveCount(1);
+    // The saved document, read as a document: the condition is an attribute of
+    // the paragraph that was tapped — the second — and asserting it there says
+    // which block carries it, where a search of the raw JSON would not.
+    await expect.poll(async () => showIfKeyOf(await api.getTemplate(t.id), 1),
+      { message: 'the saved paragraph carries the condition' }).toBe('isMember');
+  });
+
+  test('a Repeat names its list through the dock', async ({ page, api, name }) => {
+    const t = await api.createTemplate({ title: name('dock repeat') });
+    await page.goto(`/templates/${t.id}`);
+    await phone.ready(page);
+    await phone.bar(page).add().click();
+    await phone.sheet(page, 'Add a block').getByRole('button', { name: 'Repeat', exact: true }).click();
+
+    // The Repeat is the selected block straight after an insert, so its own
+    // sheet opens rather than a stack.
+    const sheet = await phone.style(page, 'Repeat');
+    await expect(sheet).toBeVisible();
+    // A row reads its setting out: "items" is the name a new Repeat starts on.
+    await sheet.getByRole('button', { name: 'Repeat over items' }).click();
+    const dock = phone.dock(page, 'Repeat');
+    await expect(dock).toBeVisible();
+    await dock.getByLabel('Repeat over', { exact: true }).fill('orders');
+    await dock.getByRole('button', { name: 'Done' }).click();
+    await expect(sheet.getByRole('button', { name: 'Repeat over orders' })).toBeVisible();
+    await expect.poll(async () => eachOf(await api.getTemplate(t.id)),
+      { message: 'the saved Repeat names the list it walks' }).toBe('orders');
   });
 });
