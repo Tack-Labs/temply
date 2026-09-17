@@ -34,20 +34,30 @@ export async function openEditor(page: Page, id: string): Promise<Locator> {
  * which macOS does bind, is honoured only now and then in this Chromium. A
  * click on any `p` instead of a top-level one would be worse than a no-op —
  * the last paragraph of a document that ends in a Section lives inside it,
- * and the block would then be built in there.
+ * and the block would then be built in there. End is the end of the visual
+ * line rather than of the block, so a trailing paragraph long enough to
+ * wrap is split instead of appended to; the assertion below is what tells
+ * a caller that, and the answer is to seed shorter text.
  *
- * The new paragraph is then asserted to be the last top-level child. The
- * editor has neither a gap cursor nor a trailing paragraph, so a document
- * whose last block is a Section, a list or a divider has no top-level way
- * in at all; this says so at once rather than leaving a later assertion to
- * pass on a block nested somewhere no one looks.
+ * What is then guaranteed is structural: the canvas's last top-level child
+ * is a `p` and that `p` is empty. Emptiness alone would be no guarantee at
+ * all — an `hr`, a Spacer, an image and a fresh Section all hold no text,
+ * so the check would pass on a paragraph opened in the middle of the
+ * document. The editor registers neither a gap cursor nor a trailing
+ * paragraph, so a document whose last block is a Section, a list or a
+ * divider has no top-level way in; this says so at once rather than
+ * leaving a later assertion to pass on a block nested where no one looks.
  */
 export async function newLine(page: Page): Promise<void> {
   const pm = await ready(page);
-  await pm.locator('> :is(p, h1, h2, h3, blockquote)').last().click();
+  const textblocks = pm.locator('> :is(p, h1, h2, h3, blockquote)');
+  await expect(textblocks, 'the document has no top-level textblock: the editor registers neither Gapcursor nor TrailingNode, so there is no way in').not.toHaveCount(0);
+  await textblocks.last().click();
   await page.keyboard.press('End');
   await page.keyboard.press('Enter');
-  await expect(pm.locator('> *').last()).toBeEmpty();
+  const last = pm.locator('> *').last();
+  await expect(last, 'the new line is the last block of the document').toHaveJSProperty('tagName', 'P');
+  await expect(last).toBeEmpty();
 }
 
 /**
@@ -58,8 +68,9 @@ export async function newLine(page: Page): Promise<void> {
  * accessible name is its title followed by its description, so the title is
  * matched from the start of that name and to a word boundary: a plain
  * substring would let `Image` answer for `Inline Image` as well. The title
- * is escaped on the way into the pattern, so a future block named with a
- * `+` or a `(` still matches itself rather than a regular expression.
+ * is escaped on the way into the pattern so that a future block whose name
+ * carries a regex character cannot turn into a different pattern or throw;
+ * a name ending in one — `C++` — would still need its own boundary rule.
  */
 export function slashRow(page: Page, title: string): Locator {
   const literal = title.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
