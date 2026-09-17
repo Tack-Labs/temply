@@ -103,6 +103,12 @@ export async function insertViaSlash(page: Page, title: string): Promise<void> {
  * Inserts a block where the caret already is, rather than at the end of the
  * document — the way a customer puts one inside a Section or a Repeat.
  * The caret must be in an empty textblock, since `/` has to start one.
+ *
+ * Neither wait `insertViaSlash` makes is made here: this returns as soon as
+ * the row is clicked, with the panel possibly still up and the focus still
+ * on the row. A caller that types next has to assert both itself — that the
+ * block arrived, and that the canvas has the focus back — or lose the first
+ * characters on the row that is going away.
  */
 export async function insertHere(page: Page, title: string): Promise<void> {
   await page.keyboard.type('/');

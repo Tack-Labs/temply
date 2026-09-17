@@ -381,6 +381,8 @@ test.describe('editor on the desktop', () => {
     const t = await api.createTemplate({ title: name('nested section') });
     const pm = await openEditor(page, t.id);
     await insertViaSlash(page, 'Repeat');
+    // A Repeat holds two paragraphs at rest, the live row and the serialised
+    // copy under it, so the first in document order is the one to type in.
     await pm.locator('[data-type="repeat"] p').first().click();
     await insertHere(page, 'Section');
     await pm.locator('table[data-type="section"] p').first().click();
@@ -389,10 +391,24 @@ test.describe('editor on the desktop', () => {
     const sectionMenu = bubbleMenu(page, 'Delete Section');
     await expectOnScreen(page, repeatMenu, 'the repeat menu');
     await expectOnScreen(page, sectionMenu, 'the section menu');
-    // One of the two moves below the block so they do not sit on top of each
-    // other; which one depends on where the caret is.
+    // Which one moves is not a toss-up. Each menu asks whether a nested
+    // block of the other kind, among its own children, is the active one:
+    // the Repeat holds the Section and the Section is where the caret is, so
+    // the Repeat goes below; the Section asks after a Repeat child of its
+    // own, has none, and keeps the spot above. The pair is asserted rather
+    // than the presence of a `bottom`, because two `bottom`s — what a rule
+    // broadened to "inside a Repeat" would give — is the two menus back on
+    // top of each other, which is the failure this case is named for.
     const placements = [await repeatMenu.getAttribute('data-placement'), await sectionMenu.getAttribute('data-placement')];
-    expect(placements, 'the two menus take different sides').toContain('bottom');
+    expect(placements, 'the Repeat menu moves below and the Section menu keeps the spot above').toEqual(['bottom', 'top']);
+
+    // And what the placement is for: the boxes do not cover each other.
+    const repeatBox = (await repeatMenu.boundingBox())!;
+    const sectionBox = (await sectionMenu.boundingBox())!;
+    const overlaps =
+      repeatBox.x < sectionBox.x + sectionBox.width && sectionBox.x < repeatBox.x + repeatBox.width &&
+      repeatBox.y < sectionBox.y + sectionBox.height && sectionBox.y < repeatBox.y + repeatBox.height;
+    expect(overlaps, 'neither menu covers the other').toBe(false);
   });
 
   test('a variable pill is named, renamed and given a placeholder', async ({ page, api, name }) => {
