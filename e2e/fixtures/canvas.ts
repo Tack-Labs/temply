@@ -100,6 +100,17 @@ export async function insertViaSlash(page: Page, title: string): Promise<void> {
 }
 
 /**
+ * Inserts a block where the caret already is, rather than at the end of the
+ * document — the way a customer puts one inside a Section or a Repeat.
+ * The caret must be in an empty textblock, since `/` has to start one.
+ */
+export async function insertHere(page: Page, title: string): Promise<void> {
+  await page.keyboard.type('/');
+  await expect(slashRow(page, title)).toBeVisible();
+  await slashRow(page, title).click();
+}
+
+/**
  * The bubble menu holding a control. Tippy re-parents every menu into a
  * `.tippy-box`, which is the element that carries `data-placement` and the
  * box an anchoring assertion measures; the menus themselves have no

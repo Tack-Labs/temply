@@ -1,7 +1,7 @@
 import type { Page } from '@playwright/test';
 import { test, expect } from '../fixtures/test';
 import type { makeApi } from '../fixtures/api';
-import { bubbleMenu, docOf, expectOnScreen, insertViaSlash, newLine, openEditor, slashRow } from '../fixtures/canvas';
+import { bubbleMenu, docOf, expectOnScreen, insertHere, insertViaSlash, newLine, openEditor, slashRow } from '../fixtures/canvas';
 
 // The canvas is a contenteditable, so ProseMirror's own class names stand in
 // for roles it does not give, and a node view's `data-type` stands in for
@@ -12,9 +12,14 @@ import { bubbleMenu, docOf, expectOnScreen, insertViaSlash, newLine, openEditor,
 // class `node-variable`, so that class is the pill. `data-show-if-key` is the
 // one attribute a conditional block does carry in the canvas — paragraphs,
 // headings and Sections have no node view, so their `renderHTML` is the
-// canvas DOM and the condition is readable there. `#slash-command` and
-// `.tippy-box` are the two other exceptions this file needs, both explained
-// where they are used.
+// canvas DOM and the condition is readable there. A Repeat's preview rows
+// are `.mly-repeat-copy`: they are a picture of repetition rather than more
+// places to type, so they are `aria-hidden` by design and a class is all
+// that is left to count them by. `[data-repeat-indicator]` is the strip in
+// the margin — a `role="button"`, but the attribute is what tells it apart
+// from every other button in the canvas. `#slash-command` and `.tippy-box`
+// are the two other exceptions this file needs, both explained where they
+// are used.
 
 /** What a test hands the opener below: its own page and its own seeding. */
 type Seeding = { page: Page; api: ReturnType<typeof makeApi>; name: (what: string) => string };
@@ -302,6 +307,92 @@ test.describe('editor on the desktop', () => {
     await page.keyboard.type('Left');
     await expect(pm.locator('div[data-type="column"]').first()).toHaveText('Left');
     await expectOnScreen(page, bubbleMenu(page, 'Columns and widths'), 'the columns menu');
+  });
+
+  test('a Repeat names its list and previews it', async ({ page, api, name }) => {
+    const t = await api.createTemplate({ title: name('repeat') });
+    const pm = await openEditor(page, t.id);
+    await insertViaSlash(page, 'Repeat');
+
+    const repeat = pm.locator('[data-type="repeat"]');
+    await expect(repeat).toHaveCount(1);
+    // Two rows is the default for a list nobody has named yet: the live row
+    // plus one shadow copy.
+    await expect(repeat.locator('.mly-repeat-copy')).toHaveCount(1);
+    const indicator = pm.locator('[data-repeat-indicator]');
+    await expect(indicator).toHaveAccessibleName('×2');
+
+    await indicator.click();
+    const menu = bubbleMenu(page, 'About Repeat');
+    await expectOnScreen(page, menu, 'the repeat menu');
+    await menu.getByRole('button', { name: 'items', exact: true }).click();
+    await menu.getByPlaceholder('ie. payload.items').fill('orders');
+    await page.keyboard.press('Enter');
+    await expect.poll(async () => JSON.stringify(await docOf(api, t.id)).includes('"each":"orders"'),
+      { message: 'the saved Repeat names the list it walks' }).toBe(true);
+
+    await menu.getByRole('button', { name: 'More preview rows' }).click();
+    await expect(repeat.locator('.mly-repeat-copy')).toHaveCount(2);
+    await expect(indicator).toHaveAccessibleName('×3');
+
+    // The same number is what the sample-data panel offers, because the count
+    // is one state shared between the canvas and the panel.
+    await page.getByRole('group', { name: 'Content view' }).getByRole('button', { name: 'Preview', exact: true }).click();
+    await page.getByRole('button', { name: 'Preview data' }).click();
+    await expect(page.getByRole('dialog').filter({ hasText: 'Preview data' }).getByText('3 items')).toBeVisible();
+  });
+
+  test('a Columns inside a Section is reached through the Section menu', async ({ page, api, name }) => {
+    const t = await api.createTemplate({ title: name('nested columns') });
+    const pm = await openEditor(page, t.id);
+    await insertViaSlash(page, 'Section');
+    await pm.locator('table[data-type="section"] p').first().click();
+    await insertHere(page, 'Columns');
+    // The typed character is the way into a fresh Columns wherever it is
+    // built, for the stale-focus reason the case above pins: the caret lands
+    // between the two columns, and a click on a column's empty paragraph is
+    // not a way back in — it leaves the selection on the section cell, so the
+    // Section menu never learns a Columns is active. Typing goes to the first
+    // column all the same. The focus check is what says the keystroke will
+    // reach the document rather than the row that is going away.
+    await expect(pm.locator('div[data-type="column"]')).toHaveCount(2);
+    await expect(pm).toBeFocused();
+    await page.keyboard.type('Left');
+    await expect(pm.locator('div[data-type="column"]').first()).toHaveText('Left');
+
+    const section = bubbleMenu(page, 'Delete Section');
+    await expect(section).toBeVisible();
+    // The Columns menu stands down inside a Section; its controls move into
+    // the Section menu behind a button that says which they are.
+    await expect(bubbleMenu(page, 'Columns and widths')).toHaveCount(0);
+    const column = section.getByRole('button', { name: 'Column', exact: true });
+    await expect(column).toBeVisible();
+    await column.click();
+    // Named by what it holds rather than by its words: the Columns menu's
+    // controls are icons, so the only text in this popover is the labels of
+    // the selects, which the Section menu's own popovers share.
+    const inside = section.getByRole('dialog')
+      .filter({ has: page.getByRole('button', { name: 'Columns and widths' }) });
+    await expectOnScreen(page, inside, 'the Column popover');
+    await expect(inside.getByRole('button', { name: 'Delete Columns' })).toBeVisible();
+  });
+
+  test('a Section inside a Repeat keeps both menus, out of each other’s way', async ({ page, api, name }) => {
+    const t = await api.createTemplate({ title: name('nested section') });
+    const pm = await openEditor(page, t.id);
+    await insertViaSlash(page, 'Repeat');
+    await pm.locator('[data-type="repeat"] p').first().click();
+    await insertHere(page, 'Section');
+    await pm.locator('table[data-type="section"] p').first().click();
+
+    const repeatMenu = bubbleMenu(page, 'About Repeat');
+    const sectionMenu = bubbleMenu(page, 'Delete Section');
+    await expectOnScreen(page, repeatMenu, 'the repeat menu');
+    await expectOnScreen(page, sectionMenu, 'the section menu');
+    // One of the two moves below the block so they do not sit on top of each
+    // other; which one depends on where the caret is.
+    const placements = [await repeatMenu.getAttribute('data-placement'), await sectionMenu.getAttribute('data-placement')];
+    expect(placements, 'the two menus take different sides').toContain('bottom');
   });
 
   test('a variable pill is named, renamed and given a placeholder', async ({ page, api, name }) => {
