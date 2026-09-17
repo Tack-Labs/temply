@@ -13,6 +13,7 @@ test.describe('editor on the phone', () => {
   test('one tap selects a block, a second tap edits it', async ({ page, api, name }) => {
     const t = await api.createTemplate({ title: name('tap'), content: TWO_PARAGRAPHS });
     await page.goto(`/templates/${t.id}`);
+    await phone.ready(page);
     // Known gap in the tap model, not the design: on an idle document the
     // editor parks an unfocused caret in the first textblock, and
     // `tapTransaction` mistakes that caret for "already typing", so the
@@ -35,6 +36,7 @@ test.describe('editor on the phone', () => {
   test.fixme('one tap on the first block selects it', async ({ page, api, name }) => {
     const t = await api.createTemplate({ title: name('first') });
     await page.goto(`/templates/${t.id}`);
+    await phone.ready(page);
     await phone.tapBlock(page, page.locator('.ProseMirror > p').first());
     await expect(phone.bar(page).button('Delete')).toBeVisible();
     await expect(page.locator('.ProseMirror-selectednode')).toHaveCount(1);
@@ -43,6 +45,7 @@ test.describe('editor on the phone', () => {
   test('the + sheet inserts a block at the end and selects it', async ({ page, api, name }) => {
     const t = await api.createTemplate({ title: name('insert') });
     await page.goto(`/templates/${t.id}`);
+    await phone.ready(page);
     await phone.bar(page).add().click();
     const sheet = page.getByRole('dialog', { name: 'Add a block' });
     await sheet.getByRole('button', { name: 'Heading 1', exact: true }).click();
@@ -54,6 +57,7 @@ test.describe('editor on the phone', () => {
   test('Delete removes the tapped block, and the only block of a Repeat takes the Repeat', async ({ page, api, name }) => {
     const t = await api.createTemplate({ title: name('delete') });
     await page.goto(`/templates/${t.id}`);
+    await phone.ready(page);
     await phone.bar(page).add().click();
     await page.getByRole('dialog', { name: 'Add a block' }).getByRole('button', { name: 'Repeat', exact: true }).click();
     const repeat = page.locator('.ProseMirror [data-type="repeat"]');
@@ -68,6 +72,7 @@ test.describe('editor on the phone', () => {
   test('the text bar has a line-break key that breaks inside the block', async ({ page, api, name }) => {
     const t = await api.createTemplate({ title: name('break') });
     await page.goto(`/templates/${t.id}`);
+    await phone.ready(page);
     const para = page.locator('.ProseMirror > p').first();
     await phone.editBlock(page, para);
     await page.keyboard.press('End');

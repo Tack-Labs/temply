@@ -19,9 +19,19 @@ export async function emulateCoarsePointer(page: Page): Promise<void> {
   });
 }
 
+/**
+ * The editor has mounted: the canvas exists only once TipTap attaches on
+ * the client. A tap or a + before that lands on a shell whose model has no
+ * editor yet and quietly does nothing.
+ */
+async function ready(page: Page): Promise<void> {
+  await page.locator('.ProseMirror').waitFor();
+}
+
 /** A tap near the block's top-left: inside its text, clear of any control
  *  a node view draws on its right. */
 async function tap(page: Page, block: Locator): Promise<void> {
+  await ready(page);
   await block.scrollIntoViewIfNeeded();
   const box = await block.boundingBox();
   if (!box) throw new Error(`tap: ${block} is not on screen`);
@@ -29,6 +39,7 @@ async function tap(page: Page, block: Locator): Promise<void> {
 }
 
 export const phone = {
+  ready,
   /** One tap selects the block: the action bar appears, the keyboard does not. */
   tapBlock: tap,
   /** A second tap on the selected block places the caret and brings up the text bar. */

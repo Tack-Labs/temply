@@ -8,8 +8,14 @@ import { onPhone } from './project';
 // both projects; only the way to the subject and to the status differs.
 export { onPhone };
 
-/** The subject field, opened first when it sits behind the details sheet. */
+/**
+ * The subject field, opened first when it sits behind the details sheet.
+ * The canvas is waited for before anything is typed: the editor is server-
+ * rendered and focusable before React attaches, and a subject typed in that
+ * window shows in the field, never reaches state, and is never saved.
+ */
 export async function subjectField(page: Page) {
+  await page.locator('.ProseMirror').waitFor();
   if (onPhone() && !(await page.getByRole('dialog', { name: 'Email details' }).isVisible())) {
     await page.getByRole('button', { name: /^Edit details:/ }).click();
   }
