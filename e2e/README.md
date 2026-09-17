@@ -28,14 +28,16 @@ other, since it writes memberships and roles through Clerk's backend API.
 
 ### Test data
 
-Setup signs in the first user, whose workspace is the run's shared one, and
-puts it on Enterprise through the app's checkout and a forged
+Setup signs in the first user, makes their own "e2e first workspace" the
+active one (created through Clerk's backend API on the first run, and never
+whichever workspace Clerk last remembered for them), and puts it on
+Enterprise through the app's checkout and a forged
 `checkout.session.completed` — every spec seeds into it and both browser
 projects run at once, so it needs the plan with no ceilings. The second
-user is a member of the shared workspace and the admin of "e2e second
-workspace"; setup makes both through Clerk's backend API once and never
-removes them, since Clerk keeps them across runs and the app's database
-does not. `e2e/.auth/workspaces.json` carries the ids, and
+user is a member of that workspace and the admin of "e2e second
+workspace"; setup makes both once and never removes them, since Clerk keeps
+them across runs and the app's database does not, and it puts a role back
+if someone changed it by hand in the Clerk dashboard. `e2e/.auth/workspaces.json` carries the ids, and
 `fixtures/workspaces.ts` reads them; `fixtures/session.ts` signs the second
 user into either workspace in a context of its own.
 

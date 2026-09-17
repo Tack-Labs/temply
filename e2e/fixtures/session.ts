@@ -20,6 +20,21 @@ export async function clerkLoaded(page: Page): Promise<void> {
 }
 
 /**
+ * Makes a workspace the active one in this session. Whichever workspace
+ * Clerk remembered for the user, the caller names the one it wants:
+ * /dashboard bounces to /onboarding when none is active, Clerk is loaded on
+ * either page, and the dashboard's "Welcome back" is the sign the switch
+ * took.
+ */
+export async function activateWorkspace(page: Page, orgId: string): Promise<void> {
+  await page.goto('/dashboard');
+  await clerkLoaded(page);
+  await page.evaluate((organization) => (window as WindowWithClerk).Clerk!.setActive({ organization }), orgId);
+  await page.goto('/dashboard');
+  await expect(page.getByRole('heading', { name: 'Welcome back' })).toBeVisible({ timeout: 30_000 });
+}
+
+/**
  * A session of its own for a user other than the one in the shared
  * storageState: a fresh context, a real Clerk sign-in, and the workspace the
  * test names made active in that session. `browser.newContext` from the test
@@ -38,14 +53,7 @@ export async function signInAs(browser: Browser, user: Credentials, orgId: strin
     if (onPhone()) await emulateCoarsePointer(page);
     await page.goto('/login');
     await clerk.signIn({ page, signInParams: { strategy: 'password', identifier: user.email, password: user.password } });
-    // Whichever workspace Clerk remembered for this user, the test names the
-    // one it wants. /dashboard bounces to /onboarding when none is active,
-    // and Clerk is loaded on either page.
-    await page.goto('/dashboard');
-    await clerkLoaded(page);
-    await page.evaluate((organization) => (window as WindowWithClerk).Clerk!.setActive({ organization }), orgId);
-    await page.goto('/dashboard');
-    await expect(page.getByRole('heading', { name: 'Welcome back' })).toBeVisible({ timeout: 30_000 });
+    await activateWorkspace(page, orgId);
     return { context, page };
   } catch (error) {
     await context.close();
