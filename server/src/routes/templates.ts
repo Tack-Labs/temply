@@ -11,6 +11,7 @@ import { json, unauthorized, notFound, paymentRequired, badRequest } from '../li
 import { authPlugin } from '../plugins/auth';
 import { noWorkspace } from '../lib/workspace';
 import { dbPlugin } from '../plugins/db';
+import { defaultBrandTheme } from './brands';
 import type { Db } from '../plugins/db';
 
 type Row = typeof mails.$inferSelect;
@@ -146,6 +147,15 @@ export const templatesRoutes = new Elysia()
   // A new template is published in the same request, so it can be rendered
   // through the API straight away instead of answering 404 until its author
   // finds the Publish button.
+  //
+  // A template that arrives without a theme starts on the workspace's
+  // default brand, decided here rather than left to the editor: the row is
+  // published in this same request, so the thumbnail and the API render
+  // would otherwise show the shipped default until the editor had opened
+  // and autosaved the brand it adopts — and an autosave on open reads as
+  // unpublished changes to a template nobody has touched. The editor keeps
+  // its own adoption for the rows this could not reach: the playground has
+  // no row, and templates from before this rule still hold null.
   .post('/api/v1/templates', async (ctx) => {
     if (!ctx.userId) return unauthorized();
     if (!ctx.orgId) return noWorkspace();
@@ -154,7 +164,7 @@ export const templatesRoutes = new Elysia()
     const { title, previewText, content, theme } = ctx.body;
     const id = crypto.randomUUID();
     const shortCode = generateShortCode();
-    const draft = { content, theme: theme ?? null, preview_text: previewText ?? null };
+    const draft = { content, theme: theme ?? (await defaultBrandTheme(ctx.db, ctx.orgId)), preview_text: previewText ?? null };
     const stamp = nextStamp();
     await ctx.db.insert(mails).values({
       id,

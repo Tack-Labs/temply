@@ -34,7 +34,7 @@ test.describe('brands', () => {
     const brand = await brandNamed(page, title);
     api.trackBrand(brand.id);
     // The button fill is the colour the Warm preset is known by.
-    expect(JSON.parse(brand.theme).button.backgroundColor.toUpperCase()).toBe('#B25D38');
+    expect(JSON.parse(brand.theme).button?.backgroundColor?.toUpperCase()).toBe('#B25D38');
   });
 
   test('a colour that is hard to read is flagged before it is saved', async ({ page }) => {
@@ -47,6 +47,7 @@ test.describe('brands', () => {
     await dialog.getByLabel('Link', { exact: true }).click();
     await page.getByRole('textbox', { name: 'Link hex value' }).fill('#FFFFFF');
     await page.keyboard.press('Escape');
+    await expect(page.getByRole('textbox', { name: 'Link hex value' })).toBeHidden();
     await dialog.getByRole('button', { name: 'This colour may be hard to read — details' }).click();
     await expect(page.getByText('Hard to read with this colour')).toBeVisible();
     await expect(page.getByText(/^Links sit at/)).toBeVisible();

@@ -20,20 +20,31 @@ export function sameTheme(a: unknown, b: unknown): boolean {
   return ka.every((k) => sameTheme(ra[k], rb[k]));
 }
 
-/** Which preset or saved brand this theme IS, or 'custom' when it matches none. */
+/**
+ * Which saved brand or preset this theme IS, or 'custom' when it matches
+ * none. The workspace's own brands are tried before the presets: a brand
+ * saved straight from a preset is the same theme under the customer's own
+ * name, and a template on it — every new one, once that brand is the
+ * default — should answer to that name rather than to the preset it began
+ * as. Two own brands can hold the same theme too, so the workspace default
+ * is tried before the rest: a template that looks like the default is the
+ * default, not whichever look-alike was saved last.
+ */
 export function matchThemeToBrand(
   theme: Theme,
   brands: { id: string; theme: string }[] = [],
+  defaultId: string | null = null,
 ): string {
-  for (const p of BRAND_PRESETS) {
-    if (sameTheme(p.theme, theme)) return p.id;
-  }
-  for (const b of brands) {
+  const ordered = [...brands].sort((a, b) => Number(b.id === defaultId) - Number(a.id === defaultId));
+  for (const b of ordered) {
     try {
       if (sameTheme(JSON.parse(b.theme), theme)) return b.id;
     } catch {
       // A malformed stored theme can never match.
     }
+  }
+  for (const p of BRAND_PRESETS) {
+    if (sameTheme(p.theme, theme)) return p.id;
   }
   return 'custom';
 }

@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it } from 'bun:test';
 import { eq, sql } from 'drizzle-orm';
-import { mails, templateVersions } from '@temply/shared/schema';
+import { brands, mails, orgPrefs, templateVersions } from '@temply/shared/schema';
+import { BRAND_PRESETS } from '@temply/shared/brand-presets';
 import { createTestApp, createTestDb, del, get, givePlan, post, type TestDb } from '../test/helpers';
 import { templatesRoutes } from './templates';
 
@@ -62,6 +63,50 @@ describe('POST /api/v1/templates', () => {
     const res = await post(app, '/api/v1/templates', { title: 'One too many', content: '{}' }, OWNER);
     expect(res.status).toBe(402);
     expect((await res.json()).message).toContain('Upgrade');
+  });
+
+  // The default brand is a workspace preference, so the brands routes are not
+  // needed to choose one: the preference row and the brand row are written
+  // as those routes would leave them.
+  describe('a template made without a theme', () => {
+    const warm = BRAND_PRESETS.find((p) => p.id === 'warm')!;
+    const stored = (id: string) => db.select().from(mails).where(eq(mails.id, id)).get()!;
+
+    it('starts on the first preset when no default was ever chosen', async () => {
+      const template = await createTemplate(OWNER);
+      expect(JSON.parse(template.theme)).toEqual(BRAND_PRESETS[0].theme);
+    });
+
+    it('starts on a preset the workspace chose as its default', async () => {
+      await db.insert(orgPrefs).values({ org_id: OWNER, default_brand_id: 'warm' });
+      const template = await createTemplate(OWNER);
+      expect(JSON.parse(template.theme)).toEqual(warm.theme);
+      // Published in the same request, so the API renders the brand at once.
+      expect(stored(template.id).published_theme).toBe(template.theme);
+    });
+
+    it('starts on the workspace’s own default brand', async () => {
+      const theme = '{"button":{"backgroundColor":"#123456"}}';
+      await db.insert(brands).values({ id: 'brand_1', user_id: OWNER, org_id: OWNER, name: 'Ours', theme, is_default: 0 });
+      await db.insert(orgPrefs).values({ org_id: OWNER, default_brand_id: 'brand_1' });
+      const template = await createTemplate(OWNER);
+      expect(template.theme).toBe(theme);
+    });
+
+    it('never reaches into another workspace’s brand', async () => {
+      const theme = '{"button":{"backgroundColor":"#123456"}}';
+      await db.insert(brands).values({ id: 'brand_2', user_id: OTHER, org_id: OTHER, name: 'Theirs', theme, is_default: 0 });
+      await db.insert(orgPrefs).values({ org_id: OWNER, default_brand_id: 'brand_2' });
+      const template = await createTemplate(OWNER);
+      expect(JSON.parse(template.theme)).toEqual(BRAND_PRESETS[0].theme);
+    });
+  });
+
+  it('keeps a theme the request brings', async () => {
+    await db.insert(orgPrefs).values({ org_id: OWNER, default_brand_id: 'warm' });
+    const theme = '{"link":{"color":"#000000"}}';
+    const res = await post(app, '/api/v1/templates', { title: 'Themed', content: '{}', theme }, OWNER);
+    expect((await res.json()).template.theme).toBe(theme);
   });
 });
 

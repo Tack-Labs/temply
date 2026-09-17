@@ -73,7 +73,7 @@ export function TemplateThemePanel({
     resolvedDefault.current = true;
 
     // A saved-brand theme can only be recognised once the brands arrive.
-    const match = matchThemeToBrand(theme, data?.brands ?? []);
+    const match = matchThemeToBrand(theme, data?.brands ?? [], data?.defaultBrandId ?? null);
     if (match !== 'custom') {
       setSelectedBrandId(match);
       baseline.current = { theme: structuredClone(theme), brandId: match };
@@ -105,7 +105,7 @@ export function TemplateThemePanel({
   const handleReset = () => {
     const target = baseline.current ?? {
       theme: DEFAULT_RENDERER_THEME,
-      brandId: matchThemeToBrand(DEFAULT_RENDERER_THEME, brands),
+      brandId: matchThemeToBrand(DEFAULT_RENDERER_THEME, brands, data?.defaultBrandId ?? null),
     };
     setSelectedBrandId(target.brandId);
     onChange(structuredClone(target.theme));
