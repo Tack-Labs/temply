@@ -34,10 +34,19 @@ export async function openEditor(page: Page, id: string): Promise<Locator> {
  * which macOS does bind, is honoured only now and then in this Chromium. A
  * click on any `p` instead of a top-level one would be worse than a no-op —
  * the last paragraph of a document that ends in a Section lives inside it,
- * and the block would then be built in there. End is the end of the visual
- * line rather than of the block, so a trailing paragraph long enough to
- * wrap is split instead of appended to; the assertion below is what tells
- * a caller that, and the answer is to seed shorter text.
+ * and the block would then be built in there.
+ *
+ * End means two different things by platform, and the assertions below are
+ * what make both safe. On Linux it is the end of the visual line, so a
+ * trailing paragraph long enough to wrap is split instead of appended to —
+ * the emptiness check is what tells a caller that, and the answer is to seed
+ * shorter text. On macOS this Chromium takes it as the end of the *document*
+ * — the very move the premise above calls undependable by chord — so it can
+ * leave the caret in a block that is not the one clicked. Here the two land
+ * in the same place, the click's target being the last textblock; where they
+ * would not, the structural check below says so rather than letting the line
+ * be built somewhere nobody looks. A caller that needs a line anywhere other
+ * than the end of the document must not reach for End.
  *
  * What is then guaranteed is structural: the canvas's last top-level child
  * is a `p` and that `p` is empty. Emptiness alone would be no guarantee at

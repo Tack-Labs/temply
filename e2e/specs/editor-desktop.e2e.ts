@@ -515,18 +515,23 @@ test.describe('editor on the desktop', () => {
     // list in order is what is waited for. A key looked up on its own would
     // not do: a substring match lets `- ` answer to the `---` row.
     //
-    // Which set is on screen is the browser's platform, not the host's. This
-    // project runs Playwright's Desktop Chrome descriptor, which reports a
-    // platform of its own, so a Mac running the suite still reads the Ctrl
-    // keys; `process.platform` would ask the wrong machine.
-    const mac = await page.evaluate(() => {
-      const hinted = (navigator as { userAgentData?: { platform?: string } }).userAgentData;
-      return /mac|iphone|ipad|ipod/i.test(hinted?.platform || navigator.platform || navigator.userAgent || '');
-    });
-    const keys = mac
-      ? ['/', '@', '---', '# ', '- ', '1. ', '> ', '**text**', '⇧Enter', '⌘⇧↑', '⌘⇧↓', '⌘⇧D', '⌘⇧Space', '⌘⇧⌫', '⌘B', '⌘I', '⌘U', '⌘Z']
-      : ['/', '@', '---', '# ', '- ', '1. ', '> ', '**text**', 'Shift+Enter', 'Ctrl+Shift+↑', 'Ctrl+Shift+↓', 'Ctrl+Shift+D', 'Ctrl+Shift+Space', 'Ctrl+Shift+Backspace', 'Ctrl+B', 'Ctrl+I', 'Ctrl+U', 'Ctrl+Z'];
+    // The Ctrl set is written out rather than chosen at run time. Which set
+    // the sheet shows is the browser's platform and not the host's, and this
+    // project's browser is its own input: `devices['Desktop Chrome']` in
+    // e2e/playwright.config.ts reports a platform `useIsApple` reads as not
+    // an Apple one, whatever machine the suite runs on. Deriving the set here
+    // would only re-state the rule under test; if the descriptor changes,
+    // this case going red is the right answer. The ⌘ set every Mac customer
+    // actually reads has no browser here to render it, and is pinned in
+    // client/lib/editor-shortcuts.test.ts instead.
+    const keys = ['/', '@', '---', '# ', '- ', '1. ', '> ', '**text**', 'Shift+Enter', 'Ctrl+Shift+↑', 'Ctrl+Shift+↓', 'Ctrl+Shift+D', 'Ctrl+Shift+Space', 'Ctrl+Shift+Backspace', 'Ctrl+B', 'Ctrl+I', 'Ctrl+U', 'Ctrl+Z'];
     await expect(sheet.locator('kbd'), 'every shortcut is listed, in its group and in order').toHaveText(keys);
+    // And again unnormalised. The assertion above trims each key before
+    // comparing, so it reads `# ` as `#` — and the trailing space is the
+    // load-bearing half, the input rule being what fires on it. The wait has
+    // settled by the line above, so this raw read needs none of its own.
+    expect(await sheet.locator('kbd').allTextContents(),
+      'the keys are listed exactly, trailing spaces and all').toEqual(keys);
 
     await sheet.getByRole('button', { name: 'Close' }).click();
     await expect(sheet).toBeHidden();
