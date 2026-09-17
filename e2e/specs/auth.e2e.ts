@@ -56,8 +56,11 @@ test.describe('auth', () => {
     const shared = await signInAs(browser, TEST_USER_2, workspaces.shared);
     expect((await (await shared.page.request.get('/api/v1/quota')).json()).plan).toBe('enterprise');
     await shared.context.close();
+    // The billing spec moves this workspace between Free and Pro while the
+    // suite runs; Enterprise belongs to the shared workspace alone, so its
+    // absence is what tells the two apart.
     const own = await signInAs(browser, TEST_USER_2, workspaces.second);
-    expect((await (await own.page.request.get('/api/v1/quota')).json()).plan).toBe('free');
+    expect((await (await own.page.request.get('/api/v1/quota')).json()).plan).not.toBe('enterprise');
     await own.context.close();
   });
 });
