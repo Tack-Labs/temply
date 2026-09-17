@@ -1,10 +1,31 @@
+import type { Page } from '@playwright/test';
 import { test, expect } from '../fixtures/test';
-import { bubbleMenu, expectOnScreen, insertViaSlash, newLine, openEditor, slashRow } from '../fixtures/canvas';
+import type { makeApi } from '../fixtures/api';
+import { bubbleMenu, canvas, expectOnScreen, insertViaSlash, newLine, openEditor, slashRow } from '../fixtures/canvas';
 
 // The canvas is a contenteditable, so ProseMirror's own class names stand in
 // for roles it does not give, and a node view's `data-type` stands in for
-// what a block is. `#slash-command` and `.tippy-box` are the two other
-// exceptions this file needs, both explained where they are used.
+// what a block is. A Spacer carries no `data-type` at all — it is a band of
+// nothing — so its own `data-maily-component` is what says it is one.
+// `#slash-command` and `.tippy-box` are the two other exceptions this file
+// needs, both explained where they are used.
+
+/** What a test hands the opener below: its own page and its own seeding. */
+type Seeding = { page: Page; api: ReturnType<typeof makeApi>; name: (what: string) => string };
+
+/**
+ * A fresh template of its own, open in the editor, per block a test needs.
+ *
+ * A second insert on the same document lands inside the first block rather
+ * than after it: the caret is left inside the Section or the list, and
+ * nothing puts a paragraph after it to carry the next `/` — TrailingNode is
+ * not registered, so `newLine`, the only way in, finds no top-level
+ * paragraph at the end. A Section compounds it: a document ending in one
+ * opens with that Section's menu over the paragraph above, and the click
+ * that would start the next line lands on the menu instead.
+ */
+const opener = ({ page, api, name }: Seeding) => async (what: string) =>
+  openEditor(page, (await api.createTemplate({ title: name(what) })).id);
 
 /** Every block the menu offers, in the order the menu offers it. */
 const BLOCKS = [
@@ -37,13 +58,7 @@ test.describe('editor on the desktop', () => {
     // One representative per shape a customer can see: a heading, a list, a
     // wrapper, a rule, an atom with its own chrome, and a code block. The
     // catalogue's own contents are pinned by client/core/editor/block-catalogue.test.ts.
-    //
-    // Each starts from a template of its own because a second insert on the
-    // same document lands inside the first block rather than after it: the
-    // caret is left inside the Section or the list, and nothing puts a
-    // paragraph after it to carry the next `/` — TrailingNode is not
-    // registered.
-    const open = async (what: string) => openEditor(page, (await api.createTemplate({ title: name(what) })).id);
+    const open = opener({ page, api, name });
 
     let pm = await open('heading');
     await insertViaSlash(page, 'Heading 2');
@@ -129,13 +144,15 @@ test.describe('editor on the desktop', () => {
   });
 
   test('selecting text raises the menu that formats it', async ({ page, api, name }) => {
-    // A document of many lines, worked on in the middle of it. The Turn into
-    // popover is not portaled — by design, so a heading cannot bleed its type
-    // into the form — so it is clipped by whatever clips the editor's pane,
-    // and it opens upwards whenever the viewport has no room below. On the
-    // one-line document a new template starts with, that puts its first rows
-    // above the canvas, where they cannot be clicked at all (a finding). Lines
-    // above and below give the popover the room a real document has.
+    // A document of many lines, worked on in the middle of it, which is the
+    // shape a real one has. The Turn into popover is not portaled — by
+    // design, so a heading cannot bleed its type into the form it opens — so
+    // it is clipped by whatever clips the editor's pane, and it opens upwards
+    // whenever the viewport has no room below. The one-line document a new
+    // template starts with therefore puts its first rows above the canvas,
+    // out of reach; the case below this one pins that. Twenty-four lines is
+    // enough to clear the popover at the 1300×900 this project runs at, and
+    // the assertion before the click is what says so rather than the count.
     const lines = Array.from({ length: 24 }, (_, i) => `Line ${i + 1}`);
     const content = JSON.stringify({
       type: 'doc',
@@ -161,22 +178,43 @@ test.describe('editor on the desktop', () => {
     await menu.getByRole('button').first().click();
     const turnInto = menu.getByRole('dialog').filter({ hasText: 'Heading 1' });
     await expectOnScreen(page, turnInto, 'the Turn into popover');
+    const canvasBox = (await pm.boundingBox())!;
+    const popover = (await turnInto.boundingBox())!;
+    expect(popover.y, 'the popover opens inside the canvas, where all of its rows can be clicked')
+      .toBeGreaterThanOrEqual(canvasBox.y);
     await turnInto.getByRole('button', { name: 'Heading 1', exact: true }).click();
     await expect(pm.locator('h1')).toHaveText('Line 12');
   });
 
-  test('every block menu opens its popups on screen', async ({ page, api, name }) => {
-    // A template per block, for the reason the roster test gives: an insert
-    // leaves the document ending in the block it made, and `newLine` — the
-    // only way to the next `/` — needs a top-level paragraph at the end,
-    // which nothing puts there. A Section compounds it: a document that ends
-    // in one opens with that Section's menu over the paragraph above, and
-    // the click that would start the next line lands on the menu instead.
-    const open = async (what: string) => openEditor(page, (await api.createTemplate({ title: name(what) })).id);
+  test('on a one-line template the Turn into popover opens above the canvas', async ({ page, api, name }) => {
+    // Characterisation, not a wish: this pins the product as it stands. A new
+    // template is one line, so this is the first Turn into any customer
+    // opens, and the popover — inline rather than portaled, flipped upwards
+    // because the viewport has no room below — lands above the canvas with
+    // Paragraph, Heading 1 and Heading 2 clipped out of reach. The assertion
+    // below is true only while that is true. When it goes red the product has
+    // improved: rewrite this case as the reachability one above, and drop the
+    // twenty-four-line seed that case needs.
+    const t = await api.createTemplate({ title: name('clipped') });
+    const pm = await openEditor(page, t.id);
+    await pm.getByText('Hello from e2e').click({ clickCount: 3 });
 
-    // Spacer: a menu of five sizes and nothing else to open. A spacer is a
-    // band of nothing, so its own `data-maily-component` — it carries no
-    // `data-type` — and the height it stores are all there is to read it by.
+    const menu = bubbleMenu(page, 'Bold');
+    await menu.getByRole('button').first().click();
+    const turnInto = menu.getByRole('dialog').filter({ hasText: 'Heading 1' });
+    await expectOnScreen(page, turnInto, 'the Turn into popover');
+
+    const canvasBox = (await canvas(page).boundingBox())!;
+    const popover = (await turnInto.boundingBox())!;
+    expect(popover.y, 'the popover still opens above the canvas, with its top rows out of reach')
+      .toBeLessThan(canvasBox.y);
+  });
+
+  test('the spacer, section and columns menus open their popups on screen', async ({ page, api, name }) => {
+    const open = opener({ page, api, name });
+
+    // Spacer: a menu of five sizes and nothing else to open. The height it
+    // stores is what says a size landed.
     let pm = await open('spacer');
     await insertViaSlash(page, 'Spacer');
     const spacer = bubbleMenu(page, 'md');
@@ -193,11 +231,10 @@ test.describe('editor on the desktop', () => {
     await expectOnScreen(page, page.getByRole('menu'), 'the Padding menu');
     await page.keyboard.press('Escape');
 
-    // Columns: the widths popup is the one that can overflow the pane. A
-    // fresh Columns opens with the wrapper selected and no menu at all, and a
-    // click on an empty column leaves the caret where it is (a finding) — the
-    // first keystroke is what puts it in a column, which is where the menu
-    // belongs.
+    // Columns: the widths popup is the one that can overflow the pane. The
+    // menu belongs to a column and a fresh Columns leaves the wrapper
+    // selected instead, so the typed character below is the way in; the case
+    // after this one pins why.
     pm = await open('columns');
     await insertViaSlash(page, 'Columns');
     await page.keyboard.type('Left');
@@ -209,5 +246,29 @@ test.describe('editor on the desktop', () => {
     await expectOnScreen(page, widths, 'the Columns and widths popover');
     await widths.getByRole('button', { name: '3 Columns' }).click();
     await expect(pm.locator('div[data-type="column"]')).toHaveCount(3);
+  });
+
+  test('a freshly inserted Columns carries no menu until a character is typed', async ({ page, api, name }) => {
+    // Characterisation, not a wish: this pins the product as it stands. The
+    // insert leaves a node selection on the columns wrapper, which
+    // `isTextSelected` reads as a text selection — so the columns menu hides,
+    // and the text menu hides too because the selected node is a nested one.
+    // The block a customer just asked for offers nothing at all, and a click
+    // on an empty column does not move the caret either. When the first
+    // assertion goes red the product has improved: rewrite this case as the
+    // click that a customer would make, and drop the typed character the case
+    // above needs.
+    const t = await api.createTemplate({ title: name('no menu') });
+    const pm = await openEditor(page, t.id);
+    await insertViaSlash(page, 'Columns');
+    // The block is asserted rendered before the absence below, so the count
+    // cannot pass on a menu that has merely not been drawn yet: a bubble menu
+    // is raised by the same transaction that puts these columns on screen.
+    await expect(pm.locator('div[data-type="column"]')).toHaveCount(2);
+    await expect(page.locator('.tippy-box'), 'the fresh Columns still raises no menu of any kind').toHaveCount(0);
+
+    await page.keyboard.type('Left');
+    await expect(pm.locator('div[data-type="column"]').first()).toHaveText('Left');
+    await expectOnScreen(page, bubbleMenu(page, 'Columns and widths'), 'the columns menu');
   });
 });

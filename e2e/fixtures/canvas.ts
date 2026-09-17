@@ -115,6 +115,14 @@ export function bubbleMenu(page: Page, containing: Locator | string): Locator {
  * Tippy parks a menu that has lost its anchor at x ≈ -1000 rather than
  * hiding it, and a menu wider than the pane pushes the page sideways —
  * those are the two ways "anchored" fails.
+ *
+ * Every edge is held to the viewport, not to a slack margin around it: a
+ * popup whose first rows sit above the fold is as unusable as one parked off
+ * to the side, and it is the top rows a menu puts its commonest choices in.
+ * The one pixel of give on the far edges is for a box that rounds to the
+ * viewport's own width or height. Being inside the viewport is not the same
+ * as being reachable — a popup can still be clipped by a pane it overflows —
+ * so a case that cares about reachability says so against the pane itself.
  */
 export async function expectOnScreen(page: Page, box: Locator, what: string): Promise<void> {
   await expect(box, `${what} is visible`).toBeVisible();
@@ -124,9 +132,10 @@ export async function expectOnScreen(page: Page, box: Locator, what: string): Pr
   expect(viewport, 'the page has a viewport').not.toBeNull();
   expect(rect!.x, `${what} has not lost its anchor`).toBeGreaterThan(-100);
   expect(rect!.x, `${what} starts inside the viewport`).toBeLessThan(viewport!.width);
-  expect(rect!.y, `${what} starts inside the viewport`).toBeGreaterThan(-100);
+  expect(rect!.y, `${what} starts below the top of the viewport`).toBeGreaterThanOrEqual(0);
   expect(rect!.y, `${what} starts above the fold`).toBeLessThan(viewport!.height);
   expect(rect!.x + rect!.width, `${what} ends inside the viewport`).toBeLessThanOrEqual(viewport!.width + 1);
+  expect(rect!.y + rect!.height, `${what} ends above the fold`).toBeLessThanOrEqual(viewport!.height + 1);
   const scrolls = await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth);
   expect(scrolls, `${what} does not push the page sideways`).toBe(false);
 }
