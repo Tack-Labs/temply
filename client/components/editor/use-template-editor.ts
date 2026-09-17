@@ -130,6 +130,18 @@ export type TemplateEditorModel = {
   shortCodeCopied: boolean; copyShortCode: () => Promise<void>;
 };
 
+/** A row's stored theme as the editor works on it. */
+function themeOfRow(raw: string | null | undefined): RendererThemeOptions {
+  if (raw) {
+    try {
+      return JSON.parse(raw) as RendererThemeOptions;
+    } catch {
+      // A malformed stored theme should not stop the editor opening.
+    }
+  }
+  return structuredClone(DEFAULT_RENDERER_THEME);
+}
+
 export function useTemplateEditor(props: EmailEditorSandboxProps): TemplateEditorModel {
   const { template, imageUploads = true, seedFields } = props;
 
@@ -142,16 +154,15 @@ export function useTemplateEditor(props: EmailEditorSandboxProps): TemplateEdito
 
   const [replyTo, setReplyTo] = useState(seedFields?.replyTo || '');
   const [editor, setEditor] = useState<Editor | null>(null);
-  const [theme, setTheme] = useState<RendererThemeOptions>(() => {
-    if (template?.theme) {
-      try {
-        return JSON.parse(template.theme) as RendererThemeOptions;
-      } catch {
-        // A malformed stored theme should not stop the editor opening.
-      }
-    }
-    return structuredClone(DEFAULT_RENDERER_THEME);
-  });
+  const [theme, setTheme] = useState<RendererThemeOptions>(() => themeOfRow(template?.theme));
+  /** The theme as the row holds it — what the editor opened on, or was put
+   *  back to by a discard. The baseline below measures the theme against
+   *  this rather than against live state: the Brand panel adopts the default
+   *  brand as soon as the brands arrive, which on a quick connection is
+   *  before the editor exists to be read, and a baseline taken from live
+   *  state then would count the adoption as already saved and never send
+   *  it. */
+  const rowTheme = useRef(theme);
 
   // --- Draft and published copy ---------------------------------------------
   // A saved template has two copies on the server: the draft this editor
@@ -603,14 +614,14 @@ export function useTemplateEditor(props: EmailEditorSandboxProps): TemplateEdito
    * the draft so restoring feels complete, but a template is not "unsaved"
    * because you typed a sender address into it.
    */
-  const persistedFingerprint = (json?: JSONContent) =>
-    JSON.stringify([subject, previewText, json ?? editor?.getJSON() ?? null, theme]);
+  const persistedFingerprint = (json?: JSONContent, themeAs: RendererThemeOptions = theme) =>
+    JSON.stringify([subject, previewText, json ?? editor?.getJSON() ?? null, themeAs]);
 
   // The baseline: whatever the row held when this editor opened, or was put
   // back to.
   useEffect(() => {
     if (!editor) return;
-    savedFingerprint.current = persistedFingerprint();
+    savedFingerprint.current = persistedFingerprint(undefined, rowTheme.current);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [editor, baselineKey]);
 
@@ -637,11 +648,8 @@ export function useTemplateEditor(props: EmailEditorSandboxProps): TemplateEdito
   /** The published copy is on screen again: reset state, then re-baseline. */
   const handleDiscarded = (row: Mail) => {
     setPreviewText(row.preview_text ?? '');
-    try {
-      setTheme(row.theme ? (JSON.parse(row.theme) as RendererThemeOptions) : structuredClone(DEFAULT_RENDERER_THEME));
-    } catch {
-      setTheme(structuredClone(DEFAULT_RENDERER_THEME));
-    }
+    rowTheme.current = themeOfRow(row.theme);
+    setTheme(rowTheme.current);
     try {
       editor?.commands.setContent(JSON.parse(row.content) as JSONContent);
     } catch {
