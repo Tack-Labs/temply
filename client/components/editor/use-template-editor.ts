@@ -40,10 +40,12 @@ type SaveTemplateResponse = {
 };
 
 /** What the draft autosave posts, with the fingerprint it was taken from so
- *  a settled save can become the new baseline. */
+ *  a settled save can become the new baseline, and the theme as an object
+ *  so the row's theme can be kept without parsing the body back. */
 type DraftSnapshot = {
   body: { title: string; previewText: string; content: string; theme: string };
   fingerprint: string;
+  theme: RendererThemeOptions;
 };
 
 export type EmailEditorSandboxProps = {
@@ -197,8 +199,12 @@ export function useTemplateEditor(props: EmailEditorSandboxProps): TemplateEdito
       save: async (snapshot) => {
         await httpPost(`/api/v1/templates/${id}`, snapshot.body);
         // The row now holds this snapshot, so it is the baseline the next
-        // edit is measured against — and reverting to it needs no save.
+        // edit is measured against — and reverting to it needs no save. The
+        // row's theme moves with it: a shell swap re-reads the baseline from
+        // rowTheme, and one left at the opening theme would make the swap
+        // save what is already saved.
         savedFingerprint.current = snapshot.fingerprint;
+        rowTheme.current = snapshot.theme;
       },
       onStatus: setSaveStatus,
     });
@@ -704,6 +710,7 @@ export function useTemplateEditor(props: EmailEditorSandboxProps): TemplateEdito
           theme: JSON.stringify(theme),
         },
         fingerprint,
+        theme,
       };
       latestSnapshot.current = snapshot;
       autosave.change(snapshot);
