@@ -661,8 +661,11 @@ export function useTemplateEditor(props: EmailEditorSandboxProps): TemplateEdito
   /** The published copy is on screen again: reset state, then re-baseline. */
   const handleDiscarded = (row: Mail) => {
     setPreviewText(row.preview_text ?? '');
+    // The baseline and the state are two objects on purpose: one shared
+    // between them would let an edit made in place through state move the
+    // baseline with it, and the change would never read as unsaved.
     rowTheme.current = themeOfRow(row.theme);
-    setTheme(rowTheme.current);
+    setTheme(structuredClone(rowTheme.current));
     try {
       editor?.commands.setContent(JSON.parse(row.content) as JSONContent);
     } catch {
