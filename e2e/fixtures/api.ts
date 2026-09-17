@@ -3,6 +3,9 @@ import type { APIRequestContext } from '@playwright/test';
 /** The smallest document the editor and the renderer accept. */
 export const EMPTY_DOC = JSON.stringify({ type: 'doc', content: [{ type: 'paragraph', content: [{ type: 'text', text: 'Hello from e2e' }] }] });
 
+/** A 1×1 transparent PNG: real magic bytes, so the server's type sniff accepts it. */
+export const PNG_1x1 = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==', 'base64');
+
 export type TemplateRow = {
   id: string; title: string; preview_text: string | null; content: string; theme: string | null; short_code: string;
   published_at: string | null; updated_at: string; share_token: string | null; has_unpublished_changes: boolean;
@@ -49,6 +52,15 @@ export function makeApi(request: APIRequestContext) {
       return { id: brand.id };
     },
     trackBrand(id: string): void { remember(made.brands, id); },
+    /** The stored name is the given stem plus the extension the server
+     *  sniffed, and the URL is where the fake ImageKit serves it from. */
+    async uploadAsset(fileName: string): Promise<{ id: string; name: string; url: string }> {
+      const res = await request.post('/api/v1/assets', { multipart: { file: { name: fileName, mimeType: 'image/png', buffer: PNG_1x1 } } });
+      if (!res.ok()) throw new Error(`uploadAsset: ${res.status()} ${await res.text()}`);
+      const { asset } = await res.json();
+      remember(made.assets, asset.id);
+      return { id: asset.id, name: asset.name, url: asset.url };
+    },
     trackAsset(id: string): void { remember(made.assets, id); },
     trackApiKey(id: string): void { remember(made.apiKeys, id); },
     async cleanup(): Promise<void> {
