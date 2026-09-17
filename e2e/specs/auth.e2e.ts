@@ -1,6 +1,8 @@
 import { clerk, clerkSetup } from '@clerk/testing/playwright';
-import { TEST_USER } from '../env';
+import { TEST_USER, TEST_USER_2 } from '../env';
+import { signInAs } from '../fixtures/session';
 import { test, expect } from '../fixtures/test';
+import { readWorkspaces } from '../fixtures/workspaces';
 
 test.describe('auth', () => {
   test('a signed-out visitor is sent to login', async ({ browser }) => {
@@ -47,5 +49,15 @@ test.describe('auth', () => {
     await page.goto('/dashboard');
     await expect(page).toHaveURL(/\/login/);
     await context.close();
+  });
+
+  test('the second user reaches both workspaces', async ({ browser }) => {
+    const workspaces = readWorkspaces();
+    const shared = await signInAs(browser, TEST_USER_2, workspaces.shared);
+    expect((await (await shared.page.request.get('/api/v1/quota')).json()).plan).toBe('enterprise');
+    await shared.context.close();
+    const own = await signInAs(browser, TEST_USER_2, workspaces.second);
+    expect((await (await own.page.request.get('/api/v1/quota')).json()).plan).toBe('free');
+    await own.context.close();
   });
 });

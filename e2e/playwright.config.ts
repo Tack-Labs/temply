@@ -49,8 +49,10 @@ export default defineConfig({
       use: { ...devices['iPhone 14'], defaultBrowserType: 'chromium', storageState: STORAGE_STATE },
       dependencies: ['setup'],
       // Same double-sign-in reason as desktop-chromium above. The stack
-      // check has no viewport to assert and runs once, on desktop.
-      testIgnore: [/setup\//, /specs\/stack\.e2e\.ts$/],
+      // check has no viewport to assert and runs once, on desktop. Billing
+      // and brand defaults move workspace-wide state and run serially on
+      // one project.
+      testIgnore: [/setup\//, /specs\/stack\.e2e\.ts$/, /specs\/billing\.e2e\.ts$/, /specs\/brands-default\.e2e\.ts$/],
     },
   ],
   webServer: [

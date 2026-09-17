@@ -24,6 +24,23 @@ First time: `bun run --filter @temply/e2e install-browsers`, and create
 
 Both users exist on the Clerk dev instance with password sign-in.
 
+### Test data
+
+Setup signs in the first user, whose workspace is the run's shared one, and
+puts it on Enterprise through the app's checkout and a forged
+`checkout.session.completed` — every spec seeds into it and both browser
+projects run at once, so it needs the plan with no ceilings. The second
+user is a member of the shared workspace and the admin of "e2e second
+workspace"; setup makes both through Clerk's backend API once and never
+removes them, since Clerk keeps them across runs and the app's database
+does not. `e2e/.auth/workspaces.json` carries the ids, and
+`fixtures/workspaces.ts` reads them; `fixtures/session.ts` signs the second
+user into either workspace in a context of its own.
+
+`billing.e2e.ts` and `brands-default.e2e.ts` run on desktop only, and
+serially, because they move workspace-wide state: a plan change or a new
+default brand would be seen by every test running beside them.
+
 The stack inherits the shell environment plus `server/.env` and
 `client/.env` (Bun and Next load them from their working directories);
 `stackEnv()` in `env.ts` overrides everything that has to agree between
@@ -82,7 +99,8 @@ trace, reproduce the failure locally: outside CI a retry records one, and
 
 ## Layout
 
-    setup/     sign in once, save storageState
-    fixtures/  test (name, api, fakes, coarse pointer), phone helpers
+    setup/     sign in once, save storageState; the plan and the second user
+    fixtures/  test (name, api, fakes, coarse pointer), phone and editor helpers,
+               the second user's session, the workspace ids
     fakes/     the three fakes and their client
     specs/     one file per feature
