@@ -26,14 +26,28 @@ export async function openEditor(page: Page, id: string): Promise<Locator> {
 /**
  * A fresh empty paragraph at the end of the document, with the caret in it.
  * The block menu's `/` has to start a textblock or follow a space, so a line
- * of its own is the reliable way in; the caret is put at the very end first
- * because the last block may be an image or a divider a click would select.
+ * of its own is the reliable way in.
+ *
+ * The way in is a click in the document's last top-level textblock and End
+ * to the end of that line, because no "end of document" chord is dependable
+ * here: Blink binds Ctrl+End to it and nothing to Meta+End, and Meta+Down,
+ * which macOS does bind, is honoured only now and then in this Chromium. A
+ * click on any `p` instead of a top-level one would be worse than a no-op —
+ * the last paragraph of a document that ends in a Section lives inside it,
+ * and the block would then be built in there.
+ *
+ * The new paragraph is then asserted to be the last top-level child. The
+ * editor has neither a gap cursor nor a trailing paragraph, so a document
+ * whose last block is a Section, a list or a divider has no top-level way
+ * in at all; this says so at once rather than leaving a later assertion to
+ * pass on a block nested somewhere no one looks.
  */
 export async function newLine(page: Page): Promise<void> {
   const pm = await ready(page);
-  await pm.locator('p').last().click();
-  await page.keyboard.press('ControlOrMeta+End');
+  await pm.locator('> :is(p, h1, h2, h3, blockquote)').last().click();
+  await page.keyboard.press('End');
   await page.keyboard.press('Enter');
+  await expect(pm.locator('> *').last()).toBeEmpty();
 }
 
 /**
@@ -43,10 +57,13 @@ export async function newLine(page: Page): Promise<void> {
  * title that also names something else on the page cannot match. A row's
  * accessible name is its title followed by its description, so the title is
  * matched from the start of that name and to a word boundary: a plain
- * substring would let `Image` answer for `Inline Image` as well.
+ * substring would let `Image` answer for `Inline Image` as well. The title
+ * is escaped on the way into the pattern, so a future block named with a
+ * `+` or a `(` still matches itself rather than a regular expression.
  */
 export function slashRow(page: Page, title: string): Locator {
-  return page.locator('#slash-command').getByRole('button', { name: new RegExp(`^${title}\\b`) });
+  const literal = title.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return page.locator('#slash-command').getByRole('button', { name: new RegExp(`^${literal}\\b`) });
 }
 
 /**
@@ -54,8 +71,11 @@ export function slashRow(page: Page, title: string): Locator {
  * The menu closing is what says the command has run, and the canvas taking
  * the focus back off the clicked row is what says the next keystroke will
  * reach the document: type before that and the first characters are lost
- * on the row that is going away. `Headers` and `Footers` open a sub-list
- * instead of inserting, so neither comes through here.
+ * on the row that is going away. The id going away is not proof the panel
+ * did — a query that matches nothing renders a "No result" panel without
+ * it — so the focus check is what makes the pair conclusive. `Headers` and
+ * `Footers` open a sub-list instead of inserting, so neither comes through
+ * here.
  */
 export async function insertViaSlash(page: Page, title: string): Promise<void> {
   await newLine(page);
@@ -77,7 +97,10 @@ export function bubbleMenu(page: Page, containing: Locator | string): Locator {
   return page.locator('.tippy-box').filter({ has });
 }
 
+/** A tiptap node as it is stored: the shape a caller reads `content` off. */
+type SavedDoc = { type: string; content?: unknown[]; attrs?: Record<string, unknown> };
+
 /** The document as the server holds it, for assertions the canvas cannot make. */
-export async function docOf(api: ReturnType<typeof makeApi>, id: string): Promise<Record<string, unknown>> {
-  return JSON.parse((await api.getTemplate(id)).content) as Record<string, unknown>;
+export async function docOf(api: ReturnType<typeof makeApi>, id: string): Promise<SavedDoc> {
+  return JSON.parse((await api.getTemplate(id)).content) as SavedDoc;
 }
