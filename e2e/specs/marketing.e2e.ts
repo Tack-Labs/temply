@@ -40,7 +40,7 @@ test.describe('marketing', () => {
     // is the mark that the editor mounted.
     const phone = test.info().project.name.startsWith('phone');
     if (phone) await expect(page.getByRole('button', { name: 'Add block' })).toBeVisible();
-    else await expect(page.getByRole('heading', { name: 'Content' })).toBeVisible();
+    else await expect(page.getByRole('heading', { name: 'Content', exact: true })).toBeVisible();
     await expect(page.locator('.ProseMirror')).toContainText('Welcome to Temply');
     await context.close();
   });
@@ -56,15 +56,19 @@ test.describe('marketing', () => {
 
   test('docs code tabs switch the language and remember it', async ({ page }) => {
     await page.goto('/docs');
-    // Each CodeTabs is the box whose header holds the Language tablist and
-    // whose code block is a direct child. The page's first <pre> is not one
-    // of them: plain example blocks come before the first switchable one.
-    const blocks = page.locator('div:has(> div > [role="tablist"][aria-label="Language"])');
-    const first = blocks.first();
+    // Only a JavaScript snippet contains `fetch(`, and until a reload only the
+    // block whose tab was clicked shows one: the other two stay on curl. So
+    // the page goes from no `fetch(` to exactly one, and loses one block that
+    // starts with `curl `.
+    const js = page.getByText(/fetch\(/);
+    const curl = page.getByText(/^curl /);
+    await expect(js).toHaveCount(0);
+    const curlBefore = await curl.count();
+    const first = page.getByRole('tablist', { name: 'Language' }).first();
     await first.getByRole('tab', { name: 'JavaScript' }).click();
     await expect(first.getByRole('tab', { name: 'JavaScript' })).toHaveAttribute('aria-selected', 'true');
-    await expect(first.locator('pre')).toContainText('fetch(');
-    await expect(first.locator('pre')).not.toContainText('curl ');
+    await expect(js).toHaveCount(1);
+    await expect(curl).toHaveCount(curlBefore - 1);
     // The choice is read from storage on mount only, so the other blocks
     // follow on reload rather than live.
     await page.reload();
