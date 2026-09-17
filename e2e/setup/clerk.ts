@@ -21,8 +21,15 @@ export async function ensureSecondUser(sharedOrgId: string): Promise<Workspaces>
   if (!user) throw new Error('Clerk has no user for E2E_USER_2_EMAIL');
 
   const memberships = await clerk.users.getOrganizationMembershipList({ userId: user.id, limit: 100 });
-  if (!memberships.data.some((m) => m.organization.id === sharedOrgId)) {
+  // The role is part of the standing, not just the membership: the specs
+  // that sign this user into the shared workspace assert what a member is
+  // kept out of, and a membership promoted by hand in the Clerk dashboard
+  // would make every one of them pass for the wrong reason.
+  const shared = memberships.data.find((m) => m.organization.id === sharedOrgId);
+  if (!shared) {
     await clerk.organizations.createOrganizationMembership({ organizationId: sharedOrgId, userId: user.id, role: 'org:member' });
+  } else if (shared.role !== 'org:member') {
+    await clerk.organizations.updateOrganizationMembership({ organizationId: sharedOrgId, userId: user.id, role: 'org:member' });
   }
 
   let second = memberships.data.find((m) => m.organization.id !== sharedOrgId && m.role === 'org:admin')?.organization.id;
