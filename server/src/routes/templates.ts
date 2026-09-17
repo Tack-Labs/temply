@@ -11,7 +11,7 @@ import { json, unauthorized, notFound, paymentRequired, badRequest } from '../li
 import { authPlugin } from '../plugins/auth';
 import { noWorkspace } from '../lib/workspace';
 import { dbPlugin } from '../plugins/db';
-import { defaultBrandTheme } from './brands';
+import { defaultBrandTheme } from '../lib/brands';
 import type { Db } from '../plugins/db';
 
 type Row = typeof mails.$inferSelect;
