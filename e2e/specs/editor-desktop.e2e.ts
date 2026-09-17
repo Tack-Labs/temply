@@ -1,14 +1,20 @@
 import type { Page } from '@playwright/test';
 import { test, expect } from '../fixtures/test';
 import type { makeApi } from '../fixtures/api';
-import { bubbleMenu, expectOnScreen, insertViaSlash, newLine, openEditor, slashRow } from '../fixtures/canvas';
+import { bubbleMenu, docOf, expectOnScreen, insertViaSlash, newLine, openEditor, slashRow } from '../fixtures/canvas';
 
 // The canvas is a contenteditable, so ProseMirror's own class names stand in
 // for roles it does not give, and a node view's `data-type` stands in for
 // what a block is. A Spacer carries no `data-type` at all — it is a band of
-// nothing — so its own `data-maily-component` is what says it is one.
-// `#slash-command` and `.tippy-box` are the two other exceptions this file
-// needs, both explained where they are used.
+// nothing — so its own `data-maily-component` is what says it is one. A live
+// variable pill carries no attribute of its own either: `@tiptap/react`
+// builds the node view's outer element itself and puts nothing on it but the
+// class `node-variable`, so that class is the pill. `data-show-if-key` is the
+// one attribute a conditional block does carry in the canvas — paragraphs,
+// headings and Sections have no node view, so their `renderHTML` is the
+// canvas DOM and the condition is readable there. `#slash-command` and
+// `.tippy-box` are the two other exceptions this file needs, both explained
+// where they are used.
 
 /** What a test hands the opener below: its own page and its own seeding. */
 type Seeding = { page: Page; api: ReturnType<typeof makeApi>; name: (what: string) => string };
@@ -296,5 +302,87 @@ test.describe('editor on the desktop', () => {
     await page.keyboard.type('Left');
     await expect(pm.locator('div[data-type="column"]').first()).toHaveText('Left');
     await expectOnScreen(page, bubbleMenu(page, 'Columns and widths'), 'the columns menu');
+  });
+
+  test('a variable pill is named, renamed and given a placeholder', async ({ page, api, name }) => {
+    const t = await api.createTemplate({ title: name('variable') });
+    const pm = await openEditor(page, t.id);
+    await pm.getByText('Hello from e2e').click();
+    await page.keyboard.press('End');
+    // `@` opens the panel under the same rule as `/` — start of a textblock
+    // or after a space — so the space is part of the way in.
+    await page.keyboard.type(' @');
+    await page.keyboard.type('first_name');
+
+    // The panel is a tippy of its own, headed "Variables", and a name the
+    // app does not know yet is offered as a row of its own so the first use
+    // of a variable is what names it. Waiting for that row is what makes
+    // Enter pick it rather than break the line: the panel is rendered a
+    // frame after the keystroke that queries it.
+    const suggestions = page.locator('.tippy-box').filter({ hasText: 'Variables' });
+    await expect(suggestions.getByRole('button', { name: 'first_name', exact: true })).toBeVisible();
+    await page.keyboard.press('Enter');
+
+    const pill = pm.locator('.node-variable');
+    await expect(pill).toHaveCount(1);
+    await expect(pill).toContainText('first_name');
+
+    // The pill's own popover: click it, and the two fields are the whole of
+    // what a customer can say about a variable. Clicking opens that popover
+    // and, because the pill's node view flags it open, keeps the variable
+    // bubble menu — which offers the same two fields — from raising over it.
+    await pill.click();
+    const fields = page.getByRole('dialog').filter({ has: page.getByRole('textbox', { name: 'Variable' }) });
+    await expectOnScreen(page, fields, 'the variable popover');
+    await fields.getByRole('textbox', { name: 'Variable' }).fill('given_name');
+    await fields.getByRole('textbox', { name: 'Placeholder' }).fill('there');
+    await page.keyboard.press('Escape');
+    await expect(pill).toContainText('given_name');
+
+    await expect.poll(async () => {
+      const doc = await docOf(api, t.id);
+      return JSON.stringify(doc).includes('"id":"given_name"') && JSON.stringify(doc).includes('"fallback":"there"');
+    }, { message: 'the saved document holds the renamed pill and its placeholder' }).toBe(true);
+  });
+
+  test('Show if puts a condition on a block and takes it off', async ({ page, api, name }) => {
+    const t = await api.createTemplate({ title: name('show if') });
+    const pm = await openEditor(page, t.id);
+    await pm.getByText('Hello from e2e').click();
+    await page.keyboard.press('ControlOrMeta+A');
+
+    // The eye has no accessible name; it is the menu's last control, and it
+    // renders only for a paragraph or a heading. Its dialog is the only one
+    // that holds the words "Show if" and a field placeheld "e.g. isMember".
+    // The locator is read again for the second press, by which time the
+    // popover has closed and given the last place back.
+    const menu = bubbleMenu(page, 'Bold');
+    const eye = menu.getByRole('button').last();
+    await eye.click();
+    const dialog = menu.getByRole('dialog').filter({ hasText: 'Show if' });
+    await expectOnScreen(page, dialog, 'the Show if popover');
+    await dialog.getByPlaceholder('e.g. isMember').fill('isMember');
+    await page.keyboard.press('Enter');
+
+    // The condition is on the block the moment it is typed, and the canvas
+    // says so through the paragraph's own attribute. `.mly-show-if-highlight`
+    // is not that marker: it outlines every block sharing a key only while a
+    // suggestion is under the pointer, and it is cleared when the popover
+    // closes — so a block that carries a condition looks, at rest, like one
+    // that does not.
+    await expect(pm.locator('p[data-show-if-key="isMember"]')).toHaveCount(1);
+    await expect.poll(async () => JSON.stringify(await docOf(api, t.id)).includes('"showIfKey":"isMember"'),
+      { message: 'the saved block carries the condition' }).toBe(true);
+
+    // Emptying the field is what takes the condition off, and Escape is what
+    // a customer leaves by. Enter cannot be used here: with the field empty
+    // the panel still offers the key already in the document, and Enter picks
+    // the highlighted row — putting the condition straight back.
+    await eye.click();
+    await dialog.getByPlaceholder('e.g. isMember').fill('');
+    await page.keyboard.press('Escape');
+    await expect(pm.locator('p[data-show-if-key]')).toHaveCount(0);
+    await expect.poll(async () => JSON.stringify(await docOf(api, t.id)).includes('"showIfKey":"isMember"'),
+      { message: 'the saved block no longer carries the condition' }).toBe(false);
   });
 });
