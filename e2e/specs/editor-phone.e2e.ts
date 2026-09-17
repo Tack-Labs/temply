@@ -5,7 +5,8 @@ import { phone } from '../fixtures/phone';
 // The canvas is a contenteditable, so the `.ProseMirror` locators below are
 // the one place a DOM selector stands in for a role: ProseMirror's own class
 // names are its public contract for what is selected, and a node view's
-// `data-type` is the editor's for what a block is. `[data-editor-bottom-bar]`
+// `data-type` — `data-maily-component` for the blocks named that way — is the
+// editor's for what a block is. `[data-editor-bottom-bar]`
 // is the second: the bar's controls share their names with the sheets that
 // open above them, so scoping to the bar is what keeps a name unambiguous.
 // The third is `[inert]`, inside `phone.live` — the face that is down is
@@ -227,5 +228,81 @@ test.describe('editor on the phone', () => {
     // missing Style a statement rather than an empty bar.
     await expect(phone.bar(page).button('Delete')).toBeVisible();
     await expect(phone.bar(page).button('Style')).toHaveCount(0);
+  });
+
+  test('the Style sheet is named after the block and offers its settings', async ({ page, api, name }) => {
+    const t = await api.createTemplate({ title: name('style sheet'), content: TWO_PARAGRAPHS });
+    await page.goto(`/templates/${t.id}`);
+    await phone.ready(page);
+
+    // A paragraph: the words' own settings. The unnamed controls in this
+    // sheet — colours, alignment, the link trigger — are labelled by a
+    // tooltip, which is not a name, and are left to the findings list.
+    await phone.tapBlock(page, page.locator('.ProseMirror > p').nth(1));
+    const text = await phone.style(page, 'Text');
+    await expect(text).toBeVisible();
+    for (const control of ['Bold', 'Italic', 'Underline', 'Strikethrough', 'Code', 'Show block conditionally']) {
+      await expect(text.getByRole('button', { name: control, exact: true })).toBeVisible();
+    }
+    await text.getByRole('button', { name: 'Close' }).click();
+    await expect(text).toBeHidden();
+
+    // A spacer: five sizes, and the size a customer picks holds.
+    await phone.bar(page).add().click();
+    await phone.sheet(page, 'Add a block').getByRole('button', { name: 'Spacer', exact: true }).click();
+    const spacer = await phone.style(page, 'Spacer');
+    await expect(spacer).toBeVisible();
+    for (const size of ['xs', 'sm', 'md', 'lg', 'xl']) {
+      await expect(spacer.getByRole('button', { name: size, exact: true })).toBeVisible();
+    }
+    await spacer.getByRole('button', { name: 'xl', exact: true }).click();
+    await expect(page.locator('.ProseMirror div[data-maily-component="spacer"]')).toHaveAttribute('data-height', '64');
+    await spacer.getByRole('button', { name: 'Close' }).click();
+    await expect(spacer).toBeHidden();
+
+    // A section: the settings a customer reaches for, and the way out.
+    await phone.bar(page).add().click();
+    await phone.sheet(page, 'Add a block').getByRole('button', { name: 'Section', exact: true }).click();
+    const section = await phone.style(page, 'Section');
+    await expect(section).toBeVisible();
+    for (const control of ['Border Radius', 'Border Width', 'Margin', 'Padding']) {
+      await expect(section.getByRole('button', { name: control })).toBeVisible();
+    }
+    // Delete Section leaves the sheet pointing at content that is gone, and
+    // the followed position is what closes it — not the sheet rendering less.
+    await section.getByRole('button', { name: 'Delete Section' }).click();
+    await expect(page.locator('.ProseMirror table[data-type="section"]')).toHaveCount(0);
+    await expect(section).toBeHidden();
+  });
+
+  test('a block inside a wrapper reaches the wrapper’s settings too', async ({ page, api, name }) => {
+    // A paragraph inside a Repeat inside a Section: one sheet, stacked
+    // outermost first, and the paragraph's own controls last. The lead
+    // paragraph takes the document's first textblock, where an idle editor
+    // parks an unfocused caret the tap model reads as "already typing" —
+    // the same gap the fixme above records.
+    const doc = JSON.stringify({
+      type: 'doc',
+      content: [paragraph('Above the section'), {
+        type: 'section',
+        content: [{ type: 'repeat', attrs: { each: 'items', showIfKey: null }, content: [paragraph('Inside both')] }],
+      }],
+    });
+    const t = await api.createTemplate({ title: name('stacked'), content: doc });
+    await page.goto(`/templates/${t.id}`);
+    await phone.ready(page);
+
+    // A Repeat draws its preview rows as static copies of the live one, so
+    // the text appears more than once. The copies are `aria-hidden`, which
+    // the role engine honours and a text query does not — so the live row is
+    // asked for as the paragraph a screen reader can reach.
+    await phone.tapBlock(page, page.locator('.ProseMirror').getByRole('paragraph').filter({ hasText: 'Inside both' }));
+    const sheet = await phone.style(page, 'Text');
+    await expect(sheet).toBeVisible();
+    await expect(sheet.getByText('Section', { exact: true })).toBeVisible();
+    await expect(sheet.getByText('Repeat', { exact: true })).toBeVisible();
+    await expect(sheet.getByRole('button', { name: 'Delete Section' })).toBeVisible();
+    await expect(sheet.getByRole('button', { name: 'Repeat over items' })).toBeVisible();
+    await expect(sheet.getByRole('button', { name: 'Bold', exact: true })).toBeVisible();
   });
 });
