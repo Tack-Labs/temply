@@ -1,7 +1,7 @@
 import type { Page } from '@playwright/test';
 import { test, expect } from '../fixtures/test';
 import type { makeApi } from '../fixtures/api';
-import { bubbleMenu, canvas, expectOnScreen, insertViaSlash, newLine, openEditor, slashRow } from '../fixtures/canvas';
+import { bubbleMenu, expectOnScreen, insertViaSlash, newLine, openEditor, slashRow } from '../fixtures/canvas';
 
 // The canvas is a contenteditable, so ProseMirror's own class names stand in
 // for roles it does not give, and a node view's `data-type` stands in for
@@ -186,15 +186,21 @@ test.describe('editor on the desktop', () => {
     await expect(pm.locator('h1')).toHaveText('Line 12');
   });
 
-  test('on a one-line template the Turn into popover opens above the canvas', async ({ page, api, name }) => {
+  test('on a one-line template the Turn into rows a customer wants cannot be pressed', async ({ page, api, name }) => {
     // Characterisation, not a wish: this pins the product as it stands. A new
     // template is one line, so this is the first Turn into any customer
-    // opens, and the popover — inline rather than portaled, flipped upwards
-    // because the viewport has no room below — lands above the canvas with
-    // Paragraph, Heading 1 and Heading 2 clipped out of reach. The assertion
-    // below is true only while that is true. When it goes red the product has
-    // improved: rewrite this case as the reachability one above, and drop the
-    // twenty-four-line seed that case needs.
+    // opens. The popover is rendered inline rather than portaled and flips
+    // upwards because the viewport has no room below, which puts its top rows
+    // — Paragraph, Heading 1, Heading 2 — outside the editor pane, and the
+    // pane clips them: the Content card is `overflow-hidden`, and it starts
+    // well above the canvas, behind the header and the preflight panel.
+    //
+    // What is asserted is what sits on top at the point a customer would
+    // press, not where the popup sits: geometry alone cannot tell the two
+    // apart, since a popover positioned exactly here is perfectly usable once
+    // nothing clips it. When this goes red the product has improved — the row
+    // can be pressed — so rewrite this case as the reachability one above and
+    // drop the twenty-four-line seed that case needs.
     const t = await api.createTemplate({ title: name('clipped') });
     const pm = await openEditor(page, t.id);
     await pm.getByText('Hello from e2e').click({ clickCount: 3 });
@@ -204,10 +210,13 @@ test.describe('editor on the desktop', () => {
     const turnInto = menu.getByRole('dialog').filter({ hasText: 'Heading 1' });
     await expectOnScreen(page, turnInto, 'the Turn into popover');
 
-    const canvasBox = (await canvas(page).boundingBox())!;
-    const popover = (await turnInto.boundingBox())!;
-    expect(popover.y, 'the popover still opens above the canvas, with its top rows out of reach')
-      .toBeLessThan(canvasBox.y);
+    const row = (await turnInto.getByRole('button', { name: 'Heading 1', exact: true }).boundingBox())!;
+    const reachable = await page.evaluate(
+      ([x, y]) => !!document.elementFromPoint(x, y)?.closest('[role="dialog"]'),
+      [row.x + row.width / 2, row.y + row.height / 2] as [number, number]
+    );
+    expect(reachable, 'the Heading 1 row is still covered: the point over it belongs to something outside the popover')
+      .toBe(false);
   });
 
   test('the spacer, section and columns menus open their popups on screen', async ({ page, api, name }) => {
@@ -232,9 +241,9 @@ test.describe('editor on the desktop', () => {
     await page.keyboard.press('Escape');
 
     // Columns: the widths popup is the one that can overflow the pane. The
-    // menu belongs to a column and a fresh Columns leaves the wrapper
-    // selected instead, so the typed character below is the way in; the case
-    // after this one pins why.
+    // menu belongs to a column and the insert leaves the caret between them,
+    // so the typed character below is the way in; the case after this one
+    // pins why.
     pm = await open('columns');
     await insertViaSlash(page, 'Columns');
     await page.keyboard.type('Left');
@@ -250,22 +259,39 @@ test.describe('editor on the desktop', () => {
 
   test('a freshly inserted Columns carries no menu until a character is typed', async ({ page, api, name }) => {
     // Characterisation, not a wish: this pins the product as it stands. The
-    // insert leaves a node selection on the columns wrapper, which
-    // `isTextSelected` reads as a text selection — so the columns menu hides,
-    // and the text menu hides too because the selected node is a nested one.
-    // The block a customer just asked for offers nothing at all, and a click
-    // on an empty column does not move the caret either. When the first
-    // assertion goes red the product has improved: rewrite this case as the
-    // click that a customer would make, and drop the typed character the case
-    // above needs.
+    // Columns command in client/core/blocks/layout.tsx ends
+    // `.focus(editor.state.selection.head - 2)`, and that argument is read
+    // when the chain is built — before `deleteRange` and `setColumns` have
+    // run — so it aims at a position in the document as it was before the
+    // insert. The caret lands between the two columns rather than in one, and
+    // `editor.isActive('columns')` is false there, so the columns menu does
+    // not show; the text menu does not either, the selection being empty. The
+    // block a customer just asked for offers nothing at all. Neither Section
+    // nor Repeat carries that argument, and both do put the caret inside what
+    // they made.
+    //
+    // The caret is what is asserted, not the absent menu: the bubble-menu
+    // plugin debounces a non-empty selection by 250 ms, so a count taken at
+    // once would still read zero on a fix that raised the menu a quarter of a
+    // second later. When the caret assertion goes red the product has
+    // improved: rewrite this case as the click a customer would make, and
+    // drop the typed character the case above needs.
     const t = await api.createTemplate({ title: name('no menu') });
     const pm = await openEditor(page, t.id);
     await insertViaSlash(page, 'Columns');
-    // The block is asserted rendered before the absence below, so the count
-    // cannot pass on a menu that has merely not been drawn yet: a bubble menu
-    // is raised by the same transaction that puts these columns on screen.
     await expect(pm.locator('div[data-type="column"]')).toHaveCount(2);
-    await expect(page.locator('.tippy-box'), 'the fresh Columns still raises no menu of any kind').toHaveCount(0);
+
+    const caret = await page.evaluate(() => {
+      const node = window.getSelection()?.anchorNode;
+      const el = node?.nodeType === Node.ELEMENT_NODE ? (node as Element) : node?.parentElement;
+      return el?.closest('[data-type="column"]') ? 'in a column' : 'outside every column';
+    });
+    expect(caret, 'the insert still leaves the caret between the columns rather than inside one')
+      .toBe('outside every column');
+    // The slash panel is a tippy of its own, so it is excluded rather than
+    // relied on having been torn down by now.
+    const floating = page.locator('.tippy-box').filter({ hasNot: page.locator('#slash-command') });
+    await expect(floating, 'the fresh Columns raises no menu of any kind').toHaveCount(0);
 
     await page.keyboard.type('Left');
     await expect(pm.locator('div[data-type="column"]').first()).toHaveText('Left');
