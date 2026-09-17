@@ -1,6 +1,7 @@
 import { TEST_USER_2 } from '../env';
 import { test, expect } from '../fixtures/test';
 import { makeApi } from '../fixtures/api';
+import { onPhone } from '../fixtures/project';
 import { clerkLoaded, signInAs } from '../fixtures/session';
 import { readWorkspaces } from '../fixtures/workspaces';
 
@@ -69,7 +70,7 @@ test.describe('team', () => {
     // organization" and "Delete organization" further down the page — and
     // the folded navbar stays in the DOM, hidden, so the entry is found by
     // role, which skips what the reader cannot reach.
-    if (test.info().project.name.startsWith('phone')) await page.getByRole('button', { name: 'Organization', exact: true }).click();
+    if (onPhone()) await page.getByRole('button', { name: 'Organization', exact: true }).click();
     await expect(page.getByRole('button', { name: 'Members' })).toBeVisible();
   });
 });

@@ -3,19 +3,23 @@ import { test, expect } from '../fixtures/test';
 import { onPhone, renameTo, openMore, publish } from '../fixtures/editor';
 
 /**
- * Publishes and reads the toast. Only the toast is proof: the toolbar's own
- * label carries a date, so the bare word is the toast, and it is then waited
- * out so a second publish's word is never this one still on screen.
- * `renameTo` on the phone leaves the ⋯ menu open to read "Saved", and
- * `publish` opens that menu itself; a second tap on ⋯ would close it, so
- * it is put away first.
+ * Publishes, waits for the server to have kept the version, and reads the
+ * toast. The response is the proof the publish landed: the toast from the
+ * previous publish can still be on screen (sonner keeps one up for 4 s), so
+ * the word alone could be that one, and `.first()` only says the customer
+ * saw it. The toolbar's own label carries a date, so the bare word is a
+ * toast. `renameTo` on the phone leaves the ⋯ menu open, and `publish`
+ * opens that menu itself; a second tap on ⋯ would close it, so it is put
+ * away first.
  */
-async function publishAndSee(page: Page) {
+async function publishAndSee(page: Page, id: string) {
   if (onPhone()) await page.keyboard.press('Escape');
+  const published = page.waitForResponse(
+    (res) => res.request().method() === 'POST' && res.url().endsWith(`/api/v1/templates/${id}/publish`) && res.ok(),
+  );
   await publish(page);
-  const toast = page.getByText('Published', { exact: true });
-  await expect(toast).toBeVisible();
-  await expect(toast).toBeHidden({ timeout: 10_000 });
+  await published;
+  await expect(page.getByText('Published', { exact: true }).first()).toBeVisible();
 }
 
 test.describe('version history', () => {
@@ -29,9 +33,9 @@ test.describe('version history', () => {
     await expect(page.locator('.ProseMirror').getByText('Hello from e2e')).toBeVisible();
 
     await renameTo(page, id, first);
-    await publishAndSee(page);
+    await publishAndSee(page, id);
     await renameTo(page, id, second);
-    await publishAndSee(page);
+    await publishAndSee(page, id);
 
     if (onPhone()) {
       await openMore(page);

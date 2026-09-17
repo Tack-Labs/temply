@@ -4,6 +4,7 @@ import { fakes } from '../fakes/client';
 import type { Recorded } from '../fakes/index';
 import { makeApi } from './api';
 import { emulateCoarsePointer } from './phone';
+import { onPhone } from './project';
 
 type Fixtures = {
   /** Names the data a test makes: `e2e <runId> · <project> [· r<retry>] · <title> · <what>`. */
@@ -49,7 +50,7 @@ export const test = base.extend<Fixtures>({
   // but not the media feature the editor's CSS and hooks key on; every page
   // the phone project opens gets it here.
   page: async ({ page }, use, testInfo) => {
-    if (testInfo.project.name.startsWith('phone')) await emulateCoarsePointer(page);
+    if (onPhone(testInfo)) await emulateCoarsePointer(page);
     await use(page);
   },
   // Every worker talks to the same fake process, so a reset here would wipe

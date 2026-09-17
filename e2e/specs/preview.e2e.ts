@@ -29,7 +29,12 @@ async function open(page: Page, id: string) {
   await expect(page.getByText('Members only')).toBeVisible();
 }
 
-/** Switches the open template to a rendered view. */
+/**
+ * Switches the open template to a rendered view. Whether the phone's
+ * Preview sheet is already up is probed once, not waited for, so this is
+ * called only with the sheet settled — open or closed, never mid-slide —
+ * or the probe reads the state it is leaving.
+ */
 async function view(page: Page, mode: 'Preview' | 'HTML' | 'Text') {
   if (onPhone()) {
     const sheet = page.getByRole('dialog', { name: 'Preview' });
@@ -43,7 +48,11 @@ async function view(page: Page, mode: 'Preview' | 'HTML' | 'Text') {
   }
 }
 
-/** The sample-data controls: a popover beside the desktop preview, a sheet on the phone. */
+/**
+ * The sample-data controls: a popover beside the desktop preview, a sheet on
+ * the phone. As with `view`, whether the sheet or the popover is up is
+ * probed once, so the caller has it settled first.
+ */
 async function sampleData(page: Page) {
   if (onPhone()) {
     // The Preview sheet covers the bar that holds the Data tab.

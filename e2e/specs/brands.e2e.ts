@@ -1,16 +1,6 @@
-import type { Page } from '@playwright/test';
 import { test, expect } from '../fixtures/test';
 
 const PRESETS = ['Classic', 'Minimal', 'Corporate', 'Warm', 'Slate'];
-
-/** The row of a brand the page just made, read back so the cleanup can own
- *  its id and the assertion its stored theme. */
-async function brandNamed(page: Page, name: string): Promise<{ id: string; theme: string }> {
-  const { brands } = await (await page.request.get('/api/v1/brands')).json();
-  const brand = brands.find((b: { name: string }) => b.name === name);
-  if (!brand) throw new Error(`no brand named ${name}`);
-  return brand;
-}
 
 test.describe('brands', () => {
   test('the five presets are on offer', async ({ page }) => {
@@ -31,7 +21,7 @@ test.describe('brands', () => {
     await dialog.getByRole('button', { name: 'Save' }).click();
     await expect(page.getByText('Brand created')).toBeVisible();
     await expect(page.getByRole('button', { name: `Edit ${title}` })).toBeVisible();
-    const brand = await brandNamed(page, title);
+    const brand = await api.brandNamed(title);
     api.trackBrand(brand.id);
     // The button fill is the colour the Warm preset is known by.
     expect(JSON.parse(brand.theme).button?.backgroundColor?.toUpperCase()).toBe('#B25D38');

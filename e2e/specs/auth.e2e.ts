@@ -1,5 +1,6 @@
 import { clerk, clerkSetup } from '@clerk/testing/playwright';
 import { TEST_USER, TEST_USER_2 } from '../env';
+import { onPhone } from '../fixtures/project';
 import { signInAs } from '../fixtures/session';
 import { test, expect } from '../fixtures/test';
 import { readWorkspaces } from '../fixtures/workspaces';
@@ -39,7 +40,7 @@ test.describe('auth', () => {
     // display:none, so it drops out of the accessibility tree; the drawer's
     // copy is what a phone visitor actually uses. Open it first on the
     // phone project so this test passes on both.
-    if (test.info().project.name.startsWith('phone')) await page.getByRole('button', { name: 'Open navigation' }).click();
+    if (onPhone()) await page.getByRole('button', { name: 'Open navigation' }).click();
     await page.getByRole('button', { name: /^Account/ }).click();
     await page.getByRole('menuitem', { name: /sign out/i }).click();
     // signOut({ redirectUrl: '/' }) clears the session and then navigates
@@ -57,10 +58,10 @@ test.describe('auth', () => {
     expect((await (await shared.page.request.get('/api/v1/quota')).json()).plan).toBe('enterprise');
     await shared.context.close();
     // The billing spec moves this workspace between Free and Pro while the
-    // suite runs; Enterprise belongs to the shared workspace alone, so its
-    // absence is what tells the two apart.
+    // suite runs; Enterprise belongs to the shared workspace alone, so
+    // either of the other two is what tells this one apart.
     const own = await signInAs(browser, TEST_USER_2, workspaces.second);
-    expect((await (await own.page.request.get('/api/v1/quota')).json()).plan).not.toBe('enterprise');
+    expect(['free', 'pro']).toContain((await (await own.page.request.get('/api/v1/quota')).json()).plan);
     await own.context.close();
   });
 });

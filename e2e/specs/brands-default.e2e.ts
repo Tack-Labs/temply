@@ -9,7 +9,7 @@ test.describe('brand defaults', () => {
   let brandName = '';
   let brandId = '';
 
-  test('a brand can be made the default', async ({ page, name }) => {
+  test('a brand can be made the default', async ({ page, api, name }) => {
     brandName = name('default warm');
     await page.goto('/dashboard/brands');
     await page.getByRole('button', { name: 'New brand' }).first().click();
@@ -20,8 +20,7 @@ test.describe('brand defaults', () => {
     await expect(page.getByText('Brand created')).toBeVisible();
     // Not handed to this test's cleanup: the brand has to outlive it for the
     // next two, and the last test tracks it.
-    const { brands } = await (await page.request.get('/api/v1/brands')).json();
-    brandId = brands.find((b: { name: string }) => b.name === brandName).id;
+    brandId = (await api.brandNamed(brandName)).id;
     const tile = page.getByRole('listitem').filter({ has: page.getByRole('button', { name: `Edit ${brandName}` }) });
     await tile.getByRole('button', { name: 'Set as default' }).click();
     await expect(tile.getByText('Default', { exact: true })).toBeVisible();
@@ -31,13 +30,11 @@ test.describe('brand defaults', () => {
     const { id } = await api.createTemplate({ title: name('takes default') });
     await page.goto(`/templates/${id}`);
     await expect(page.getByRole('button', { name: 'Brand' })).toHaveText(brandName);
-    // The row is the proof that the adoption was autosaved, not the word
-    // "Saved": the status keeps that word in the DOM at opacity 0 while idle,
-    // which Playwright counts as visible.
-    await expect.poll(async () => {
-      const theme = (await api.getTemplate(id)).theme;
-      return theme ? JSON.parse(theme).button?.backgroundColor?.toUpperCase() : null;
-    }).toBe('#B25D38');
+    // The row carries the default from creation — the server writes it at
+    // POST, before the editor has opened — and the editor labels that theme
+    // with the brand's name rather than with the preset it was saved from.
+    const { theme } = await api.getTemplate(id);
+    expect(theme && JSON.parse(theme).button?.backgroundColor?.toUpperCase()).toBe('#B25D38');
   });
 
   test('deleting the default hands it on', async ({ page, api }) => {
@@ -49,6 +46,9 @@ test.describe('brand defaults', () => {
     await dialog.getByRole('button', { name: 'Delete' }).click();
     await expect(page.getByText('Brand deleted')).toBeVisible();
     await expect(page.getByRole('button', { name: `Edit ${brandName}` })).toHaveCount(0);
+    // The server deletes the row and then writes the handoff, in two steps:
+    // a read between them sees a default that names no tile, so the count
+    // is 0 for that moment. The count assertion retries until it holds.
     await expect(page.getByText('Default', { exact: true })).toHaveCount(1);
   });
 });

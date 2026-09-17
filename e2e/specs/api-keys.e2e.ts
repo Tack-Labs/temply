@@ -20,11 +20,6 @@ async function createKey(page: Page, mode: 'Test' | 'Live', keyName: string): Pr
   return key!.trim();
 }
 
-async function idOfKey(request: APIRequestContext, keyName: string): Promise<string> {
-  const { keys } = await (await request.get('/api/v1/api-keys')).json();
-  return keys.find((k: { name: string }) => k.name === keyName).id;
-}
-
 // `page.request` carries the signed-in cookies, and the Next proxy forwards
 // the Authorization header untouched; the public route ignores the cookies
 // and authenticates by the bearer alone, which is what is being asserted.
@@ -38,7 +33,7 @@ test.describe('api keys', () => {
     const keyName = name('test key');
     await page.goto('/dashboard/settings/api-keys');
     const key = await createKey(page, 'Test', keyName);
-    api.trackApiKey(await idOfKey(page.request, keyName));
+    api.trackApiKey((await api.apiKeyNamed(keyName)).id);
 
     const ok = await render(page.request, short_code, key);
     expect(ok.status()).toBe(200);
@@ -66,9 +61,9 @@ test.describe('api keys', () => {
     const keyName = name('live key');
     await page.goto('/dashboard/settings/api-keys');
     const key = await createKey(page, 'Live', keyName);
-    api.trackApiKey(await idOfKey(page.request, keyName));
+    api.trackApiKey((await api.apiKeyNamed(keyName)).id);
     const ok = await render(page.request, short_code, key);
     expect(ok.status()).toBe(200);
-    expect((await ok.json()).mode ?? 'live').toBe('live');
+    expect((await ok.json()).mode).toBe('live');
   });
 });

@@ -31,52 +31,61 @@ test.describe('billing', () => {
   });
 
   test('the Free plan states its limits and holds them', async ({ name }) => {
+    // The second user's own session: the `api` fixture would make and
+    // delete rows as the first user, in the shared workspace. What is made
+    // here is deleted here, even when an assertion fails part-way.
     const api = makeApi(page.request);
-    await page.goto('/dashboard/settings/plan');
-    await expect(currentPlanRow(page, 'Free')).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Current plan' })).toBeDisabled();
-    await expect(page.getByText('0 / 10,000')).toBeVisible();
+    try {
+      await page.goto('/dashboard/settings/plan');
+      await expect(currentPlanRow(page, 'Free')).toBeVisible();
+      await expect(page.getByRole('button', { name: 'Current plan' })).toBeDisabled();
+      await expect(page.getByText('0 / 10,000')).toBeVisible();
 
-    // Templates: two are the cap.
-    const { id } = await api.createTemplate({ title: name('one') });
-    await api.createTemplate({ title: name('two') });
-    await page.goto('/dashboard/templates');
-    await expect(page.getByText("You've used all 2 templates on the Free plan.")).toBeVisible();
-    await expect(page.getByRole('button', { name: 'New template' }).first()).toBeDisabled();
-    await expect(page.getByRole('button', { name: 'Duplicate template' })).toHaveCount(0);
-    const third = await page.request.post('/api/v1/templates', { data: { title: name('three'), content: '{"type":"doc","content":[]}' } });
-    expect(third.status()).toBe(402);
-    expect((await third.json()).message).toBe('Free plan is limited to 2 templates. Upgrade to create more.');
+      // Templates: two are the cap.
+      const { id } = await api.createTemplate({ title: name('one') });
+      await api.createTemplate({ title: name('two') });
+      await page.goto('/dashboard/templates');
+      await expect(page.getByText("You've used all 2 templates on the Free plan.")).toBeVisible();
+      await expect(page.getByRole('button', { name: 'New template' }).first()).toBeDisabled();
+      await expect(page.getByRole('button', { name: 'Duplicate template' })).toHaveCount(0);
+      const third = await page.request.post('/api/v1/templates', { data: { title: name('three'), content: '{"type":"doc","content":[]}' } });
+      expect(third.status()).toBe(402);
+      expect((await third.json()).message).toBe('Free plan is limited to 2 templates. Upgrade to create more.');
 
-    // Brands: one.
-    const brand = await page.request.post('/api/v1/brands', { data: { name: name('brand'), theme: '{}' } });
-    expect(brand.ok()).toBe(true);
-    await page.goto('/dashboard/brands');
-    await expect(page.getByText("You've used all 1 custom brand on your plan.")).toBeVisible();
-    await expect(page.getByRole('button', { name: 'New brand' }).first()).toBeDisabled();
+      // Brands: one.
+      const brand = await page.request.post('/api/v1/brands', { data: { name: name('brand'), theme: '{}' } });
+      expect(brand.ok()).toBe(true);
+      api.trackBrand((await brand.json()).brand.id);
+      await page.goto('/dashboard/brands');
+      await expect(page.getByText("You've used all 1 custom brand on your plan.")).toBeVisible();
+      await expect(page.getByRole('button', { name: 'New brand' }).first()).toBeDisabled();
 
-    // Live keys: one; the dialog then offers Test only.
-    const key = await page.request.post('/api/v1/api-keys', { data: { name: name('live'), mode: 'live' } });
-    expect(key.ok()).toBe(true);
-    await page.goto('/dashboard/settings/api-keys');
-    await expect(page.getByText("You've used all 1 API keys on your plan.")).toBeVisible();
-    await page.getByRole('button', { name: 'Create key' }).first().click();
-    // The radio is named by its label, the "Pro" tag the lock adds, and the
-    // hint sentence under it; the first two are matched at the start. The
-    // tag is set off by a margin, not a space, so the name runs them together.
-    await expect(page.getByRole('dialog', { name: 'Create API key' }).getByRole('radio', { name: /^Live ?Pro\b/ })).toBeDisabled();
-    await page.keyboard.press('Escape');
+      // Live keys: one; the dialog then offers Test only.
+      const key = await page.request.post('/api/v1/api-keys', { data: { name: name('live'), mode: 'live' } });
+      expect(key.ok()).toBe(true);
+      api.trackApiKey((await key.json()).key.id);
+      await page.goto('/dashboard/settings/api-keys');
+      await expect(page.getByText("You've used all 1 API keys on your plan.")).toBeVisible();
+      await page.getByRole('button', { name: 'Create key' }).first().click();
+      // The radio is named by its label, the "Pro" tag the lock adds, and the
+      // hint sentence under it; the first two are matched at the start. The
+      // tag is set off by a margin, not a space, so the name runs them together.
+      await expect(page.getByRole('dialog', { name: 'Create API key' }).getByRole('radio', { name: /^Live ?Pro\b/ })).toBeDisabled();
+      await page.keyboard.press('Escape');
 
-    // Versions: a publish on Free keeps none.
-    await page.goto(`/templates/${id}`);
-    // Typing into the subject before the editor is live is lost; the body
-    // is drawn only once it has mounted, so its text is the sign to wait for.
-    await expect(page.getByText('Hello from e2e')).toBeVisible();
-    await renameTo(page, id, name('published on free'));
-    await publish(page);
-    await expect(page.getByText('Published', { exact: true })).toBeVisible();
-    await page.getByRole('button', { name: 'History' }).click();
-    await expect(page.getByRole('dialog', { name: 'Version history' }).getByText('No versions yet. Each publish creates one.')).toBeVisible();
+      // Versions: a publish on Free keeps none.
+      await page.goto(`/templates/${id}`);
+      // Typing into the subject before the editor is live is lost; the body
+      // is drawn only once it has mounted, so its text is the sign to wait for.
+      await expect(page.getByText('Hello from e2e')).toBeVisible();
+      await renameTo(page, id, name('published on free'));
+      await publish(page);
+      await expect(page.getByText('Published', { exact: true })).toBeVisible();
+      await page.getByRole('button', { name: 'History' }).click();
+      await expect(page.getByRole('dialog', { name: 'Version history' }).getByText('No versions yet. Each publish creates one.')).toBeVisible();
+    } finally {
+      await api.cleanup();
+    }
   });
 
   test('upgrading through checkout puts the workspace on Pro', async ({ fakes }) => {

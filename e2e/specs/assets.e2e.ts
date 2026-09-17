@@ -19,8 +19,7 @@ test.describe('assets', () => {
     await fileInput(page).setInputFiles({ name: file, mimeType: 'image/png', buffer: PNG_1x1 });
     await expect(page.getByText('Image uploaded')).toBeVisible();
     await expect(page.getByRole('button', { name: `Preview ${file}` })).toBeVisible();
-    const { assets } = await (await page.request.get('/api/v1/assets')).json();
-    api.trackAsset(assets.find((a: { name: string }) => a.name === file).id);
+    api.trackAsset((await api.assetNamed(file)).id);
     const uploads = (await fakes.requests('imagekit')).filter((r) => r.method === 'POST' && r.path === '/api/v1/files/upload');
     expect(uploads.some((r) => (r.body as { fileName?: string }).fileName === file)).toBe(true);
   });

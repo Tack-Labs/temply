@@ -24,6 +24,14 @@ export function makeApi(request: APIRequestContext) {
     const res = await request.delete(path);
     if (!res.ok() && res.status() !== 404) throw new Error(`${what}: ${res.status()}`);
   };
+  // A missing row fails by name rather than as a property read off undefined.
+  const named = async <T extends { name: string }>(path: string, key: string, name: string, what: string): Promise<T> => {
+    const res = await request.get(path);
+    if (!res.ok()) throw new Error(`${what}s: ${res.status()}`);
+    const row = ((await res.json())[key] as T[]).find((r) => r.name === name);
+    if (!row) throw new Error(`no ${what} named ${name}`);
+    return row;
+  };
   return {
     async createTemplate(opts: { title: string; content?: string; previewText?: string; theme?: string }): Promise<{ id: string; title: string }> {
       const res = await request.post('/api/v1/templates', { data: { title: opts.title, content: opts.content ?? EMPTY_DOC, previewText: opts.previewText, theme: opts.theme } });
@@ -52,6 +60,10 @@ export function makeApi(request: APIRequestContext) {
       return { id: brand.id };
     },
     trackBrand(id: string): void { remember(made.brands, id); },
+    /** A brand the page made, read back so the test can own its id and
+     *  read its stored theme. Reading is not tracking: a brand that has
+     *  to outlive the test is handed over with `trackBrand` later. */
+    brandNamed(name: string) { return named<{ id: string; theme: string; name: string }>('/api/v1/brands', 'brands', name, 'brand'); },
     /** The stored name is the given stem plus the extension the server
      *  sniffed, and the URL is where the fake ImageKit serves it from. */
     async uploadAsset(fileName: string): Promise<{ id: string; name: string; url: string }> {
@@ -62,12 +74,25 @@ export function makeApi(request: APIRequestContext) {
       return { id: asset.id, name: asset.name, url: asset.url };
     },
     trackAsset(id: string): void { remember(made.assets, id); },
+    assetNamed(name: string) { return named<{ id: string; url: string; name: string }>('/api/v1/assets', 'assets', name, 'asset'); },
     trackApiKey(id: string): void { remember(made.apiKeys, id); },
+    apiKeyNamed(name: string) { return named<{ id: string; name: string }>('/api/v1/api-keys', 'keys', name, 'API key'); },
+    /** Every delete is attempted: one that fails must not leave the rest
+     *  behind for the run, so the failures are gathered and thrown as one. */
     async cleanup(): Promise<void> {
-      for (const id of [...made.templates]) await this.deleteTemplate(id);
-      for (const id of made.brands) await del(`/api/v1/brands/${id}`, 'deleteBrand');
-      for (const id of made.assets) await del(`/api/v1/assets/${id}`, 'deleteAsset');
-      for (const id of made.apiKeys) await del(`/api/v1/api-keys/${id}`, 'revokeApiKey');
+      const failed: string[] = [];
+      const attempt = async (work: Promise<void>) => {
+        try {
+          await work;
+        } catch (error) {
+          failed.push(error instanceof Error ? error.message : String(error));
+        }
+      };
+      for (const id of [...made.templates]) await attempt(this.deleteTemplate(id));
+      for (const id of made.brands) await attempt(del(`/api/v1/brands/${id}`, 'deleteBrand'));
+      for (const id of made.assets) await attempt(del(`/api/v1/assets/${id}`, 'deleteAsset'));
+      for (const id of made.apiKeys) await attempt(del(`/api/v1/api-keys/${id}`, 'revokeApiKey'));
+      if (failed.length) throw new Error(`cleanup: ${failed.length} delete(s) failed\n${failed.join('\n')}`);
     },
   };
 }

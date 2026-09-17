@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { onPhone } from '../fixtures/project';
 
 test.describe('marketing', () => {
   test('the home page loads and links to the docs', async ({ page }) => {
@@ -38,8 +39,7 @@ test.describe('marketing', () => {
     await page.goto('/playground');
     // The phone shell has no Content section; its floating "Add block" button
     // is the mark that the editor mounted.
-    const phone = test.info().project.name.startsWith('phone');
-    if (phone) await expect(page.getByRole('button', { name: 'Add block' })).toBeVisible();
+    if (onPhone()) await expect(page.getByRole('button', { name: 'Add block' })).toBeVisible();
     else await expect(page.getByRole('heading', { name: 'Content', exact: true })).toBeVisible();
     await expect(page.locator('.ProseMirror')).toContainText('Welcome to Temply');
     await context.close();
