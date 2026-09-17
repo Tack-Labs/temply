@@ -38,11 +38,11 @@ test.describe('editor on the desktop', () => {
     // wrapper, a rule, an atom with its own chrome, and a code block. The
     // catalogue's own contents are pinned by client/core/editor/block-catalogue.test.ts.
     //
-    // Each starts from a template of its own because the editor offers no
-    // way back out to the top level: once the caret is inside a Section or
-    // a list there is no gap cursor and no trailing paragraph to escape to,
-    // so a second insert on the same document lands inside the first block
-    // instead of after it.
+    // Each starts from a template of its own because a second insert on the
+    // same document lands inside the first block rather than after it: the
+    // caret is left inside the Section or the list, and nothing puts a
+    // paragraph after it to carry the next `/` — TrailingNode is not
+    // registered.
     const open = async (what: string) => openEditor(page, (await api.createTemplate({ title: name(what) })).id);
 
     let pm = await open('heading');

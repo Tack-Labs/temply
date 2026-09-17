@@ -43,15 +43,17 @@ export async function openEditor(page: Page, id: string): Promise<Locator> {
  * is a `p` and that `p` is empty. Emptiness alone would be no guarantee at
  * all — an `hr`, a Spacer, an image and a fresh Section all hold no text,
  * so the check would pass on a paragraph opened in the middle of the
- * document. The editor registers neither a gap cursor nor a trailing
- * paragraph, so a document whose last block is a Section, a list or a
- * divider has no top-level way in; this says so at once rather than
- * leaving a later assertion to pass on a block nested where no one looks.
+ * document. A click in a top-level textblock is this helper's only way in,
+ * and nothing puts one at the end for it: the `TrailingNode` extension in
+ * the editor's own tree is registered by no kit. So a document whose last
+ * block is a Section, a list or a divider gets its new line in the middle,
+ * and this says so at once rather than leaving a later assertion to pass
+ * on a block nested where no one looks.
  */
 export async function newLine(page: Page): Promise<void> {
   const pm = await ready(page);
   const textblocks = pm.locator('> :is(p, h1, h2, h3, blockquote)');
-  await expect(textblocks, 'the document has no top-level textblock: the editor registers neither Gapcursor nor TrailingNode, so there is no way in').not.toHaveCount(0);
+  await expect(textblocks, 'the document has no top-level textblock, which is this helper\'s only way in: seed one, since nothing guarantees a trailing paragraph — TrailingNode is not registered').not.toHaveCount(0);
   await textblocks.last().click();
   await page.keyboard.press('End');
   await page.keyboard.press('Enter');
