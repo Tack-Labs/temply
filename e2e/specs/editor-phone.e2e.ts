@@ -4,8 +4,13 @@ import { phone } from '../fixtures/phone';
 // The canvas is a contenteditable, so the `.ProseMirror` locators below are
 // the one place a DOM selector stands in for a role: ProseMirror's own class
 // names are its public contract for what is selected, and a node view's
-// `data-type` is the editor's for what a block is. Everything else is found
-// the way a screen reader would find it.
+// `data-type` is the editor's for what a block is. `[data-editor-bottom-bar]`
+// is the second: the bar's controls share their names with the sheets that
+// open above them, so scoping to the bar is what keeps a name unambiguous.
+// The third is `[inert]`, inside `phone.bar` — the face that is down is
+// inert rather than unmounted, and Playwright's role engine does not honour
+// inert, so the scope has to. Everything else is found the way a screen
+// reader would find it.
 const paragraph = (text: string) => ({ type: 'paragraph', content: [{ type: 'text', text }] });
 const TWO_PARAGRAPHS = JSON.stringify({ type: 'doc', content: [paragraph('Hello from e2e'), paragraph('A second paragraph')] });
 
@@ -24,7 +29,9 @@ test.describe('editor on the phone', () => {
     await expect(phone.bar(page).button('Delete')).toBeVisible();
     await expect(page.locator('.ProseMirror-selectednode')).toHaveCount(1);
     await phone.editBlock(page, para);
-    await expect(phone.bar(page).button('Done')).toBeVisible();
+    // Done is the header's, not the bar's: the text face costs the bar the
+    // room a second copy would need.
+    await expect(page.getByRole('button', { name: 'Done', exact: true })).toBeVisible();
     await page.keyboard.type(' typed');
     await expect(para).toContainText('typed');
   });
@@ -81,5 +88,58 @@ test.describe('editor on the phone', () => {
     await page.keyboard.type('second');
     await expect(page.locator('.ProseMirror > p')).toHaveCount(1);
     await expect(para.locator('br:not(.ProseMirror-trailingBreak)')).toHaveCount(1);
+  });
+
+  test('the bar shows what the customer can do right now', async ({ page, api, name }) => {
+    const t = await api.createTemplate({ title: name('faces'), content: TWO_PARAGRAPHS });
+    await page.goto(`/templates/${t.id}`);
+    await phone.ready(page);
+
+    // Idle: the email's own sections, nothing about a block.
+    const sections = page.getByRole('navigation', { name: 'Editor sections' });
+    for (const tab of ['Details', 'Brand', 'Data', 'Checks']) {
+      await expect(sections.getByRole('button', { name: new RegExp(`^${tab}`) })).toBeVisible();
+    }
+    await expect(phone.bar(page).button('Delete')).toHaveCount(0);
+
+    // Block: one tap, and the bar is about the block.
+    const para = page.locator('.ProseMirror > p').nth(1);
+    await phone.tapBlock(page, para);
+    for (const control of ['Move up', 'Move down', 'Style', 'Duplicate', 'Delete']) {
+      await expect(phone.bar(page).button(control)).toBeVisible();
+    }
+
+    // Text: a second tap, and the bar is about the words.
+    await phone.editBlock(page, para);
+    for (const control of ['Bold', 'Italic', 'Underline', 'Link', 'Insert variable', 'Line break', 'More formatting']) {
+      await expect(phone.bar(page).button(control)).toBeVisible();
+    }
+    await page.getByRole('button', { name: 'Done', exact: true }).click();
+    await expect(phone.bar(page).button('Delete')).toBeVisible();
+
+    // Idle again: a tap on the margin is how a customer puts a block down.
+    await page.mouse.click(5, 300);
+    await expect(sections.getByRole('button', { name: 'Details' })).toBeVisible();
+    await expect(phone.bar(page).button('Delete')).toHaveCount(0);
+  });
+
+  test('the Aa panel colours, aligns and clears the text', async ({ page, api, name }) => {
+    const t = await api.createTemplate({ title: name('aa'), content: TWO_PARAGRAPHS });
+    await page.goto(`/templates/${t.id}`);
+    await phone.ready(page);
+    const para = page.locator('.ProseMirror > p').nth(1);
+    await phone.editBlock(page, para);
+    await phone.bar(page).button('More formatting').click();
+
+    for (const swatch of ['Black', 'Slate', 'Indigo', 'Red', 'Green', 'Amber', 'White']) {
+      await expect(phone.bar(page).button(swatch)).toBeVisible();
+    }
+    for (const control of ['Link address', 'Align left', 'Align centre', 'Align right', 'Strikethrough', 'Code', 'Bullet list', 'Numbered list', 'Clear formatting']) {
+      await expect(phone.bar(page).button(control)).toBeVisible();
+    }
+    await expect(page.locator('[data-editor-bottom-bar]').getByText('No link')).toBeVisible();
+
+    await phone.bar(page).button('Align centre').click();
+    await expect(phone.bar(page).button('Align centre')).toHaveAttribute('aria-pressed', 'true');
   });
 });

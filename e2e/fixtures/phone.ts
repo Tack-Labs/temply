@@ -38,6 +38,16 @@ async function tap(page: Page, block: Locator): Promise<void> {
   await page.mouse.click(box.x + 20, box.y + Math.min(10, box.height / 2));
 }
 
+/**
+ * Only what the customer can actually reach. All four faces of the bottom
+ * bar stay mounted and the three that are down are `inert`, which takes them
+ * out of the browser's accessibility tree — but Playwright's role engine
+ * honours `aria-hidden` and `display: none` only, so without this every face
+ * answers to its controls' names at once and no assertion about which one is
+ * up can fail. `and()`-ing this in is what makes a name mean the live face.
+ */
+const live = (page: Page): Locator => page.locator(':not([inert]):not([inert] *)');
+
 export const phone = {
   ready,
   /** One tap selects the block: the action bar appears, the keyboard does not. */
@@ -47,11 +57,25 @@ export const phone = {
     await tap(page, block);
     await tap(page, block);
   },
-  /** The bottom bar's controls by their names, as a screen reader hears them. */
+  /** The bottom bar's controls by their names, as a screen reader hears them.
+   *  Scoped to the bar: a sheet above it can carry the same name — while a
+   *  Button's Style sheet is open, `Style` is both the bar's button and a
+   *  dropdown inside the sheet. The + rides above the bar, not in it. */
   bar(page: Page) {
+    const bar = page.locator('[data-editor-bottom-bar]');
     return {
-      button: (name: 'Move up' | 'Move down' | 'Style' | 'Duplicate' | 'Delete' | 'Done') => page.getByRole('button', { name, exact: true }),
+      button: (name: string) => bar.getByRole('button', { name, exact: true }).and(live(page)),
       add: () => page.getByRole('button', { name: 'Add block' }),
     };
   },
+  /** A bottom sheet by its name; every one carries a Close button. */
+  sheet: (page: Page, name: string): Locator => page.getByRole('dialog', { name }),
+  /** Opens the selected block's Style sheet. Its name is the block's kind —
+   *  "Text", "Image", "Repeat" — or "Style" when nothing names it. */
+  async style(page: Page, name: string): Promise<Locator> {
+    await phone.bar(page).button('Style').click();
+    return page.getByRole('dialog', { name });
+  },
+  /** The input dock: a form named by the surface that opened it. */
+  dock: (page: Page, title: string): Locator => page.getByRole('form', { name: title }),
 };
