@@ -51,8 +51,10 @@ export default defineConfig({
       // Same double-sign-in reason as desktop-chromium above. The stack
       // check has no viewport to assert and runs once, on desktop. Billing
       // and brand defaults move workspace-wide state and run serially on
-      // one project.
-      testIgnore: [/setup\//, /specs\/stack\.e2e\.ts$/, /specs\/billing\.e2e\.ts$/, /specs\/brands-default\.e2e\.ts$/],
+      // one project. The desktop editor spec asserts the slash menu, the
+      // bubble menus and the keyboard, none of which the phone shell
+      // renders.
+      testIgnore: [/setup\//, /specs\/stack\.e2e\.ts$/, /specs\/billing\.e2e\.ts$/, /specs\/brands-default\.e2e\.ts$/, /specs\/editor-desktop\.e2e\.ts$/],
     },
   ],
   webServer: [
