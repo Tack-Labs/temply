@@ -9,9 +9,9 @@ test.describe('team', () => {
     const byAdmin = name('by admin');
     await api.createTemplate({ title: byAdmin });
     const member = await signInAs(browser, TEST_USER_2, readWorkspaces().shared);
-    // The member's rows are the member's to delete: the admin's cleanup
-    // would work too, but the row's owner is the one whose session should
-    // be able to undo it.
+    // The member's rows go through the member's own cleanup, so a delete
+    // the API would refuse a member surfaces here rather than being hidden
+    // by the admin's session.
     const memberApi = makeApi(member.page.request);
     try {
       await member.page.goto('/dashboard/templates');
@@ -48,8 +48,13 @@ test.describe('team', () => {
       expect(checkout.status()).toBe(403);
       expect((await checkout.json()).message).toBe('Only an admin can change the plan. Ask an admin on your team.');
     } finally {
-      await memberApi.cleanup();
-      await member.context.close();
+      // The context closes even when a cleanup delete fails: an open
+      // member session would outlive the test and hold its worker.
+      try {
+        await memberApi.cleanup();
+      } finally {
+        await member.context.close();
+      }
     }
   });
 

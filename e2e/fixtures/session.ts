@@ -11,7 +11,9 @@ type WindowWithClerk = Window & { Clerk?: { loaded?: boolean; setActive: (params
  * Clerk's client state — the caller's role in the workspace included —
  * arrives after the first paint, and until it does the dashboard draws the
  * member's view for everyone. A test that asserts what a member is not
- * shown waits for this first, or it passes for an admin too.
+ * shown waits for this first, which narrows the window in which the
+ * assertion could pass for an admin to the one React render that follows;
+ * it does not close it.
  */
 export async function clerkLoaded(page: Page): Promise<void> {
   await page.waitForFunction(() => (window as WindowWithClerk).Clerk?.loaded === true);
