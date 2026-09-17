@@ -163,7 +163,14 @@ export function useTemplateEditor(props: EmailEditorSandboxProps): TemplateEdito
    *  brand as soon as the brands arrive, which on a quick connection is
    *  before the editor exists to be read, and a baseline taken from live
    *  state then would count the adoption as already saved and never send
-   *  it. */
+   *  it.
+   *
+   *  A row made through the API cannot reach that adoption: the server
+   *  writes the workspace's default brand at creation (covered by
+   *  `server/src/routes/templates.test.ts`), so the editor opens on a theme
+   *  that already matches a brand and adopts nothing. The path stays for
+   *  the playground, which has no row, and for templates from before that
+   *  rule, which still hold null. */
   const rowTheme = useRef(theme);
 
   // --- Draft and published copy ---------------------------------------------
