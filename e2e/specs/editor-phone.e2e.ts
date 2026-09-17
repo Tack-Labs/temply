@@ -21,6 +21,16 @@ const done = (page: Page) => page.getByRole('banner').getByRole('button', { name
 const paragraph = (text: string) => ({ type: 'paragraph', content: [{ type: 'text', text }] });
 const TWO_PARAGRAPHS = JSON.stringify({ type: 'doc', content: [paragraph('Hello from e2e'), paragraph('A second paragraph')] });
 
+// Every block the + sheet offers, under the heading it sits beneath. The
+// phone's roster is its own, not the slash menu's: what the sheet drops is
+// as much the product as what it keeps.
+const TILES = {
+  Content: ['Text', 'Heading 1', 'Heading 2', 'Heading 3', 'Bullet List', 'Numbered List', 'Image', 'Logo', 'Button', 'Blockquote'],
+  Layout: ['Columns', 'Section', 'Divider', 'Spacer'],
+  Logic: ['Repeat', 'Custom HTML'],
+  Components: ['Headers', 'Footers'],
+};
+
 test.describe('editor on the phone', () => {
   test('one tap selects a block, a second tap edits it', async ({ page, api, name }) => {
     const t = await api.createTemplate({ title: name('tap'), content: TWO_PARAGRAPHS });
@@ -151,5 +161,71 @@ test.describe('editor on the phone', () => {
 
     await phone.bar(page).button('Align centre').click();
     await expect(phone.bar(page).button('Align centre')).toHaveAttribute('aria-pressed', 'true');
+  });
+
+  test('the + sheet offers every block, in its group', async ({ page, api, name }) => {
+    const t = await api.createTemplate({ title: name('plus roster') });
+    await page.goto(`/templates/${t.id}`);
+    await phone.ready(page);
+    await phone.bar(page).add().click();
+
+    const sheet = phone.sheet(page, 'Add a block');
+    for (const [group, tiles] of Object.entries(TILES)) {
+      await expect(sheet.getByRole('heading', { level: 3, name: group })).toBeVisible();
+      for (const tile of tiles) {
+        // A tile's whole accessible name is its title — no description
+        // rides along — so `exact` is what makes "Heading 1" mean that tile
+        // rather than anything whose name merely contains it.
+        await expect(sheet.getByRole('button', { name: tile, exact: true }), `${tile} is offered`).toBeVisible();
+      }
+    }
+    // Two blocks the phone deliberately does not offer: neither can be
+    // configured by thumb once it exists, so + would be a dead end.
+    await expect(sheet.getByRole('button', { name: 'Inline Image', exact: true })).toHaveCount(0);
+    await expect(sheet.getByRole('button', { name: 'Link Card', exact: true })).toHaveCount(0);
+  });
+
+  test('a sub-list adds a pre-designed block, and goes back', async ({ page, api, name }) => {
+    const t = await api.createTemplate({ title: name('plus sub-list') });
+    await page.goto(`/templates/${t.id}`);
+    await phone.ready(page);
+    await phone.bar(page).add().click();
+    await phone.sheet(page, 'Add a block').getByRole('button', { name: 'Headers', exact: true }).click();
+
+    const headers = phone.sheet(page, 'Headers');
+    for (const tile of ['Logo with Text (Vertical)', 'Logo with Text (Horizontal)', 'Logo with Cover Image']) {
+      await expect(headers.getByRole('button', { name: tile, exact: true })).toBeVisible();
+    }
+    // The back button answers to the sheet's own title, so it is reached
+    // through the sub-list dialog rather than the page.
+    await headers.getByRole('button', { name: 'Add a block', exact: true }).click();
+    await expect(phone.sheet(page, 'Add a block').getByRole('button', { name: 'Footers', exact: true })).toBeVisible();
+
+    await phone.sheet(page, 'Add a block').getByRole('button', { name: 'Footers', exact: true }).click();
+    await phone.sheet(page, 'Footers').getByRole('button', { name: 'Footer Copyright', exact: true }).click();
+    await expect(page.locator('.ProseMirror').getByText(`Temply © ${new Date().getFullYear()}. All rights reserved.`)).toBeVisible();
+  });
+
+  test('what the + sheet makes is selected, and a wrapper is selected as itself', async ({ page, api, name }) => {
+    const t = await api.createTemplate({ title: name('plus selects') });
+    await page.goto(`/templates/${t.id}`);
+    await phone.ready(page);
+
+    await phone.bar(page).add().click();
+    await phone.sheet(page, 'Add a block').getByRole('button', { name: 'Columns', exact: true }).click();
+    await expect(page.locator('.ProseMirror div[data-type="column"]')).toHaveCount(2);
+    // The tap model never selects a wrapper; inserting one does, and the
+    // Style sheet is then the wrapper's own rather than a stack.
+    await expect(await phone.style(page, 'Columns')).toBeVisible();
+    await phone.sheet(page, 'Columns').getByRole('button', { name: 'Close' }).click();
+
+    // A list has nothing to style, so the bar offers no Style at all.
+    await phone.bar(page).add().click();
+    await phone.sheet(page, 'Add a block').getByRole('button', { name: 'Bullet List', exact: true }).click();
+    await expect(page.locator('.ProseMirror ul > li')).toHaveCount(1);
+    // Delete says the block face is up at all, which is what makes the
+    // missing Style a statement rather than an empty bar.
+    await expect(phone.bar(page).button('Delete')).toBeVisible();
+    await expect(phone.bar(page).button('Style')).toHaveCount(0);
   });
 });
