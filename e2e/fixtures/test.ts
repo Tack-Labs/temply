@@ -61,8 +61,16 @@ export const test = base.extend<Fixtures>({
     const startedAt = Date.now();
     await use({ requests: (service) => fakes.requests(service, startedAt), signStripeEvent: fakes.signStripeEvent });
   },
-  api: async ({ request }, use) => {
-    const api = makeApi(request);
+  // Seeding goes through the page's own cookie jar, after one page load:
+  // the session token saved by setup lives about a minute, and the
+  // standalone `request` fixture starts from that stale copy and never
+  // refreshes it, so a test that ran late in the suite was refused with a
+  // 401 before it opened anything. A document request lets Clerk's
+  // middleware hand the context a fresh token, and the open page keeps it
+  // fresh from then on.
+  api: async ({ page }, use) => {
+    await page.goto('/');
+    const api = makeApi(page.request);
     await use(api);
     await api.cleanup();
   },
