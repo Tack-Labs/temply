@@ -1,6 +1,7 @@
 import { clerk, clerkSetup } from '@clerk/testing/playwright';
 import { test as setup, expect } from '@playwright/test';
-import { writeFileSync } from 'node:fs';
+import { mkdirSync, writeFileSync } from 'node:fs';
+import { dirname } from 'node:path';
 import { RUN_ID, TEST_USER } from '../env';
 import { fakes } from '../fakes/client';
 import { EMPTY_DOC } from '../fixtures/api';
@@ -45,6 +46,9 @@ setup('sign in as the e2e user', async ({ page }) => {
   // The second user's standing in Clerk, and the ids the specs that sign
   // them in need; the first user's own id goes along so the second user can
   // be proven to be someone else before their role is touched.
+  // A fresh checkout (CI) has no .auth directory yet; Playwright makes it
+  // for the storageState below, but this file is written first.
+  mkdirSync(dirname(WORKSPACES_FILE), { recursive: true });
   writeFileSync(WORKSPACES_FILE, JSON.stringify(await ensureSecondUser(first.orgId, first.userId)));
 
   // The first editor render on a cold `next start` pays a JIT cost that a
