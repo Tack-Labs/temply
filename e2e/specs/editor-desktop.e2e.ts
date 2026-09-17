@@ -1,5 +1,5 @@
 import { test, expect } from '../fixtures/test';
-import { insertViaSlash, newLine, openEditor, slashRow } from '../fixtures/canvas';
+import { bubbleMenu, expectOnScreen, insertViaSlash, newLine, openEditor, slashRow } from '../fixtures/canvas';
 
 // The canvas is a contenteditable, so ProseMirror's own class names stand in
 // for roles it does not give, and a node view's `data-type` stands in for
@@ -126,5 +126,88 @@ test.describe('editor on the desktop', () => {
     await slashRow(page, 'Footers').click();
     await slashRow(page, 'Footer Copyright').click();
     await expect(pm.getByText(`Temply © ${new Date().getFullYear()}. All rights reserved.`)).toBeVisible();
+  });
+
+  test('selecting text raises the menu that formats it', async ({ page, api, name }) => {
+    // A document of many lines, worked on in the middle of it. The Turn into
+    // popover is not portaled — by design, so a heading cannot bleed its type
+    // into the form — so it is clipped by whatever clips the editor's pane,
+    // and it opens upwards whenever the viewport has no room below. On the
+    // one-line document a new template starts with, that puts its first rows
+    // above the canvas, where they cannot be clicked at all (a finding). Lines
+    // above and below give the popover the room a real document has.
+    const lines = Array.from({ length: 24 }, (_, i) => `Line ${i + 1}`);
+    const content = JSON.stringify({
+      type: 'doc',
+      content: lines.map((text) => ({ type: 'paragraph', content: [{ type: 'text', text }] })),
+    });
+    const t = await api.createTemplate({ title: name('text menu'), content });
+    const pm = await openEditor(page, t.id);
+    // Triple click is how a customer takes one paragraph; ControlOrMeta+A
+    // would take the whole document and format every line of it.
+    await pm.getByText('Line 12', { exact: true }).click({ clickCount: 3 });
+
+    const menu = bubbleMenu(page, 'Bold');
+    for (const control of ['Bold', 'Italic', 'Underline', 'Strikethrough', 'Code']) {
+      await expect(menu.getByRole('button', { name: control, exact: true })).toBeVisible();
+    }
+    await expectOnScreen(page, menu, 'the text menu');
+
+    await menu.getByRole('button', { name: 'Bold', exact: true }).click();
+    await expect(pm.locator('strong')).toHaveText('Line 12');
+
+    // Turn into has no accessible name — it is the menu's first control, and
+    // its popover is the only one holding "Heading 1".
+    await menu.getByRole('button').first().click();
+    const turnInto = menu.getByRole('dialog').filter({ hasText: 'Heading 1' });
+    await expectOnScreen(page, turnInto, 'the Turn into popover');
+    await turnInto.getByRole('button', { name: 'Heading 1', exact: true }).click();
+    await expect(pm.locator('h1')).toHaveText('Line 12');
+  });
+
+  test('every block menu opens its popups on screen', async ({ page, api, name }) => {
+    // A template per block, for the reason the roster test gives: an insert
+    // leaves the document ending in the block it made, and `newLine` — the
+    // only way to the next `/` — needs a top-level paragraph at the end,
+    // which nothing puts there. A Section compounds it: a document that ends
+    // in one opens with that Section's menu over the paragraph above, and
+    // the click that would start the next line lands on the menu instead.
+    const open = async (what: string) => openEditor(page, (await api.createTemplate({ title: name(what) })).id);
+
+    // Spacer: a menu of five sizes and nothing else to open. A spacer is a
+    // band of nothing, so its own `data-maily-component` — it carries no
+    // `data-type` — and the height it stores are all there is to read it by.
+    let pm = await open('spacer');
+    await insertViaSlash(page, 'Spacer');
+    const spacer = bubbleMenu(page, 'md');
+    await expectOnScreen(page, spacer, 'the spacer menu');
+    await spacer.getByRole('button', { name: 'xl', exact: true }).click();
+    await expect(pm.locator('div[data-maily-component="spacer"]')).toHaveAttribute('data-height', '64');
+
+    // Section: a menu with named selects, a named delete, and colour popups.
+    pm = await open('section');
+    await insertViaSlash(page, 'Section');
+    const section = bubbleMenu(page, 'Delete Section');
+    await expectOnScreen(page, section, 'the section menu');
+    await section.getByRole('button', { name: 'Padding' }).click();
+    await expectOnScreen(page, page.getByRole('menu'), 'the Padding menu');
+    await page.keyboard.press('Escape');
+
+    // Columns: the widths popup is the one that can overflow the pane. A
+    // fresh Columns opens with the wrapper selected and no menu at all, and a
+    // click on an empty column leaves the caret where it is (a finding) — the
+    // first keystroke is what puts it in a column, which is where the menu
+    // belongs.
+    pm = await open('columns');
+    await insertViaSlash(page, 'Columns');
+    await page.keyboard.type('Left');
+    await expect(pm.locator('div[data-type="column"]').first()).toHaveText('Left');
+    const columns = bubbleMenu(page, 'Columns and widths');
+    await expectOnScreen(page, columns, 'the columns menu');
+    await columns.getByRole('button', { name: 'Columns and widths' }).click();
+    const widths = columns.getByRole('dialog').filter({ hasText: '2 Columns' });
+    await expectOnScreen(page, widths, 'the Columns and widths popover');
+    await widths.getByRole('button', { name: '3 Columns' }).click();
+    await expect(pm.locator('div[data-type="column"]')).toHaveCount(3);
   });
 });

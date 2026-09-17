@@ -110,6 +110,27 @@ export function bubbleMenu(page: Page, containing: Locator | string): Locator {
   return page.locator('.tippy-box').filter({ has });
 }
 
+/**
+ * A floating menu or popup is on screen where the customer can use it.
+ * Tippy parks a menu that has lost its anchor at x ≈ -1000 rather than
+ * hiding it, and a menu wider than the pane pushes the page sideways —
+ * those are the two ways "anchored" fails.
+ */
+export async function expectOnScreen(page: Page, box: Locator, what: string): Promise<void> {
+  await expect(box, `${what} is visible`).toBeVisible();
+  const rect = await box.boundingBox();
+  const viewport = page.viewportSize();
+  expect(rect, `${what} has a box`).not.toBeNull();
+  expect(viewport, 'the page has a viewport').not.toBeNull();
+  expect(rect!.x, `${what} has not lost its anchor`).toBeGreaterThan(-100);
+  expect(rect!.x, `${what} starts inside the viewport`).toBeLessThan(viewport!.width);
+  expect(rect!.y, `${what} starts inside the viewport`).toBeGreaterThan(-100);
+  expect(rect!.y, `${what} starts above the fold`).toBeLessThan(viewport!.height);
+  expect(rect!.x + rect!.width, `${what} ends inside the viewport`).toBeLessThanOrEqual(viewport!.width + 1);
+  const scrolls = await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth);
+  expect(scrolls, `${what} does not push the page sideways`).toBe(false);
+}
+
 /** A tiptap node as it is stored: the shape a caller reads `content` off. */
 type SavedDoc = { type: string; content?: unknown[]; attrs?: Record<string, unknown> };
 
