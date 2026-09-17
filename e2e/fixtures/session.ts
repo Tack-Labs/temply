@@ -5,7 +5,9 @@ import { onPhone } from './project';
 
 type Credentials = { email: string; password: string };
 
-type WindowWithClerk = Window & { Clerk?: { loaded?: boolean; setActive: (params: { organization: string }) => Promise<void> } };
+type WindowWithClerk = Window & {
+  Clerk?: { loaded?: boolean; setActive: (params: { organization: string }) => Promise<void>; session?: { getToken: () => Promise<string | null> } };
+};
 
 /**
  * Clerk's client state — the caller's role in the workspace included —
@@ -32,6 +34,19 @@ export async function activateWorkspace(page: Page, orgId: string): Promise<void
   await page.evaluate((organization) => (window as WindowWithClerk).Clerk!.setActive({ organization }), orgId);
   await page.goto('/dashboard');
   await expect(page.getByRole('heading', { name: 'Welcome back' })).toBeVisible({ timeout: 30_000 });
+}
+
+/**
+ * Renews the context's session cookie now. Clerk's token lives about a
+ * minute and the one saved by setup is older than that by the time a spec
+ * runs; the client renews it on its own, but a page load resolves before
+ * that first renewal, so a test that seeds through `page.request` straight
+ * away is refused. Minting a token waits for the renewal, and from then on
+ * the open page keeps the cookie fresh for as long as the test runs.
+ */
+export async function refreshSession(page: Page): Promise<void> {
+  await clerkLoaded(page);
+  await page.evaluate(() => (window as WindowWithClerk).Clerk?.session?.getToken());
 }
 
 /**

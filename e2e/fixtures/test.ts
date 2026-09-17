@@ -3,6 +3,7 @@ import { RUN_ID } from '../env';
 import { fakes } from '../fakes/client';
 import type { Recorded } from '../fakes/index';
 import { makeApi } from './api';
+import { refreshSession } from './session';
 import { emulateCoarsePointer } from './phone';
 import { onPhone } from './project';
 
@@ -51,6 +52,14 @@ export const test = base.extend<Fixtures>({
   // the phone project opens gets it here.
   page: async ({ page }, use, testInfo) => {
     if (onPhone(testInfo)) await emulateCoarsePointer(page);
+    // The session saved by setup is renewed before the test starts. Clerk's
+    // token lives about a minute, so by the time a spec runs the stored one
+    // is stale; the client renews it on its own, but a page load resolves
+    // before that first renewal, and anything the test asks of the API in
+    // that window — a seed, a read, a delete — is refused. From here the
+    // open page keeps the cookie fresh for as long as the test runs.
+    await page.goto('/');
+    await refreshSession(page);
     await use(page);
   },
   // Every worker talks to the same fake process, so a reset here would wipe
@@ -61,15 +70,10 @@ export const test = base.extend<Fixtures>({
     const startedAt = Date.now();
     await use({ requests: (service) => fakes.requests(service, startedAt), signStripeEvent: fakes.signStripeEvent });
   },
-  // Seeding goes through the page's own cookie jar, after one page load:
-  // the session token saved by setup lives about a minute, and the
-  // standalone `request` fixture starts from that stale copy and never
-  // refreshes it, so a test that ran late in the suite was refused with a
-  // 401 before it opened anything. A document request lets Clerk's
-  // middleware hand the context a fresh token, and the open page keeps it
-  // fresh from then on.
+  // Seeding goes through the page's own cookie jar rather than the
+  // standalone `request` fixture, which starts from the stored session and
+  // never renews it; the page fixture above has already renewed this one.
   api: async ({ page }, use) => {
-    await page.goto('/');
     const api = makeApi(page.request);
     await use(api);
     await api.cleanup();
