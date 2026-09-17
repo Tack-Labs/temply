@@ -44,4 +44,37 @@ test.describe('templates', () => {
     await expect(page.getByText(name('doomed'))).toHaveCount(0);
     // Already gone; the fixture's cleanup tolerates 404.
   });
+
+  test('search narrows the list to what matches', async ({ page, api, name }) => {
+    const needle = name('needle');
+    const other = name('other');
+    await api.createTemplate({ title: needle });
+    await api.createTemplate({ title: other });
+    await page.goto('/dashboard/templates');
+    const search = page.getByRole('searchbox', { name: 'Search templates' });
+    await search.fill(needle);
+    await expect(page.getByRole('link', { name: needle })).toBeVisible();
+    await expect(page.getByRole('link', { name: other })).toHaveCount(0);
+    await search.fill('zzzz-nothing-is-called-this');
+    await expect(page.getByText('No templates match')).toBeVisible();
+    // The no-match state offers two ways out with the same name: the × in
+    // the box (an aria-label alone) and the empty state's own button, which
+    // is the one with the words on it and the one pressed here.
+    await page.getByRole('button', { name: 'Clear search' }).filter({ hasText: 'Clear search' }).click();
+    await expect(page.getByRole('link', { name: other })).toBeVisible();
+  });
+
+  test('duplicating makes a copy named after the original', async ({ page, api, name }) => {
+    const title = name('original');
+    await api.createTemplate({ title });
+    await page.goto('/dashboard/templates');
+    // Narrowed to the one tile so its Duplicate is the only one on the page;
+    // other tests' tiles are in the same list at the same time.
+    await page.getByRole('searchbox', { name: 'Search templates' }).fill(title);
+    await page.getByRole('button', { name: 'Duplicate template' }).click();
+    await expect(page.getByText('Template duplicated')).toBeVisible();
+    const copy = page.getByRole('link', { name: `[DUPLICATE] ${title}` });
+    await expect(copy).toBeVisible();
+    api.track((await copy.getAttribute('href'))!.split('/').pop()!);
+  });
 });
