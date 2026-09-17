@@ -76,4 +76,55 @@ test.describe('editor on the desktop', () => {
     await insertViaSlash(page, 'Custom HTML');
     await expect(pm.locator('[data-type="htmlCodeBlock"]')).toHaveCount(1);
   });
+
+  test('the block menu filters as the customer types', async ({ page, api, name }) => {
+    const t = await api.createTemplate({ title: name('slash filter') });
+    await openEditor(page, t.id);
+    const menu = page.locator('#slash-command');
+
+    await newLine(page);
+    await page.keyboard.type('/head');
+    await expect(slashRow(page, 'Heading 1')).toBeVisible();
+    await expect(slashRow(page, 'Headers')).toBeVisible();
+    await expect(slashRow(page, 'Divider')).toHaveCount(0);
+
+    // A block is reachable by what it does, not only by its name. The query
+    // is what sits between the `/` and the caret, so four Backspaces clear
+    // `head` and leave the `/` — and the menu — in place.
+    await page.keyboard.press('Backspace');
+    await page.keyboard.press('Backspace');
+    await page.keyboard.press('Backspace');
+    await page.keyboard.press('Backspace');
+    await page.keyboard.type('loop');
+    await expect(slashRow(page, 'Repeat')).toBeVisible();
+
+    await page.keyboard.type('zzz');
+    await expect(menu).toHaveCount(0);
+    await expect(page.getByText('No result')).toBeVisible();
+  });
+
+  test('a sub-list offers pre-designed blocks and goes back', async ({ page, api, name }) => {
+    const t = await api.createTemplate({ title: name('slash sub-list') });
+    const pm = await openEditor(page, t.id);
+
+    await newLine(page);
+    await page.keyboard.type('/');
+    await slashRow(page, 'Footers').click();
+    // Choosing a sub-command inserts no block: it re-queries the menu, which
+    // redraws with that group alone.
+    for (const title of ['Footer Copyright', 'Footer Community Feedback CTA', 'Footer Company Signature']) {
+      await expect(slashRow(page, title)).toBeVisible();
+    }
+    await expect(slashRow(page, 'Heading 1')).toHaveCount(0);
+
+    // Leaving a sub-list restores the query that opened it, which a click
+    // never recorded — so the way back from a clicked sub-list is the whole
+    // menu rather than the `/foot` that might have narrowed it.
+    await page.keyboard.press('ArrowLeft');
+    await expect(slashRow(page, 'Heading 1')).toBeVisible();
+
+    await slashRow(page, 'Footers').click();
+    await slashRow(page, 'Footer Copyright').click();
+    await expect(pm.getByText(`Temply © ${new Date().getFullYear()}. All rights reserved.`)).toBeVisible();
+  });
 });
