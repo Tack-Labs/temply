@@ -658,6 +658,10 @@ export class Engine {
     const isLastRepeatElement =
       parent?.type === 'repeat' && !next && (!repeatItem || repeatItem.index === repeatItem.count - 1);
 
+    // `show` is the wrapper node that became the `showIfKey` attribute every
+    // block now carries. Like `for` above, the name outlives the schema
+    // because stored documents do; these two branches are what keep an old
+    // document's spacing right rather than a node type anyone can insert.
     const isFirstShowElement = parent?.type === 'show' && !prev;
     const isLastShowElement = parent?.type === 'show' && !next;
 
@@ -1819,15 +1823,26 @@ export class Engine {
   }
 
   /**
-   * @deprecated
-   * This for node is an alias for the repeat node
-   * we will remove this in the future
-   * @param node
-   * @param options
-   * @returns JSX.Element
+   * An alias for `repeat`, kept because the schema dropping a node type does
+   * not rewrite the rows already holding it. The editor migrates `for` on load
+   * (`client/core/editor/utils/replace-deprecated.ts`), but the API renders
+   * stored content without the document ever passing through the editor, so
+   * this side has to answer for the old name too. A case here with no node in
+   * the schema is the deliberate shape, not dead weight: deleting it turns a
+   * stored template into a send that throws.
    */
   private for(node: JSONContent, options?: NodeOptions): JSX.Element {
     return this.repeat(node, options);
+  }
+
+  /**
+   * The other half of that, for StarterKit's code block, which this product
+   * stopped registering because nothing here could draw it. `htmlCodeBlock`
+   * takes the same `language` attribute and its content expression admits the
+   * text the old node held.
+   */
+  private codeBlock(node: JSONContent, options?: NodeOptions): JSX.Element {
+    return this.htmlCodeBlock(node, options);
   }
 
   private shouldShow(node: JSONContent, options?: NodeOptions): boolean {

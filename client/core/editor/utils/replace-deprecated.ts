@@ -18,8 +18,19 @@ export function replaceDeprecatedNode(json: JSONContent) {
       continue;
     }
 
+    // A node type the schema no longer admits does not arrive as a hole in the
+    // document. `createNodeFromContent` catches the parse failure and falls
+    // back to an empty doc, so one stale node blanks the whole template on the
+    // canvas with nothing on screen saying so — and the first keystroke after
+    // that persists the blank over the stored row. Every rename below is a
+    // node whose replacement takes the same attributes and the same content,
+    // so the document survives the schema it was written against.
     if (node.type === 'for') {
       node.type = 'repeat';
+    }
+
+    if (node.type === 'codeBlock') {
+      node.type = 'htmlCodeBlock';
     }
 
     if (node.type === 'spacer') {

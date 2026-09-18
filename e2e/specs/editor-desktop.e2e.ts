@@ -137,6 +137,34 @@ test.describe('editor on the desktop', () => {
     await expect(preview.getByText('Still sendable')).toBeVisible();
   });
 
+  test('a template stored with the old code block opens and still renders', async ({ page, api, name }) => {
+    // The rows written while that shortcut built StarterKit's block are the
+    // other half of the same bug, and the worse half: tiptap does not drop a
+    // node the schema has stopped admitting, it falls back to an empty
+    // document — so the canvas would open blank and the first keystroke would
+    // save the blank over the template. The paragraphs around the block are
+    // what say the document survived; the preview says the API can still
+    // draw it, which is the half the editor's migration never reaches.
+    const content = JSON.stringify({
+      type: 'doc',
+      content: [
+        { type: 'paragraph', content: [{ type: 'text', text: 'Above the block' }] },
+        { type: 'codeBlock', attrs: { language: 'html' }, content: [{ type: 'text', text: '<b>Stored code</b>' }] },
+        { type: 'paragraph', content: [{ type: 'text', text: 'Below the block' }] },
+      ],
+    });
+    const t = await api.createTemplate({ title: name('stored code block'), content });
+    const pm = await openEditor(page, t.id);
+
+    await expect(pm.getByText('Above the block')).toBeVisible();
+    await expect(pm.getByText('Below the block')).toBeVisible();
+    await expect(pm.locator('[data-type="htmlCodeBlock"]')).toHaveCount(1);
+
+    await page.getByRole('group', { name: 'Content view' }).getByRole('button', { name: 'Preview', exact: true }).click();
+    const preview = page.getByTitle('Email preview').contentFrame();
+    await expect(preview.getByText('Stored code')).toBeVisible();
+  });
+
   test('the block menu filters as the customer types', async ({ page, api, name }) => {
     const t = await api.createTemplate({ title: name('slash filter') });
     await openEditor(page, t.id);

@@ -274,6 +274,33 @@ describe('repeat', () => {
   });
 });
 
+describe('node types the schema dropped', () => {
+  // The editor renames these on load, but the API renders stored content
+  // without the document ever passing through the editor — so a row written
+  // before the schema changed reaches this side under its old name. A case
+  // here with no node in the schema is the point: the coverage below is
+  // one-directional for exactly this reason, and deleting one of these turns
+  // an old template into a send that throws.
+  it('renders a stored code block as the code block the product kept', async () => {
+    const html = await render(
+      doc({
+        type: 'codeBlock',
+        attrs: { language: 'html' },
+        content: [{ type: 'text', text: '<b>hi</b>' }],
+      }) as any
+    );
+    expect(html).toContain('<b>hi</b>');
+  });
+
+  it('renders a stored for as a repeat', async () => {
+    const html = await render(
+      doc({ type: 'for', attrs: { each: 'items' }, content: [para('One row')] }) as any,
+      { payload: { items: [{}, {}] } }
+    );
+    expect(html.match(/One row/g)).toHaveLength(2);
+  });
+});
+
 describe('every insertable block renders', () => {
   it('has a case in the engine for everything the schema admits', () => {
     const engine = new Engine({ type: 'doc' });
