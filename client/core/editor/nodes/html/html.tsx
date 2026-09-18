@@ -27,13 +27,13 @@ declare module '@tiptap/core' {
       /**
        * Set a code block
        * @param attributes Code block attributes
-       * @example editor.commands.setCodeBlock({ language: 'javascript' })
+       * @example editor.commands.setHtmlCodeBlock({ language: 'html' })
        */
       setHtmlCodeBlock: (attributes?: { language: string }) => ReturnType;
       /**
        * Toggle a code block
        * @param attributes Code block attributes
-       * @example editor.commands.toggleCodeBlock({ language: 'javascript' })
+       * @example editor.commands.toggleHtmlCodeBlock({ language: 'html' })
        */
       toggleHtmlCodeBlock: (attributes?: { language: string }) => ReturnType;
       updateHtmlCodeBlock: (
