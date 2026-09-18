@@ -23,7 +23,13 @@ import { bubbleMenu, docOf, expectOnScreen, insertHere, insertViaSlash, newLine,
 // `#slash-command` and `.tippy-box` are the two other exceptions this file
 // needs, both explained where they are used. Outside the canvas there is one
 // more: the cheatsheet's keys are `kbd` elements carrying neither a role nor
-// a name, so the element itself is what a case counts and reads.
+// a name, so the element itself is what a case counts and reads. The
+// sanctioned list, and what would retire each hook, is in e2e/README.md.
+//
+// What this file covers of the bubble menus: the text menu and its Turn into
+// and Show if popovers, the spacer, section, columns, column, repeat and
+// image menus, and the variable pill's own popover. The HTML menu and the
+// inline-image menu are opened nowhere here; they are Plan 4's scope.
 
 /** What a test hands the opener below: its own page and its own seeding. */
 type Seeding = { page: Page; api: ReturnType<typeof makeApi>; name: (what: string) => string };
@@ -70,6 +76,12 @@ test.describe('editor on the desktop', () => {
   });
 
   test('a block picked from the menu lands in the canvas', async ({ page, api, name }) => {
+    // Seven fresh templates, each a create call and a cold editor render, on
+    // a CI runner that already needs `expect.timeout` at 10 s. The default
+    // 30 s covers it locally and not there, and the budget is the only thing
+    // missing — the per-template pattern is what keeps the blocks from
+    // nesting inside each other.
+    test.slow();
     // One representative per shape a customer can see: a heading, a list, a
     // wrapper, a rule, an atom with its own chrome, and a code block. The
     // catalogue's own contents are pinned by client/core/editor/block-catalogue.test.ts.
@@ -130,7 +142,7 @@ test.describe('editor on the desktop', () => {
 
     await page.keyboard.type('zzz');
     await expect(menu).toHaveCount(0);
-    await expect(page.getByText('No result')).toBeVisible();
+    await expect(page.getByText('No result', { exact: true })).toBeVisible();
   });
 
   test('a sub-list offers pre-designed blocks and goes back', async ({ page, api, name }) => {
@@ -272,6 +284,38 @@ test.describe('editor on the desktop', () => {
     await expect(pm.locator('div[data-type="column"]')).toHaveCount(3);
   });
 
+  test('a Logo carries the image menu, and its alt text is saved', async ({ page, api, name }) => {
+    const t = await api.createTemplate({ title: name('logo') });
+    await openEditor(page, t.id);
+    await insertViaSlash(page, 'Logo');
+
+    // The image menu serves Logo and Image from one file, and which controls
+    // it renders is the block plus its state: `Size` belongs to a Logo and
+    // appears only once one has a source, `External URL` and `Border Radius`
+    // only to an Image. A Logo a customer has just asked for has neither a
+    // source nor a picture, so these two are the whole of what it names —
+    // the alignment switch and the eye are labelled by a tooltip, which is
+    // `aria-describedby` and not a name (a finding).
+    const menu = bubbleMenu(page, 'Alt text');
+    await expectOnScreen(page, menu, 'the image menu');
+    for (const control of ['Image source', 'Alt text']) {
+      await expect(menu.getByRole('button', { name: control, exact: true })).toBeVisible();
+    }
+    await expect(menu.getByRole('button', { name: 'Size', exact: true })).toHaveCount(0);
+
+    // Alt text is the control that matters most on this block: a mail client
+    // that blocks the image shows it in the image's place, so it is the only
+    // thing a recipient with images off reads. Enter submits the form and
+    // closes the popover, which is what commits the value.
+    await menu.getByRole('button', { name: 'Alt text', exact: true }).click();
+    const alt = menu.getByRole('dialog').filter({ has: page.getByRole('textbox', { name: 'Alt text' }) });
+    await expectOnScreen(page, alt, 'the Alt text popover');
+    await alt.getByRole('textbox', { name: 'Alt text' }).fill('The company mark');
+    await page.keyboard.press('Enter');
+    await expect.poll(async () => JSON.stringify(await docOf(api, t.id)).includes('"alt":"The company mark"'),
+      { message: 'the saved logo carries its alt text' }).toBe(true);
+  });
+
   test('a freshly inserted Columns carries no menu until a character is typed', async ({ page, api, name }) => {
     // Characterisation, not a wish: this pins the product as it stands. The
     // Columns command in client/core/blocks/layout.tsx ends
@@ -396,13 +440,13 @@ test.describe('editor on the desktop', () => {
     await expectOnScreen(page, repeatMenu, 'the repeat menu');
     await expectOnScreen(page, sectionMenu, 'the section menu');
     // Which one moves is not a toss-up. Each menu asks whether a nested
-    // block of the other kind, among its own children, is the active one:
+    // block of the other kind, anywhere in its subtree, is the active one:
     // the Repeat holds the Section and the Section is where the caret is, so
-    // the Repeat goes below; the Section asks after a Repeat child of its
-    // own, has none, and keeps the spot above. The pair is asserted rather
-    // than the presence of a `bottom`, because two `bottom`s — what a rule
-    // broadened to "inside a Repeat" would give — is the two menus back on
-    // top of each other, which is the failure this case is named for.
+    // the Repeat goes below; the Section asks after a Repeat inside itself,
+    // has none, and keeps the spot above. The pair is asserted rather than
+    // the presence of a `bottom`, because two `top`s — what a rule that
+    // stopped asking would give — is the two menus back on top of each
+    // other, which is the failure this case is named for.
     const placements = [await repeatMenu.getAttribute('data-placement'), await sectionMenu.getAttribute('data-placement')];
     expect(placements, 'the Repeat menu moves below and the Section menu keeps the spot above').toEqual(['bottom', 'top']);
 
@@ -543,6 +587,12 @@ test.describe('editor on the desktop', () => {
   });
 
   test('the shortcuts the cheatsheet lists do what it says', async ({ page, api, name }) => {
+    // Twelve fresh templates, for the reason below, and twelve cold editor
+    // renders with them. Splitting the case along its own comment boundaries
+    // would buy the same headroom and pay for it three times over in the
+    // `page` fixture's own sign-in refresh and first navigation, so the
+    // budget is raised instead and the case stays one story.
+    test.slow();
     // A template per case, the way the block cases further up take one.
     // Two cases cannot share a document: `newLine` is the only way to a
     // fresh top-level line — which every case needs, an input rule having to

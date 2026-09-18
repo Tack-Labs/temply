@@ -42,9 +42,10 @@ describe('formatKeys', () => {
   });
 
   test('the arrows are glyphs on both, rewritten after the modifiers', () => {
-    // Up and Down are replaced last, so the substitution has to survive the
-    // modifier pass rather than be eaten by it — Ctrl+Shift+Down is the case
-    // where a rewrite in the wrong order shows.
+    // The one order `formatKeys` depends on is that the `+` pass runs last:
+    // on an Apple keyboard it drops every separator, and a name rewritten
+    // after it would have nothing left to sit between. Ctrl+Shift+Down is
+    // the case where that shows.
     expect(formatKeys('Mod+Shift+Up', true)).toBe('⌘⇧↑');
     expect(formatKeys('Mod+Shift+Up', false)).toBe('Ctrl+Shift+↑');
     expect(formatKeys('Mod+Shift+Down', true)).toBe('⌘⇧↓');

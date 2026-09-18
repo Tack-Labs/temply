@@ -9,14 +9,23 @@ import { phone } from '../fixtures/phone';
 // editor's for what a block is. A block's own attributes are read the same
 // way, `data-show-if-key` being where a condition lands: it is the only thing
 // on the canvas that says a block now carries one, since the outline the
-// desktop paints is a hover decoration the phone never asks for.
-// `[data-editor-bottom-bar]`
-// is the second: the bar's controls share their names with the sheets that
-// open above them, so scoping to the bar is what keeps a name unambiguous.
-// The third is `[inert]`, inside `phone.live` — the face that is down is
-// inert rather than unmounted, and Playwright's role engine does not honour
-// inert, so the scope has to. Everything else is found the way a screen
-// reader would find it.
+// desktop paints is a hover decoration the phone never asks for. A live
+// variable pill is the one node with no attribute at all — `@tiptap/react`
+// builds its outer element and puts nothing on it but the class
+// `.node-variable` — so that class is the pill.
+// `[data-editor-bottom-bar]` is the second exception outside the canvas: the
+// bar's controls share their names with the sheets that open above them, so
+// scoping to the bar is what keeps a name unambiguous. The third is
+// `[inert]`, inside `phone.live` — the face that is down is inert rather than
+// unmounted, and Playwright's role engine does not honour inert, so the scope
+// has to. Everything else is found the way a screen reader would find it.
+// The sanctioned list, and what would retire each hook, is in e2e/README.md.
+//
+// What this file covers of the Style sheet: Text, Spacer, Section, Columns
+// and Repeat, which are the types whose sheet a customer reaches with the
+// gestures asserted here. Image, Logo, Button, HTML, Inline image, Column,
+// Variable, Footer and Heading have sheets of their own and no case yet;
+// they are Plan 4's scope.
 
 // The header's Done, which ends typing. The input dock's submit carries the
 // same name and stays mounted once a dock has been opened, so the banner is
@@ -176,6 +185,10 @@ test.describe('editor on the phone', () => {
 
     await phone.bar(page).button('Align centre').click();
     await expect(phone.bar(page).button('Align centre')).toHaveAttribute('aria-pressed', 'true');
+    // And the outcome, not only the control's report of itself: TextAlign
+    // renders the alignment onto the node, so the paragraph is where a
+    // customer sees whether the press did anything.
+    await expect(para).toHaveCSS('text-align', 'center');
   });
 
   test('the + sheet offers every block, in its group', async ({ page, api, name }) => {
@@ -198,6 +211,10 @@ test.describe('editor on the phone', () => {
     // configured by thumb once it exists, so + would be a dead end.
     await expect(sheet.getByRole('button', { name: 'Inline Image', exact: true })).toHaveCount(0);
     await expect(sheet.getByRole('button', { name: 'Link Card', exact: true })).toHaveCount(0);
+    // Membership is not the whole claim: a nineteenth tile would pass every
+    // assertion above. The sheet's own Close is the one button in it that is
+    // not a tile.
+    await expect(sheet.getByRole('button')).toHaveCount(Object.values(TILES).flat().length + 1);
   });
 
   test('a sub-list adds a pre-designed block, and goes back', async ({ page, api, name }) => {
@@ -469,7 +486,12 @@ test.describe('editor on the phone', () => {
     await phone.tapBlock(page, page.locator('.ProseMirror').getByRole('paragraph').filter({ hasText: 'First inside' }));
     await expect(phone.bar(page).button('Move up')).toBeDisabled();
     await phone.bar(page).button('Move down').click();
-    await expect(page.locator('.ProseMirror [data-type="repeat"] p').first()).toHaveText('Second inside');
+    // The pair, not the first row: a move that walked the document instead of
+    // the parent would drop `First inside` out of the Repeat and past
+    // `Before`, and every assertion about the first row of each would still
+    // hold. The rows are asked for by role for the reason the tap above
+    // gives — the preview copies carry the same words and are `aria-hidden`.
+    await expect(page.locator('.ProseMirror [data-type="repeat"]').getByRole('paragraph')).toHaveText(['Second inside', 'First inside']);
     await expect(page.locator('.ProseMirror > p').first()).toHaveText('Before');
   });
 
@@ -487,10 +509,15 @@ test.describe('editor on the phone', () => {
     await phone.ready(page);
     const pm = page.locator('.ProseMirror');
 
+    // The count before each Delete is the precondition the absence after it
+    // needs: a seed the schema refused would render nothing, and the zero
+    // would then say only that it never arrived.
+    await expect(pm.locator('ul')).toHaveCount(1);
     await phone.tapBlock(page, pm.getByText('Only item'));
     await phone.bar(page).button('Delete').click();
     await expect(pm.locator('ul')).toHaveCount(0);
 
+    await expect(pm.locator('blockquote')).toHaveCount(1);
     await phone.tapBlock(page, pm.getByText('Only quote'));
     await phone.bar(page).button('Delete').click();
     await expect(pm.locator('blockquote')).toHaveCount(0);
