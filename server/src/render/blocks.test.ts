@@ -311,6 +311,23 @@ describe('every insertable block renders', () => {
   });
 
   it('has a fixture below for everything the schema admits', () => {
+    // Naming a type is not holding one. `typesIn` reads the fixture's JSON, so
+    // a node dropped where the engine never looks — inside an htmlCodeBlock's
+    // text content, say — would count as covered while nothing rendered it.
+    // The schema is the arbiter of whether the fixture is a document a
+    // customer could have built, and a fixture that is not one counts for
+    // nothing.
+    const schema = getSchema(extensions({}));
+    const unbuildable = CASES.filter((testCase) => {
+      try {
+        schema.nodeFromJSON(doc(testCase.node)).check();
+        return false;
+      } catch {
+        return true;
+      }
+    }).map((testCase) => testCase.name);
+    expect(unbuildable).toEqual([]);
+
     const covered = typesIn(CASES.map((testCase) => testCase.node));
     expect(schemaTypes().filter((name) => !covered.has(name))).toEqual([]);
     // And the other direction: a fixture naming a type the schema dropped
