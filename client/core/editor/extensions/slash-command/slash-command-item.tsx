@@ -116,6 +116,13 @@ export function SlashCommandItem(props: SlashCommandItemProps) {
               : 'mly:bg-transparent'
           )}
           onClick={() => selectItem(groupIndex, commandIndex)}
+          // The canvas keeps the focus through the click. Letting the button
+          // take it costs a round trip — out of the document on press, back
+          // in when the command runs, and out again when the panel is torn
+          // down under it — and the keystrokes typed in that gap land
+          // nowhere, which on a block picked to be typed into is the first
+          // word of it.
+          onMouseDown={(event) => event.preventDefault()}
           onMouseEnter={() => onHover(true)}
           onMouseLeave={() => onHover(false)}
           type="button"

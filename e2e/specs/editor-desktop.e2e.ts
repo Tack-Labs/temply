@@ -377,15 +377,11 @@ test.describe('editor on the desktop', () => {
     await insertViaSlash(page, 'Section');
     await pm.locator('table[data-type="section"] p').first().click();
     await insertHere(page, 'Columns');
-    // The typed character is the way into a fresh Columns wherever it is
-    // built, for the stale-focus reason the case above pins: the caret lands
-    // between the two columns, and a click on a column's empty paragraph is
-    // not a way back in — it leaves the selection on the section cell, so the
-    // Section menu never learns a Columns is active. Typing goes to the first
-    // column all the same. The focus check is what says the keystroke will
-    // reach the document rather than the row that is going away.
+    // Typed straight after the click, with nothing waited for: the canvas
+    // keeps the focus through a row of the block menu, so the word lands in
+    // the first column — which is where the insert leaves the caret, inside
+    // a Section as much as at the top level.
     await expect(pm.locator('div[data-type="column"]')).toHaveCount(2);
-    await expect(pm).toBeFocused();
     await page.keyboard.type('Left');
     await expect(pm.locator('div[data-type="column"]').first()).toHaveText('Left');
 
@@ -696,6 +692,7 @@ test.describe('editor on the desktop', () => {
     await page.keyboard.press('ControlOrMeta+Shift+Backspace');
     await expect(movable).toHaveCount(1);
   });
+
   test('a document that ends in a wrapper still has a line of its own to type on', async ({ page, api, name }) => {
     // Without a trailing line there is nowhere at the top level to put the
     // caret after a Section: every position at the end of the document is
@@ -724,6 +721,7 @@ test.describe('editor on the desktop', () => {
     await expect(pm.locator('> h2'), 'the heading is a sibling of the Section, not a child').toHaveText('After the section');
     await expect(pm.locator('table[data-type="section"] h2')).toHaveCount(0);
   });
+
   test('a Section’s menu can be put down, and gives the block above back', async ({ page, api, name }) => {
     // The menu hangs over whatever sits above the Section, so while it is up
     // that block can be neither read nor clicked. Escape is the way to put
@@ -765,6 +763,25 @@ test.describe('editor on the desktop', () => {
     await pm.locator('table[data-type="section"] p').first().click();
     await expectOnScreen(page, bubbleMenu(page, 'Delete Section'), 'the section menu again');
   });
+
+  test('the canvas keeps the focus through the block menu, so nothing typed is lost', async ({ page, api, name }) => {
+    // A row of the block menu is a button, and a button takes the focus when
+    // it is pressed unless it is told not to. A canvas that has to take the
+    // focus back loses whatever was typed in between — the first word of
+    // whatever the block was asked for to hold.
+    const t = await api.createTemplate({ title: name('keeps focus') });
+    const pm = await openEditor(page, t.id);
+    await newLine(page);
+    await page.keyboard.type('/');
+    await expect(slashRow(page, 'Heading 1')).toBeVisible();
+    await slashRow(page, 'Heading 1').click();
+    // No wait of any kind between the click and the typing: this is the gap
+    // the keystrokes were falling into.
+    await page.keyboard.type('Every letter');
+    await expect(pm.getByRole('heading', { level: 1 }), 'every letter typed straight after the click reached the document')
+      .toHaveText('Every letter');
+  });
+
   test('a subject typed as the shell swaps is still saved', async ({ page, api, name }) => {
     // Crossing 640px swaps the shell and remounts the editor, and the
     // autosave re-reads its baseline when it does. A baseline taken from

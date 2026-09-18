@@ -91,14 +91,13 @@ export function slashRow(page: Page, title: string): Locator {
 
 /**
  * Inserts a block the way a customer does: a new line, `/`, then the row.
- * The menu closing is what says the command has run, and the canvas taking
- * the focus back off the clicked row is what says the next keystroke will
- * reach the document: type before that and the first characters are lost
- * on the row that is going away. The id going away is not proof the panel
- * did — a query that matches nothing renders a "No result" panel without
- * it — so the focus check is what makes the pair conclusive. `Headers` and
- * `Footers` open a sub-list instead of inserting, so neither comes through
- * here.
+ * The menu closing is what says the command has run. The id going away is
+ * not proof the panel did — a query that matches nothing renders a "No
+ * result" panel without it — so the focus check below is what makes the
+ * pair conclusive; it also holds the product to never handing the focus to
+ * the row in the first place, since a canvas that had to take it back would
+ * lose whatever was typed in between. `Headers` and `Footers` open a
+ * sub-list instead of inserting, so neither comes through here.
  */
 export async function insertViaSlash(page: Page, title: string): Promise<void> {
   await newLine(page);
@@ -115,10 +114,10 @@ export async function insertViaSlash(page: Page, title: string): Promise<void> {
  * The caret must be in an empty textblock, since `/` has to start one.
  *
  * Neither wait `insertViaSlash` makes is made here: this returns as soon as
- * the row is clicked, with the panel possibly still up and the focus still
- * on the row. A caller that types next has to assert both itself — that the
- * block arrived, and that the canvas has the focus back — or lose the first
- * characters on the row that is going away.
+ * the row is clicked, with the panel possibly still up. A caller that cares
+ * that the block arrived asserts that itself. Typing straight afterwards is
+ * safe — the canvas never gives up the focus to the row — and the case that
+ * types with no wait at all is what holds the product to it.
  */
 export async function insertHere(page: Page, title: string): Promise<void> {
   await page.keyboard.type('/');
