@@ -92,8 +92,40 @@ trace, reproduce the failure locally: outside CI a retry records one, and
 
 ## Rules
 
-- Locate by role, label or text. `.ProseMirror` selectors are the one
-  exception: the canvas is a contenteditable and its classes are its contract.
+- Locate by role, label or text. The editor is the exception, and the list of
+  exceptions is closed — anything not on it needs a role, a label or a new
+  entry here with its reason:
+  - `.ProseMirror` — the canvas is a contenteditable and ProseMirror's class
+    names are its contract, `.ProseMirror-selectednode` included: a node
+    selection is a state of the document, and nothing else says it happened.
+  - `#slash-command` — the block panel is a tippy popup with no role and no
+    name, and the id is the product's own handle on it.
+  - `.tippy-box` — every bubble menu is re-parented into one, and it is the
+    element that carries `data-placement` and the box an anchoring assertion
+    measures.
+  - `[inert]` — the phone's bar keeps all four faces mounted and marks the
+    three that are down `inert`; Playwright's role engine is blind to it, so
+    `phone.live` excludes them by selector or a control asserted visible
+    would pass in every face.
+  - `[data-editor-bottom-bar]` — the bar's controls share their names with
+    the sheets that open above them, so the bar is what makes a name mean
+    one of them.
+  - `.node-variable`, `.mly-repeat-copy`, `[data-repeat-indicator]` and
+    `div[data-maily-component="spacer"]` — those nodes carry no attribute of
+    their own. `@tiptap/react` builds a pill's outer element itself and puts
+    only that class on it; a Repeat's preview rows are `aria-hidden` by
+    design, being a picture of repetition rather than places to type; the
+    indicator is a `role="button"` among many; and a Spacer is a band of
+    nothing with no `data-type` at all.
+
+  Six of these are a product finding standing in for a role, and retiring the
+  finding retires the hook: the slash panel and its "No result" panel have no
+  role, name or `aria-activedescendant`; no bubble menu has a name; the
+  Repeat indicator is a `role="button"` with no name at count 1; and the
+  pill, the preview copies and the Spacer would each be reachable by role or
+  attribute if the node view set one. `.ProseMirror`, `.tippy-box` and
+  `[inert]` are not findings — they are the contract of a contenteditable, of
+  the popup library, and of a tool limitation respectively.
 - No `waitForTimeout`. Wait for a state with an assertion.
 - Every test stands alone: it seeds through `api`, names data with `name()`,
   and the fixture deletes what it made.
