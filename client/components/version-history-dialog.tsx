@@ -4,10 +4,12 @@ import { HistoryIcon, Loader2Icon, RotateCcwIcon, Undo2Icon } from 'lucide-react
 import type { Mail } from '~/db/schema';
 import { ConfirmDialog } from '~/components/ui/confirm-dialog';
 import { List, Row } from '~/components/ui/item';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { httpGet, httpPost } from '~/lib/http';
 import { Button } from '~/components/ui/button';
+import { ErrorState } from '~/components/ui/surfaces';
+import { storedDocument } from '~/core/editor/utils/replace-deprecated';
 import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
 import {
@@ -103,6 +105,19 @@ export function VersionHistoryDialog({
     onError: (error) => toast.error(error.message || 'Could not open the version'),
   });
 
+  // The preview reads the row through the same door the canvas does, so what
+  // is on screen is the document a restore would land. A row too damaged to
+  // parse is the one case that has no way back, and it says so here instead of
+  // throwing the dialog into the root error boundary.
+  const previewJson = useMemo(() => {
+    if (!previewVersion) return null;
+    try {
+      return JSON.stringify(storedDocument(previewVersion.content), null, 2);
+    } catch {
+      return null;
+    }
+  }, [previewVersion]);
+
   if (!templateId) return null;
 
   const versions = data?.versions ?? [];
@@ -157,11 +172,16 @@ export function VersionHistoryDialog({
                 &larr; Back to list
               </Button>
             </div>
-            <div className="max-h-80 overflow-auto rounded-lg border border-line bg-surface p-3">
-              <pre className="whitespace-pre-wrap text-xs text-ink">
-                {JSON.stringify(JSON.parse(previewVersion.content), null, 2)}
-              </pre>
-            </div>
+            {previewJson === null ? (
+              <ErrorState
+                title="This version will not open"
+                description="Its saved content is damaged, so there is nothing to preview and nothing to restore. Your other versions are unaffected."
+              />
+            ) : (
+              <div className="max-h-80 overflow-auto rounded-lg border border-line bg-surface p-3">
+                <pre className="whitespace-pre-wrap text-xs text-ink">{previewJson}</pre>
+              </div>
+            )}
             <div className="flex justify-end gap-2">
               <Button variant="secondary" onClick={() => setPreviewVersion(null)}>
                 Cancel
@@ -169,7 +189,7 @@ export function VersionHistoryDialog({
               <Button
                 variant="primary"
                 onClick={() => restoreVersion(previewVersion.id)}
-                disabled={isRestoring}
+                disabled={isRestoring || previewJson === null}
               >
                 {isRestoring ? <Loader2Icon className="animate-spin" /> : <RotateCcwIcon />}
                 Restore this version
