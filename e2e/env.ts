@@ -1,5 +1,5 @@
 import { config as loadEnv } from 'dotenv';
-import { mkdirSync, readdirSync, rmSync } from 'node:fs';
+import { mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 // Loaded here, ahead of everything below that reads process.env, rather than
@@ -31,6 +31,58 @@ export const STRIPE_URL = `http://127.0.0.1:${PORTS.stripe}`;
 const tmp = join(import.meta.dirname, '.tmp');
 mkdirSync(tmp, { recursive: true });
 export const DB_PATH = join(tmp, `e2e-${RUN_ID}.db`);
+
+/**
+ * One run per checkout, taken before anything below touches shared state.
+ *
+ * The stack has fixed ports, one `.next-e2e`, one snapshot of the two tracked
+ * files a build rewrites, and the sweep just below deletes every other run
+ * id's database — so a second run does not queue behind the first, it
+ * corrupts it, and the failure it produces (a SQLite I/O error, a half-built
+ * `.next`) says nothing about what went wrong.
+ *
+ * The lock is taken by the process that reads the config and given back when
+ * that process ends. Every other process that imports this module — the
+ * workers, the fakes server — is a child of it and inherits the marker below,
+ * which is what keeps them from asking for a lock their own parent holds.
+ *
+ * A lock a killed run left behind must not wedge the next one, so the pid in
+ * it is asked whether it is still alive. A pid the system has since handed to
+ * something else would answer yes for ever, so the timestamp is the backstop:
+ * no run of this suite lasts an hour.
+ */
+const LOCK = join(tmp, 'run.lock');
+if (process.env.E2E_LOCK_PID === undefined) {
+  let heldBy = 0;
+  try {
+    const { pid, at } = JSON.parse(readFileSync(LOCK, 'utf8')) as { pid: number; at: number };
+    if (Date.now() - at < 60 * 60 * 1000) {
+      process.kill(pid, 0);
+      heldBy = pid;
+    }
+  } catch {
+    // No lock, unreadable, or its pid is gone: the checkout is free.
+  }
+  if (heldBy) {
+    console.error(`an e2e run is already in progress in this checkout (pid ${heldBy}). The stack has one set of ports, one build directory and one database, so a second run would corrupt both. Wait for it, or stop it and delete e2e/.tmp/run.lock.`);
+    process.exit(1);
+  }
+  writeFileSync(LOCK, JSON.stringify({ pid: process.pid, at: Date.now() }));
+  process.env.E2E_LOCK_PID = String(process.pid);
+  const release = () => {
+    try {
+      if ((JSON.parse(readFileSync(LOCK, 'utf8')) as { pid: number }).pid === process.pid) rmSync(LOCK, { force: true });
+    } catch {
+      // Already gone, or someone else's: either way there is nothing to give back.
+    }
+  };
+  process.on('exit', release);
+  // A signal ends the process without running an `exit` handler, and Ctrl-C
+  // is how a run is most often ended.
+  for (const signal of ['SIGINT', 'SIGTERM', 'SIGHUP'] as const) {
+    process.on(signal, () => { release(); process.exit(1); });
+  }
+}
 
 // Earlier runs' databases are removed here, at the start of the next run,
 // rather than by a teardown at the end of their own: the API webServer that

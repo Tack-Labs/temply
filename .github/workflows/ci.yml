@@ -72,7 +72,10 @@ jobs:
   e2e:
     name: Browser tests
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    # Headroom over the suite's own budget rather than a target: the sign-in
+    # gets two capped attempts before it gives up, and a cold `next build` on
+    # a shared runner can take most of five minutes on its own.
+    timeout-minutes: 35
     steps:
       - uses: actions/checkout@v4
       - uses: oven-sh/setup-bun@v2
