@@ -804,8 +804,11 @@ test.describe('editor on the desktop', () => {
     const pm = await openEditor(page, t.id);
 
     // The caret is where autofocus put it — inside the Section — and the menu
-    // is still down. Read after the Section has painted, so this is the
-    // settled state rather than a frame before the menu would have appeared.
+    // is still down. Founded on the focus, not on the paint: prosemirror-view
+    // adds this class when autofocus lands, and tiptap raises a menu in a
+    // timeout after that, so a menu asserted hidden any earlier would be
+    // hidden whether or not the gate held.
+    await expect(pm, 'autofocus has landed in the canvas').toHaveClass(/ProseMirror-focused/);
     await expect(pm.locator('table[data-type="section"] p').first()).toHaveText('Inside');
     await expect(bubbleMenu(page, 'Delete Section'), 'no Section menu before anything is asked for').toBeHidden();
 
@@ -855,9 +858,12 @@ test.describe('editor on the desktop', () => {
     });
     const t = await api.createTemplate({ title: name('dismiss section'), content: doc });
     const pm = await openEditor(page, t.id);
-    // The Section's own text is what says the canvas has painted, and a click
-    // that arrives before it can land on a node ProseMirror is still putting
-    // together — the caret would never reach the Section.
+    // Autofocus landing is what says the menu has had its chance — tiptap
+    // raises one in a timeout after that — and the Section's own text is what
+    // says the canvas has painted: a click that arrives before it can land on
+    // a node ProseMirror is still putting together, and the caret would never
+    // reach the Section.
+    await expect(pm, 'autofocus has landed in the canvas').toHaveClass(/ProseMirror-focused/);
     await expect(pm.locator('table[data-type="section"] p').first()).toHaveText('Inside');
 
     const menu = bubbleMenu(page, 'Delete Section');
