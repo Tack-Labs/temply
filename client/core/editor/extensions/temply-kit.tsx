@@ -44,6 +44,34 @@ export type TemplyKitOptions = {
   link?: Partial<LinkOptions> | false;
 };
 
+/**
+ * The last blocks of a document after which ProseMirror can already place a
+ * caret: a textblock the caret sits inside, or a block a gap cursor is valid
+ * after. Everything not named here — `bulletList`, `orderedList` and
+ * `blockquote` — leaves no position at the top level at all, so the next block
+ * a customer asks for is built inside the wrapper instead of after it.
+ *
+ * A document the customer never edited must not change shape when we open it,
+ * so the trailing line is added only where there is genuinely nowhere else to
+ * go. It renders as a blank line at the foot of the email, which is the price
+ * of being able to type there at all; anywhere a caret already fits, that
+ * price buys nothing.
+ */
+const CARET_FITS_AFTER = [
+  'paragraph',
+  'heading',
+  'footer',
+  'section',
+  'columns',
+  'repeat',
+  'horizontalRule',
+  'button',
+  'image',
+  'logo',
+  'linkCard',
+  'spacer',
+];
+
 export const TemplyKit = Extension.create<TemplyKitOptions>({
   name: 'temply-kit',
 
@@ -64,18 +92,12 @@ export const TemplyKit = Extension.create<TemplyKitOptions>({
     const extensions: AnyExtension[] = [
       BlockKeyboardShortcuts,
       ShowIfHighlight,
-      // A document whose last block is a Section, a list or a divider has
-      // nowhere at the top level left to type: the caret can only land
-      // inside the wrapper, so everything added afterwards is built in
-      // there. One empty paragraph is kept at the end so the document
-      // always has a line of its own to continue on. It costs a blank line
-      // at the foot of such an email, which is the cheaper of the two.
-      //
-      // A block the caret can already sit in at the end of the document is
-      // left alone, since Enter there already makes the next line: adding a
-      // paragraph after every trailing heading or footer would change the
-      // look of emails that were never stuck.
-      TrailingNode.configure({ notAfter: ['paragraph', 'heading', 'footer'] }),
+      // A document that ends in a list or a blockquote has nowhere at the top
+      // level left to type: the caret can only land inside the wrapper, so
+      // everything added afterwards is built in there. One empty paragraph is
+      // kept at the end of those so the document always has a line of its own
+      // to continue on.
+      TrailingNode.configure({ notAfter: CARET_FITS_AFTER }),
       Document.extend({
         content: '(block|columns)+',
       }),

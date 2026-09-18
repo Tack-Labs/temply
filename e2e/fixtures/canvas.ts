@@ -53,17 +53,18 @@ export async function openEditor(page: Page, id: string): Promise<Locator> {
  * all — an `hr`, a Spacer, an image and a fresh Section all hold no text,
  * so the check would pass on a paragraph opened in the middle of the
  * document. A click in a top-level textblock is this helper's only way in,
- * and the editor's `TrailingNode` keeps one at the end for it: a document
- * that would otherwise finish inside a Section, a list or a divider carries
- * an empty paragraph after it. The check below stays all the same, because
- * the guarantee is not total — a document ending in a block the caret can
- * already sit in, a Footer among them, is left as it is — and a new line
- * built in the middle of the document is worse than a failure here.
+ * and the editor's `TrailingNode` keeps one at the end only where a caret
+ * has nowhere else to go: a document ending in a list or a blockquote. A
+ * document ending in a Section, a divider, an image or a Footer is left
+ * exactly as it is, since a gap cursor already fits after those — so most
+ * documents give this helper nothing to click, and the structural check
+ * below is what says so rather than letting a line be built in the middle of
+ * the document, which is worse than a failure here.
  */
 export async function newLine(page: Page): Promise<void> {
   const pm = await ready(page);
   const textblocks = pm.locator('> :is(p, h1, h2, h3, blockquote)');
-  await expect(textblocks, 'the document has no top-level textblock, which is this helper\'s only way in: seed one, since the trailing paragraph TrailingNode keeps is only for a document that would otherwise end inside a wrapper').not.toHaveCount(0);
+  await expect(textblocks, 'the document has no top-level textblock, which is this helper\'s only way in: seed one, since the trailing paragraph TrailingNode keeps is only for a document ending in a list or a blockquote').not.toHaveCount(0);
   await textblocks.last().click();
   await page.keyboard.press('End');
   await page.keyboard.press('Enter');

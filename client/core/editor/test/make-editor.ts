@@ -1,4 +1,6 @@
 import { Editor, type JSONContent } from '@tiptap/core';
+import { GapCursor } from '@tiptap/pm/gapcursor';
+import type { ResolvedPos } from '@tiptap/pm/model';
 import { extensions } from '../extensions';
 import { BlockSelection } from '../plugins/block-selection';
 
@@ -28,4 +30,17 @@ export function makeEditor(content: JSONContent, opts: { touch?: boolean } = {})
     }
   };
   return editor;
+}
+
+/**
+ * Whether a customer can still put a caret after the document's last block —
+ * the gap cursor ProseMirror places there. This is what the editor relies on
+ * instead of adding a trailing paragraph, so a case that used to assert the
+ * paragraph exists asserts this instead.
+ */
+export function caretFitsAfterLastBlock(editor: Editor): boolean {
+  // `GapCursor.valid` is prosemirror-gapcursor's own answer to this question
+  // and the one its plugin asks; the package's types leave the static off.
+  const { valid } = GapCursor as unknown as { valid(pos: ResolvedPos): boolean };
+  return valid(editor.state.doc.resolve(editor.state.doc.content.size));
 }
