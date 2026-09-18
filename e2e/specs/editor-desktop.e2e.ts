@@ -268,13 +268,10 @@ test.describe('editor on the desktop', () => {
     await page.keyboard.press('Escape');
 
     // Columns: the widths popup is the one that can overflow the pane. The
-    // menu belongs to a column and the insert leaves the caret between them,
-    // so the typed character below is the way in; the case after this one
-    // pins why.
+    // insert leaves the caret in the first column, so the menu is up without
+    // anything being typed into it; the case after this one pins that.
     pm = await open('columns');
     await insertViaSlash(page, 'Columns');
-    await page.keyboard.type('Left');
-    await expect(pm.locator('div[data-type="column"]').first()).toHaveText('Left');
     const columns = bubbleMenu(page, 'Columns and widths');
     await expectOnScreen(page, columns, 'the columns menu');
     await columns.getByRole('button', { name: 'Columns and widths' }).click();
@@ -316,26 +313,18 @@ test.describe('editor on the desktop', () => {
       { message: 'the saved logo carries its alt text' }).toBe(true);
   });
 
-  test('a freshly inserted Columns carries no menu until a character is typed', async ({ page, api, name }) => {
-    // Characterisation, not a wish: this pins the product as it stands. The
-    // Columns command in client/core/blocks/layout.tsx ends
-    // `.focus(editor.state.selection.head - 2)`, and that argument is read
-    // when the chain is built — before `deleteRange` and `setColumns` have
-    // run — so it aims at a position in the document as it was before the
-    // insert. The caret lands between the two columns rather than in one, and
+  test('a freshly inserted Columns is ready to type in and carries its menu', async ({ page, api, name }) => {
+    // The insert has to leave the caret in the first column. Between the
+    // columns is a position the document allows and nothing wants:
     // `editor.isActive('columns')` is false there, so the columns menu does
-    // not show; the text menu does not either, the selection being empty. The
-    // block a customer just asked for offers nothing at all. Neither Section
-    // nor Repeat carries that argument, and both do put the caret inside what
-    // they made.
+    // not show, and neither does the text menu, the selection being empty —
+    // the block a customer has just asked for would offer nothing at all.
     //
-    // The caret is what is asserted, not the absent menu: the bubble-menu
-    // plugin debounces a non-empty selection by 250 ms, so a count taken at
-    // once would still read zero on a fix that raised the menu a quarter of a
-    // second later. When the caret assertion goes red the product has
-    // improved: rewrite this case as the click a customer would make, and
-    // drop the typed character the case above needs.
-    const t = await api.createTemplate({ title: name('no menu') });
+    // The caret is asserted first and on its own terms: the bubble-menu
+    // plugin debounces, so the menu arriving says nothing about which
+    // position the insert chose, and it is the position that the next
+    // keystroke follows.
+    const t = await api.createTemplate({ title: name('fresh columns') });
     const pm = await openEditor(page, t.id);
     await insertViaSlash(page, 'Columns');
     await expect(pm.locator('div[data-type="column"]')).toHaveCount(2);
@@ -343,18 +332,19 @@ test.describe('editor on the desktop', () => {
     const caret = await page.evaluate(() => {
       const node = window.getSelection()?.anchorNode;
       const el = node?.nodeType === Node.ELEMENT_NODE ? (node as Element) : node?.parentElement;
-      return el?.closest('[data-type="column"]') ? 'in a column' : 'outside every column';
+      const column = el?.closest('[data-type="column"]');
+      if (!column) return 'outside every column';
+      return column === column.parentElement?.firstElementChild ? 'in the first column' : 'in a later column';
     });
-    expect(caret, 'the insert still leaves the caret between the columns rather than inside one')
-      .toBe('outside every column');
-    // The slash panel is a tippy of its own, so it is excluded rather than
-    // relied on having been torn down by now.
-    const floating = page.locator('.tippy-box').filter({ hasNot: page.locator('#slash-command') });
-    await expect(floating, 'the fresh Columns raises no menu of any kind').toHaveCount(0);
+    expect(caret, 'the insert leaves the caret in the first column, where a customer writes next')
+      .toBe('in the first column');
 
+    // The menu a customer reaches for is up without anything being typed,
+    // and what is typed goes where the caret was said to be.
+    await expectOnScreen(page, bubbleMenu(page, 'Columns and widths'), 'the columns menu');
     await page.keyboard.type('Left');
     await expect(pm.locator('div[data-type="column"]').first()).toHaveText('Left');
-    await expectOnScreen(page, bubbleMenu(page, 'Columns and widths'), 'the columns menu');
+    await expect(pm.locator('div[data-type="column"]').nth(1)).toHaveText('');
   });
 
   test('a Repeat names its list and previews it', async ({ page, api, name }) => {
