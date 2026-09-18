@@ -48,3 +48,54 @@ describe('text commands', () => {
     editor.destroy();
   });
 });
+
+/**
+ * One action, one spelling. The phone's format bar reads its labels from this
+ * file; the desktop's menus used to write their own, in another dialect and
+ * another case — `Align Center` against `Align centre`, `Ordered List`
+ * against `Numbered list` — so the same button was two different words
+ * depending on the width of the window.
+ *
+ * The rule the product settled on is its own voice everywhere it already had
+ * one: sentence case, British spelling. A block's name is the exception, and
+ * stays the proper noun the slash menu and the documentation both give it.
+ */
+describe('how an action is spelled', () => {
+  it('is sentence case and British, whichever control offers it', () => {
+    expect(alignCommands.map((command) => command.label)).toEqual([
+      'Align left',
+      'Align centre',
+      'Align right',
+    ]);
+    expect(textCommands.bulletList.label).toBe('Bullet list');
+    expect(textCommands.orderedList.label).toBe('Numbered list');
+  });
+
+  it('is spelled that way in every label the editor renders', async () => {
+    // The pairs above are shared constants now, but most of the editor's
+    // labels are literals in the component that draws them, and those are
+    // where the American title case came in with the vendored menus. Read
+    // off the source, since nothing else can see a label nobody opened.
+    const root = Bun.fileURLToPath(new URL('../', import.meta.url));
+    const drifted =
+      /Align (?:Left|Center|Right)|Ordered List|(?:Text|Background|Border) Color|Border (?:Radius|Width)|Columns Gap|Lock Aspect Ratio|Text Direction|Update External Link|Source URL|HTML Code|Extra (?:Small|Large)/;
+    const found: string[] = [];
+    let scanned = 0;
+    let labels = 0;
+
+    for await (const relative of new Bun.Glob('**/*.{ts,tsx}').scan({ cwd: root })) {
+      scanned += 1;
+      const source = await Bun.file(root + relative).text();
+      for (const [, label] of source.matchAll(/(?:tooltip|label|aria-label|title)[=:]\s*["']([^"']+)["']/g)) {
+        labels += 1;
+        if (drifted.test(label)) found.push(`${relative}: ${label}`);
+      }
+    }
+
+    expect(found.sort()).toEqual([]);
+    // Both halves have to be finding something, or a pattern that had stopped
+    // matching would pass on an empty result.
+    expect(scanned).toBeGreaterThan(100);
+    expect(labels).toBeGreaterThan(50);
+  });
+});

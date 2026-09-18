@@ -56,7 +56,7 @@ export function ColumnsMenuContent({ editor }: { editor: Editor }) {
 
       <Select
         icon={Space}
-        label="Columns Gap"
+        label="Columns gap"
         value={String(state.currentColumnsGap)}
         options={[
           { value: '0', label: 'None' },
@@ -70,7 +70,7 @@ export function ColumnsMenuContent({ editor }: { editor: Editor }) {
             gap: +value,
           });
         }}
-        tooltip="Columns Gap"
+        tooltip="Columns gap"
       />
 
       <Divider />

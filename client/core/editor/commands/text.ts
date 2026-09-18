@@ -26,9 +26,23 @@ export const textCommands = {
   lineBreak: { id: 'line-break', label: 'Line break', icon: CornerDownLeftIcon, run: (e, options) => { chain(e, options).setHardBreak().run(); } },
 } satisfies Record<string, EditorCommand>;
 
+/**
+ * What each alignment is called, wherever it is offered.
+ *
+ * The phone's format bar and the desktop's alignment switch are two controls
+ * for one action, and they spelled it two ways — `Align centre` against
+ * `Align Center`. One label read by both is the only version of this rule
+ * that cannot drift again.
+ */
+export const ALIGN_LABEL = {
+  left: 'Align left',
+  center: 'Align centre',
+  right: 'Align right',
+} as const;
+
 export const alignCommands: EditorCommand[] = (['left', 'center', 'right'] as const).map((side) => ({
   id: `align-${side}`,
-  label: side === 'left' ? 'Align left' : side === 'center' ? 'Align centre' : 'Align right',
+  label: ALIGN_LABEL[side],
   icon: side === 'left' ? AlignLeftIcon : side === 'center' ? AlignCenterIcon : AlignRightIcon,
   isActive: (e) => e.isActive({ textAlign: side }),
   run: (e, options) => { chain(e, options).setTextAlign(side).run(); },

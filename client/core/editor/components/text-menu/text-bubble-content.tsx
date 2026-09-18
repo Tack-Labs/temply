@@ -20,6 +20,7 @@ import { Divider } from '../ui/divider';
 import { ColorPicker } from '../ui/color-picker';
 import { BaseButton } from '../base-button';
 import { ShowPopover } from '../show-popover';
+import { textCommands } from '@/editor/commands/text';
 
 type TextBubbleContentProps = {
   editor: Editor;
@@ -108,14 +109,14 @@ export function TextBubbleContent(props: TextBubbleContentProps) {
             command={() => {
               editor.chain().focus().toggleBulletList().run();
             }}
-            tooltip="Bullet List"
+            tooltip={textCommands.bulletList.label}
           />
           <BubbleMenuButton
             icon={ListOrdered}
             command={() => {
               editor.chain().focus().toggleOrderedList().run();
             }}
-            tooltip="Ordered List"
+            tooltip={textCommands.orderedList.label}
           />
         </>
       )}
@@ -142,7 +143,7 @@ export function TextBubbleContent(props: TextBubbleContentProps) {
             .setUnderline()
             .run()!;
         }}
-        tooltip="External URL"
+        tooltip="Link address"
         editor={editor}
         isVariable={state.isUrlVariable}
       />
@@ -154,7 +155,7 @@ export function TextBubbleContent(props: TextBubbleContentProps) {
         onColorChange={(color) => {
           editor?.chain().setColor(color).run();
         }}
-        tooltip="Text Color"
+        tooltip="Text colour"
         suggestedColors={suggestedColors}
       >
         <BaseButton

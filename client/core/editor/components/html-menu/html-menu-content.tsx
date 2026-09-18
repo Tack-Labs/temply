@@ -35,7 +35,7 @@ export function HTMLMenuContent({ editor }: { editor: Editor }) {
               <CodeXmlIcon className="mly:size-3 mly:shrink-0 mly:stroke-[2.5]" />
             </button>
           </TooltipTrigger>
-          <TooltipContent sideOffset={8}>HTML Code</TooltipContent>
+          <TooltipContent sideOffset={8}>HTML code</TooltipContent>
         </Tooltip>
         <Tooltip>
           <TooltipTrigger asChild>

@@ -17,21 +17,21 @@ export function VerticalAlignmentSwitch(props: VerticalAlignmentSwitchProps) {
   const activeAlignment = {
     top: {
       icon: AlignVerticalDistributeStart,
-      tooltip: 'Align Top',
+      tooltip: 'Align top',
       onClick: () => {
         onAlignmentChange('middle');
       },
     },
     middle: {
       icon: AlignVerticalDistributeCenter,
-      tooltip: 'Align Center',
+      tooltip: 'Align centre',
       onClick: () => {
         onAlignmentChange('bottom');
       },
     },
     bottom: {
       icon: AlignVerticalDistributeEnd,
-      tooltip: 'Align Bottom',
+      tooltip: 'Align bottom',
       onClick: () => {
         onAlignmentChange('top');
       },

@@ -155,7 +155,7 @@ export function ButtonView(props: NodeViewProps) {
 
               <div className="mly:flex mly:gap-x-0.5">
                 <Select
-                  label="Border Radius"
+                  label="Border radius"
                   value={_radius}
                   options={allowedButtonBorderRadius.map((value) => ({
                     value,
@@ -166,7 +166,7 @@ export function ButtonView(props: NodeViewProps) {
                       borderRadius: value,
                     });
                   }}
-                  tooltip="Border Radius"
+                  tooltip="Border radius"
                   className="mly:capitalize"
                 />
 
@@ -229,7 +229,7 @@ export function ButtonView(props: NodeViewProps) {
                       isUrlVariable: isVariable ?? false,
                     });
                   }}
-                  tooltip="Update External Link"
+                  tooltip="Link address"
                   editor={editor}
                   isVariable={isUrlVariable}
                 />
@@ -290,7 +290,7 @@ export function BackgroundColorPickerPopup(props: ColorPickerProps) {
     <ColorPicker
       color={color}
       onColorChange={onChange}
-      tooltip="Background Color"
+      tooltip="Background colour"
     >
       <BaseButton
         variant="ghost"
@@ -316,7 +316,7 @@ export function TextColorPickerPopup(props: ColorPickerProps) {
   const { color, onChange } = props;
 
   return (
-    <ColorPicker color={color} onColorChange={onChange} tooltip="Text Color">
+    <ColorPicker color={color} onColorChange={onChange} tooltip="Text colour">
       <BaseButton
         variant="ghost"
         size="sm"

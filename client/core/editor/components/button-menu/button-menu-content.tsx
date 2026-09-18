@@ -60,8 +60,8 @@ export function ButtonMenuContent({ editor }: { editor: Editor }) {
 
       <div className="mly:flex mly:gap-x-0.5">
         <Select
-          label="Border Radius"
-          tooltip="Border Radius"
+          label="Border radius"
+          tooltip="Border radius"
           value={attrs.borderRadius}
           options={allowedButtonBorderRadius.map((value) => ({ value, label: value }))}
           onValueChange={(value) => update({ borderRadius: value as ButtonAttributes['borderRadius'] })}
@@ -99,7 +99,7 @@ export function ButtonMenuContent({ editor }: { editor: Editor }) {
           defaultValue={attrs.url || ''}
           isVariable={attrs.isUrlVariable}
           onValueChange={(value, isVariable) => update({ url: value, isUrlVariable: isVariable ?? false })}
-          tooltip="Update External Link"
+          tooltip="Link address"
           editor={editor}
         />
       </div>

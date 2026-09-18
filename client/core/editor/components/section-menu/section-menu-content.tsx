@@ -40,7 +40,7 @@ export function SectionMenuContent({ editor }: { editor: Editor }) {
 
       <div className="mly:flex mly:gap-x-0.5">
         <Select
-          label="Border Radius"
+          label="Border radius"
           value={String(state.currentBorderRadius)}
           options={borderRadiusOptions}
           onValueChange={(value) => {
@@ -48,12 +48,12 @@ export function SectionMenuContent({ editor }: { editor: Editor }) {
               borderRadius: Number(value),
             });
           }}
-          tooltip="Border Radius"
+          tooltip="Border radius"
           className="mly:capitalize"
         />
 
         <Select
-          label="Border Width"
+          label="Border width"
           value={String(state.currentBorderWidth)}
           options={[
             { value: '0', label: 'None' },
@@ -66,7 +66,7 @@ export function SectionMenuContent({ editor }: { editor: Editor }) {
               borderWidth: Number(value),
             });
           }}
-          tooltip="Border Width"
+          tooltip="Border width"
           className="mly:capitalize"
         />
       </div>
@@ -135,7 +135,7 @@ export function SectionMenuContent({ editor }: { editor: Editor }) {
               borderColor: color,
             });
           }}
-          tooltip="Border Color"
+          tooltip="Border colour"
         >
           <BaseButton
             variant="ghost"
@@ -160,7 +160,7 @@ export function SectionMenuContent({ editor }: { editor: Editor }) {
             });
           }}
           backgroundColor={state.currentBackgroundColor}
-          tooltip="Background Color"
+          tooltip="Background colour"
           className="mly:rounded-full mly:border-[1.5px] mly:border-panel mly:shadow"
         />
       </div>

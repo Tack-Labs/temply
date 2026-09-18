@@ -304,7 +304,7 @@ test.describe('editor on the phone', () => {
     await expect(sections).toHaveCount(2);
     const section = await phone.style(page, 'Section');
     await expect(section).toBeVisible();
-    for (const control of ['Border Radius', 'Border Width', 'Margin', 'Padding']) {
+    for (const control of ['Border radius', 'Border width', 'Margin', 'Padding']) {
       await expect(section.getByRole('button', { name: control })).toBeVisible();
     }
     await section.getByRole('button', { name: 'Delete Section' }).click();

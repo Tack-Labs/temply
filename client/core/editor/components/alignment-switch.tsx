@@ -4,6 +4,7 @@ import { AllowedLogoAlignment, allowedLogoAlignment } from '../nodes/logo/logo';
 import { Popover, PopoverContent, PopoverTrigger } from './popover';
 import { cn } from '../utils/classname';
 import { Tooltip, TooltipContent, TooltipTrigger } from './ui/tooltip';
+import { ALIGN_LABEL } from '../commands/text';
 
 type AlignmentSwitchProps = {
   alignment: AllowedLogoAlignment;
@@ -21,21 +22,21 @@ export function AlignmentSwitch(props: AlignmentSwitchProps) {
   const alignments = {
     left: {
       icon: AlignLeft,
-      tooltip: 'Align Left',
+      tooltip: ALIGN_LABEL.left,
       onClick: () => {
         onAlignmentChange('left');
       },
     },
     center: {
       icon: AlignCenter,
-      tooltip: 'Align Center',
+      tooltip: ALIGN_LABEL.center,
       onClick: () => {
         onAlignmentChange('center');
       },
     },
     right: {
       icon: AlignRight,
-      tooltip: 'Align Right',
+      tooltip: ALIGN_LABEL.right,
       onClick: () => {
         onAlignmentChange('right');
       },

@@ -24,14 +24,14 @@ export function TextDirectionSwitch(props: TextDirectionSwitchProps) {
   const directions = {
     ltr: {
       icon: LtrIcon,
-      tooltip: 'Left to Right',
+      tooltip: 'Left to right',
       onClick: () => {
         onDirectionChange('ltr');
       },
     },
     rtl: {
       icon: RtlIcon,
-      tooltip: 'Right to Left',
+      tooltip: 'Right to left',
       onClick: () => {
         onDirectionChange('rtl');
       },
@@ -52,7 +52,7 @@ export function TextDirectionSwitch(props: TextDirectionSwitchProps) {
             <activeDirection.icon className="mly:h-3 mly:w-3 mly:stroke-[2.5]" />
           </PopoverTrigger>
         </TooltipTrigger>
-        <TooltipContent sideOffset={8}>Text Direction</TooltipContent>
+        <TooltipContent sideOffset={8}>Text direction</TooltipContent>
       </Tooltip>
       <PopoverContent
         className="mly:flex mly:w-max mly:gap-0.5 mly:rounded-lg mly:p-0.5!"

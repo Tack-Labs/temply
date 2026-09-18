@@ -459,10 +459,10 @@ export function ImageStatusLabel(props: ImageStatusLabelProps) {
     >
       {status === 'idle' && !isDropZone && (
         <>
-          {/* Signed-out editing has no upload path by design — the Source
-              URL control in the toolbar is the one route that works. */}
+          {/* Signed-out editing has no upload path by design — the Image
+              source control in the toolbar is the one route that works. */}
           <ImageOffIcon className="mly:size-4 mly:stroke-[2.5]" />
-          <span>Add an image with Source URL in the toolbar</span>
+          <span>Add an image with Image source in the toolbar</span>
         </>
       )}
 

@@ -87,7 +87,7 @@ export function ImageMenuContent({ editor }: { editor: Editor }) {
                 .run();
             }
           }}
-          tooltip="Source URL"
+          tooltip="Image source"
           icon={ImageDown}
           editor={editor}
           isVariable={state.isSrcVariable}
@@ -123,10 +123,10 @@ export function ImageMenuContent({ editor }: { editor: Editor }) {
                 })
                 .run();
             }}
-            tooltip="External URL"
+            tooltip="Link address"
             editor={editor}
             isVariable={state.isExternalLinkVariable}
-            triggerProps={{ 'aria-label': 'External URL' }}
+            triggerProps={{ 'aria-label': 'Link address' }}
           />
         )}
       </div>
@@ -136,7 +136,7 @@ export function ImageMenuContent({ editor }: { editor: Editor }) {
           <Divider />
 
           <Select
-            label="Border Radius"
+            label="Border radius"
             value={state?.borderRadius}
             options={borderRadius.map((value) => ({
               value: String(value.value),
@@ -150,7 +150,7 @@ export function ImageMenuContent({ editor }: { editor: Editor }) {
                 })
                 .run();
             }}
-            tooltip="Border Radius"
+            tooltip="Border radius"
             className="mly:capitalize"
           />
 
@@ -244,7 +244,7 @@ export function ImageMenuContent({ editor }: { editor: Editor }) {
                   .run();
               }}
               icon={lockAspectRatio ? LockIcon : LockOpenIcon}
-              tooltip="Lock Aspect Ratio"
+              tooltip="Lock aspect ratio"
             />
           </div>
         </>

@@ -24,7 +24,7 @@ export function InlineImageMenuContent({ editor }: { editor: Editor }) {
             })
             .run();
         }}
-        tooltip="Source URL"
+        tooltip="Image source"
         icon={ImageDownIcon}
         editor={editor}
         isVariable={state.isSrcVariable}
@@ -41,7 +41,7 @@ export function InlineImageMenuContent({ editor }: { editor: Editor }) {
             })
             .run();
         }}
-        tooltip="External URL"
+        tooltip="Link address"
         editor={editor}
         isVariable={state.isExternalLinkVariable}
       />

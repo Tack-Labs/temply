@@ -335,7 +335,7 @@ test.describe('editor on the desktop', () => {
 
     // The image menu serves Logo and Image from one file, and which controls
     // it renders is the block plus its state: `Size` belongs to a Logo and
-    // appears only once one has a source, `External URL` and `Border Radius`
+    // appears only once one has a source, `Link address` and `Border radius`
     // only to an Image. A Logo a customer has just asked for has neither a
     // source nor a picture, so these two are the whole of what it names —
     // the alignment switch and the eye are labelled by a tooltip, which is
