@@ -6,7 +6,7 @@ import { ImageMenuContent } from './image-menu-content';
 import { useEditorGesture } from '@/editor/utils/use-editor-gesture';
 
 export function ImageBubbleMenu(props: EditorBubbleMenuProps) {
-  const { editor, appendTo } = props;
+  const { editor } = props;
   if (!editor) {
     return null;
   }
@@ -17,7 +17,6 @@ export function ImageBubbleMenu(props: EditorBubbleMenuProps) {
 
   const bubbleMenuProps: EditorBubbleMenuProps = {
     ...props,
-    ...(appendTo ? { appendTo: appendTo.current } : {}),
     shouldShow: ({ editor }) => {
       if (!gestured.current || !editor.isEditable) {
         return false;

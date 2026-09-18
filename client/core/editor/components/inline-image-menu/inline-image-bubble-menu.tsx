@@ -5,14 +5,13 @@ import { TooltipProvider } from '../ui/tooltip';
 import { InlineImageMenuContent } from './inline-image-menu-content';
 
 export function InlineImageBubbleMenu(props: EditorBubbleMenuProps) {
-  const { editor, appendTo } = props;
+  const { editor } = props;
   if (!editor) {
     return null;
   }
 
   const bubbleMenuProps: EditorBubbleMenuProps = {
     ...props,
-    ...(appendTo ? { appendTo: appendTo.current } : {}),
     shouldShow: ({ editor }) => {
       if (!editor.isEditable) {
         return false;

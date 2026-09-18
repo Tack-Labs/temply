@@ -28,7 +28,6 @@ export function HTMLBubbleMenu(props: EditorBubbleMenuProps) {
 
   const bubbleMenuProps: EditorBubbleMenuProps = {
     ...props,
-    ...(appendTo ? { appendTo: appendTo.current } : {}),
     shouldShow: ({ editor }) => {
       return gestured.current && editor.isActive('htmlCodeBlock');
     },

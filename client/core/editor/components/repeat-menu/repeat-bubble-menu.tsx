@@ -55,7 +55,6 @@ export function RepeatBubbleMenu(props: EditorBubbleMenuProps) {
 
   const bubbleMenuProps: EditorBubbleMenuProps = {
     ...props,
-    ...(appendTo ? { appendTo: appendTo.current } : {}),
     shouldShow: ({ editor }) => {
       if (!gestured.current || isTextSelected(editor) || !editor.isEditable) {
         return false;
