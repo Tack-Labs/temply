@@ -1,12 +1,12 @@
 import { describe, expect, it } from 'bun:test';
 import '../test/dom';
 import { makeEditor } from '../test/make-editor';
-import { replaceDeprecatedNode } from './replace-deprecated';
+import { replaceDeprecatedNode, storedDocument } from './replace-deprecated';
 
 /**
  * The document shape a template saved before the schema changed still has in
- * the database, mounted the way the canvas mounts one: through
- * `replaceDeprecatedNode` first (`client/core/editor/index.tsx`).
+ * the database, put through the rename on its own — `storedDocument` below is
+ * the door the app actually uses, and it is tested as such.
  *
  * The assertion is the surrounding text, not the renamed node. tiptap does not
  * drop a node it cannot parse and does not throw on one —
@@ -77,5 +77,85 @@ describe('replaceDeprecatedNode', () => {
       'htmlCodeBlock',
       'paragraph',
     ]);
+  });
+});
+
+describe('storedDocument', () => {
+  /**
+   * The row as the server hands it back — `content` is a JSON string — put on
+   * a live editor the way History → Restore and Discard draft put one:
+   * `setContent` on an editor that is already mounted. That path used to parse
+   * for itself, so it blanked the canvas on every document a schema change had
+   * left behind, and the autosave that follows a restore wrote the blank back.
+   */
+  const restore = (content: string) => {
+    const editor = makeEditor({
+      type: 'doc',
+      content: [{ type: 'paragraph', content: text('what was on screen') }],
+    });
+    editor.commands.setContent(storedDocument(content));
+    const doc = editor.getJSON();
+    editor.destroy();
+    return doc;
+  };
+
+  it('puts a restored row on the canvas whole, whatever its age', () => {
+    const doc = restore(
+      JSON.stringify({
+        type: 'doc',
+        content: [
+          { type: 'paragraph', content: text('before') },
+          { type: 'codeBlock', attrs: { language: 'html' }, content: text('<b>hi</b>') },
+          { type: 'spacer', attrs: { height: 'lg' } },
+          { type: 'for', attrs: { each: 'items' }, content: [{ type: 'paragraph', content: text('One row') }] },
+          { type: 'paragraph', content: text('after') },
+        ],
+      })
+    );
+
+    expect(doc.content?.map((node) => node.type)).toEqual([
+      'paragraph',
+      'htmlCodeBlock',
+      'spacer',
+      'repeat',
+      'paragraph',
+    ]);
+    expect(JSON.stringify(doc)).toContain('before');
+    expect(JSON.stringify(doc)).toContain('after');
+    // The spacer shorthand is the quiet one of the three: nothing blanks, the
+    // height simply reaches the stylesheet as `lgpx` and the gap collapses.
+    expect(doc.content?.[2]?.attrs?.height).toBe(32);
+  });
+
+  it('takes a document as readily as a row', () => {
+    const doc = storedDocument({
+      type: 'doc',
+      content: [{ type: 'codeBlock', attrs: { language: 'html' }, content: text('<b>hi</b>') }],
+    });
+    expect(doc.content?.[0]?.type).toBe('htmlCodeBlock');
+  });
+
+  it('leaves the caller\'s own object alone', () => {
+    // The migration rewrites in place, and what reaches this door includes
+    // React state and an imported JSON module the rest of the app reads.
+    const original = {
+      type: 'doc',
+      content: [{ type: 'spacer', attrs: { height: 'lg' } }],
+    };
+    storedDocument(original);
+    expect(original.content[0].attrs.height).toBe('lg');
+  });
+
+  it('wraps a bare list of blocks in a document', () => {
+    const doc = storedDocument([{ type: 'paragraph', content: text('loose') }] as never);
+    expect(doc.type).toBe('doc');
+    expect(JSON.stringify(doc)).toContain('loose');
+  });
+
+  it('throws on a corrupt row rather than handing back a blank one', () => {
+    // A restore catches this and keeps what is on screen. Returning an empty
+    // document instead would blank the canvas for the one reason the customer
+    // can do nothing about.
+    expect(() => storedDocument('{ not json')).toThrow();
   });
 });

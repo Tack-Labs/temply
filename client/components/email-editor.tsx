@@ -1,8 +1,7 @@
-import type { FocusPosition, Editor as TiptapEditor } from '@tiptap/core';
+import type { FocusPosition, JSONContent, Editor as TiptapEditor } from '@tiptap/core';
 import { lazy, Suspense, useState } from 'react';
 import { PageLoading } from '~/components/ui/page-loading';
 import { cn } from '~/lib/classname';
-import type { Mail } from '~/db/schema';
 
 const Editor = lazy(() =>
   import('~/core').then((module) => ({
@@ -11,7 +10,9 @@ const Editor = lazy(() =>
 );
 
 type EmailEditorProps = {
-  defaultContent: Mail['content'];
+  /** Already a document: the model parses and migrates a stored row through
+   *  `storedDocument`, which is the only place either happens. */
+  defaultContent: JSONContent;
   setEditor: (editor: TiptapEditor) => void;
   autofocus?: FocusPosition;
   onImageUpload?: (file: Blob) => Promise<string>;
@@ -59,13 +60,7 @@ export function EmailEditor(props: EmailEditorProps) {
             autofocus,
             immediatelyRender: false,
           }}
-          contentJson={
-            defaultContent
-              ? typeof defaultContent === 'string'
-                ? JSON.parse(defaultContent)
-                : defaultContent
-              : null
-          }
+          contentJson={defaultContent}
           onCreate={(editor) => {
             setIsLoading(false);
             setEditor(editor);

@@ -57,4 +57,62 @@ test.describe('version history', () => {
     await expect.poll(async () => (await api.getTemplate(id)).title).toBe(first);
     await expect(await subjectField(page), 'the open editor shows the restored subject without a reload').toHaveValue(first);
   });
+
+  test('restoring a version written before a schema change keeps its content', async ({ page, api, name }) => {
+    // A version is the row exactly as it stood, so it holds whatever the
+    // editor was never asked to migrate — and restore puts one on a canvas
+    // that is already live, with `setContent`. That fails the way a mount
+    // fails: not with a throw and not by dropping the node, but with an empty
+    // document. The autosave that follows a restore would then write the
+    // blank over the row, and `template_versions` would be the only way back.
+    //
+    // Everything before the editor opens goes through the API on purpose. A
+    // publish snapshots the row's own content, so a version seeded and
+    // published from here keeps the stored shape byte for byte; anything
+    // typed into the canvas first would have been migrated on the way in and
+    // the version would hold the migrated shape instead.
+    const stored = JSON.stringify({
+      type: 'doc',
+      content: [
+        { type: 'paragraph', content: [{ type: 'text', text: 'Above the block' }] },
+        { type: 'codeBlock', attrs: { language: 'html' }, content: [{ type: 'text', text: '<b>Stored code</b>' }] },
+        { type: 'paragraph', content: [{ type: 'text', text: 'Below the block' }] },
+      ],
+    });
+    const title = name('old version');
+    const { id } = await api.createTemplate({ title, content: stored });
+    await api.publishTemplate(id);
+    // A newer draft, so the restore has something to replace and the case can
+    // tell it from a no-op.
+    await api.saveDraft(id, {
+      title,
+      content: JSON.stringify({
+        type: 'doc',
+        content: [{ type: 'paragraph', content: [{ type: 'text', text: 'The newer draft' }] }],
+      }),
+    });
+
+    await page.goto(`/templates/${id}`);
+    const pm = page.locator('.ProseMirror');
+    await expect(pm.getByText('The newer draft')).toBeVisible();
+
+    if (onPhone()) {
+      await openMore(page);
+      await page.getByRole('menuitem', { name: 'History' }).click();
+    } else {
+      await page.getByRole('button', { name: 'History' }).click();
+    }
+    const dialog = page.getByRole('dialog', { name: 'Version history' });
+    const row = dialog.getByRole('listitem').filter({ has: page.getByRole('button', { name: 'Preview version 1' }) });
+    await row.getByRole('button', { name: 'Restore' }).click();
+    await expect(page.getByText('Version restored', { exact: true })).toBeVisible();
+
+    // The block is the one the product has, and the paragraphs either side of
+    // it are what say the document arrived whole rather than as the one empty
+    // line a failed parse leaves behind.
+    await expect(pm.getByText('Above the block')).toBeVisible();
+    await expect(pm.getByText('Below the block')).toBeVisible();
+    await expect(pm.locator('[data-type="htmlCodeBlock"]')).toHaveCount(1);
+    await expect(pm.getByText('The newer draft')).toHaveCount(0);
+  });
 });

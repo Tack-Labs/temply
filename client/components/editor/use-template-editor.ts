@@ -24,6 +24,7 @@ import {
 import { collectDataKeys, type TemplateDataKeys } from '@temply/shared/template-data';
 import type { Transaction } from '@tiptap/pm/state';
 import { repeatPreviewKey, setRepeatPreviewCounts } from '~/core/editor/extensions/repeat-preview';
+import { storedDocument } from '~/core/editor/utils/replace-deprecated';
 import {
   assessSize,
   checkFields,
@@ -98,10 +99,9 @@ export type TemplateEditorModel = {
   pageStyle: CSSProperties; cardStyle: CSSProperties;
   // editor
   editor: Editor | null; setEditor: (e: Editor) => void;
-  // useState's initializer always returns a parsed document, never null —
-  // the brief's `| null` doesn't match what the hook ever produces, and
-  // EmailEditor's defaultContent prop (Mail['content']) rejects null.
-  editorContent: Mail['content'];
+  // A document, not the row's string: `storedDocument` parses and migrates it
+  // once here, so nothing downstream has to know it was ever stored text.
+  editorContent: JSONContent;
   /** Pulls the live document into `editorContent` at once. */
   flushContent: () => void;
   editorPaneRef: RefObject<HTMLDivElement | null>;
@@ -666,14 +666,9 @@ export function useTemplateEditor(props: EmailEditorSandboxProps): TemplateEdito
    *  swap has to take the live document before the new tree mounts, which is
    *  a render-phase call rather than an event — see `flushContent`. */
   const captureRef = useRef<() => void>(() => {});
-  const [editorContent, setEditorContent] = useState(() => {
-    if (template?.content) {
-      return typeof template.content === 'string'
-        ? JSON.parse(template.content)
-        : template.content;
-    }
-    return defaultEmailJSON;
-  });
+  const [editorContent, setEditorContent] = useState(() =>
+    storedDocument(template?.content || (defaultEmailJSON as JSONContent))
+  );
 
   /** The row is on screen again: reset state, then re-baseline. */
   const showRow = (row: Mail) => {
@@ -686,7 +681,7 @@ export function useTemplateEditor(props: EmailEditorSandboxProps): TemplateEdito
     setTheme(structuredClone(rowTheme.current));
     savedFields.current = { subject: row.title ?? '', previewText: row.preview_text ?? '' };
     try {
-      editor?.commands.setContent(JSON.parse(row.content) as JSONContent);
+      editor?.commands.setContent(storedDocument(row.content));
     } catch {
       // A corrupt row is the server's problem to report; the screen keeps
       // what it has.

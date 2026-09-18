@@ -45,6 +45,20 @@ export function makeApi(request: APIRequestContext) {
       if (!res.ok()) throw new Error(`getTemplate: ${res.status()}`);
       return (await res.json()).template as TemplateRow;
     },
+    /** Saves the draft without the editor, so a test can put a row into a
+     *  state the canvas would have migrated on its way past. */
+    async saveDraft(id: string, opts: { title: string; content: string }): Promise<void> {
+      const res = await request.post(`/api/v1/templates/${id}`, { data: opts });
+      if (!res.ok()) throw new Error(`saveDraft: ${res.status()} ${await res.text()}`);
+    },
+    /** Publishes without the editor: the row's own content is what gets
+     *  copied to the published copy and snapshotted as a version, so a test
+     *  that publishes here keeps whatever it seeded, byte for byte. Going
+     *  through the page would publish what the canvas holds instead. */
+    async publishTemplate(id: string): Promise<void> {
+      const res = await request.post(`/api/v1/templates/${id}/publish`);
+      if (!res.ok()) throw new Error(`publishTemplate: ${res.status()} ${await res.text()}`);
+    },
     /** A template the test made through the page rather than here, so the
      *  cleanup owns it from the moment its id is known. */
     track(id: string): void { remember(made.templates, id); },

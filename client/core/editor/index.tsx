@@ -27,7 +27,7 @@ import {
   MailyProvider,
 } from './provider';
 import { cn } from './utils/classname';
-import { replaceDeprecatedNode } from './utils/replace-deprecated';
+import { storedDocument } from './utils/replace-deprecated';
 
 type ParitialMailContextType = Partial<MailyContextType>;
 
@@ -86,15 +86,7 @@ export function Editor(props: EditorProps) {
 
   const formattedContent = useMemo(() => {
     if (contentJson) {
-      const json =
-        contentJson?.type === 'doc'
-          ? contentJson
-          : ({
-              type: 'doc',
-              content: contentJson,
-            } as JSONContent);
-
-      return replaceDeprecatedNode(json);
+      return storedDocument(contentJson);
     } else if (contentHtml) {
       return contentHtml;
     } else {
@@ -108,7 +100,7 @@ export function Editor(props: EditorProps) {
         ],
       };
     }
-  }, [contentHtml, contentJson, replaceDeprecatedNode]);
+  }, [contentHtml, contentJson]);
 
   const menuContainerRef = useRef(null);
   const editor = useEditor({

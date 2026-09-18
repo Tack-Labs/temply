@@ -57,3 +57,35 @@ export function replaceDeprecatedNode(json: JSONContent) {
 
   return json;
 }
+
+/**
+ * The one door a stored row's content goes through on its way to the canvas.
+ *
+ * Three paths put a stored document on screen — the first mount, History →
+ * Restore and Discard draft — and each used to parse for itself. Two
+ * remembered the migration and one did not, so a row written before a schema
+ * change blanked the canvas on restore and the next keystroke autosaved the
+ * blank over the row. Nothing enforced the rule, so there is no rule any more:
+ * parsing and migrating are the same call.
+ *
+ * A string is a row's `content` column, which is JSON text rather than HTML,
+ * and it is parsed the way `JSON.parse` parses one — a corrupt row throws, for
+ * the caller to decide what to keep on screen. An object is cloned first: the
+ * migration rewrites in place, and its inputs include React state and an
+ * imported JSON module that the rest of the app expects to find unchanged.
+ */
+export function storedDocument(content: string | JSONContent): JSONContent {
+  const json =
+    typeof content === 'string'
+      ? (JSON.parse(content) as JSONContent)
+      : (structuredClone(content) as JSONContent);
+
+  // A row whose content is a bare array of blocks rather than a document is
+  // the shape this has always accepted; it is wrapped rather than rejected.
+  const doc =
+    json?.type === 'doc'
+      ? json
+      : ({ type: 'doc', content: json } as unknown as JSONContent);
+
+  return replaceDeprecatedNode(doc);
+}
