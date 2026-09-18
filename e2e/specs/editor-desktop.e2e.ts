@@ -616,8 +616,8 @@ test.describe('editor on the desktop', () => {
   });
 
   test('the shortcuts the cheatsheet lists do what it says', async ({ page, api, name }) => {
-    // Twelve fresh templates, for the reason below, and twelve cold editor
-    // renders with them. Splitting the case along its own comment boundaries
+    // Thirteen fresh templates, for the reason below, and thirteen cold
+    // editor renders with them. Splitting the case along its own comment boundaries
     // would buy the same headroom and pay for it three times over in the
     // `page` fixture's own sign-in refresh and first navigation, so the
     // budget is raised instead and the case stays one story.
@@ -636,10 +636,7 @@ test.describe('editor on the desktop', () => {
     // the line `newLine` clicks, which is why this pattern is the safe one.
     const open = opener({ page, api, name });
 
-    // Insert: the two characters that open a panel. The group's fourth row,
-    // Ctrl+Alt+C, has a case of its own further up — it is the one shortcut
-    // here whose block has to survive a send, so it is asserted through the
-    // preview rather than through the canvas.
+    // Insert: the two characters that open a panel.
     await open('slash');
     await newLine(page);
     await page.keyboard.type('/');
@@ -657,10 +654,19 @@ test.describe('editor on the desktop', () => {
     await page.keyboard.press('Backspace');
     await expect(variables).toBeHidden();
 
+    // Insert: the one combination in the group. Whether the block it builds
+    // still sends is asserted by its own case further up; what this one owes
+    // the reader is that the keys on the sheet produce the block the sheet
+    // names.
+    let pm = await open('custom html');
+    await newLine(page);
+    await page.keyboard.press('ControlOrMeta+Alt+C');
+    await expect(pm.locator('[data-type="htmlCodeBlock"]')).toHaveCount(1);
+
     // Insert and Write: the markdown-style inputs, typed as the cheatsheet
     // writes them. The divider is the one that carries no trailing space —
     // its rule fires on the third dash.
-    let pm = await open('divider');
+    pm = await open('divider');
     await newLine(page);
     await page.keyboard.type('---');
     await expect(pm.locator('hr')).toHaveCount(1);
