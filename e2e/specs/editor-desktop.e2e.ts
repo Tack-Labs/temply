@@ -851,7 +851,10 @@ test.describe('editor on the desktop', () => {
     await subject.fill(typed);
     // Straight into the swap, inside the 500 ms the autosave waits.
     await page.setViewportSize({ width: 500, height: 900 });
-    await expect(page.locator('.ProseMirror')).toBeVisible();
+    // The phone shell puts the subject behind this button, and the desktop
+    // shell has no such control — so it is the one thing on screen that says
+    // the swap the case is about actually happened. The canvas is in both.
+    await expect(page.getByRole('button', { name: /^Edit details:/ }), 'the phone shell is the one on screen').toBeVisible();
     await expect.poll(async () => (await api.getTemplate(t.id)).title,
       { message: 'the subject typed before the swap reaches the server' }).toBe(typed);
   });
