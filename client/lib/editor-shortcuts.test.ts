@@ -6,9 +6,9 @@ const rendered = (isApple: boolean) =>
   EDITOR_SHORTCUTS.flatMap((group) => group.items.map((item) => formatKeys(item.keys, isApple)));
 
 describe('EDITOR_SHORTCUTS', () => {
-  test('is four groups of eighteen shortcuts', () => {
+  test('is four groups of nineteen shortcuts', () => {
     expect(EDITOR_SHORTCUTS.map((group) => group.title)).toEqual(['Insert', 'Write', 'Blocks', 'Text']);
-    expect(rendered(true)).toHaveLength(18);
+    expect(rendered(true)).toHaveLength(19);
   });
 
   test('lists no shortcut twice', () => {
@@ -34,6 +34,11 @@ describe('formatKeys', () => {
   test('an Apple keyboard loses the plus signs and keeps them everywhere else', () => {
     expect(formatKeys('Mod+Shift+D', true)).toBe('⌘⇧D');
     expect(formatKeys('Mod+Shift+D', false)).toBe('Ctrl+Shift+D');
+  });
+
+  test('Alt is the option glyph on an Apple keyboard and the word everywhere else', () => {
+    expect(formatKeys('Mod+Alt+C', true)).toBe('⌘⌥C');
+    expect(formatKeys('Mod+Alt+C', false)).toBe('Ctrl+Alt+C');
   });
 
   test('Backspace is the delete glyph on an Apple keyboard and the word everywhere else', () => {
@@ -72,13 +77,13 @@ describe('formatKeys', () => {
     // desktop project's Chrome descriptor reports a platform of its own — so
     // this is where the glyphs every Mac customer reads are pinned.
     expect(rendered(true)).toEqual([
-      '/', '@', '---',
+      '/', '@', '---', '⌘⌥C',
       '# ', '- ', '1. ', '> ', '**text**', '⇧Enter',
       '⌘⇧↑', '⌘⇧↓', '⌘⇧D', '⌘⇧Space', '⌘⇧⌫',
       '⌘B', '⌘I', '⌘U', '⌘Z',
     ]);
     expect(rendered(false)).toEqual([
-      '/', '@', '---',
+      '/', '@', '---', 'Ctrl+Alt+C',
       '# ', '- ', '1. ', '> ', '**text**', 'Shift+Enter',
       'Ctrl+Shift+↑', 'Ctrl+Shift+↓', 'Ctrl+Shift+D', 'Ctrl+Shift+Space', 'Ctrl+Shift+Backspace',
       'Ctrl+B', 'Ctrl+I', 'Ctrl+U', 'Ctrl+Z',

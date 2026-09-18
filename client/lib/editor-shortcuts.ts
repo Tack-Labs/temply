@@ -25,6 +25,7 @@ export const EDITOR_SHORTCUTS: ShortcutGroup[] = [
       { keys: '/', what: 'Open the block menu — every block, filtered as you type' },
       { keys: '@', what: 'Insert a variable, in text, a button label or a URL' },
       { keys: '---', what: 'Turn the line into a divider' },
+      { keys: 'Mod+Alt+C', what: 'Insert a Custom HTML block' },
     ],
   },
   {
@@ -67,6 +68,7 @@ export function formatKeys(keys: string, isApple: boolean): string {
   return keys
     .replace('Mod', isApple ? '⌘' : 'Ctrl')
     .replace('Shift', isApple ? '⇧' : 'Shift')
+    .replace('Alt', isApple ? '⌥' : 'Alt')
     .replace('Backspace', isApple ? '⌫' : 'Backspace')
     .replace('Up', '↑')
     .replace('Down', '↓')

@@ -597,7 +597,7 @@ test.describe('editor on the desktop', () => {
     // this case going red is the right answer. The ⌘ set every Mac customer
     // actually reads has no browser here to render it, and is pinned in
     // client/lib/editor-shortcuts.test.ts instead.
-    const keys = ['/', '@', '---', '# ', '- ', '1. ', '> ', '**text**', 'Shift+Enter', 'Ctrl+Shift+↑', 'Ctrl+Shift+↓', 'Ctrl+Shift+D', 'Ctrl+Shift+Space', 'Ctrl+Shift+Backspace', 'Ctrl+B', 'Ctrl+I', 'Ctrl+U', 'Ctrl+Z'];
+    const keys = ['/', '@', '---', 'Ctrl+Alt+C', '# ', '- ', '1. ', '> ', '**text**', 'Shift+Enter', 'Ctrl+Shift+↑', 'Ctrl+Shift+↓', 'Ctrl+Shift+D', 'Ctrl+Shift+Space', 'Ctrl+Shift+Backspace', 'Ctrl+B', 'Ctrl+I', 'Ctrl+U', 'Ctrl+Z'];
     await expect(sheet.locator('kbd'), 'every shortcut is listed, in its group and in order').toHaveText(keys);
     // And again unnormalised. The assertion above trims each key before
     // comparing, so it reads `# ` as `#` — and the trailing space is the
@@ -636,7 +636,10 @@ test.describe('editor on the desktop', () => {
     // the line `newLine` clicks, which is why this pattern is the safe one.
     const open = opener({ page, api, name });
 
-    // Insert: the two characters that open a panel.
+    // Insert: the two characters that open a panel. The group's fourth row,
+    // Ctrl+Alt+C, has a case of its own further up — it is the one shortcut
+    // here whose block has to survive a send, so it is asserted through the
+    // preview rather than through the canvas.
     await open('slash');
     await newLine(page);
     await page.keyboard.type('/');
