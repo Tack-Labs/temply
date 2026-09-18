@@ -479,6 +479,22 @@ describe('version history', () => {
     expect(all).toHaveLength(2);
   });
 
+  it('hands the restored template back in the response', async () => {
+    // The editor that asked for the restore is holding the document this
+    // just replaced, and it repaints from this body rather than reloading.
+    const { template, versions } = await publishedTwice('Version one', 'Version two');
+    const older = versions.find((v: { title: string }) => v.title === 'Version one');
+
+    const res = await post(app, `/api/v1/templates/${template.id}/versions/${older.id}/restore`, {}, OWNER);
+    expect(res.status).toBe(200);
+    const { template: restored } = await res.json();
+    expect(restored.id).toBe(template.id);
+    expect(restored.title).toBe('Version one');
+    expect(restored.content).toBe('{"type":"doc"}');
+    expect(restored.published_content).toBe('{"v":2}');
+    expect(restored.has_unpublished_changes).toBe(true);
+  });
+
   it('snapshots the theme and restores it with the content', async () => {
     const blue = '{"container":{"backgroundColor":"#0000ff"}}';
     const red = '{"container":{"backgroundColor":"#ff0000"}}';

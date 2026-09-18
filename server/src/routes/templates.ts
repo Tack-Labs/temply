@@ -329,5 +329,8 @@ export const templatesRoutes = new Elysia()
     // for the restore is holding the document this just replaced, and
     // without the new one on hand it would have to be reloaded to show it.
     const [restored] = await ctx.db.select().from(mails).where(and(eq(mails.id, ctx.params.id), eq(mails.org_id, ctx.orgId))).limit(1);
+    // The version existing says nothing about the template: it can be deleted
+    // between the write above and this read, and the row is then gone.
+    if (!restored) return notFound('Template not found');
     return json({ template: withFlags(restored) });
   });
