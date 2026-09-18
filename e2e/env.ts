@@ -46,25 +46,43 @@ export const DB_PATH = join(tmp, `e2e-${RUN_ID}.db`);
  * workers, the fakes server — is a child of it and inherits the marker below,
  * which is what keeps them from asking for a lock their own parent holds.
  *
- * A lock a killed run left behind must not wedge the next one, so the pid in
- * it is asked whether it is still alive. A pid the system has since handed to
- * something else would answer yes for ever, so the timestamp is the backstop:
- * no run of this suite lasts an hour.
+ * A lock a killed run left behind must not wedge the next one, so liveness —
+ * not age — is what says whether it still holds. `bun run e2e:ui` keeps the
+ * ports, the database and this lock for as long as a developer has Playwright's
+ * UI open, which is hours; an age cap applied to a live pid would wave the
+ * next run straight into the sweep below and corrupt the very run it was
+ * added to protect. The timestamp is only the fallback for a lock whose
+ * liveness cannot be established at all — one written by a version that did
+ * not record a pid, or truncated by a crash mid-write — and an hour is longer
+ * than any run of this suite.
  */
 const LOCK = join(tmp, 'run.lock');
+const UNREADABLE_LOCK_HOLDS_FOR = 60 * 60 * 1000;
 if (process.env.E2E_LOCK_PID === undefined) {
+  /** 0: free. A pid: that run still holds it. -1: held, by something this
+   *  process cannot name. */
   let heldBy = 0;
   try {
-    const { pid, at } = JSON.parse(readFileSync(LOCK, 'utf8')) as { pid: number; at: number };
-    if (Date.now() - at < 60 * 60 * 1000) {
-      process.kill(pid, 0);
-      heldBy = pid;
+    const { pid, at } = JSON.parse(readFileSync(LOCK, 'utf8')) as { pid?: number; at?: number };
+    if (typeof pid === 'number' && pid > 0) {
+      try {
+        process.kill(pid, 0);
+        heldBy = pid;
+      } catch (error) {
+        // ESRCH is the only answer that means gone. EPERM means a process
+        // with that pid is running under an owner this one may not signal,
+        // which is still a process.
+        if ((error as NodeJS.ErrnoException).code === 'EPERM') heldBy = pid;
+      }
+    } else if (typeof at === 'number' && Date.now() - at < UNREADABLE_LOCK_HOLDS_FOR) {
+      heldBy = -1;
     }
   } catch {
-    // No lock, unreadable, or its pid is gone: the checkout is free.
+    // No lock, or one nothing can be read out of: the checkout is free.
   }
   if (heldBy) {
-    console.error(`an e2e run is already in progress in this checkout (pid ${heldBy}). The stack has one set of ports, one build directory and one database, so a second run would corrupt both. Wait for it, or stop it and delete e2e/.tmp/run.lock.`);
+    const whose = heldBy > 0 ? ` (pid ${heldBy})` : '';
+    console.error(`an e2e run is already in progress in this checkout${whose}. The stack has one set of ports, one build directory and one database, so a second run would corrupt both. Wait for it, or stop it and delete e2e/.tmp/run.lock.`);
     process.exit(1);
   }
   writeFileSync(LOCK, JSON.stringify({ pid: process.pid, at: Date.now() }));

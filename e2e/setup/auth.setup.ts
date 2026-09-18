@@ -38,11 +38,22 @@ function within<T>(work: Promise<T>, what: string): Promise<T> {
  * failure, and the second attempt starts on a fresh context because a
  * half-finished sign-in leaves cookies the next one would mistake for a
  * session.
+ *
+ * That second context has to be a peer of the first, not a bare one: a
+ * context Playwright did not build from the fixture carries none of the
+ * project's `use`, and `baseURL` is the one this sign-in cannot do without —
+ * without it `goto('/login')` fails on the spot with an invalid URL, so the
+ * retry would report the wrong error on the very stall it exists for. The
+ * options are read back off the project rather than written out again here,
+ * so a change in the config reaches this path too.
  */
 async function signIn(browser: Browser, first: Page): Promise<Page> {
+  const { baseURL, userAgent, viewport, ignoreHTTPSErrors } = setup.info().project.use;
   let last: unknown;
   for (const attempt of [1, 2]) {
-    const page = attempt === 1 ? first : await (await browser.newContext()).newPage();
+    const page = attempt === 1
+      ? first
+      : await (await browser.newContext({ baseURL, userAgent, viewport, ignoreHTTPSErrors })).newPage();
     try {
       await within((async () => {
         await page.goto('/login');
