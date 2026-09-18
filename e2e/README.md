@@ -109,3 +109,11 @@ trace, reproduce the failure locally: outside CI a retry records one, and
                the second user's session, the workspace ids, the phone predicate
     fakes/     the three fakes and their client
     specs/     one file per feature
+
+The editor is covered twice because it is two products.
+`editor-desktop.e2e.ts` asserts the slash menu, the bubble menus and the
+keyboard, on `desktop-chromium` only; `editor-phone.e2e.ts` asserts the tap
+model, the bar's faces, the sheets and the dock, on `phone-chromium` only.
+Delete's escalation through wrappers is asserted on the phone because
+`deleteBlock` is wired only to the phone's action bar — the desktop's delete
+paths remove exactly the block.

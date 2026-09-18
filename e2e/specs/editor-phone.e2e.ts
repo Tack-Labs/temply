@@ -434,4 +434,80 @@ test.describe('editor on the phone', () => {
     await expect.poll(async () => eachOf(await api.getTemplate(t.id)),
       { message: 'the saved Repeat names the list it walks' }).toBe('orders');
   });
+
+  test('a block moves within its parent, and duplicates in place', async ({ page, api, name }) => {
+    const t = await api.createTemplate({ title: name('move'), content: TWO_PARAGRAPHS });
+    await page.goto(`/templates/${t.id}`);
+    await phone.ready(page);
+    const paragraphs = page.locator('.ProseMirror > p');
+
+    await phone.tapBlock(page, paragraphs.nth(1));
+    await expect(phone.bar(page).button('Move down')).toBeDisabled();
+    await phone.bar(page).button('Move up').click();
+    await expect(paragraphs.nth(0)).toHaveText('A second paragraph');
+    await expect(page.locator('.ProseMirror-selectednode')).toHaveText('A second paragraph');
+    await expect(phone.bar(page).button('Move up')).toBeDisabled();
+
+    await phone.bar(page).button('Duplicate').click();
+    await expect(page.locator('.ProseMirror').getByText('A second paragraph')).toHaveCount(2);
+    await expect(page.locator('.ProseMirror-selectednode')).toHaveText('A second paragraph');
+  });
+
+  test('a block inside a wrapper moves only inside it', async ({ page, api, name }) => {
+    const doc = JSON.stringify({
+      type: 'doc',
+      content: [paragraph('Before'), { type: 'repeat', attrs: { each: 'items', showIfKey: null }, content: [paragraph('First inside'), paragraph('Second inside')] }],
+    });
+    const t = await api.createTemplate({ title: name('move inside'), content: doc });
+    await page.goto(`/templates/${t.id}`);
+    await phone.ready(page);
+
+    // The first block of a Repeat is first in its own parent, whatever sits
+    // above the Repeat itself. The row is asked for as a paragraph a screen
+    // reader can reach, because the Repeat's preview copies carry the same
+    // words and a text query would match those too.
+    await phone.tapBlock(page, page.locator('.ProseMirror').getByRole('paragraph').filter({ hasText: 'First inside' }));
+    await expect(phone.bar(page).button('Move up')).toBeDisabled();
+    await phone.bar(page).button('Move down').click();
+    await expect(page.locator('.ProseMirror [data-type="repeat"] p').first()).toHaveText('Second inside');
+    await expect(page.locator('.ProseMirror > p').first()).toHaveText('Before');
+  });
+
+  test('Delete takes the wrapper when it takes the last block in it', async ({ page, api, name }) => {
+    const doc = JSON.stringify({
+      type: 'doc',
+      content: [
+        paragraph('Keep me'),
+        { type: 'bulletList', content: [{ type: 'listItem', content: [paragraph('Only item')] }] },
+        { type: 'blockquote', content: [paragraph('Only quote')] },
+      ],
+    });
+    const t = await api.createTemplate({ title: name('delete escalates'), content: doc });
+    await page.goto(`/templates/${t.id}`);
+    await phone.ready(page);
+    const pm = page.locator('.ProseMirror');
+
+    await phone.tapBlock(page, pm.getByText('Only item'));
+    await phone.bar(page).button('Delete').click();
+    await expect(pm.locator('ul')).toHaveCount(0);
+
+    await phone.tapBlock(page, pm.getByText('Only quote'));
+    await phone.bar(page).button('Delete').click();
+    await expect(pm.locator('blockquote')).toHaveCount(0);
+    await expect(pm.getByText('Keep me')).toBeVisible();
+  });
+
+  test('an empty column beside a full one cannot be deleted', async ({ page, api, name }) => {
+    const column = (text?: string) => ({ type: 'column', attrs: {}, content: [text ? paragraph(text) : { type: 'paragraph' }] });
+    const doc = JSON.stringify({ type: 'doc', content: [{ type: 'columns', content: [column('Left has words'), column()] }] });
+    const t = await api.createTemplate({ title: name('empty column'), content: doc });
+    await page.goto(`/templates/${t.id}`);
+    await phone.ready(page);
+
+    // A column is never deleted on its own: emptying one beside a full one
+    // would leave the row lopsided, so the product refuses.
+    await phone.tapBlock(page, page.locator('.ProseMirror div[data-type="column"]').nth(1).locator('p'));
+    await expect(phone.bar(page).button('Delete')).toBeDisabled();
+    await expect(page.locator('.ProseMirror div[data-type="column"]')).toHaveCount(2);
+  });
 });
