@@ -61,6 +61,16 @@ export function SectionBubbleMenu(props: EditorBubbleMenuProps) {
     };
     const dismiss = (event: KeyboardEvent) => {
       if (event.key !== 'Escape' || !tippyRef.current?.state.isVisible) return;
+      // Escape belongs to the innermost thing that is open. This menu holds a
+      // Show if popover, a colour popover and four dropdowns, each a Radix
+      // layer that answers Escape itself — and Radix listens on `document`
+      // too, without stopping propagation, so one keystroke aimed at a
+      // dropdown would close it and take the whole menu down behind it. Radix
+      // wraps every open popup in a popper wrapper and unmounts it on close,
+      // which is the one signal that holds whether the popup is portaled out
+      // of this menu (the dropdowns) or rendered inside it (the popovers),
+      // and whether or not the focus ever left the canvas.
+      if (document.querySelector('[data-radix-popper-content-wrapper]')) return;
       dismissedSection.current = getClosestNodeByName(editor, 'section')?.pos ?? null;
       tippyRef.current.hide();
     };

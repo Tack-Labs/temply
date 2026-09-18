@@ -255,7 +255,11 @@ test.describe('editor on the desktop', () => {
     await expectOnScreen(page, section, 'the section menu');
     await section.getByRole('button', { name: 'Padding' }).click();
     await expectOnScreen(page, page.getByRole('menu'), 'the Padding menu');
+    // Escape closes the popup it was aimed at and nothing behind it: the menu
+    // holding the control has to still be there to use.
     await page.keyboard.press('Escape');
+    await expect(page.getByRole('menu'), 'Escape closes the Padding menu').toBeHidden();
+    await expectOnScreen(page, section, 'the section menu after the Padding menu closes');
 
     // Columns: the widths popup is the one that can overflow the pane. The
     // insert leaves the caret in the first column, so the menu is up without
