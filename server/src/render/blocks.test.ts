@@ -295,9 +295,14 @@ describe('node types the schema dropped', () => {
     const source = await Bun.file(
       new URL('./engine.tsx', import.meta.url)
     ).text();
+    // All three quote characters: `singleQuote` is configured for the client
+    // only and no lint gate reaches `server/`, so a double-quoted comparison
+    // here would be nobody's mistake and the scan's blind spot.
     const compared = [
       ...new Set(
-        [...source.matchAll(/\.type\s*(?:===|!==)\s*'([^']+)'/g)].map((m) => m[1])
+        [...source.matchAll(/\.type\s*(?:===|!==)\s*(['"`])([^'"`]+)\1/g)].map(
+          (m) => m[2]
+        )
       ),
     ];
     const known = new Set([...schemaTypes(), ...BACK_COMPAT_TYPES]);
