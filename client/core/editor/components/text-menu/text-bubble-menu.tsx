@@ -35,7 +35,7 @@ export type EditorBubbleMenuProps = Omit<BubbleMenuProps, 'children'> & {
 };
 
 export function TextBubbleMenu(props: EditorBubbleMenuProps) {
-  const { editor, appendTo } = props;
+  const { editor } = props;
 
   if (!editor) {
     return null;
@@ -43,7 +43,6 @@ export function TextBubbleMenu(props: EditorBubbleMenuProps) {
 
   const bubbleMenuProps: EditorBubbleMenuProps = {
     ...props,
-    ...(appendTo ? { appendTo: appendTo.current } : {}),
     pluginKey: 'text-menu',
     shouldShow: ({ editor, from, view }) => {
       if (!view || editor.view.dragging) {
@@ -71,6 +70,16 @@ export function TextBubbleMenu(props: EditorBubbleMenuProps) {
       return isTextSelected(editor) && !isNestedNodeSelected;
     },
     tippyOptions: {
+      // This menu hangs off the page rather than off the editor's pane, and
+      // it is the only one that has to: the popovers it opens are taller
+      // than it is, and the Content card clips what leaves it — starting
+      // well above the canvas, behind the header and the preflight panel.
+      // A Turn into opened on the one-line document every new template
+      // starts from flips upwards for want of room below, and inside the
+      // pane its first rows were cut off where no click could reach them.
+      // The popovers stay inside this menu, so they still take their type
+      // from it rather than from the heading the caret is in.
+      appendTo: () => document.body,
       popperOptions: {
         placement: 'top-start',
         modifiers: [

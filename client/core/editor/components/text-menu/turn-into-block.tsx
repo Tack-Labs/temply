@@ -50,6 +50,10 @@ export function TurnIntoBlock(props: TurnIntoBlockProps) {
         align="start"
         side="bottom"
         sideOffset={8}
+        // The list is taller than the room under a menu that sits near the
+        // foot of the window, so it flips; the padding keeps the row it
+        // flips onto off the very edge of the viewport.
+        collisionPadding={8}
         className="mly:flex mly:w-[160px] mly:flex-col mly:rounded-md mly:p-1"
       >
         {options.map((option, index) => {

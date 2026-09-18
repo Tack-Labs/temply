@@ -170,14 +170,12 @@ test.describe('editor on the desktop', () => {
 
   test('selecting text raises the menu that formats it', async ({ page, api, name }) => {
     // A document of many lines, worked on in the middle of it, which is the
-    // shape a real one has. The Turn into popover is not portaled — by
-    // design, so a heading cannot bleed its type into the form it opens — so
-    // it is clipped by whatever clips the editor's pane, and it opens upwards
-    // whenever the viewport has no room below. The one-line document a new
-    // template starts with therefore puts its first rows above the canvas,
-    // out of reach; the case below this one pins that. Twenty-four lines is
-    // enough to clear the popover at the 1300×900 this project runs at, and
-    // the assertion before the click is what says so rather than the count.
+    // shape a real one has — the one-line shape every new template starts
+    // from is the case below. The Turn into popover stays inside the menu
+    // rather than being portaled, by design, so a heading cannot bleed its
+    // type into the form it opens; the menu itself hangs off the page rather
+    // than off the editor's pane, so nothing clips the popover wherever the
+    // room runs out and it flips.
     const lines = Array.from({ length: 24 }, (_, i) => `Line ${i + 1}`);
     const content = JSON.stringify({
       type: 'doc',
@@ -203,30 +201,23 @@ test.describe('editor on the desktop', () => {
     await menu.getByRole('button').first().click();
     const turnInto = menu.getByRole('dialog').filter({ hasText: 'Heading 1' });
     await expectOnScreen(page, turnInto, 'the Turn into popover');
-    const canvasBox = (await pm.boundingBox())!;
-    const popover = (await turnInto.boundingBox())!;
-    expect(popover.y, 'the popover opens inside the canvas, where all of its rows can be clicked')
-      .toBeGreaterThanOrEqual(canvasBox.y);
     await turnInto.getByRole('button', { name: 'Heading 1', exact: true }).click();
     await expect(pm.locator('h1')).toHaveText('Line 12');
   });
 
-  test('on a one-line template the Turn into rows a customer wants cannot be pressed', async ({ page, api, name }) => {
-    // Characterisation, not a wish: this pins the product as it stands. A new
-    // template is one line, so this is the first Turn into any customer
-    // opens. The popover is rendered inline rather than portaled and flips
-    // upwards because the viewport has no room below, which puts its top rows
-    // — Paragraph, Heading 1, Heading 2 — outside the editor pane, and the
-    // pane clips them: the Content card is `overflow-hidden`, and it starts
-    // well above the canvas, behind the header and the preflight panel.
+  test('on a one-line template the Turn into rows a customer wants can be pressed', async ({ page, api, name }) => {
+    // A new template is one line, so this is the first Turn into any
+    // customer opens, and the hardest place to put one: there is no room
+    // below the menu, so the popover flips upwards and its top rows —
+    // Paragraph, Heading 1, Heading 2 — land above the canvas, where the
+    // Content card's `overflow-hidden` reaches. Nothing there may clip it.
     //
     // What is asserted is what sits on top at the point a customer would
     // press, not where the popup sits: geometry alone cannot tell the two
-    // apart, since a popover positioned exactly here is perfectly usable once
-    // nothing clips it. When this goes red the product has improved — the row
-    // can be pressed — so rewrite this case as the reachability one above and
-    // drop the twenty-four-line seed that case needs.
-    const t = await api.createTemplate({ title: name('clipped') });
+    // apart, since a popover positioned exactly here reads as fine while a
+    // pane is clipping it. The click after it is the proof twice over —
+    // Playwright will not press an element something else is covering.
+    const t = await api.createTemplate({ title: name('one line') });
     const pm = await openEditor(page, t.id);
     await pm.getByText('Hello from e2e').click({ clickCount: 3 });
 
@@ -240,8 +231,10 @@ test.describe('editor on the desktop', () => {
       ([x, y]) => !!document.elementFromPoint(x, y)?.closest('[role="dialog"]'),
       [row.x + row.width / 2, row.y + row.height / 2] as [number, number]
     );
-    expect(reachable, 'the Heading 1 row is still covered: the point over it belongs to something outside the popover')
-      .toBe(false);
+    expect(reachable, 'the point over the Heading 1 row belongs to the popover, so a click there reaches it')
+      .toBe(true);
+    await turnInto.getByRole('button', { name: 'Heading 1', exact: true }).click();
+    await expect(pm.locator('h1')).toHaveText('Hello from e2e');
   });
 
   test('the spacer, section and columns menus open their popups on screen', async ({ page, api, name }) => {
