@@ -62,7 +62,7 @@ export function DesktopEditorLayout({
     previewHtml, isPreviewPending, htmlSource, textSource,
     preflight, preflightExpanded, setPreflightExpanded,
     saveStatus, autosave, unpublished, publishedAt, publishedLabel,
-    isPublishing, publishArmed, handlePublish, sendArmed, handleSend, handleDiscarded,
+    isPublishing, publishArmed, handlePublish, sendArmed, handleSend, handleDiscarded, handleRestored,
     shortCodeCopied, copyShortCode,
   } = model;
 
@@ -89,6 +89,7 @@ export function DesktopEditorLayout({
             templateId={template.id}
             hasUnpublishedChanges={unpublished}
             onDiscarded={handleDiscarded}
+            onRestored={handleRestored}
           />
           <ShareLinkPopover templateId={template.id} initialToken={template.share_token ?? null} />
         </div>

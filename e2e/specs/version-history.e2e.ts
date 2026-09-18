@@ -1,6 +1,6 @@
 import type { Page } from '@playwright/test';
 import { test, expect } from '../fixtures/test';
-import { onPhone, renameTo, openMore, publish } from '../fixtures/editor';
+import { onPhone, renameTo, openMore, publish, subjectField } from '../fixtures/editor';
 
 /**
  * Publishes, waits for the server to have kept the version, and reads the
@@ -47,12 +47,14 @@ test.describe('version history', () => {
     await expect(dialog.getByRole('button', { name: 'Preview version 2' })).toBeVisible();
     await expect(dialog.getByRole('button', { name: 'Preview version 1' })).toBeVisible();
 
-    // Restore asks nothing; the toast and the draft's title are what change.
-    // The open canvas may not repaint until a reload, so the title is read
-    // back through the API rather than off the page.
+    // Restore asks nothing; the toast, the draft on the server and what is
+    // on screen are what change. The screen is the half that used to wait
+    // for a reload: the editor kept the document and the subject the restore
+    // had just replaced, so the page said one thing and the row another.
     const row = dialog.getByRole('listitem').filter({ has: page.getByRole('button', { name: 'Preview version 1' }) });
     await row.getByRole('button', { name: 'Restore' }).click();
-    await expect(page.getByText('Version restored successfully.')).toBeVisible();
+    await expect(page.getByText('Version restored', { exact: true })).toBeVisible();
     await expect.poll(async () => (await api.getTemplate(id)).title).toBe(first);
+    await expect(await subjectField(page), 'the open editor shows the restored subject without a reload').toHaveValue(first);
   });
 });

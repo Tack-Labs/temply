@@ -37,6 +37,8 @@ type VersionHistoryDialogProps = {
   hasUnpublishedChanges?: boolean;
   /** The draft was replaced by the published copy; the editor should show it. */
   onDiscarded?: (template: Mail) => void;
+  /** The draft was replaced by a version; the editor should show it. */
+  onRestored?: (template: Mail) => void;
   /** Replaces the default button — the phone opens this from a menu item, and
    *  a dialog trigger has to be the item itself or the menu eats the tap. */
   trigger?: React.ReactElement;
@@ -46,6 +48,7 @@ export function VersionHistoryDialog({
   templateId,
   hasUnpublishedChanges = false,
   onDiscarded,
+  onRestored,
   trigger,
 }: VersionHistoryDialogProps) {
   const router = useRouter();
@@ -61,14 +64,19 @@ export function VersionHistoryDialog({
 
   const { mutateAsync: restoreVersion, isPending: isRestoring } = useMutation({
     mutationFn: (versionId: string) =>
-      httpPost(`/api/v1/templates/${templateId}/versions/${versionId}/restore`, {}),
-    onSuccess: () => {
-      toast.success('Version restored successfully.');
+      httpPost<{ template: Mail }>(`/api/v1/templates/${templateId}/versions/${versionId}/restore`, {}),
+    onSuccess: (data) => {
+      toast.success('Version restored');
       setOpen(false);
       setPreviewVersion(null);
+      // The canvas is still holding the document the restore replaced, so
+      // the row that comes back with the response is put on screen. A route
+      // refresh alone would not: the editor is mounted from the content it
+      // opened with and keeps it.
+      onRestored?.(data.template);
       router.refresh();
     },
-    onError: (error) => toast.error(error.message || 'Failed to restore version'),
+    onError: (error) => toast.error(error.message || 'Could not restore the version'),
   });
 
   const { mutateAsync: discardDraft, isPending: isDiscarding } = useMutation({
@@ -92,7 +100,7 @@ export function VersionHistoryDialog({
     onSuccess: (data) => {
       setPreviewVersion(data.version);
     },
-    onError: (error) => toast.error(error.message || 'Failed to load version detail'),
+    onError: (error) => toast.error(error.message || 'Could not open the version'),
   });
 
   if (!templateId) return null;

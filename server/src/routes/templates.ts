@@ -325,5 +325,9 @@ export const templatesRoutes = new Elysia()
     };
     if (version.theme !== null) restorePatch.theme = version.theme;
     await ctx.db.update(mails).set(restorePatch).where(and(eq(mails.id, ctx.params.id), eq(mails.org_id, ctx.orgId)));
-    return json({ status: 'ok' });
+    // The restored row goes back with the response: the editor that asked
+    // for the restore is holding the document this just replaced, and
+    // without the new one on hand it would have to be reloaded to show it.
+    const [restored] = await ctx.db.select().from(mails).where(and(eq(mails.id, ctx.params.id), eq(mails.org_id, ctx.orgId))).limit(1);
+    return json({ template: withFlags(restored) });
   });

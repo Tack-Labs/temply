@@ -469,6 +469,7 @@ export function MobileEditorLayout({
                     templateId={template.id}
                     hasUnpublishedChanges={model.unpublished}
                     onDiscarded={model.handleDiscarded}
+                    onRestored={model.handleRestored}
                     trigger={
                       <DropdownMenuItem className={touchTarget} onSelect={(event) => event.preventDefault()}>
                         <HistoryIcon />

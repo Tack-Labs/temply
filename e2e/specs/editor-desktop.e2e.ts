@@ -765,4 +765,21 @@ test.describe('editor on the desktop', () => {
     await pm.locator('table[data-type="section"] p').first().click();
     await expectOnScreen(page, bubbleMenu(page, 'Delete Section'), 'the section menu again');
   });
+  test('a subject typed as the shell swaps is still saved', async ({ page, api, name }) => {
+    // Crossing 640px swaps the shell and remounts the editor, and the
+    // autosave re-reads its baseline when it does. A baseline taken from
+    // what is on screen counts a keystroke still inside the debounce as
+    // already saved, and it is then never sent — the work is lost with no
+    // sign that anything went.
+    const t = await api.createTemplate({ title: name('shell swap') });
+    await openEditor(page, t.id);
+    const subject = page.getByRole('textbox', { name: 'Subject' });
+    const typed = name('typed through the swap');
+    await subject.fill(typed);
+    // Straight into the swap, inside the 500 ms the autosave waits.
+    await page.setViewportSize({ width: 500, height: 900 });
+    await expect(page.locator('.ProseMirror')).toBeVisible();
+    await expect.poll(async () => (await api.getTemplate(t.id)).title,
+      { message: 'the subject typed before the swap reaches the server' }).toBe(typed);
+  });
 });

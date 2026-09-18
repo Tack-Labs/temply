@@ -128,6 +128,7 @@ export type TemplateEditorModel = {
   isPublishing: boolean; publishArmed: boolean; handlePublish: () => Promise<void>;
   sendArmed: boolean; handleSend: () => Promise<void>;
   handleDiscarded: (row: Mail) => void;
+  handleRestored: (row: Mail) => void;
   // short code
   shortCodeCopied: boolean; copyShortCode: () => Promise<void>;
 };
@@ -172,6 +173,12 @@ export function useTemplateEditor(props: EmailEditorSandboxProps): TemplateEdito
    *  the playground, which has no row, and for templates from before that
    *  rule, which still hold null. */
   const rowTheme = useRef(theme);
+  /** Subject and preview text as the row holds them, kept for the same
+   *  reason `rowTheme` is. Crossing 640px swaps the shell and remounts the
+   *  editor, and the baseline below is re-read when it does; taken from live
+   *  state it would swallow a keystroke still sitting in the debounce —
+   *  counted as already saved, and so never sent. */
+  const savedFields = useRef({ subject, previewText });
 
   // --- Draft and published copy ---------------------------------------------
   // A saved template has two copies on the server: the draft this editor
@@ -212,6 +219,7 @@ export function useTemplateEditor(props: EmailEditorSandboxProps): TemplateEdito
         // save what is already saved.
         savedFingerprint.current = snapshot.fingerprint;
         rowTheme.current = snapshot.theme;
+        savedFields.current = { subject: snapshot.body.title, previewText: snapshot.body.previewText };
       },
       onStatus: setSaveStatus,
     });
@@ -617,8 +625,8 @@ export function useTemplateEditor(props: EmailEditorSandboxProps): TemplateEdito
   // any leftover from that is purged once below, so a returning visitor is
   // never shown it.
   const lastWritten = useRef('');
-  /** Bumped when the screen is reset to the row (a discard), so the baseline
-   *  is re-read once the new state has rendered. */
+  /** Bumped when the screen is reset to the row — a discard or a restore —
+   *  so the baseline is re-read once the new state has rendered. */
   const [baselineKey, setBaselineKey] = useState(0);
 
   /**
@@ -627,14 +635,23 @@ export function useTemplateEditor(props: EmailEditorSandboxProps): TemplateEdito
    * the draft so restoring feels complete, but a template is not "unsaved"
    * because you typed a sender address into it.
    */
-  const persistedFingerprint = (json?: JSONContent, themeAs: RendererThemeOptions = theme) =>
-    JSON.stringify([subject, previewText, json ?? editor?.getJSON() ?? null, themeAs]);
+  const persistedFingerprint = (
+    json?: JSONContent,
+    themeAs: RendererThemeOptions = theme,
+    fieldsAs: { subject: string; previewText: string } = { subject, previewText },
+  ) =>
+    JSON.stringify([fieldsAs.subject, fieldsAs.previewText, json ?? editor?.getJSON() ?? null, themeAs]);
 
   // The baseline: whatever the row held when this editor opened, or was put
-  // back to.
+  // back to. Subject, preview text and theme come from what was saved rather
+  // than from what is on screen — a shell swap re-runs this while a
+  // keystroke may still be waiting in the debounce, and live state would
+  // make that keystroke part of the baseline it is measured against. The
+  // document needs no such copy: `flushContent` hands it over before the new
+  // shell mounts, so the editor read here is already holding it.
   useEffect(() => {
     if (!editor) return;
-    savedFingerprint.current = persistedFingerprint(undefined, rowTheme.current);
+    savedFingerprint.current = persistedFingerprint(undefined, rowTheme.current, savedFields.current);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [editor, baselineKey]);
 
@@ -658,24 +675,40 @@ export function useTemplateEditor(props: EmailEditorSandboxProps): TemplateEdito
     return defaultEmailJSON;
   });
 
-  /** The published copy is on screen again: reset state, then re-baseline. */
-  const handleDiscarded = (row: Mail) => {
+  /** The row is on screen again: reset state, then re-baseline. */
+  const showRow = (row: Mail) => {
+    setSubject(row.title ?? '');
     setPreviewText(row.preview_text ?? '');
     // The baseline and the state are two objects on purpose: one shared
     // between them would let an edit made in place through state move the
     // baseline with it, and the change would never read as unsaved.
     rowTheme.current = themeOfRow(row.theme);
     setTheme(structuredClone(rowTheme.current));
+    savedFields.current = { subject: row.title ?? '', previewText: row.preview_text ?? '' };
     try {
       editor?.commands.setContent(JSON.parse(row.content) as JSONContent);
     } catch {
-      // A corrupt published copy is the server's problem to report; the
-      // screen keeps what it has.
+      // A corrupt row is the server's problem to report; the screen keeps
+      // what it has.
     }
-    setUnpublished(false);
     setPublishedAt(row.published_at ?? null);
     lastWritten.current = '';
     setBaselineKey((k) => k + 1);
+  };
+
+  /** The published copy is on screen again: it is the draft now, so nothing
+   *  is unpublished. */
+  const handleDiscarded = (row: Mail) => {
+    showRow(row);
+    setUnpublished(false);
+  };
+
+  /** A version was written into the draft. The canvas is holding the
+   *  document that restore just replaced, so it is put back from the row the
+   *  server sends with it rather than being left to a reload. */
+  const handleRestored = (row: Mail) => {
+    showRow(row);
+    setUnpublished(hasUnpublishedChanges(row));
   };
 
   // Autosave: debounced and silent. It fires when something actually
@@ -945,7 +978,7 @@ export function useTemplateEditor(props: EmailEditorSandboxProps): TemplateEdito
     previewHtml, isPreviewPending, htmlSource, textSource, previewError,
     preflight, preflightExpanded, setPreflightExpanded,
     saveStatus, autosave, unpublished, publishedAt, publishedLabel,
-    isPublishing, publishArmed, handlePublish, sendArmed, handleSend, handleDiscarded,
+    isPublishing, publishArmed, handlePublish, sendArmed, handleSend, handleDiscarded, handleRestored,
     shortCodeCopied, copyShortCode,
   };
 }
