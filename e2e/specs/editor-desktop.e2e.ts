@@ -867,6 +867,14 @@ test.describe('editor on the desktop', () => {
     await pm.locator('table[data-type="section"] p').first().click();
     await expectOnScreen(page, menu, 'the section menu');
 
+    // With the pointer resting on a control, its tooltip is up — a Radix
+    // layer the customer never asked for. Escape has to reach past it: a
+    // hint that swallowed the press would cost a second one.
+    // Named exactly, because tippy gives every bubble menu the tooltip role
+    // as well and the hint is the one whose whole name is the control's.
+    await menu.getByRole('button', { name: 'Delete Section' }).hover();
+    await expect(page.getByRole('tooltip', { name: 'Delete Section', exact: true }),
+      'the control names itself on hover').toBeVisible();
     await page.keyboard.press('Escape');
     await expect(menu, 'Escape puts the section menu down').toBeHidden();
     // What the dismissal was for: the line the menu was covering takes a

@@ -9,6 +9,42 @@ import { getClosestNodeByName } from '@/editor/utils/columns';
 import { SectionMenuContent } from './section-menu-content';
 import { useEditorGesture } from '@/editor/utils/use-editor-gesture';
 
+/**
+ * Anything Radix positions sits in a popper wrapper; a dialog positions
+ * itself and is named by its role instead. A tooltip is in a wrapper too, and
+ * the `role="tooltip"` element Radix puts inside its own is what tells the
+ * two apart.
+ */
+const OPEN_LAYER = '[data-radix-popper-content-wrapper], [role="dialog"], [role="alertdialog"]';
+
+/**
+ * Whether something in front of this menu will answer the Escape itself.
+ *
+ * Radix answers Escape on `document` in the capture phase and does not stop
+ * the event, so a layer that took the press can already be gone by the time
+ * this bubble-phase listener runs — but a dropdown leaves on an animation and
+ * is still there, and one keystroke aimed at Padding would otherwise close it
+ * and take the whole menu down behind it.
+ *
+ * Two shapes can be in front. Anything Radix positions sits in a popper
+ * wrapper: the four dropdowns and Padding, portaled out of this menu, and
+ * Show if and the colour popovers, rendered inside it. A dialog positions
+ * itself, so its role is what names it — none opens from this menu today, but
+ * the press would be a dialog's to answer if one did.
+ *
+ * A tooltip is the one open layer that does not count. It answers Escape too,
+ * but nobody asked for it — it is on screen because the pointer is resting
+ * somewhere — so letting a hint swallow the press would cost a second one to
+ * put the menu down. Measured, a tooltip has already left by this phase; the
+ * exclusion is so the rule does not quietly depend on that.
+ */
+function layerWillTakeEscape(): boolean {
+  return Array.from(document.querySelectorAll(OPEN_LAYER)).some((layer) => {
+    const hint = layer.querySelector('[role="tooltip"]');
+    return !hint || hint.closest(OPEN_LAYER) !== layer;
+  });
+}
+
 export function SectionBubbleMenu(props: EditorBubbleMenuProps) {
   const { appendTo, editor } = props;
   if (!editor) {
@@ -61,16 +97,9 @@ export function SectionBubbleMenu(props: EditorBubbleMenuProps) {
     };
     const dismiss = (event: KeyboardEvent) => {
       if (event.key !== 'Escape' || !tippyRef.current?.state.isVisible) return;
-      // Escape belongs to the innermost thing that is open. This menu holds a
-      // Show if popover, a colour popover and four dropdowns, each a Radix
-      // layer that answers Escape itself — and Radix listens on `document`
-      // too, without stopping propagation, so one keystroke aimed at a
-      // dropdown would close it and take the whole menu down behind it. Radix
-      // wraps every open popup in a popper wrapper and unmounts it on close,
-      // which is the one signal that holds whether the popup is portaled out
-      // of this menu (the dropdowns) or rendered inside it (the popovers),
-      // and whether or not the focus ever left the canvas.
-      if (document.querySelector('[data-radix-popper-content-wrapper]')) return;
+      // Escape belongs to the innermost thing the customer opened, and only
+      // then to this menu.
+      if (layerWillTakeEscape()) return;
       dismissedSection.current = getClosestNodeByName(editor, 'section')?.pos ?? null;
       tippyRef.current.hide();
     };
