@@ -1,15 +1,20 @@
 import type { Editor } from '@tiptap/core';
-import { useEffect, useRef } from 'react';
+import { useEffect, useMemo } from 'react';
 
 /**
- * Every menu calls this, and only the first of them to see the gesture needs
- * to tell the rest to look again.
+ * Has the customer touched this editor yet, and have the menus been told to
+ * look again. Both hang off the editor, because they only work as a pair: the
+ * telling happens once and then disarms itself, so a flag with a shorter life
+ * than the editor's would go back down with nothing left to raise it. The six
+ * menus that read this are a React subtree of their own, and React is free to
+ * remount one of them without remounting the editor above it.
  */
+const gestured = new WeakSet<Editor>();
 const told = new WeakSet<Editor>();
 
 /**
- * Whether the customer has touched the canvas yet, as a ref every bubble menu
- * can read from its `shouldShow`.
+ * Whether the customer has touched the canvas yet, for every bubble menu to
+ * read from its `shouldShow`.
  *
  * A bubble menu is a response to a gesture. The desktop editor opens with
  * `autofocus="end"`, which parks the caret inside whatever the document ends
@@ -36,9 +41,7 @@ const told = new WeakSet<Editor>();
  * bubble menu already listens to for "look again now", and nothing else in
  * the app reads it.
  */
-export function useEditorGesture(editor: Editor | null | undefined) {
-  const gestured = useRef(false);
-
+export function useEditorGesture(editor: Editor | null | undefined): { readonly current: boolean } {
   useEffect(() => {
     if (!editor) return;
     // The canvas is mounted into a wrapper of tiptap's own making, and the
@@ -51,7 +54,7 @@ export function useEditorGesture(editor: Editor | null | undefined) {
       dom.removeEventListener('keydown', open, true);
     };
     const open = () => {
-      gestured.current = true;
+      gestured.add(editor);
       stop();
       if (told.has(editor)) return;
       told.add(editor);
@@ -62,5 +65,15 @@ export function useEditorGesture(editor: Editor | null | undefined) {
     return stop;
   }, [editor]);
 
-  return gestured;
+  // Shaped like a ref so a `shouldShow` reads it the same way, but answered
+  // from the editor on every read: `shouldShow` is called long after the last
+  // render, and the answer may have been written by one of the other menus.
+  return useMemo(
+    () => ({
+      get current() {
+        return !!editor && gestured.has(editor);
+      },
+    }),
+    [editor]
+  );
 }
