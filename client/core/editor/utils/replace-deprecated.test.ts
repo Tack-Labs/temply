@@ -1,12 +1,11 @@
 import { describe, expect, it } from 'bun:test';
 import '../test/dom';
 import { makeEditor } from '../test/make-editor';
-import { replaceDeprecatedNode, storedDocument } from './replace-deprecated';
+import { storedDocument } from './replace-deprecated';
 
 /**
  * The document shape a template saved before the schema changed still has in
- * the database, put through the rename on its own — `storedDocument` below is
- * the door the app actually uses, and it is tested as such.
+ * the database, put on a canvas through the door the app uses.
  *
  * The assertion is the surrounding text, not the renamed node. tiptap does not
  * drop a node it cannot parse and does not throw on one —
@@ -30,13 +29,13 @@ const stored = (
 const text = (value: string) => [{ type: 'text', text: value }];
 
 const mount = (json: ReturnType<typeof stored>) => {
-  const editor = makeEditor(replaceDeprecatedNode(json) as any);
+  const editor = makeEditor(storedDocument(json) as any);
   const doc = editor.getJSON();
   editor.destroy();
   return doc;
 };
 
-describe('replaceDeprecatedNode', () => {
+describe('the migration a stored document gets', () => {
   it('keeps a stored code block, and the document around it', () => {
     const doc = mount(stored('codeBlock', { language: 'html' }, text('<b>hi</b>')));
 
@@ -157,5 +156,52 @@ describe('storedDocument', () => {
     // document instead would blank the canvas for the one reason the customer
     // can do nothing about.
     expect(() => storedDocument('{ not json')).toThrow();
+  });
+});
+
+/**
+ * `storedDocument` being the only door is a property of the whole client, not
+ * of this file, and until now it held by convention — a reviewer read every
+ * call site once and found one that had drifted. A second parse anywhere is a
+ * second migration policy, and the one that forgets is the one that blanks a
+ * customer's template, so the rule is read off the source instead of
+ * remembered.
+ */
+describe('the one door', () => {
+  const ROOT = Bun.fileURLToPath(new URL('../../../', import.meta.url));
+  /** Its own parse is the row's; everything else has to come through it. */
+  const DOOR = 'core/editor/utils/replace-deprecated.ts';
+
+  async function parsesOfARow() {
+    const glob = new Bun.Glob('**/*.{ts,tsx}');
+    const hits: string[] = [];
+    let scanned = 0;
+
+    for await (const relative of glob.scan({ cwd: ROOT, dot: false })) {
+      if (relative.includes('node_modules') || relative.startsWith('.next/')) {
+        continue;
+      }
+      scanned += 1;
+      const source = await Bun.file(ROOT + relative).text();
+      // The argument, not the call: `JSON.parse(raw)` where `raw` is a theme
+      // column is none of this rule's business, and a row is always named for
+      // what it is — `content`, `previewVersion.content`, `rawContent`.
+      for (const [, argument] of source.matchAll(/JSON\.parse\(([^()]*)\)/g)) {
+        if (/content/i.test(argument)) hits.push(relative);
+      }
+    }
+
+    return { hits, scanned };
+  }
+
+  it('is the only place a stored row is parsed', async () => {
+    const { hits, scanned } = await parsesOfARow();
+
+    expect(hits.filter((file) => file !== DOOR).sort()).toEqual([]);
+    // A regex that has stopped matching passes the assertion above on an
+    // empty result, so both halves of the scan have to be finding something:
+    // the client is a few hundred files, and the door parses a row.
+    expect(scanned).toBeGreaterThan(200);
+    expect(hits).toContain(DOOR);
   });
 });

@@ -3,13 +3,14 @@ import { spacing } from './spacing';
 import { DEFAULT_SPACER_HEIGHT } from '@/extensions';
 
 /**
- * To replace deprecated node type or attributes
- * to avoid breaking changes, we can replace the deprecated node type or attributes
- * with the new one in the JSON content object.
- * @param json - previous JSON content object
- * @returns JSONContent - new JSON content object
+ * Renames the node types and rewrites the attributes a schema change left
+ * behind, so a document written against an older schema still parses.
+ *
+ * Private to this module on purpose: it rewrites in place, and every caller
+ * that reaches for it wants `storedDocument` below — the half that clones
+ * first, so a caller's React state or imported JSON module survives the call.
  */
-export function replaceDeprecatedNode(json: JSONContent) {
+function replaceDeprecatedNode(json: JSONContent) {
   const stack = [json];
 
   while (stack.length) {
