@@ -28,8 +28,9 @@ import { bubbleMenu, docOf, expectOnScreen, insertHere, insertViaSlash, newLine,
 //
 // What this file covers of the bubble menus: the text menu and its Turn into
 // and Show if popovers, the spacer, section, columns, column, repeat and
-// image menus, and the variable pill's own popover. The HTML menu and the
-// inline-image menu are opened nowhere here; they are Plan 4's scope.
+// image menus, and the variable pill's own popover. The HTML menu's own
+// controls and the inline-image menu are asserted nowhere here; they are Plan
+// 4's scope.
 
 /** What a test hands the opener below: its own page and its own seeding. */
 type Seeding = { page: Page; api: ReturnType<typeof makeApi>; name: (what: string) => string };
@@ -750,6 +751,41 @@ test.describe('editor on the desktop', () => {
     await page.keyboard.type('!');
     await expect.poll(async () => (await docOf(api, t.id)).content?.length,
       { message: 'the saved draft still holds two top-level blocks' }).toBe(2);
+  });
+
+  test('a Custom HTML block at the end is a line of its own, and the document goes on after it', async ({ page, api, name }) => {
+    // A code block is a textblock, so the caret sits inside it the way it
+    // sits inside a heading — which is why no line is added after one, and
+    // why that has to be true of the canvas and not only of the schema. The
+    // way out is the one thing a code block does differently: Enter adds a
+    // line of code, and ArrowDown is what makes the paragraph below.
+    const content = {
+      type: 'doc',
+      content: [
+        { type: 'paragraph', content: [{ type: 'text', text: 'Above the markup' }] },
+        { type: 'htmlCodeBlock', content: [{ type: 'text', text: '<b>bold</b>' }] },
+      ],
+    };
+    const t = await api.createTemplate({ title: name('trailing html'), content: JSON.stringify(content) });
+    const pm = await openEditor(page, t.id);
+
+    const block = pm.locator('[data-type="htmlCodeBlock"]');
+    await expect(block, 'the block the document ends in has painted').toHaveText('<b>bold</b>');
+    await expect(pm.locator('> *'), 'the canvas holds the two blocks the document holds').toHaveCount(2);
+
+    // The caret is a real one: a character typed at the end of the block
+    // lands in the markup rather than anywhere else.
+    await block.click();
+    await page.keyboard.press('End');
+    await page.keyboard.type('!');
+    await expect(block, 'the block takes what is typed into it').toHaveText('<b>bold</b>!');
+
+    // And the document continues: ArrowDown out of the block makes the line
+    // that a trailing paragraph would otherwise have had to provide.
+    await page.keyboard.press('ArrowDown');
+    await page.keyboard.type('After the markup');
+    await expect(pm.locator('> p').last(), 'ArrowDown out of the block makes the next line')
+      .toHaveText('After the markup');
   });
 
   test('a Section’s menu waits for the customer to ask for it', async ({ page, api, name }) => {

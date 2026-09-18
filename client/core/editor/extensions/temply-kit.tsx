@@ -45,22 +45,33 @@ export type TemplyKitOptions = {
 };
 
 /**
- * The last blocks of a document after which ProseMirror can already place a
- * caret: a textblock the caret sits inside, or a block a gap cursor is valid
- * after. Everything not named here — `bulletList`, `orderedList` and
- * `blockquote` — leaves no position at the top level at all, so the next block
- * a customer asks for is built inside the wrapper instead of after it.
+ * The last blocks of a document that already give the customer somewhere to
+ * type, so a line added after them would buy nothing.
+ *
+ * Two shapes answer that. A textblock takes the caret inside itself —
+ * `paragraph`, `heading` and `footer`, and the two code blocks, where the
+ * caret blinks in the `pre` and typing lands in it exactly as it does in a
+ * heading. Everything else named here is an atom or a wrapper that
+ * ProseMirror puts a gap cursor after, which is a caret at the top level in
+ * its own right. The code blocks are the one pair where getting *out* is not
+ * Enter — Enter adds a line of code — but ArrowDown at the end of one makes
+ * the paragraph after it, so the document still continues.
+ *
+ * Everything not named — `bulletList`, `orderedList` and `blockquote` — puts
+ * the only caret it has inside a wrapper, so the next block a customer asks
+ * for is built in there rather than after it.
  *
  * A document the customer never edited must not change shape when we open it,
  * so the trailing line is added only where there is genuinely nowhere else to
  * go. It renders as a blank line at the foot of the email, which is the price
- * of being able to type there at all; anywhere a caret already fits, that
- * price buys nothing.
+ * of being able to type there at all.
  */
-const CARET_FITS_AFTER = [
+const ALREADY_SOMEWHERE_TO_TYPE = [
   'paragraph',
   'heading',
   'footer',
+  'codeBlock',
+  'htmlCodeBlock',
   'section',
   'columns',
   'repeat',
@@ -97,7 +108,7 @@ export const TemplyKit = Extension.create<TemplyKitOptions>({
       // everything added afterwards is built in there. One empty paragraph is
       // kept at the end of those so the document always has a line of its own
       // to continue on.
-      TrailingNode.configure({ notAfter: CARET_FITS_AFTER }),
+      TrailingNode.configure({ notAfter: ALREADY_SOMEWHERE_TO_TYPE }),
       Document.extend({
         content: '(block|columns)+',
       }),
