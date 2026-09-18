@@ -18,10 +18,15 @@ const told = new WeakSet<Editor>();
  * covering the block above it before anyone had asked for it. The caret is in
  * the right place; the menu is not, because nobody made a selection.
  *
- * The listeners sit on the editor's own DOM in the capture phase, so the flag
- * is already true by the time ProseMirror turns the gesture into a selection
- * and the menus re-ask. They come off again once it has been seen: the flag
- * never goes back down, so there is nothing left for them to do.
+ * The listeners sit in the capture phase on the element that holds the canvas
+ * rather than on the canvas itself, so the flag is already true by the time
+ * ProseMirror turns the gesture into a selection and the menus re-ask. The
+ * wrapper is what makes the drag handle count: its container is a sibling of
+ * the canvas, not a child of it, so the "+" and the grip — both of which put
+ * a block under the caret without the pointer ever touching `view.dom` —
+ * would otherwise leave the gate down and the new block's menu with it. They
+ * come off again once the gesture has been seen: the flag never goes back
+ * down, so there is nothing left for them to do.
  *
  * That first gesture also has to make the menus re-ask, because it often
  * changes nothing for them to notice: a click inside the block the caret is
@@ -36,7 +41,11 @@ export function useEditorGesture(editor: Editor | null | undefined) {
 
   useEffect(() => {
     if (!editor) return;
-    const dom = editor.view.dom;
+    // The canvas is mounted into a wrapper of tiptap's own making, and the
+    // drag handle hangs off that wrapper. There is no frame in which the one
+    // exists without the other, but a canvas with no parent is a canvas, so
+    // the gate falls back to it rather than going unarmed.
+    const dom = editor.view.dom.parentElement ?? editor.view.dom;
     const stop = () => {
       dom.removeEventListener('pointerdown', open, true);
       dom.removeEventListener('keydown', open, true);

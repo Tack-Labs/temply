@@ -813,6 +813,34 @@ test.describe('editor on the desktop', () => {
     await expectOnScreen(page, bubbleMenu(page, 'Delete Section'), 'the section menu after the click');
   });
 
+  test('a Section inserted with the mouse alone carries its menu', async ({ page, api, name }) => {
+    // The whole route out of the canvas: the drag handle sits beside the
+    // canvas in the DOM and the block panel on the body, so a customer who
+    // hovers a block, presses "+" and picks a block never touches the canvas
+    // itself. That is as unmistakably a gesture as a click in the text, and
+    // the block it makes has to arrive with its menu up — the menu is the
+    // only way to reach what a Section can be told to do.
+    const doc = JSON.stringify({
+      type: 'doc',
+      content: [{ type: 'paragraph', content: [{ type: 'text', text: 'The only line' }] }],
+    });
+    const t = await api.createTemplate({ title: name('handle insert'), content: doc });
+    const pm = await openEditor(page, t.id);
+    await expect(pm.locator('> p')).toHaveText('The only line');
+
+    // Hovering is not a gesture — nothing is asked for by it — but it is what
+    // brings the handle out.
+    await pm.locator('> p').hover();
+    const add = page.getByRole('button', { name: 'Add a block below' });
+    await expect(add, 'the drag handle offers a block below').toBeVisible();
+    await add.click();
+
+    await expect(slashRow(page, 'Section')).toBeVisible();
+    await slashRow(page, 'Section').click();
+    await expect(pm.locator('table[data-type="section"]'), 'the Section is inserted').toHaveCount(1);
+    await expectOnScreen(page, bubbleMenu(page, 'Delete Section'), 'the section menu after the insert');
+  });
+
   test('a Section’s menu can be put down, and gives the block above back', async ({ page, api, name }) => {
     // The menu hangs over whatever sits above the Section, so while it is up
     // that block can be neither read nor clicked. Escape is the way to put
