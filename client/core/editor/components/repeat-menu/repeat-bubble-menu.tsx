@@ -11,12 +11,9 @@ import { useEditorGesture } from '@/editor/utils/use-editor-gesture';
 
 export function RepeatBubbleMenu(props: EditorBubbleMenuProps) {
   const { appendTo, editor } = props;
-  if (!editor) {
-    return null;
-  }
 
   const getReferenceClientRect = useCallback(() => {
-    const renderContainer = getRenderContainer(editor!, 'repeat');
+    const renderContainer = editor && getRenderContainer(editor, 'repeat');
     const rect =
       renderContainer?.getBoundingClientRect() ||
       new DOMRect(-1000, -1000, 0, 0);
@@ -42,6 +39,7 @@ export function RepeatBubbleMenu(props: EditorBubbleMenuProps) {
   // be too late. Every transaction re-asks; setProps is a no-op when unchanged.
   const tippyRef = useRef<Instance | null>(null);
   useEffect(() => {
+    if (!editor) return;
     const place = () => {
       const placement = sectionIsActiveInside(editor) ? 'bottom' : 'top';
       const instance = tippyRef.current;
@@ -52,6 +50,10 @@ export function RepeatBubbleMenu(props: EditorBubbleMenuProps) {
       editor.off('transaction', place);
     };
   }, [editor]);
+
+  if (!editor) {
+    return null;
+  }
 
   const bubbleMenuProps: EditorBubbleMenuProps = {
     ...props,

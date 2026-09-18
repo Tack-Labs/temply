@@ -47,12 +47,9 @@ function layerWillTakeEscape(): boolean {
 
 export function SectionBubbleMenu(props: EditorBubbleMenuProps) {
   const { appendTo, editor } = props;
-  if (!editor) {
-    return null;
-  }
 
   const getReferenceClientRect = useCallback(() => {
-    const renderContainer = getRenderContainer(editor!, 'section');
+    const renderContainer = editor && getRenderContainer(editor, 'section');
     const rect =
       renderContainer?.getBoundingClientRect() ||
       new DOMRect(-1000, -1000, 0, 0);
@@ -90,6 +87,7 @@ export function SectionBubbleMenu(props: EditorBubbleMenuProps) {
   // another section, or out of every section and back, is asking again.
   const dismissedSection = useRef<number | null>(null);
   useEffect(() => {
+    if (!editor) return;
     const place = () => {
       const placement = repeatIsActiveInside(editor) ? 'bottom' : 'top';
       const instance = tippyRef.current;
@@ -110,6 +108,10 @@ export function SectionBubbleMenu(props: EditorBubbleMenuProps) {
       document.removeEventListener('keydown', dismiss);
     };
   }, [editor]);
+
+  if (!editor) {
+    return null;
+  }
 
   const bubbleMenuProps: EditorBubbleMenuProps = {
     ...props,

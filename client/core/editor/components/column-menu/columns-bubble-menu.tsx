@@ -10,12 +10,9 @@ import { useEditorGesture } from '@/editor/utils/use-editor-gesture';
 
 export function ColumnsBubbleMenu(props: EditorBubbleMenuProps) {
   const { appendTo, editor } = props;
-  if (!editor) {
-    return null;
-  }
 
   const getReferenceClientRect = useCallback(() => {
-    const renderContainer = getRenderContainer(editor!, 'columns');
+    const renderContainer = editor && getRenderContainer(editor, 'columns');
     const rect =
       renderContainer?.getBoundingClientRect() ||
       new DOMRect(-1000, -1000, 0, 0);
@@ -26,6 +23,10 @@ export function ColumnsBubbleMenu(props: EditorBubbleMenuProps) {
   // A menu answers a gesture. Until the customer has touched the canvas the
   // caret is only where `autofocus` parked it, and this menu stays down.
   const gestured = useEditorGesture(editor);
+
+  if (!editor) {
+    return null;
+  }
 
   const bubbleMenuProps: EditorBubbleMenuProps = {
     ...props,

@@ -8,15 +8,16 @@ import { useEditorGesture } from '@/editor/utils/use-editor-gesture';
 
 export function SpacerBubbleMenu(props: EditorBubbleMenuProps) {
   const { editor } = props;
-  if (!editor) {
-    return null;
-  }
 
   const state = useSpacerState(editor);
 
   // A menu answers a gesture. Until the customer has touched the canvas the
   // caret is only where `autofocus` parked it, and this menu stays down.
   const gestured = useEditorGesture(editor);
+
+  if (!editor) {
+    return null;
+  }
 
   const bubbleMenuProps: EditorBubbleMenuProps = {
     ...props,

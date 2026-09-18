@@ -45,6 +45,8 @@ type TextBubbleMenuProps = Omit<EditorBubbleMenuProps, 'appendTo'>;
 export function TextBubbleMenu(props: TextBubbleMenuProps) {
   const { editor } = props;
 
+  const turnIntoBlockOptions = useTurnIntoBlockOptions(editor);
+
   if (!editor) {
     return null;
   }
@@ -109,8 +111,6 @@ export function TextBubbleMenu(props: TextBubbleMenuProps) {
       maxWidth: '100%',
     },
   };
-
-  const turnIntoBlockOptions = useTurnIntoBlockOptions(editor);
 
   return (
     <BubbleMenu
