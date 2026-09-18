@@ -724,4 +724,45 @@ test.describe('editor on the desktop', () => {
     await expect(pm.locator('> h2'), 'the heading is a sibling of the Section, not a child').toHaveText('After the section');
     await expect(pm.locator('table[data-type="section"] h2')).toHaveCount(0);
   });
+  test('a Section’s menu can be put down, and gives the block above back', async ({ page, api, name }) => {
+    // The menu hangs over whatever sits above the Section, so while it is up
+    // that block can be neither read nor clicked. Escape is the way to put
+    // it down, and the only one: there is nowhere else to click that does
+    // not first go through the menu.
+    const doc = JSON.stringify({
+      type: 'doc',
+      content: [
+        { type: 'paragraph', content: [{ type: 'text', text: 'The line above' }] },
+        { type: 'section', content: [{ type: 'paragraph', content: [{ type: 'text', text: 'Inside' }] }] },
+      ],
+    });
+    const t = await api.createTemplate({ title: name('dismiss section'), content: doc });
+    const pm = await openEditor(page, t.id);
+    // A document ending in a Section gains its trailing line on the first
+    // transaction after it opens, and that redraws the canvas. The empty
+    // last paragraph is what says the redraw has happened; clicking before
+    // it can land on a node ProseMirror is in the middle of replacing, and
+    // the caret never reaches the Section.
+    await expect(pm.locator('> p').last()).toBeEmpty();
+
+    await pm.locator('table[data-type="section"] p').first().click();
+    const menu = bubbleMenu(page, 'Delete Section');
+    await expectOnScreen(page, menu, 'the section menu');
+
+    await page.keyboard.press('Escape');
+    await expect(menu, 'Escape puts the section menu down').toBeHidden();
+    // What the dismissal was for: the line the menu was covering takes a
+    // click again. Playwright refuses to click through whatever is on top,
+    // so the click landing is half the assertion; the character typed into
+    // that line is the other half — the caret went where the click did.
+    await pm.getByText('The line above').click();
+    await page.keyboard.press('End');
+    await page.keyboard.type('!');
+    await expect(pm.locator('> p').first(), 'the line the menu was covering takes the caret back').toHaveText('The line above!');
+
+    // Asking again brings it back: the dismissal was of this visit to the
+    // Section, not of the menu for good.
+    await pm.locator('table[data-type="section"] p').first().click();
+    await expectOnScreen(page, bubbleMenu(page, 'Delete Section'), 'the section menu again');
+  });
 });

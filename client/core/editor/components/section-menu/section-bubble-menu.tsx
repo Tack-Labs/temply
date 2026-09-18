@@ -38,15 +38,28 @@ export function SectionBubbleMenu(props: EditorBubbleMenuProps) {
   // up when the caret moves into the nested block, so a show-time hook would
   // be too late. Every transaction re-asks; setProps is a no-op when unchanged.
   const tippyRef = useRef<Instance | null>(null);
+  // The menu sits over the block above the section, so a customer who wants
+  // to read or click that block needs a way to put the menu down without
+  // first having to click through it. Escape is that way, and it is the
+  // section that was dismissed rather than the menu: moving the caret to
+  // another section, or out of every section and back, is asking again.
+  const dismissedSection = useRef<number | null>(null);
   useEffect(() => {
     const place = () => {
       const placement = repeatIsActiveInside(editor) ? 'bottom' : 'top';
       const instance = tippyRef.current;
       if (instance && instance.props.placement !== placement) instance.setProps({ placement });
     };
+    const dismiss = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape' || !tippyRef.current?.state.isVisible) return;
+      dismissedSection.current = getClosestNodeByName(editor, 'section')?.pos ?? null;
+      tippyRef.current.hide();
+    };
     editor.on('transaction', place);
+    document.addEventListener('keydown', dismiss);
     return () => {
       editor.off('transaction', place);
+      document.removeEventListener('keydown', dismiss);
     };
   }, [editor]);
 
@@ -55,6 +68,11 @@ export function SectionBubbleMenu(props: EditorBubbleMenuProps) {
     ...(appendTo ? { appendTo: appendTo.current } : {}),
     shouldShow: ({ editor }) => {
       const activeSectionNode = getClosestNodeByName(editor, 'section');
+      // Read here rather than on the editor's own transaction event, which
+      // fires after this: the caret coming back to a dismissed section would
+      // be judged against the stale answer and the menu would stay down
+      // until something else moved.
+      if (activeSectionNode?.pos !== dismissedSection.current) dismissedSection.current = null;
       const inlineImageNodeChildren = activeSectionNode
         ? findChildren(activeSectionNode?.node, (node) => {
             return node.type.name === 'inlineImage';
@@ -66,7 +84,8 @@ export function SectionBubbleMenu(props: EditorBubbleMenuProps) {
       if (
         isTextSelected(editor) ||
         hasActiveInlineImageNodeChildren ||
-        !editor.isEditable
+        !editor.isEditable ||
+        (activeSectionNode && activeSectionNode.pos === dismissedSection.current)
       ) {
         return false;
       }
