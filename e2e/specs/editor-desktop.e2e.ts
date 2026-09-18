@@ -117,6 +117,26 @@ test.describe('editor on the desktop', () => {
     await expect(pm.locator('[data-type="htmlCodeBlock"]')).toHaveCount(1);
   });
 
+  test('the code-block shortcut leaves a template that still renders', async ({ page, api, name }) => {
+    // StarterKit's own code block was registered under this keystroke and the
+    // renderer had no case for it, so one press turned a template into one
+    // that could not be previewed, preflighted, published or sent — with the
+    // canvas still accepting edits as though nothing had happened. The block
+    // the keystroke builds now is Temply's own, and the preview rendering is
+    // what says the template is still sendable.
+    const t = await api.createTemplate({ title: name('code shortcut') });
+    const pm = await openEditor(page, t.id);
+
+    await newLine(page);
+    await page.keyboard.press('ControlOrMeta+Alt+C');
+    await expect(pm.locator('[data-type="htmlCodeBlock"]')).toHaveCount(1);
+    await page.keyboard.type('<b>Still sendable</b>');
+
+    await page.getByRole('group', { name: 'Content view' }).getByRole('button', { name: 'Preview', exact: true }).click();
+    const preview = page.getByTitle('Email preview').contentFrame();
+    await expect(preview.getByText('Still sendable')).toBeVisible();
+  });
+
   test('the block menu filters as the customer types', async ({ page, api, name }) => {
     const t = await api.createTemplate({ title: name('slash filter') });
     await openEditor(page, t.id);
