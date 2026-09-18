@@ -49,13 +49,13 @@ export type TemplyKitOptions = {
  * type, so a line added after them would buy nothing.
  *
  * Two shapes answer that. A textblock takes the caret inside itself —
- * `paragraph`, `heading` and `footer`, and the two code blocks, where the
- * caret blinks in the `pre` and typing lands in it exactly as it does in a
- * heading. Everything else named here is an atom or a wrapper that
- * ProseMirror puts a gap cursor after, which is a caret at the top level in
- * its own right. The code blocks are the one pair where getting *out* is not
- * Enter — Enter adds a line of code — but ArrowDown at the end of one makes
- * the paragraph after it, so the document still continues.
+ * `paragraph`, `heading` and `footer`, and `htmlCodeBlock`, where the caret
+ * blinks in the `pre` and typing lands in it exactly as it does in a heading.
+ * Everything else named here is an atom or a wrapper that ProseMirror puts a
+ * gap cursor after, which is a caret at the top level in its own right. The
+ * code block is the one shape where getting *out* is not Enter — Enter adds a
+ * line of code — but ArrowDown at the end of it makes the paragraph after it,
+ * so the document still continues.
  *
  * Everything not named — `bulletList`, `orderedList` and `blockquote` — puts
  * the only caret it has inside a wrapper, so the next block a customer asks
@@ -70,7 +70,6 @@ const ALREADY_SOMEWHERE_TO_TYPE = [
   'paragraph',
   'heading',
   'footer',
-  'codeBlock',
   'htmlCodeBlock',
   'section',
   'columns',
@@ -140,6 +139,14 @@ export const TemplyKit = Extension.create<TemplyKitOptions>({
         horizontalRule: false,
         dropcursor: false,
         document: false,
+        // The renderer draws one node type per case and throws on anything
+        // else, so a node this kit registers without a case there is a block a
+        // customer can put in a template that can then never be previewed,
+        // preflighted, published or sent. StarterKit's `codeBlock` was exactly
+        // that: no slash entry, no bubble menu, no phone affordance, reachable
+        // only through its own Mod-Alt-C. Temply's code block is
+        // `htmlCodeBlock`, which the renderer knows; this one stays off.
+        codeBlock: false,
       }) as AnyExtension,
       Underline,
       Color.configure({ types: [TextStyle.name, ListItem.name] }),

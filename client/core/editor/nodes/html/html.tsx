@@ -100,6 +100,11 @@ export const HTMLCodeBlockExtension = CodeBlockLowlight.extend({
   addKeyboardShortcuts() {
     return {
       ...this.parent?.(),
+      // The inherited binding reaches for `toggleCodeBlock`, which belongs to
+      // StarterKit's code block — a node the kit no longer registers, because
+      // the renderer has no case for it. Aimed at the block Temply actually
+      // has, the keystroke builds something that can be sent.
+      'Mod-Alt-c': () => this.editor.commands.toggleHtmlCodeBlock(),
       'Mod-a': ({ editor }) => {
         const { selection } = editor.state;
         const $pos = selection.$anchor;
