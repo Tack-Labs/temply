@@ -7,6 +7,7 @@ import { EditorBubbleMenuProps } from '../text-menu/text-bubble-menu';
 import { TooltipProvider } from '../ui/tooltip';
 import { getClosestNodeByName } from '@/editor/utils/columns';
 import { RepeatMenuContent } from './repeat-menu-content';
+import { useEditorGesture } from '@/editor/utils/use-editor-gesture';
 
 export function RepeatBubbleMenu(props: EditorBubbleMenuProps) {
   const { appendTo, editor } = props;
@@ -32,6 +33,10 @@ export function RepeatBubbleMenu(props: EditorBubbleMenuProps) {
     return !!sectionChild && e.isActive('section');
   };
 
+  // A menu answers a gesture. Until the customer has touched the canvas the
+  // caret is only where `autofocus` parked it, and this menu stays down.
+  const gestured = useEditorGesture(editor);
+
   // Placement follows the caret, not the show: the menu is usually already
   // up when the caret moves into the nested block, so a show-time hook would
   // be too late. Every transaction re-asks; setProps is a no-op when unchanged.
@@ -52,7 +57,7 @@ export function RepeatBubbleMenu(props: EditorBubbleMenuProps) {
     ...props,
     ...(appendTo ? { appendTo: appendTo.current } : {}),
     shouldShow: ({ editor }) => {
-      if (isTextSelected(editor) || !editor.isEditable) {
+      if (!gestured.current || isTextSelected(editor) || !editor.isEditable) {
         return false;
       }
 

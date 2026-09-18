@@ -7,6 +7,7 @@ import { EditorBubbleMenuProps } from '../text-menu/text-bubble-menu';
 import { TooltipProvider } from '../ui/tooltip';
 import { getClosestNodeByName } from '@/editor/utils/columns';
 import { SectionMenuContent } from './section-menu-content';
+import { useEditorGesture } from '@/editor/utils/use-editor-gesture';
 
 export function SectionBubbleMenu(props: EditorBubbleMenuProps) {
   const { appendTo, editor } = props;
@@ -33,6 +34,14 @@ export function SectionBubbleMenu(props: EditorBubbleMenuProps) {
     const repeatChild = section ? findChildren(section.node, (node) => node.type.name === 'repeat')[0] : null;
     return !!repeatChild && e.isActive('repeat');
   };
+
+  // A bubble menu is a response to a gesture, and opening the template is not
+  // one. `autofocus="end"` parks the caret inside whatever the document ends
+  // in, so a template finishing in a Section used to open with this menu up
+  // over the block above it before the customer had touched anything. The
+  // caret stays where it is — a Section with text in it is the right place to
+  // land — and the menu waits for the first pointer or key gesture instead.
+  const gestured = useEditorGesture(editor);
 
   // Placement follows the caret, not the show: the menu is usually already
   // up when the caret moves into the nested block, so a show-time hook would
@@ -82,6 +91,7 @@ export function SectionBubbleMenu(props: EditorBubbleMenuProps) {
         inlineImageNodeChildren && editor.isActive('inlineImage');
 
       if (
+        !gestured.current ||
         isTextSelected(editor) ||
         hasActiveInlineImageNodeChildren ||
         !editor.isEditable ||

@@ -4,6 +4,7 @@ import { EditorBubbleMenuProps } from '../text-menu/text-bubble-menu';
 import { useSpacerState } from './use-spacer-state';
 import { TooltipProvider } from '../ui/tooltip';
 import { SpacerMenuContent } from './spacer-menu-content';
+import { useEditorGesture } from '@/editor/utils/use-editor-gesture';
 
 export function SpacerBubbleMenu(props: EditorBubbleMenuProps) {
   const { editor, appendTo } = props;
@@ -13,11 +14,15 @@ export function SpacerBubbleMenu(props: EditorBubbleMenuProps) {
 
   const state = useSpacerState(editor);
 
+  // A menu answers a gesture. Until the customer has touched the canvas the
+  // caret is only where `autofocus` parked it, and this menu stays down.
+  const gestured = useEditorGesture(editor);
+
   const bubbleMenuProps: EditorBubbleMenuProps = {
     ...props,
     ...(appendTo ? { appendTo: appendTo.current } : {}),
     shouldShow: ({ editor }) => {
-      if (!editor.isEditable) {
+      if (!gestured.current || !editor.isEditable) {
         return false;
       }
 

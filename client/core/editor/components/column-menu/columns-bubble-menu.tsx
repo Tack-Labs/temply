@@ -6,6 +6,7 @@ import { EditorBubbleMenuProps } from '../text-menu/text-bubble-menu';
 import { isTextSelected } from '@/editor/utils/is-text-selected';
 import { TooltipProvider } from '../ui/tooltip';
 import { ColumnsMenuContent } from './columns-menu-content';
+import { useEditorGesture } from '@/editor/utils/use-editor-gesture';
 
 export function ColumnsBubbleMenu(props: EditorBubbleMenuProps) {
   const { appendTo, editor } = props;
@@ -22,11 +23,16 @@ export function ColumnsBubbleMenu(props: EditorBubbleMenuProps) {
     return rect;
   }, [editor]);
 
+  // A menu answers a gesture. Until the customer has touched the canvas the
+  // caret is only where `autofocus` parked it, and this menu stays down.
+  const gestured = useEditorGesture(editor);
+
   const bubbleMenuProps: EditorBubbleMenuProps = {
     ...props,
     ...(appendTo ? { appendTo: appendTo.current } : {}),
     shouldShow: ({ editor }) => {
       if (
+        !gestured.current ||
         isTextSelected(editor) ||
         editor.isActive('section') ||
         editor.isActive('repeat') ||

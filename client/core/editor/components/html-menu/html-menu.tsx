@@ -5,6 +5,7 @@ import { getRenderContainer } from '../../utils/get-render-container';
 import { EditorBubbleMenuProps } from '../text-menu/text-bubble-menu';
 import { TooltipProvider } from '../ui/tooltip';
 import { HTMLMenuContent } from './html-menu-content';
+import { useEditorGesture } from '@/editor/utils/use-editor-gesture';
 
 export function HTMLBubbleMenu(props: EditorBubbleMenuProps) {
   const { appendTo, editor } = props;
@@ -21,11 +22,15 @@ export function HTMLBubbleMenu(props: EditorBubbleMenuProps) {
     return rect;
   }, [editor]);
 
+  // A menu answers a gesture. Until the customer has touched the canvas the
+  // caret is only where `autofocus` parked it, and this menu stays down.
+  const gestured = useEditorGesture(editor);
+
   const bubbleMenuProps: EditorBubbleMenuProps = {
     ...props,
     ...(appendTo ? { appendTo: appendTo.current } : {}),
     shouldShow: ({ editor }) => {
-      return editor.isActive('htmlCodeBlock');
+      return gestured.current && editor.isActive('htmlCodeBlock');
     },
     tippyOptions: {
       offset: [0, 8],

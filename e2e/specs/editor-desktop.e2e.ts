@@ -748,6 +748,31 @@ test.describe('editor on the desktop', () => {
       { message: 'the saved draft still holds two top-level blocks' }).toBe(2);
   });
 
+  test('a Section’s menu waits for the customer to ask for it', async ({ page, api, name }) => {
+    // The editor opens with `autofocus="end"`, which parks the caret inside
+    // whatever the document ends in. A menu is a response to a gesture, so a
+    // template ending in a Section must open with nothing over the block
+    // above it until the customer touches the canvas.
+    const doc = JSON.stringify({
+      type: 'doc',
+      content: [
+        { type: 'paragraph', content: [{ type: 'text', text: 'The line above' }] },
+        { type: 'section', content: [{ type: 'paragraph', content: [{ type: 'text', text: 'Inside' }] }] },
+      ],
+    });
+    const t = await api.createTemplate({ title: name('menu on open'), content: doc });
+    const pm = await openEditor(page, t.id);
+
+    // The caret is where autofocus put it — inside the Section — and the menu
+    // is still down. Read after the Section has painted, so this is the
+    // settled state rather than a frame before the menu would have appeared.
+    await expect(pm.locator('table[data-type="section"] p').first()).toHaveText('Inside');
+    await expect(bubbleMenu(page, 'Delete Section'), 'no Section menu before anything is asked for').toBeHidden();
+
+    await pm.locator('table[data-type="section"] p').first().click();
+    await expectOnScreen(page, bubbleMenu(page, 'Delete Section'), 'the section menu after the click');
+  });
+
   test('a Section’s menu can be put down, and gives the block above back', async ({ page, api, name }) => {
     // The menu hangs over whatever sits above the Section, so while it is up
     // that block can be neither read nor clicked. Escape is the way to put
@@ -767,8 +792,11 @@ test.describe('editor on the desktop', () => {
     // together — the caret would never reach the Section.
     await expect(pm.locator('table[data-type="section"] p').first()).toHaveText('Inside');
 
-    await pm.locator('table[data-type="section"] p').first().click();
     const menu = bubbleMenu(page, 'Delete Section');
+    // The menu is down until it is asked for, so raising it is what the click
+    // below proves rather than something that was already true.
+    await expect(menu, 'the menu is down before the Section is clicked').toBeHidden();
+    await pm.locator('table[data-type="section"] p').first().click();
     await expectOnScreen(page, menu, 'the section menu');
 
     await page.keyboard.press('Escape');
