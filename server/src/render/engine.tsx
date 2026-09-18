@@ -658,12 +658,14 @@ export class Engine {
     const isLastRepeatElement =
       parent?.type === 'repeat' && !next && (!repeatItem || repeatItem.index === repeatItem.count - 1);
 
-    // `show` is the wrapper node that became the `showIfKey` attribute every
-    // block now carries. Like `for` above, the name outlives the schema
-    // because stored documents do; these two branches are what keep an old
-    // document's spacing right rather than a node type anyone can insert.
-    const isFirstShowElement = parent?.type === 'show' && !prev;
-    const isLastShowElement = parent?.type === 'show' && !next;
+    // A parent is only ever a node this engine has just rendered, so a name
+    // with no case above can never appear here. `show` — the conditional
+    // wrapper that became the `showIfKey` attribute every block now carries —
+    // was the one that did: two branches testing for a parent `renderNode`
+    // throws on before any child of it is reached. Unlike `for` and
+    // `codeBlock`, it was never a node this editor could build, so no stored
+    // document holds one either, and the branches went rather than gaining a
+    // case to justify them.
 
     return {
       isNextSpacer,
@@ -675,21 +677,17 @@ export class Engine {
       isFirstColumnElement,
       isFirstRepeatElement,
       isLastRepeatElement,
-      isFirstShowElement,
-      isLastShowElement,
 
       shouldRemoveTopMargin:
         isPrevSpacer ||
         isFirstSectionElement ||
         isFirstColumnElement ||
-        isFirstRepeatElement ||
-        isFirstShowElement,
+        isFirstRepeatElement,
       shouldRemoveBottomMargin:
         isNextSpacer ||
         isLastSectionElement ||
         isLastColumnElement ||
-        isLastRepeatElement ||
-        isLastShowElement,
+        isLastRepeatElement,
     };
   }
 

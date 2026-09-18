@@ -274,7 +274,44 @@ describe('repeat', () => {
   });
 });
 
+/**
+ * Node types the engine answers to that the schema no longer admits. Both are
+ * deliberate: the editor migrates a stored document on load, but the API
+ * renders stored content the editor never sees, so the old names have to keep
+ * working here. Adding a name to this list is a decision; leaving one in the
+ * engine without adding it here is what the assertion below catches.
+ */
+const BACK_COMPAT_TYPES = ['for', 'codeBlock'];
+
 describe('node types the schema dropped', () => {
+  it('mentions no other name the schema has lost', async () => {
+    // The engine and its helpers dispatch on a node's `type`, and a name the
+    // schema has dropped goes quiet rather than loud: `parent?.type ===
+    // 'show'` sat here for the life of the repo testing for a parent
+    // `renderNode` throws on before any child of it is reached. Reading the
+    // source is the only way to see a comparison that can never be true, so
+    // the test reads it — every type name the file compares against, checked
+    // off the schema.
+    const source = await Bun.file(
+      new URL('./engine.tsx', import.meta.url)
+    ).text();
+    const compared = [
+      ...new Set(
+        [...source.matchAll(/\.type\s*(?:===|!==)\s*'([^']+)'/g)].map((m) => m[1])
+      ),
+    ];
+    const known = new Set([...schemaTypes(), ...BACK_COMPAT_TYPES]);
+    expect(compared.filter((name) => !known.has(name)).sort()).toEqual([]);
+    // And the scan itself has to be finding something, or it would pass on an
+    // engine that had stopped comparing types at all.
+    expect(compared.length).toBeGreaterThan(5);
+  });
+
+  it('has a case for every name it keeps for back-compat', () => {
+    const engine = new Engine({ type: 'doc' });
+    expect(BACK_COMPAT_TYPES.filter((name) => !(name in engine))).toEqual([]);
+  });
+
   // The editor renames these on load, but the API renders stored content
   // without the document ever passing through the editor — so a row written
   // before the schema changed reaches this side under its old name. A case
