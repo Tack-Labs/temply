@@ -5,6 +5,12 @@ import { makeEditor } from '../test/make-editor';
 import { blockCommands, canDeleteBlock, clearBlockSelection, deleteBlock, duplicateBlock, enclosingNodes, isInlineAtomSelected, moveBlock, selectBlockAt, selectedBlock } from './block';
 
 const para = (text: string) => ({ type: 'paragraph', content: [{ type: 'text', text }] });
+/** The empty paragraph the editor keeps at the end of a document that would
+ *  otherwise finish inside a wrapper — the top-level line there is always
+ *  somewhere to type on. It is made on the first transaction and outlives
+ *  the wrapper that called for it, so it is named where it shows up rather
+ *  than filtered out of sight of these assertions. */
+const TRAILING_LINE = 'paragraph';
 const doc = { type: 'doc', content: [para('one'), para('two'), para('three')] };
 const texts = (editor: ReturnType<typeof makeEditor>) => editor.getJSON().content!.map((n) => n.content?.[0]?.text ?? '');
 const pill = (id: string) => ({ type: 'variable', attrs: { id } });
@@ -206,7 +212,7 @@ describe('deleteBlock inside a wrapper', () => {
     const editor = makeEditor({ type: 'doc', content: [wrap('repeat', [para('x'), para('y')])] }, { touch: true });
     selectBlockAt(editor, 1);
     expect(deleteBlock(editor)).toBe(true);
-    expect(topLevel(editor)).toEqual(['repeat']);
+    expect(topLevel(editor)).toEqual(['repeat', TRAILING_LINE]);
     expect(editor.state.doc.firstChild!.childCount).toBe(1);
     expect(editor.state.doc.firstChild!.textContent).toBe('y');
     editor.destroy();
@@ -216,7 +222,7 @@ describe('deleteBlock inside a wrapper', () => {
     const editor = makeEditor({ type: 'doc', content: [para('a'), wrap('section', [para('x')])] }, { touch: true });
     selectBlockAt(editor, 4);
     expect(deleteBlock(editor)).toBe(true);
-    expect(topLevel(editor)).toEqual(['paragraph']);
+    expect(topLevel(editor)).toEqual(['paragraph', TRAILING_LINE]);
     editor.destroy();
   });
 
@@ -227,7 +233,7 @@ describe('deleteBlock inside a wrapper', () => {
     );
     selectBlockAt(editor, 2); // "left"
     expect(deleteBlock(editor)).toBe(true);
-    expect(topLevel(editor)).toEqual(['columns']);
+    expect(topLevel(editor)).toEqual(['columns', TRAILING_LINE]);
     expect(editor.state.doc.firstChild!.childCount).toBe(2);
     expect(editor.state.doc.firstChild!.firstChild!.textContent).toBe('');
     editor.destroy();
@@ -274,7 +280,7 @@ describe('deleteBlock inside the other wrappers that need a child', () => {
     const editor = makeEditor({ type: 'doc', content: [wrap('bulletList', [item('one'), item('two')])] }, { touch: true });
     selectBlockAt(editor, 2);
     expect(deleteBlock(editor)).toBe(true);
-    expect(topLevel(editor)).toEqual(['bulletList']);
+    expect(topLevel(editor)).toEqual(['bulletList', TRAILING_LINE]);
     expect(editor.state.doc.firstChild!.childCount).toBe(1);
     expect(editor.state.doc.firstChild!.textContent).toBe('two');
     editor.destroy();
@@ -284,7 +290,7 @@ describe('deleteBlock inside the other wrappers that need a child', () => {
     const editor = makeEditor({ type: 'doc', content: [para('a'), wrap('blockquote', [para('quote')])] }, { touch: true });
     selectBlockAt(editor, 4);
     expect(deleteBlock(editor)).toBe(true);
-    expect(topLevel(editor)).toEqual(['paragraph']);
+    expect(topLevel(editor)).toEqual(['paragraph', TRAILING_LINE]);
     editor.destroy();
   });
 
@@ -296,7 +302,7 @@ describe('deleteBlock inside the other wrappers that need a child', () => {
     selectBlockAt(editor, 5); // the empty paragraph in the first column
     expect(canDeleteBlock(editor)).toBe(true);
     expect(deleteBlock(editor)).toBe(true);
-    expect(topLevel(editor)).toEqual(['paragraph']);
+    expect(topLevel(editor)).toEqual(['paragraph', TRAILING_LINE]);
     editor.destroy();
   });
 

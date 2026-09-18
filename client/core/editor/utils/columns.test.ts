@@ -19,6 +19,12 @@ const doc = {
 };
 /** Where the `columns` node starts: after the paragraph "above". */
 const columnsPos = 7;
+/** The empty paragraph the editor keeps at the end of a document that would
+ *  otherwise finish inside a wrapper — the top-level line there is always
+ *  somewhere to type on. It is made on the first transaction and outlives
+ *  the wrapper that called for it, so it is named where it shows up rather
+ *  than filtered out of sight of these assertions. */
+const TRAILING_LINE = 'paragraph';
 const kinds = (editor: ReturnType<typeof makeEditor>) => editor.state.doc.children.map((node) => node.type.name);
 /** A caret inside the first column — the only way a mouse ever reaches these
  *  controls, and the path every assertion here has to leave alone. */
@@ -41,14 +47,14 @@ describe('deleteNode', () => {
   it('deletes the node the caret is inside', () => {
     const editor = withCaret();
     deleteNode(editor, 'columns');
-    expect(kinds(editor)).toEqual(['paragraph']);
+    expect(kinds(editor)).toEqual(['paragraph', TRAILING_LINE]);
     editor.destroy();
   });
 
   it('deletes a node that is the selection rather than an ancestor of it', () => {
     const editor = withColumnsSelected();
     deleteNode(editor, 'columns');
-    expect(kinds(editor)).toEqual(['paragraph']);
+    expect(kinds(editor)).toEqual(['paragraph', TRAILING_LINE]);
     editor.destroy();
   });
 
@@ -56,7 +62,7 @@ describe('deleteNode', () => {
     const editor = makeEditor(doc);
     editor.commands.setTextSelection(2); // in "above"
     deleteNode(editor, 'columns');
-    expect(kinds(editor)).toEqual(['paragraph', 'columns']);
+    expect(kinds(editor)).toEqual(['paragraph', 'columns', TRAILING_LINE]);
     editor.destroy();
   });
 });

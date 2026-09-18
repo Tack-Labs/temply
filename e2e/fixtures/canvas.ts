@@ -53,16 +53,17 @@ export async function openEditor(page: Page, id: string): Promise<Locator> {
  * all — an `hr`, a Spacer, an image and a fresh Section all hold no text,
  * so the check would pass on a paragraph opened in the middle of the
  * document. A click in a top-level textblock is this helper's only way in,
- * and nothing puts one at the end for it: the `TrailingNode` extension in
- * the editor's own tree is registered by no kit. So a document whose last
- * block is a Section, a list or a divider gets its new line in the middle,
- * and this says so at once rather than leaving a later assertion to pass
- * on a block nested where no one looks.
+ * and the editor's `TrailingNode` keeps one at the end for it: a document
+ * that would otherwise finish inside a Section, a list or a divider carries
+ * an empty paragraph after it. The check below stays all the same, because
+ * the guarantee is not total — a document ending in a block the caret can
+ * already sit in, a Footer among them, is left as it is — and a new line
+ * built in the middle of the document is worse than a failure here.
  */
 export async function newLine(page: Page): Promise<void> {
   const pm = await ready(page);
   const textblocks = pm.locator('> :is(p, h1, h2, h3, blockquote)');
-  await expect(textblocks, 'the document has no top-level textblock, which is this helper\'s only way in: seed one, since nothing guarantees a trailing paragraph — TrailingNode is not registered').not.toHaveCount(0);
+  await expect(textblocks, 'the document has no top-level textblock, which is this helper\'s only way in: seed one, since the trailing paragraph TrailingNode keeps is only for a document that would otherwise end inside a wrapper').not.toHaveCount(0);
   await textblocks.last().click();
   await page.keyboard.press('End');
   await page.keyboard.press('Enter');

@@ -37,13 +37,11 @@ type Seeding = { page: Page; api: ReturnType<typeof makeApi>; name: (what: strin
 /**
  * A fresh template of its own, open in the editor, per block a test needs.
  *
- * A second insert on the same document lands inside the first block rather
- * than after it: the caret is left inside the Section or the list, and
- * nothing puts a paragraph after it to carry the next `/` — TrailingNode is
- * not registered, so `newLine`, the only way in, finds no top-level
- * paragraph at the end. A Section compounds it: a document ending in one
- * opens with that Section's menu over the paragraph above, and the click
- * that would start the next line lands on the menu instead.
+ * One document would carry several inserts — TrailingNode keeps a top-level
+ * line after a Section or a list for the next `/` to start on — but a
+ * template each is what keeps a block from being read off the wrong one: a
+ * bubble menu is asked for by the control it holds, and two Sections in one
+ * document would both answer to that.
  */
 const opener = ({ page, api, name }: Seeding) => async (what: string) =>
   openEditor(page, (await api.createTemplate({ title: name(what) })).id);
@@ -704,5 +702,33 @@ test.describe('editor on the desktop', () => {
     await expect(movable).toHaveCount(2);
     await page.keyboard.press('ControlOrMeta+Shift+Backspace');
     await expect(movable).toHaveCount(1);
+  });
+  test('a document that ends in a wrapper still has a line of its own to type on', async ({ page, api, name }) => {
+    // Without a trailing line there is nowhere at the top level to put the
+    // caret after a Section: every position at the end of the document is
+    // inside it, so the next block a customer asks for is built in there,
+    // and the template grows a Section deep for no reason anyone chose.
+    const doc = JSON.stringify({
+      type: 'doc',
+      content: [
+        { type: 'paragraph', content: [{ type: 'text', text: 'Above the section' }] },
+        { type: 'section', content: [{ type: 'paragraph', content: [{ type: 'text', text: 'Inside' }] }] },
+      ],
+    });
+    const t = await api.createTemplate({ title: name('trailing line'), content: doc });
+    const pm = await openEditor(page, t.id);
+
+    // The document's own last block is the Section, so a top-level paragraph
+    // after it is one the editor kept rather than one the seed carried.
+    const last = pm.locator('> *').last();
+    await expect(last, 'the editor keeps a top-level line after the Section').toHaveJSProperty('tagName', 'P');
+    await expect(last).toBeEmpty();
+
+    // And it is a real line: a block asked for there lands beside the
+    // Section rather than inside it.
+    await insertViaSlash(page, 'Heading 2');
+    await page.keyboard.type('After the section');
+    await expect(pm.locator('> h2'), 'the heading is a sibling of the Section, not a child').toHaveText('After the section');
+    await expect(pm.locator('table[data-type="section"] h2')).toHaveCount(0);
   });
 });

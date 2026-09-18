@@ -18,6 +18,7 @@ import { Footer } from '../nodes/footer';
 import { Spacer } from '../nodes/spacer';
 import { LinkCardExtension, LinkCardOptions } from './link-card';
 import { ShowIfHighlight } from './show-if-highlight';
+import { TrailingNode } from './trailing-node/trailing-node';
 import { ColumnsExtension } from '../nodes/columns/columns';
 import { ColumnExtension } from '../nodes/columns/column';
 import { SectionExtension } from '../nodes/section/section';
@@ -63,6 +64,18 @@ export const TemplyKit = Extension.create<TemplyKitOptions>({
     const extensions: AnyExtension[] = [
       BlockKeyboardShortcuts,
       ShowIfHighlight,
+      // A document whose last block is a Section, a list or a divider has
+      // nowhere at the top level left to type: the caret can only land
+      // inside the wrapper, so everything added afterwards is built in
+      // there. One empty paragraph is kept at the end so the document
+      // always has a line of its own to continue on. It costs a blank line
+      // at the foot of such an email, which is the cheaper of the two.
+      //
+      // A block the caret can already sit in at the end of the document is
+      // left alone, since Enter there already makes the next line: adding a
+      // paragraph after every trailing heading or footer would change the
+      // look of emails that were never stuck.
+      TrailingNode.configure({ notAfter: ['paragraph', 'heading', 'footer'] }),
       Document.extend({
         content: '(block|columns)+',
       }),
