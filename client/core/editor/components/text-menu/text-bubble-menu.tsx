@@ -34,14 +34,22 @@ export type EditorBubbleMenuProps = Omit<BubbleMenuProps, 'children'> & {
   appendTo?: React.RefObject<any>;
 };
 
-export function TextBubbleMenu(props: EditorBubbleMenuProps) {
+/**
+ * This menu takes no `appendTo`: it hangs off `document.body` and nothing
+ * else, for the reason given at the option below. A ref passed here would ride
+ * through the spread to `<BubbleMenu>`, where nothing reads it — the silent
+ * no-op that clipped Turn into in the first place.
+ */
+type TextBubbleMenuProps = Omit<EditorBubbleMenuProps, 'appendTo'>;
+
+export function TextBubbleMenu(props: TextBubbleMenuProps) {
   const { editor } = props;
 
   if (!editor) {
     return null;
   }
 
-  const bubbleMenuProps: EditorBubbleMenuProps = {
+  const bubbleMenuProps: TextBubbleMenuProps = {
     ...props,
     pluginKey: 'text-menu',
     shouldShow: ({ editor, from, view }) => {

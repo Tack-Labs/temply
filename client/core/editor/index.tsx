@@ -163,7 +163,7 @@ export function Editor(props: EditorProps) {
             bodyClassName
           )}
         >
-          {!touch && <TextBubbleMenu editor={editor} appendTo={menuContainerRef} />}
+          {!touch && <TextBubbleMenu editor={editor} />}
           {!touch && <ImageBubbleMenu editor={editor} appendTo={menuContainerRef} />}
           {!touch && <SpacerBubbleMenu editor={editor} appendTo={menuContainerRef} />}
           <EditorContent editor={editor} />
