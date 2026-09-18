@@ -143,8 +143,14 @@ test.describe('editor on the desktop', () => {
     // node the schema has stopped admitting, it falls back to an empty
     // document — so the canvas would open blank and the first keystroke would
     // save the blank over the template. The paragraphs around the block are
-    // what say the document survived; the preview says the API can still
-    // draw it, which is the half the editor's migration never reaches.
+    // what say the document survived.
+    //
+    // The card thumbnail is read first and deliberately: it renders the row
+    // as stored, so it is the engine's own alias under test and not the
+    // editor's migration a second time. The preview pane could not do that
+    // job — it posts the document the canvas holds, which has already been
+    // through the migration — and reading the thumbnail before the editor
+    // opens is what keeps an autosave from rewriting the row underneath it.
     const content = JSON.stringify({
       type: 'doc',
       content: [
@@ -154,15 +160,13 @@ test.describe('editor on the desktop', () => {
       ],
     });
     const t = await api.createTemplate({ title: name('stored code block'), content });
-    const pm = await openEditor(page, t.id);
 
+    expect(await api.previewHtml(t.id), 'the engine draws the row as stored').toContain('<b>Stored code</b>');
+
+    const pm = await openEditor(page, t.id);
     await expect(pm.getByText('Above the block')).toBeVisible();
     await expect(pm.getByText('Below the block')).toBeVisible();
     await expect(pm.locator('[data-type="htmlCodeBlock"]')).toHaveCount(1);
-
-    await page.getByRole('group', { name: 'Content view' }).getByRole('button', { name: 'Preview', exact: true }).click();
-    const preview = page.getByTitle('Email preview').contentFrame();
-    await expect(preview.getByText('Stored code')).toBeVisible();
   });
 
   test('the block menu filters as the customer types', async ({ page, api, name }) => {

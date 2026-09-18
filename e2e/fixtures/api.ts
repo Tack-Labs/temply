@@ -59,6 +59,13 @@ export function makeApi(request: APIRequestContext) {
       const res = await request.post(`/api/v1/templates/${id}/publish`);
       if (!res.ok()) throw new Error(`publishTemplate: ${res.status()} ${await res.text()}`);
     },
+    /** The card thumbnail's HTML: the stored row rendered by the engine, with
+     *  the editor nowhere in it. */
+    async previewHtml(id: string): Promise<string> {
+      const res = await request.get(`/api/v1/templates/${id}/preview`);
+      if (!res.ok()) throw new Error(`previewHtml: ${res.status()} ${await res.text()}`);
+      return (await res.json()).html as string;
+    },
     /** A template the test made through the page rather than here, so the
      *  cleanup owns it from the moment its id is known. */
     track(id: string): void { remember(made.templates, id); },
