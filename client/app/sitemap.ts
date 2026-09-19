@@ -20,7 +20,8 @@ const BUILT_AT = new Date();
  * The stamp used to be "now", which on a static route meant every deploy,
  * and a crawler that is told everything changed learns nothing from it. A
  * build without git — a tarball, a container — falls back to its own time,
- * which is at least not later than the truth.
+ * which is what every page said before; a shallow clone dates every page at
+ * its one commit, so CI fetches the history.
  */
 function lastModified(sources: string[]): Date {
   try {

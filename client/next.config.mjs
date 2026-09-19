@@ -40,8 +40,9 @@ function sentryHostFromDsn() {
 /**
  * The Content-Security-Policy, reported and not yet enforced. Every host
  * here is one the app actually reaches: Clerk (its script, its frames and
- * Cloudflare's bot check), Sentry's ingest, ImageKit's upload endpoint, and
- * Google Fonts inside the preview frame. Images are wide open on purpose —
+ * Cloudflare's bot check), Sentry's ingest, and Google Fonts inside the
+ * preview frame. Uploads go to our own API, which talks to ImageKit; the
+ * browser only ever loads the images back, under img-src. Images are wide open on purpose —
  * an email carries images from wherever its author put them, and the
  * previews show the email. Scripts still allow inline: Next's hydration
  * script and the theme script are inline, and moving them behind a nonce
@@ -59,7 +60,7 @@ function contentSecurityPolicy() {
     'style-src': ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
     'font-src': ["'self'", 'data:', 'https://fonts.gstatic.com'],
     'img-src': ["'self'", 'data:', 'blob:', 'https:', 'http:'],
-    'connect-src': ["'self'", clerk, sentry, 'https://clerk-telemetry.com', 'https://upload.imagekit.io'],
+    'connect-src': ["'self'", clerk, sentry, 'https://clerk-telemetry.com'],
     'frame-src': ["'self'", clerk, 'https://challenges.cloudflare.com'],
     'worker-src': ["'self'", 'blob:'],
     'object-src': ["'none'"],

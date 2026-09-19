@@ -15,7 +15,11 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
+      # The whole history: the sitemap dates each page by the last commit
+      # that touched it, and a depth-1 clone would date them all today.
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       # Pinned to the version everyone runs locally. On `latest` a Bun release
       # can turn the suite red with no commit behind it — 1.4.2 did, by
       # reordering the test files enough to expose global leakage between them.
@@ -90,7 +94,11 @@ jobs:
     # a shared runner can take most of five minutes on its own.
     timeout-minutes: 35
     steps:
+      # The whole history: the sitemap dates each page by the last commit
+      # that touched it, and a depth-1 clone would date them all today.
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: oven-sh/setup-bun@v2
         with:
           bun-version: 1.4.2
