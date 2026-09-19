@@ -58,7 +58,11 @@ function contentSecurityPolicy() {
     'default-src': ["'self'"],
     'script-src': ["'self'", "'unsafe-inline'", dev && "'unsafe-eval'", clerk, 'https://challenges.cloudflare.com'],
     'style-src': ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
-    'font-src': ["'self'", 'data:', 'https://fonts.gstatic.com'],
+    // A brand's web font is a URL the customer chose — the default is on
+    // jsdelivr — and the editor canvas and every preview frame load it, so
+    // fonts are as open as images. The first CI run said so: a report for
+    // the default font on every preview.
+    'font-src': ["'self'", 'data:', 'https:'],
     'img-src': ["'self'", 'data:', 'blob:', 'https:', 'http:'],
     'connect-src': ["'self'", clerk, sentry, 'https://clerk-telemetry.com'],
     'frame-src': ["'self'", clerk, 'https://challenges.cloudflare.com'],
