@@ -18,6 +18,8 @@ mock.module('resend', () => ({
 
 const { emailsRoutes } = await import('./emails');
 const { createTestApp, createTestDb, givePlan, post } = await import('../test/helpers');
+const { ANONYMOUS_RENDERS_PER_MINUTE, resetBurstWindows } = await import('../lib/rate-limit');
+const { TEMPLATE_CONTENT_MAX_BYTES } = await import('@temply/shared/plans');
 
 let db: TestDb;
 let app: any;
@@ -27,6 +29,39 @@ beforeEach(() => {
   db = createTestDb();
   app = createTestApp(db, emailsRoutes);
   sent.length = 0;
+  resetBurstWindows();
+});
+
+describe('POST /api/v1/emails/preview', () => {
+  const doc = { type: 'doc', content: [{ type: 'paragraph', content: [{ type: 'text', text: 'Hello' }] }] };
+  const from = (address: string) => ({ 'x-forwarded-for': address });
+
+  it('renders for a caller with no account, which is what the playground is', async () => {
+    const res = await post(app, '/api/v1/emails/preview', { content: doc }, null);
+    expect(res.status).toBe(200);
+    expect((await res.json()).html).toContain('Hello');
+  });
+
+  it('fuses by address once a minute of renders is spent, and one address does not spend another\'s', async () => {
+    for (let i = 0; i < ANONYMOUS_RENDERS_PER_MINUTE; i++) {
+      expect((await post(app, '/api/v1/emails/preview', { content: doc }, null, from('203.0.113.7'))).status).toBe(200);
+    }
+    const refused = await post(app, '/api/v1/emails/preview', { content: doc }, null, from('203.0.113.7'));
+    expect(refused.status).toBe(429);
+    expect(refused.headers.get('Retry-After')).toMatch(/^[0-9]+$/);
+    expect((await refused.json()).message).toContain(`${ANONYMOUS_RENDERS_PER_MINUTE} a minute`);
+    expect((await post(app, '/api/v1/emails/preview', { content: doc }, null, from('203.0.113.8'))).status).toBe(200);
+  });
+
+  it('refuses a document past the content ceiling before rendering it', async () => {
+    const text = 'x'.repeat(TEMPLATE_CONTENT_MAX_BYTES);
+    const oversized = { type: 'doc', content: [{ type: 'paragraph', content: [{ type: 'text', text }] }] };
+    const res = await post(app, '/api/v1/emails/preview', { content: oversized }, null);
+    expect(res.status).toBe(413);
+    expect((await res.json()).message).toContain('too large');
+    const asString = await post(app, '/api/v1/emails/preview', { content: JSON.stringify(oversized) }, null);
+    expect(asString.status).toBe(413);
+  });
 });
 
 const body = (over: Record<string, unknown> = {}) => ({

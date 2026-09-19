@@ -31,6 +31,11 @@ async function handleRequest(request: NextRequest, { params }: { params: Promise
     const value = request.headers.get(name);
     if (value) headers[name] = value;
   }
+  // The API's per-address limits read the client off this header, last hop
+  // first; Caddy appends the address it saw, and a request that arrived
+  // without one is coming from this machine.
+  const forwardedFor = request.headers.get('x-forwarded-for');
+  if (forwardedFor) headers['x-forwarded-for'] = forwardedFor;
 
   // The API refuses oversized bodies too, but refusing here keeps the bytes
   // out of the Next process entirely.

@@ -2,7 +2,9 @@ import { Elysia, t } from 'elysia';
 import { Resend } from 'resend';
 import { render } from '../render/render';
 import { MissingVariablesError } from '../render/engine';
-import { json, unauthorized, unprocessable } from '../lib/errors';
+import { json, tooManyRequests, unauthorized, unprocessable } from '../lib/errors';
+import { ANONYMOUS_RENDERS_PER_MINUTE, checkPerMinute, clientAddress } from '../lib/rate-limit';
+import { TEMPLATE_CONTENT_MAX_BYTES } from '@temply/shared/plans';
 import { authPlugin } from '../plugins/auth';
 import { dbPlugin } from '../plugins/db';
 
@@ -35,10 +37,28 @@ function overRateLimit(userId: string): boolean {
 export const emailsRoutes = new Elysia()
   .use(authPlugin)
   .use(dbPlugin)
+  /**
+   * Signed out on purpose: the playground renders through here before a
+   * visitor has an account. That makes it the one endpoint anyone can point
+   * a loop at, so it is fused by address and bounded by size — the engine
+   * parses whatever HTML the document carries, and that work is the cost.
+   */
   .post(
     '/api/v1/emails/preview',
-    async ({ body }) => {
+    async ({ body, request, server }) => {
+      const fuse = checkPerMinute(`address:${clientAddress(request, server)}`, ANONYMOUS_RENDERS_PER_MINUTE);
+      if (!fuse.allowed) {
+        return tooManyRequests(
+          `Previews are limited to ${fuse.limit} a minute. Try again in ${fuse.retryAfterSeconds}s.`,
+          fuse.retryAfterSeconds,
+        );
+      }
       const { content, theme, previewText, payload, pretty, plainText } = body;
+      const size = typeof content === 'string' ? content.length : JSON.stringify(content ?? null).length;
+      if (size > TEMPLATE_CONTENT_MAX_BYTES) {
+        const message = `This email is too large to render — the limit is ${Math.round(TEMPLATE_CONTENT_MAX_BYTES / 1000)} KB of content.`;
+        return json({ status: 413, message, errors: [message] }, 413);
+      }
       const contentJson = typeof content === 'string' ? JSON.parse(content) : content;
       const html = await render(contentJson, {
         // The text alternative is the same render with the markup stripped, so

@@ -70,3 +70,12 @@ export function isLimitReached(used: number, limit: number | null): boolean {
  * they are for wiring up, not for load.
  */
 export const API_BURST_PER_MINUTE: Record<'live' | 'test', number> = { live: 120, test: 30 };
+
+/**
+ * The most a template's document may weigh, as the JSON the editor stores.
+ * The largest starter is under 20 KB; a megabyte is a document nobody wrote
+ * by hand, and every save, render and version copy would carry it. The
+ * request limit above this is 8 MB, sized for an image upload — it is not a
+ * bound on a document.
+ */
+export const TEMPLATE_CONTENT_MAX_BYTES = 1_000_000;
