@@ -86,6 +86,34 @@ describe('POST /api/v1/emails/send', () => {
     expect(sent[0].to).toEqual(['a@example.com']);
   });
 
+  it('takes a handful of recipients and refuses a list, a malformed address and a bad reply-to', async () => {
+    const five = Array.from({ length: 5 }, (_, i) => `p${i}@example.com`).join(', ');
+    expect((await post(app, '/api/v1/emails/send', body({ to: five }), USER)).status).toBe(200);
+    expect(sent[0].to).toHaveLength(5);
+
+    const six = `${five}, p6@example.com`;
+    const tooMany = await post(app, '/api/v1/emails/send', body({ to: six }), USER);
+    expect(tooMany.status).toBe(400);
+    expect((await tooMany.json()).message).toContain('at most 5');
+
+    const malformed = await post(app, '/api/v1/emails/send', body({ to: 'a@example.com, not-an-address' }), USER);
+    expect(malformed.status).toBe(400);
+    expect((await malformed.json()).message).toContain('"not-an-address"');
+
+    const badReply = await post(app, '/api/v1/emails/send', body({ replyTo: 'nope' }), USER);
+    expect(badReply.status).toBe(400);
+    // An empty reply-to is the form's default and means none.
+    expect((await post(app, '/api/v1/emails/send', body({ replyTo: '' }), USER)).status).toBe(200);
+    expect(sent).toHaveLength(2);
+    expect(sent[1].replyTo).toBeUndefined();
+  });
+
+  it('bounds the headers a test send can carry', async () => {
+    expect((await post(app, '/api/v1/emails/send', body({ subject: 's'.repeat(256) }), USER)).status).toBe(400);
+    expect((await post(app, '/api/v1/emails/send', body({ fromName: 'n'.repeat(101) }), USER)).status).toBe(400);
+    expect(sent).toHaveLength(0);
+  });
+
   it('sanitizes a hostile display name before it reaches the From header', async () => {
     const res = await post(
       app,

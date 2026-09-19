@@ -20,6 +20,17 @@ function buildFrom(name?: string): string {
 // In-process abuse guard for the shared debug sender: 20 test sends / hour /
 // user. Resets on restart — acceptable for a debug aid.
 const TEST_SENDS_PER_HOUR = 20;
+
+/**
+ * A test send goes to the people checking the email, not to a list. Uncapped,
+ * the hourly guard above counted requests while each one could carry any
+ * number of addresses — twenty sends an hour from a free account was as many
+ * strangers as fit in the field, from Temply's own sending domain.
+ */
+const TEST_SEND_MAX_RECIPIENTS = 5;
+
+/** The shape of an address, as loosely as an inbox would take it. */
+const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const sendCounts = new Map<string, { hour: string; count: number }>();
 
 function overRateLimit(userId: string): boolean {
@@ -104,6 +115,19 @@ export const emailsRoutes = new Elysia()
       if (recipients.length === 0) {
         return json({ status: 400, message: 'Add at least one recipient', errors: ['No recipients'] }, 400);
       }
+      if (recipients.length > TEST_SEND_MAX_RECIPIENTS) {
+        const message = `A test send goes to at most ${TEST_SEND_MAX_RECIPIENTS} addresses.`;
+        return json({ status: 400, message, errors: [message] }, 400);
+      }
+      const malformed = recipients.find((address: string) => !EMAIL.test(address));
+      if (malformed) {
+        const message = `"${malformed}" is not an email address.`;
+        return json({ status: 400, message, errors: [message] }, 400);
+      }
+      if (body.replyTo && !EMAIL.test(body.replyTo.trim())) {
+        const message = 'Reply-to must be an email address.';
+        return json({ status: 400, message, errors: [message] }, 400);
+      }
 
       if (overRateLimit(userId)) {
         return json({ status: 429, message: 'Too many test sends — try again later.', errors: ['Rate limited'] }, 429);
@@ -142,7 +166,7 @@ export const emailsRoutes = new Elysia()
       const { error } = await resend.emails.send({
         from: buildFrom(fromName),
         to: recipients,
-        replyTo: replyTo || undefined,
+        replyTo: replyTo?.trim() || undefined,
         subject,
         html,
         text,
@@ -152,13 +176,16 @@ export const emailsRoutes = new Elysia()
       return json({ status: 'ok' });
     },
     {
+      // The editor sends every field it has, empty or not, so an address
+      // that is optional is checked in the handler once it is known to be
+      // there; the bounds here are what no email header should exceed.
       body: t.Object({
-        previewText: t.Optional(t.String()),
-        subject: t.String({ minLength: 1 }),
-        fromName: t.Optional(t.String()),
-        replyTo: t.Optional(t.String()),
-        to: t.String({ minLength: 1 }),
-        content: t.String({ minLength: 1 }),
+        previewText: t.Optional(t.String({ maxLength: 500 })),
+        subject: t.String({ minLength: 1, maxLength: 255 }),
+        fromName: t.Optional(t.String({ maxLength: 100 })),
+        replyTo: t.Optional(t.String({ maxLength: 254 })),
+        to: t.String({ minLength: 1, maxLength: 1000 }),
+        content: t.String({ minLength: 1, maxLength: TEMPLATE_CONTENT_MAX_BYTES }),
         theme: t.Optional(t.Any()),
         payload: t.Optional(t.Any()),
       }),
