@@ -8,6 +8,7 @@ import { nextStamp } from '../lib/stamp';
 import { hasUnpublishedChanges } from '@temply/shared/publish';
 import { checkTemplateLimit, shouldSnapshot } from '../lib/billing';
 import { render } from '../render/render';
+import type { EngineConfig } from '../render/engine';
 import { json, unauthorized, notFound, paymentRequired, badRequest } from '../lib/errors';
 import { authPlugin } from '../plugins/auth';
 import { noWorkspace } from '../lib/workspace';
@@ -144,7 +145,7 @@ export const templatesRoutes = new Elysia()
 
     // A corrupt theme degrades the thumbnail to the default theme; only the
     // document itself being unreadable is worth failing the card over.
-    let theme;
+    let theme: EngineConfig['theme'];
     try {
       theme = template.theme ? JSON.parse(template.theme) : undefined;
     } catch {

@@ -167,6 +167,7 @@ Every one of these before a change is done:
 
 ```bash
 bun run typecheck            # client, server, shared, e2e
+bun run lint                 # Biome, on the rules that find a bug or an a11y gap; a warning fails
 bun test                     # server + shared unit tests
 bun run e2e                  # Playwright against a stack it starts itself; see e2e/README.md
 cd client

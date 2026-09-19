@@ -11,7 +11,7 @@ export function LogoView(props: NodeViewProps) {
   const { node, editor, updateAttributes } = props;
 
   const [status, setStatus] = useState<ImageStatus>('idle');
-  const [isPlaceholderImage, setIsPlaceholderImage] = useState(false);
+  const [, setIsPlaceholderImage] = useState(false);
   const [isDraggingOver, setIsDraggingOver] = useState(false);
 
   const { onImageUpload, onPickImage, allowedMimeTypes = [] } =

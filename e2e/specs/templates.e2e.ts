@@ -34,7 +34,7 @@ test.describe('templates', () => {
   });
 
   test('deleting asks first, then removes the row', async ({ page, api, name }) => {
-    const t = await api.createTemplate({ title: name('doomed') });
+    await api.createTemplate({ title: name('doomed') });
     await page.goto('/dashboard/templates');
     const row = page.getByRole('listitem').filter({ hasText: name('doomed') });
     await row.getByRole('button', { name: 'Delete template' }).click();

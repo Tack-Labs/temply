@@ -15,7 +15,7 @@ import {
   Plugin,
   EditorState,
 } from '@tiptap/pm/state';
-import tippy, { Instance, Tippy } from 'tippy.js';
+import tippy, { Instance, } from 'tippy.js';
 import {
   ySyncPluginKey,
   absolutePositionToRelativePosition,
@@ -403,7 +403,7 @@ export function DragHandlePlugin(
       },
     },
     view: (e) => {
-      var t;
+      var t: HTMLElement | null;
       return (
         (element.draggable = true),
         (element.style.pointerEvents = 'auto'),

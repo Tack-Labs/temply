@@ -78,8 +78,20 @@ export function RepeatView(props: NodeViewProps) {
           data-repeat-indicator=""
           className="mly:absolute mly:inset-y-0 mly:right-0 mly:flex mly:translate-x-full mly:cursor-pointer mly:flex-col mly:items-center mly:gap-1 mly:opacity-60"
           contentEditable={false}
+          // Reachable by Tab, and a press selects the Repeat the way a click
+          // does. The mousedown is swallowed so a click does not move the
+          // focus here: the menu that selection raises follows the editor's
+          // focus, and a strip that took it would have nothing to show for
+          // the click. A press hands the focus back for the same reason.
+          tabIndex={0}
+          onMouseDown={(event) => event.preventDefault()}
           onClick={() => {
             editor.commands.setNodeSelection(getPos());
+          }}
+          onKeyDown={(event) => {
+            if (event.key !== 'Enter' && event.key !== ' ') return;
+            event.preventDefault();
+            editor.chain().setNodeSelection(getPos()).focus().run();
           }}
         >
           {mark}

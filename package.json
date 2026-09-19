@@ -17,10 +17,14 @@
     "typecheck": "bun run --filter '*' typecheck",
     "test": "bun test",
     "e2e": "bun run --filter @temply/e2e test",
-    "e2e:ui": "bun run --filter @temply/e2e ui"
+    "e2e:ui": "bun run --filter @temply/e2e ui",
+    "lint": "biome lint . --error-on-warnings"
   },
   "overrides": {
     "postcss": "^8.5.23",
     "uuid": "^11.1.1"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.5.14"
   }
 }

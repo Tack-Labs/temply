@@ -211,6 +211,7 @@ export function MobileSheets({
           <div role="tablist" aria-label="View" className="flex gap-1">
             {(['preview', 'html', 'text'] as const).map((tab) => (
               <button
+                type="button"
                 key={tab}
                 role="tab"
                 aria-selected={eyeTab === tab}

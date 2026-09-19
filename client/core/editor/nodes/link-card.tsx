@@ -26,6 +26,8 @@ export function LinkCardComponent(props: NodeViewProps) {
           gets. */}
       <Popover open={props.selected && !isTouchEditor(editor)}>
         <PopoverTrigger asChild>
+          {/* biome-ignore lint/a11y/noStaticElementInteractions: a node view; the block is selected from the keyboard through ProseMirror */}
+          {/* biome-ignore lint/a11y/useKeyWithClickEvents: as above */}
           <div
             tabIndex={-1}
             onClick={(e) => {

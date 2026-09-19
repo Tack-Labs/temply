@@ -4,7 +4,7 @@ export type SVGIcon = (props: SVGProps<SVGSVGElement>) => JSX.Element;
 
 export function GridLines(props: SVGProps<SVGSVGElement>) {
   return (
-    <svg
+    <svg aria-hidden="true"
       xmlns="http://www.w3.org/2000/svg"
       width={24}
       height={24}

@@ -14,7 +14,6 @@ import { AltTextInput } from './alt-text-input';
 import { ImageSize } from './image-size';
 import { useImageState } from './use-image-state';
 import {
-  IMAGE_MAX_HEIGHT,
   IMAGE_MAX_WIDTH,
 } from '@/editor/nodes/image/image-view';
 

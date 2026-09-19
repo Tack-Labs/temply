@@ -1,4 +1,4 @@
-import type { EditorThemeOptions, FallbackFont, FontProps } from '@temply/shared/theme';
+import type { EditorThemeOptions, } from '@temply/shared/theme';
 
 export const DEFAULT_VALUES: Record<string, string> = {
   '--mly-font': 'Inter',
@@ -27,7 +27,7 @@ export function getVariableValue(key: string): string {
 
 export function getTemplyCssVariables(theme: EditorThemeOptions): Record<string, string> {
   const styles: Record<string, string> = {};
-  const { body, container, button, link, font } = theme;
+  const { body, container, font } = theme;
 
   if (font?.fontFamily) styles['--mly-font'] = font.fontFamily;
   if (font?.fallbackFontFamily) styles['--mly-fallback-font'] = String(font.fallbackFontFamily);

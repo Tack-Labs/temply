@@ -239,7 +239,9 @@ export function MobileEditorLayout({
     // Twice: once after the keyboard and the slide have settled, and again
     // after a sheet whose controls wrap has finished growing into its rows.
     const ids = [250, 700].map((delay) => window.setTimeout(keepVisible, delay));
-    return () => ids.forEach((id) => window.clearTimeout(id));
+    return () => {
+      for (const id of ids) window.clearTimeout(id);
+    };
   }, [selectionState, panelOpen, styleOpen, dock, frame?.height, editor, frameEl]);
 
   // Arming is the whole explanation on desktop, where it expands the
@@ -526,7 +528,8 @@ export function MobileEditorLayout({
       {/* The canvas: the frame's one scroller. `isolate` keeps the document's
           own stacking (a spacer is z-50 in the editor's CSS) inside it, so no
           block can sit over the bars and take their taps. */}
-      {/* eslint-disable-next-line jsx-a11y/no-static-element-interactions, jsx-a11y/click-events-have-key-events */}
+      {/* biome-ignore lint/a11y/noStaticElementInteractions: the pane; a tap on bare canvas clears the selection, and Escape does the same from the keyboard */}
+      {/* biome-ignore lint/a11y/useKeyWithClickEvents: as above */}
       <div
         ref={model.editorPaneRef}
         onClick={clearOnCanvasTap}

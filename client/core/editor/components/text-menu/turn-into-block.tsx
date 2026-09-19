@@ -69,7 +69,7 @@ export function TurnIntoBlock(props: TurnIntoBlockProps) {
             );
           } else if (isCategory(option)) {
             return (
-              <label
+              <div
                 key={option.id}
                 className={cn(
                   'mly:px-2 mly:text-xs mly:font-medium mly:text-midnight-gray/60',
@@ -77,9 +77,10 @@ export function TurnIntoBlock(props: TurnIntoBlockProps) {
                 )}
               >
                 {option.label}
-              </label>
+              </div>
             );
           }
+          return null;
         })}
       </PopoverContent>
     </Popover>

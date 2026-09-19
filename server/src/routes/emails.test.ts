@@ -17,7 +17,7 @@ mock.module('resend', () => ({
 }));
 
 const { emailsRoutes } = await import('./emails');
-const { createTestApp, createTestDb, givePlan, post } = await import('../test/helpers');
+const { createTestApp, createTestDb, post } = await import('../test/helpers');
 const { ANONYMOUS_RENDERS_PER_MINUTE, resetBurstWindows } = await import('../lib/rate-limit');
 const { TEMPLATE_CONTENT_MAX_BYTES } = await import('@temply/shared/plans');
 

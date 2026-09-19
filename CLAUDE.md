@@ -7,7 +7,7 @@ Clerk; tiptap editor core in `client/core/editor`; editing surface in
 theme types, contrast maths and the preflight checks used by both.
 
 Gates, all of them, before calling anything done: `bun run typecheck`,
-`bun test` and `bun run e2e` from the root; `bun run check:contrast`,
+`bun run lint`, `bun test` and `bun run e2e` from the root; `bun run check:contrast`,
 `check:editor-contrast`, `check:email-dark` and `check:motion` from
 `client/`. Then the spec is the test for UI: a change to something a
 customer sees ships with its case in `e2e/specs`, and

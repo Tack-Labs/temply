@@ -70,6 +70,7 @@ export function TemplateThumbnail({ templateId, updatedAt }: TemplateThumbnailPr
           <span className="text-xs text-muted">Preview unavailable</span>
         </div>
       ) : data && scale !== null ? (
+        // biome-ignore lint/a11y/useIframeTitle: decoration, aria-hidden — the card's link carries the name
         <iframe
           srcDoc={data.html}
           sandbox=""

@@ -4,7 +4,6 @@ import { useClerk, useUser } from '@clerk/nextjs';
 import { LogOutIcon, ScrollTextIcon, SettingsIcon, ShieldIcon } from 'lucide-react';
 import Link from 'next/link';
 import { pressable } from '~/components/ui/button';
-import { useRouter } from 'next/navigation';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -27,7 +26,6 @@ type UserMenuProps = {
 export function UserMenu({ align = 'end', showLabel = true, surface = 'rail' }: UserMenuProps) {
   const { user, isSignedIn, isLoaded } = useUser();
   const { signOut } = useClerk();
-  const router = useRouter();
 
   if (!isLoaded) return null;
   if (!isSignedIn) return null;

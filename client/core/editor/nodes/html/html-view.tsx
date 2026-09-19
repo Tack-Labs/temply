@@ -56,6 +56,8 @@ export function HTMLCodeBlockView(props: NodeViewProps) {
       )}
 
       {activeTab === 'preview' && (
+        // biome-ignore lint/a11y/noStaticElementInteractions: a node view; the block is selected from the keyboard through ProseMirror
+        // biome-ignore lint/a11y/useKeyWithClickEvents: as above
         <div
           className={cn(
             'mly:not-prose mly:rounded-lg mly:border mly:border-gray-200 mly:p-2',

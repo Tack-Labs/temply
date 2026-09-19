@@ -93,7 +93,7 @@ export const assetsRoutes = new Elysia()
       .where(and(eq(assets.org_id, ctx.orgId), eq(assets.name, fileName)));
     const duplicateName = Number(existing?.count ?? 0) > 0;
 
-    let uploaded;
+    let uploaded: Awaited<ReturnType<typeof ik.upload>>;
     try {
       uploaded = await ik.upload({
         file: bytes,

@@ -1,4 +1,5 @@
 import { Elysia } from 'elysia';
+import type Stripe from 'stripe';
 import { and, eq, isNull } from 'drizzle-orm';
 import { subscriptions } from '@temply/shared/schema';
 import { getStripe } from '../../lib/billing';
@@ -20,7 +21,7 @@ export const webhookRoutes = new Elysia()
     // constructEvent throws before it looks at the signature — and every
     // webhook read as forged. Log the reason so a real forgery and a broken
     // setup are told apart in the log.
-    let event;
+    let event: Stripe.Event;
     try {
       event = await stripe.webhooks.constructEventAsync(rawBody, sig, webhookSecret);
     } catch (error) {

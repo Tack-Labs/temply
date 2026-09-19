@@ -18,7 +18,7 @@ export const clerkWebhookRoutes = new Elysia()
     const signingSecret = process.env.CLERK_WEBHOOK_SIGNING_SECRET;
     if (!signingSecret) return json({ status: 503, message: 'Clerk webhook secret is not configured' }, 503);
 
-    let event;
+    let event: Awaited<ReturnType<typeof verifyWebhook>>;
     try {
       event = await verifyWebhook(ctx.request, { signingSecret });
     } catch (error) {

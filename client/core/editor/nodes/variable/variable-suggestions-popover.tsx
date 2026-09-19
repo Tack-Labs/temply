@@ -115,6 +115,7 @@ export const VariableSuggestionsPopover: VariableSuggestionsPopoverType =
             {items?.length ? (
               items?.map((item, index: number) => (
                 <button
+                  type="button"
                   key={index}
                   ref={(el) => { itemRefs.current[index] = el; }}
                   onClick={() => onSelectItem(item)}

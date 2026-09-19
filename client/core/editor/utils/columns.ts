@@ -57,7 +57,7 @@ export function addColumn(editor: Editor) {
     return;
   }
 
-  const { node: activeColumnNode, pos: activeColumnNodePos = 0 } =
+  const { node: activeColumnNode } =
     getClosestNodeByName(editor, 'column') || {};
   if (!activeColumnNode) {
     return;
@@ -131,7 +131,7 @@ export function removeColumn(editor: Editor) {
     return;
   }
 
-  const { node: activeColumnNode, pos: activeColumnNodePos = 0 } =
+  const { node: activeColumnNode } =
     getClosestNodeByName(editor, 'column') || {};
   if (!activeColumnNode) {
     return;
@@ -390,7 +390,7 @@ export function getColumnWidths(editor: Editor): {
   id: string;
   width: string;
 }[] {
-  const { node: columnsNode, pos: columnsNodePos = 0 } =
+  const { node: columnsNode } =
     getClosestNodeByName(editor, 'columns') || {};
   if (!columnsNode) {
     return [];

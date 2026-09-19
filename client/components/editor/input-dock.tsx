@@ -59,7 +59,6 @@ export function InputDock({ spec, onClose }: { spec: InputDockSpec | null; onClo
   }, [spec]);
 
   const view = spec ?? shown;
-  const open = !!spec;
   const commit = () => {
     view?.onCommit(drafts);
     onClose();

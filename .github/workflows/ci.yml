@@ -30,6 +30,12 @@ jobs:
       - name: Typecheck
         run: bun run typecheck
 
+      # Biome, on a curated set: the rules that find a bug or an accessibility
+      # gap, not the ones that argue about style. A warning fails the build
+      # the same way an error does, so none can pile up.
+      - name: Lint
+        run: bun run lint
+
       - name: Test
         run: bun test
 

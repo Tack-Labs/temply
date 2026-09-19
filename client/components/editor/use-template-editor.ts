@@ -146,7 +146,7 @@ function themeOfRow(raw: string | null | undefined): RendererThemeOptions {
 }
 
 export function useTemplateEditor(props: EmailEditorSandboxProps): TemplateEditorModel {
-  const { template, imageUploads = true, seedFields } = props;
+  const { template, seedFields } = props;
 
   const router = useRouter();
 

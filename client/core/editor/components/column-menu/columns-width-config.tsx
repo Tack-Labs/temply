@@ -120,6 +120,7 @@ function SwitchButton(props: SwitchButtonProps) {
 
   return (
     <button
+      type="button"
       className={cn(
         'mly:flex mly:h-7 mly:items-center mly:gap-1 mly:rounded-md mly:px-2 mly:text-sm mly:text-gray-500 mly:transition-colors mly:hover:bg-soft-gray mly:hover:text-midnight-gray',
         isActive && 'mly:bg-soft-gray mly:text-midnight-gray'

@@ -26,7 +26,6 @@ import { meta } from './meta';
 import { parse } from 'node-html-parser';
 import juice from 'juice';
 import type {
-  FontProps,
   RendererThemeOptions as ThemeOptions,
 } from '@temply/shared/theme';
 import {
@@ -521,7 +520,7 @@ export class Engine {
     try {
       const _ = new URL(href);
       return true;
-    } catch (err) {
+    } catch {
       return false;
     }
   }
@@ -954,7 +953,6 @@ export class Engine {
   }
 
   private variable(node: JSONContent, options?: NodeOptions): JSX.Element {
-    const { payloadValue } = options || {};
     const { id: variable, fallback, required } = node.attrs || {};
 
     const shouldShow = this.shouldShow(node, options);
@@ -1627,8 +1625,6 @@ export class Engine {
   }
 
   private columns(node: JSONContent, options?: NodeOptions): JSX.Element {
-    const { attrs } = node;
-
     const shouldShow = this.shouldShow(node, options);
     if (!shouldShow) {
       return <></>;

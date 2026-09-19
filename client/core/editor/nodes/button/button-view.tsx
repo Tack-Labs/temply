@@ -67,6 +67,7 @@ export function ButtonView(props: NodeViewProps) {
         <PopoverTrigger asChild>
           <div>
             <button
+              type="button"
               className={cn(
                 'mly:inline-flex mly:items-center mly:justify-center mly:rounded-md mly:text-sm mly:font-medium mly:ring-offset-white mly:transition-colors mly:disabled:pointer-events-none mly:disabled:opacity-50',
                 'mly:font-semibold mly:no-underline',

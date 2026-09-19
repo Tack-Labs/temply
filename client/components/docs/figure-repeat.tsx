@@ -25,7 +25,7 @@ export function FigureRepeat() {
             </div>
             {/* The margin mark that says "repeat" on the canvas. */}
             <div className="flex flex-col items-center gap-1 pt-1 text-accent-ink">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <svg aria-hidden="true" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                 <path d="m2 9 3-3 3 3" /><path d="M13 18H7a2 2 0 0 1-2-2V6" /><path d="m22 15-3 3-3-3" /><path d="M11 6h6a2 2 0 0 1 2 2v10" />
               </svg>
               <span className="w-px flex-1 rounded-full bg-accent-ink" />

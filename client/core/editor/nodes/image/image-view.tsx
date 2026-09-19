@@ -370,6 +370,7 @@ export function ImageView(props: NodeViewProps) {
 
       {hasImageSrc && status === 'loaded' && !isSrcVariable && (
         <>
+          {/* biome-ignore lint/a11y/useAltText: alt is the node's own attribute, spread in with the rest */}
           <img
             {...attrs}
             ref={imgRef}

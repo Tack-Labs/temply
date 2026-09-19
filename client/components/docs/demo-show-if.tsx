@@ -129,7 +129,7 @@ export function DemoShowIf() {
         >
           <span className="docs-showif-box border border-line bg-surface">
             <span className="docs-showif-check text-accent-ink">
-              <svg width="10" height="10" viewBox="0 0 24 24" fill="none">
+              <svg aria-hidden="true" width="10" height="10" viewBox="0 0 24 24" fill="none">
                 <path
                   d="M4.5 12.5l5 5 10-11"
                   stroke="currentColor"

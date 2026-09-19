@@ -2,7 +2,7 @@ import { SVGProps } from 'react';
 
 export function MarginIcon(props: SVGProps<SVGSVGElement>) {
   return (
-    <svg
+    <svg aria-hidden="true"
       width={12}
       height={12}
       viewBox="0 0 12 12"

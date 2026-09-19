@@ -7,7 +7,6 @@ import {
   ItalicIcon,
   List,
   ListOrdered,
-  LucideIcon,
   StrikethroughIcon,
   UnderlineIcon,
 } from 'lucide-react';
@@ -37,36 +36,36 @@ export function TextBubbleContent(props: TextBubbleContentProps) {
   const items: BubbleMenuItem[] = [
     {
       name: 'bold',
-      isActive: () => editor?.isActive('bold')!,
-      command: () => editor?.chain().focus().toggleBold().run()!,
+      isActive: () => !!editor?.isActive('bold'),
+      command: () => !!editor?.chain().focus().toggleBold().run(),
       icon: BoldIcon,
       tooltip: 'Bold',
     },
     {
       name: 'italic',
-      isActive: () => editor?.isActive('italic')!,
-      command: () => editor?.chain().focus().toggleItalic().run()!,
+      isActive: () => !!editor?.isActive('italic'),
+      command: () => !!editor?.chain().focus().toggleItalic().run(),
       icon: ItalicIcon,
       tooltip: 'Italic',
     },
     {
       name: 'underline',
-      isActive: () => editor?.isActive('underline')!,
-      command: () => editor?.chain().focus().toggleUnderline().run()!,
+      isActive: () => !!editor?.isActive('underline'),
+      command: () => !!editor?.chain().focus().toggleUnderline().run(),
       icon: UnderlineIcon,
       tooltip: 'Underline',
     },
     {
       name: 'strike',
-      isActive: () => editor?.isActive('strike')!,
-      command: () => editor?.chain().focus().toggleStrike().run()!,
+      isActive: () => !!editor?.isActive('strike'),
+      command: () => !!editor?.chain().focus().toggleStrike().run(),
       icon: StrikethroughIcon,
       tooltip: 'Strikethrough',
     },
     {
       name: 'code',
-      isActive: () => editor?.isActive('code')!,
-      command: () => editor?.chain().focus().toggleCode().run()!,
+      isActive: () => !!editor?.isActive('code'),
+      command: () => !!editor?.chain().focus().toggleCode().run(),
       icon: CodeIcon,
       tooltip: 'Code',
     },
@@ -141,7 +140,7 @@ export function TextBubbleContent(props: TextBubbleContentProps) {
             .setLink({ href: value })
             .setIsUrlVariable(isVariable ?? false)
             .setUnderline()
-            .run()!;
+            .run();
         }}
         tooltip="Link address"
         editor={editor}

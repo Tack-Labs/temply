@@ -5,7 +5,6 @@ import { ReactRenderer } from '@tiptap/react';
 import { SuggestionKeyDownProps, SuggestionOptions } from '@tiptap/suggestion';
 import {
   forwardRef,
-  RefObject,
   useCallback,
   useEffect,
   useImperativeHandle,
@@ -69,7 +68,7 @@ const CommandList = forwardRef<SuggestionListRef, CommandListProps>((props, ref)
         let newGroupIndex = selectedGroupIndex;
 
         switch (event.key) {
-          case 'ArrowLeft':
+          case 'ArrowLeft': {
             event.preventDefault();
 
             const group = groups?.[selectedGroupIndex];
@@ -88,7 +87,8 @@ const CommandList = forwardRef<SuggestionListRef, CommandListProps>((props, ref)
               setSelectedCommandIndex(prevSelectedCommandIndex.current);
             }, 0);
             return true;
-          case 'ArrowRight':
+          }
+          case 'ArrowRight': {
             event.preventDefault();
 
             const command =
@@ -103,6 +103,7 @@ const CommandList = forwardRef<SuggestionListRef, CommandListProps>((props, ref)
             prevSelectedGroupIndex.current = selectedGroupIndex;
             prevSelectedCommandIndex.current = selectedCommandIndex;
             return true;
+          }
           case 'Enter':
             if (!groups.length) {
               return false;
@@ -130,7 +131,7 @@ const CommandList = forwardRef<SuggestionListRef, CommandListProps>((props, ref)
             setSelectedGroupIndex(newGroupIndex);
             setSelectedCommandIndex(newCommandIndex);
             return true;
-          case 'ArrowDown':
+          case 'ArrowDown': {
             if (!groups.length) {
               return false;
             }
@@ -147,6 +148,7 @@ const CommandList = forwardRef<SuggestionListRef, CommandListProps>((props, ref)
             setSelectedGroupIndex(newGroupIndex);
             setSelectedCommandIndex(newCommandIndex);
             return true;
+          }
           default:
             return false;
         }
@@ -215,6 +217,7 @@ const CommandList = forwardRef<SuggestionListRef, CommandListProps>((props, ref)
             arrow keys and pressed with Enter — so the highlighted row is
             named here rather than focused, which is what
             `aria-activedescendant` is for. */}
+        {/* biome-ignore lint/a11y/useAriaActivedescendantWithTabindex: the list is never focused — see above */}
         <div
           id="slash-command"
           role="listbox"

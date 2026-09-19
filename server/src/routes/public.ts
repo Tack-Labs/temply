@@ -7,6 +7,7 @@ import { checkApiQuota, recordApiCall } from '../lib/api-quota';
 import { checkBurst } from '../lib/rate-limit';
 import { render } from '../render/render';
 import { MissingVariablesError, RepeatNotListError } from '../render/engine';
+import type { EngineConfig } from '../render/engine';
 import { json, notFound, tooManyRequests, unauthorized, unprocessable } from '../lib/errors';
 import { authPlugin } from '../plugins/auth';
 import { PUBLIC_PREVIEW_ROUTE, PUBLIC_RENDER_ROUTE, PUBLIC_TEMPLATE_ROUTE } from '@temply/shared/api';
@@ -122,7 +123,7 @@ export const publicRoutes = new Elysia()
     } catch {
       return json({ status: 500, message: 'Template content is corrupt', errors: ['Unparseable content'] }, 500);
     }
-    let theme;
+    let theme: EngineConfig['theme'];
     try {
       theme = template.theme ? JSON.parse(template.theme) : undefined;
     } catch {

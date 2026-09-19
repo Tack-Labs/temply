@@ -5,7 +5,7 @@ import type { Mail } from '~/db/schema';
 import { ConfirmDialog } from '~/components/ui/confirm-dialog';
 import { List, Row } from '~/components/ui/item';
 import { useMemo, useState } from 'react';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, } from '@tanstack/react-query';
 import { httpGet, httpPost } from '~/lib/http';
 import { Button } from '~/components/ui/button';
 import { ErrorState } from '~/components/ui/surfaces';
@@ -54,7 +54,6 @@ export function VersionHistoryDialog({
   trigger,
 }: VersionHistoryDialogProps) {
   const router = useRouter();
-  const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
   const [previewVersion, setPreviewVersion] = useState<VersionDetail | null>(null);
 

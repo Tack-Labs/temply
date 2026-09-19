@@ -36,7 +36,7 @@ type ShowPopoverProps = {
   editor: Editor;
 };
 
-function _ShowPopover(props: ShowPopoverProps) {
+function ShowPopoverBase(props: ShowPopoverProps) {
   const { showIfKey = '', onShowIfKeyValueChange, editor } = props;
 
   const opts = useVariableOptions(editor);
@@ -163,4 +163,4 @@ function _ShowPopover(props: ShowPopoverProps) {
   );
 }
 
-export const ShowPopover = memo(_ShowPopover);
+export const ShowPopover = memo(ShowPopoverBase);

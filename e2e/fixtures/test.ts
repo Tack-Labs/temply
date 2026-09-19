@@ -36,6 +36,7 @@ export const test = base.extend<Fixtures>({
   // `what` so long that no title fits at all is a mistake in the test, and
   // is refused rather than quietly folded into a name another call could
   // also produce.
+  // biome-ignore lint/correctness/noEmptyPattern: Playwright reads the fixtures a fixture wants off this pattern
   name: async ({}, use, testInfo) => {
     await use((what) => {
       const attempt = testInfo.retry ? `r${testInfo.retry} · ` : '';
@@ -66,6 +67,7 @@ export const test = base.extend<Fixtures>({
   // what a test on another worker is about to read. Isolation is by time
   // instead: this test sees only what the fakes received once it began,
   // and matches on data it named rather than on counts.
+  // biome-ignore lint/correctness/noEmptyPattern: as above
   fakes: async ({}, use) => {
     const startedAt = Date.now();
     await use({ requests: (service) => fakes.requests(service, startedAt), signStripeEvent: fakes.signStripeEvent });

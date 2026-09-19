@@ -1,6 +1,5 @@
 import { cn } from '@/editor/utils/classname';
 import { useId } from 'react';
-import { Divider } from './divider';
 import { Popover, PopoverContent, PopoverTrigger } from '../popover';
 import { ChevronUp } from 'lucide-react';
 import { AUTOCOMPLETE_PASSWORD_MANAGERS_OFF } from '@/editor/utils/constants';
