@@ -16,6 +16,7 @@ mock.module('resend', () => ({
 }));
 
 import { contactRoutes } from './contact';
+import { CONTACT_MESSAGES_PER_MINUTE, resetBurstWindows } from '../lib/rate-limit';
 
 let db: TestDb;
 let app: any;
@@ -24,6 +25,7 @@ beforeEach(() => {
   db = createTestDb();
   app = createTestApp(db, contactRoutes);
   sent.length = 0;
+  resetBurstWindows();
   process.env.RESEND_API_KEY = 're_test_key';
   process.env.CONTACT_EMAIL = 'team@example.com';
   delete process.env.CONTACT_FROM_EMAIL;
@@ -59,6 +61,19 @@ describe('POST /api/v1/contact', () => {
     expect(res.status).toBe(200);
     expect(await db.select().from(contactMessages)).toHaveLength(1);
     expect(sent).toHaveLength(0);
+  });
+
+  it('fuses an address after a minute of messages, and stores none past it', async () => {
+    const from = { 'x-forwarded-for': '203.0.113.9' };
+    const message = { name: 'A', email: 'a@b.co', message: 'hi' };
+    for (let i = 0; i < CONTACT_MESSAGES_PER_MINUTE; i++) {
+      expect((await post(app, '/api/v1/contact', message, null, from)).status).toBe(200);
+    }
+    const refused = await post(app, '/api/v1/contact', message, null, from);
+    expect(refused.status).toBe(429);
+    expect(refused.headers.get('Retry-After')).toMatch(/^[0-9]+$/);
+    expect(await db.select().from(contactMessages)).toHaveLength(CONTACT_MESSAGES_PER_MINUTE);
+    expect((await post(app, '/api/v1/contact', message, null, { 'x-forwarded-for': '203.0.113.10' })).status).toBe(200);
   });
 
   it('accepts but discards a honeypot submission', async () => {
