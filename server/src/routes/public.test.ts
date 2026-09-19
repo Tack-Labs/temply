@@ -250,6 +250,23 @@ describe('GET /api/public/v1/templates/:shortCode', () => {
     const [after] = await db.select().from(apiKeysTable).where(eq(apiKeysTable.id, id));
     expect(after.last_used_at).not.toBeNull();
   });
+
+  it('rewrites last_used_at once a minute, not once a call', async () => {
+    await givePlan(db, OWNER, 'pro');
+    const { id, fullKey } = await seedKey(OWNER);
+    const shortCode = await seedTemplate(OWNER);
+    const stamp = (agoMs: number) => new Date(Date.now() - agoMs).toISOString();
+
+    const recent = stamp(30_000);
+    await db.update(apiKeysTable).set({ last_used_at: recent }).where(eq(apiKeysTable.id, id));
+    await fetchTemplate(shortCode, fullKey);
+    expect((await db.select().from(apiKeysTable).where(eq(apiKeysTable.id, id)))[0].last_used_at).toBe(recent);
+
+    const stale = stamp(120_000);
+    await db.update(apiKeysTable).set({ last_used_at: stale }).where(eq(apiKeysTable.id, id));
+    await fetchTemplate(shortCode, fullKey);
+    expect((await db.select().from(apiKeysTable).where(eq(apiKeysTable.id, id)))[0].last_used_at).not.toBe(stale);
+  });
 });
 
 describe('POST /api/public/v1/templates/:shortCode/render', () => {

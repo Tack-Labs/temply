@@ -85,10 +85,16 @@ async function resolve(ctx: { request: Request; params: { shortCode: string }; d
     served = { content: template.published_content, theme: template.published_theme, previewText: template.published_preview_text, stamp: template.published_at };
   }
 
-  await ctx.db
-    .update(apiKeysTable)
-    .set({ last_used_at: new Date().toISOString() })
-    .where(eq(apiKeysTable.id, key.id));
+  // The stamp is shown on the keys page to the minute, so it is written to
+  // the minute: every render used to cost a third write for a value that
+  // had not visibly changed since the last one.
+  const now = new Date();
+  if (!key.last_used_at || now.getTime() - Date.parse(key.last_used_at) >= 60_000) {
+    await ctx.db
+      .update(apiKeysTable)
+      .set({ last_used_at: now.toISOString() })
+      .where(eq(apiKeysTable.id, key.id));
+  }
   await recordApiCall(ctx.db, key.org_id ?? key.user_id, new Date(), key.mode);
 
   return { key, template, served };
