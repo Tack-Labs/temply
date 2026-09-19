@@ -21,6 +21,20 @@ export default clerkMiddleware(async (auth, req) => {
   }
 });
 
+// Only where a request needs Clerk: the pages behind sign-in and the two
+// that sign you in, the proxy, and the review page — its serverFetch reads
+// auth() to forward whoever is looking. The marketing pages are static and
+// read no session on the server; the header learns whether you are signed
+// in from the client, which needs no middleware. Running Clerk on every
+// page cost a middleware pass per visit to the front page for nothing.
 export const config = {
-  matcher: ['/((?!_next|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)'],
+  matcher: [
+    '/dashboard/:path*',
+    '/templates/:path*',
+    '/onboarding/:path*',
+    '/login/:path*',
+    '/sign-up/:path*',
+    '/p/:path*',
+    '/api/:path*',
+  ],
 };
