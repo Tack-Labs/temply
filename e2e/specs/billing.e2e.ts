@@ -3,7 +3,7 @@ import { TEST_USER_2 } from '../env';
 import { test, expect } from '../fixtures/test';
 import { makeApi } from '../fixtures/api';
 import { renameTo, publish } from '../fixtures/editor';
-import { signInAs } from '../fixtures/session';
+import { refreshSession, signInAs } from '../fixtures/session';
 import { readWorkspaces } from '../fixtures/workspaces';
 import { recordedCheckout, completeCheckout, cancelSubscription, type CheckoutSession } from '../setup/plan';
 
@@ -110,6 +110,12 @@ test.describe('billing', () => {
 
   test('the billing portal opens from Manage subscription', async () => {
     await page.goto('/dashboard/settings/plan');
+    // The click posts, then the portal's URL is followed as a full page
+    // load. Both ride on the session cookie, and a page load resolves before
+    // Clerk's first renewal of it (see refreshSession) — on a slow runner
+    // the token saved by the sign-in was past its minute by the time the
+    // load came round, and the load ended on the sign-in page instead.
+    await refreshSession(page);
     await page.getByRole('button', { name: 'Manage subscription' }).click();
     await expect(page).toHaveURL(/portal=fake/);
   });
