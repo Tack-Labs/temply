@@ -108,6 +108,50 @@ describe('GET /api/public/v1/preview/:token', () => {
   });
 });
 
+function listTemplates(apiKey?: string) {
+  return app.handle(
+    new Request('http://localhost/api/public/v1/templates', {
+      headers: apiKey ? { authorization: `Bearer ${apiKey}` } : {},
+    }),
+  );
+}
+
+describe('GET /api/public/v1/templates', () => {
+  it('401s without a key, and lists only what the key\'s workspace made', async () => {
+    expect((await listTemplates()).status).toBe(401);
+    await givePlan(db, OWNER, 'pro');
+    const { fullKey } = await seedKey(OWNER);
+    const mine = await seedTemplate(OWNER);
+    await seedTemplate('someone_else');
+    const res = await listTemplates(fullKey);
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.mode).toBe('live');
+    expect(body.templates.map((t: { shortCode: string }) => t.shortCode)).toEqual([mine]);
+    expect(Object.keys(body.templates[0]).sort()).toEqual(['id', 'previewText', 'publishedAt', 'shortCode', 'title', 'updatedAt']);
+    expect(body.templates[0].updatedAt).toBe('2026-01-01T00:00:00.000Z');
+  });
+
+  it('a live key lists what is published; a test key lists the drafts too', async () => {
+    await givePlan(db, OWNER, 'pro');
+    const live = await seedKey(OWNER);
+    const test = await seedKey(OWNER, { mode: 'test' });
+    const published = await seedTemplate(OWNER);
+    const draft = await seedTemplate(OWNER, undefined, { published: false });
+    const seen = async (key: string) => ((await (await listTemplates(key)).json()).templates as { shortCode: string }[]).map((t) => t.shortCode).sort();
+    expect(await seen(live.fullKey)).toEqual([published]);
+    expect(await seen(test.fullKey)).toEqual([draft, published].sort());
+  });
+
+  it('counts as a call', async () => {
+    await givePlan(db, OWNER, 'pro');
+    const { fullKey } = await seedKey(OWNER);
+    await listTemplates(fullKey);
+    const [usage] = await db.select().from(orgUsage);
+    expect(usage.count).toBe(1);
+  });
+});
+
 describe('GET /api/public/v1/templates/:shortCode', () => {
   it('401s without an Authorization header', async () => {
     const shortCode = await seedTemplate(OWNER);

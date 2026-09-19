@@ -34,6 +34,7 @@ const sections = [
     label: 'The API',
     children: [
       { id: 'api-keys', label: 'Keys' },
+      { id: 'api-templates', label: 'List templates' },
       { id: 'api-template', label: 'Get a template' },
       { id: 'api-render', label: 'Render a template' },
       { id: 'api-data', label: 'The data object' },

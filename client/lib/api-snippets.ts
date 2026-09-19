@@ -1,4 +1,4 @@
-import { publicRenderPath, publicTemplatePath } from '@temply/shared/api';
+import { publicRenderPath, publicTemplatePath, publicTemplatesPath } from '@temply/shared/api';
 import { SITE_URL } from './site';
 
 /** Where the API lives, as integrators will type it. */
@@ -58,6 +58,12 @@ req.body = { data: { firstName: "Ada", isMember: true } }.to_json
 res = Net::HTTP.start(uri.host, uri.port, use_ssl: true) { |http| http.request(req) }
 html = JSON.parse(res.body)["html"]`,
   };
+}
+
+/** The list, curl only — the same one-liner without a code on the end. */
+export function listSnippet(): string {
+  return `curl -H "Authorization: Bearer ${KEY}" \\
+  ${API_ORIGIN}${publicTemplatesPath()}`;
 }
 
 /** The metadata call, curl only — it is a one-liner in every language. */

@@ -3,7 +3,7 @@ import { CodeTabs } from '~/components/docs/code-tabs';
 import { FigureDataMap } from '~/components/docs/figure-data-map';
 import { FigureKeys } from '~/components/docs/figure-keys';
 import { Block, Code, H2, H3, P } from '~/components/docs/docs-content';
-import { API_ORIGIN, errorSnippets, metaSnippet, renderSnippets, sendSnippets, SNIPPET_LANGUAGES } from '~/lib/api-snippets';
+import { API_ORIGIN, errorSnippets, listSnippet, metaSnippet, renderSnippets, sendSnippets, SNIPPET_LANGUAGES } from '~/lib/api-snippets';
 
 const EXAMPLE = 'tpl_AbCd1234';
 
@@ -54,6 +54,22 @@ export function ApiReference() {
           Revoking a key takes effect on the next request.
         </P>
         <FigureKeys />
+      </div>
+
+      <div className="mt-10">
+        <H3 id="api-templates">List templates</H3>
+        <P>
+          <Code>GET /templates</Code> — every template this key can reach, newest
+          change first, so your app can find them rather than be handed codes by
+          hand. A live key lists what is published; a test key lists the drafts too.
+        </P>
+        <Block>{listSnippet()}</Block>
+        <Fields
+          rows={[
+            ['templates', 'One entry per template: id, shortCode, title, previewText, publishedAt, updatedAt — the same fields as the single call.'],
+            ['mode', '"live" or "test" — which copies the list describes.'],
+          ]}
+        />
       </div>
 
       <div className="mt-10">

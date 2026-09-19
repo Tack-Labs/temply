@@ -5,6 +5,9 @@
  */
 export const PUBLIC_API_PREFIX = '/api/public/v1';
 
+/** Every template the key can reach, for an app to discover them by. */
+export const PUBLIC_TEMPLATES_ROUTE = `${PUBLIC_API_PREFIX}/templates`;
+
 /** Route pattern for the server (":shortCode" stays a parameter). */
 export const PUBLIC_TEMPLATE_ROUTE = `${PUBLIC_API_PREFIX}/templates/:shortCode`;
 export const PUBLIC_RENDER_ROUTE = `${PUBLIC_TEMPLATE_ROUTE}/render`;
@@ -14,6 +17,10 @@ export const PUBLIC_PREVIEW_ROUTE = `${PUBLIC_API_PREFIX}/preview/:token`;
 
 export function publicPreviewPath(token: string): string {
   return `${PUBLIC_API_PREFIX}/preview/${token}`;
+}
+
+export function publicTemplatesPath(): string {
+  return PUBLIC_TEMPLATES_ROUTE;
 }
 
 export function publicTemplatePath(shortCode: string): string {

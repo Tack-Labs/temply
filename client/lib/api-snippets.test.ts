@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'bun:test';
-import { PUBLIC_RENDER_ROUTE, PUBLIC_TEMPLATE_ROUTE, publicRenderPath, publicTemplatePath } from '@temply/shared/api';
-import { API_ORIGIN, errorSnippets, metaSnippet, renderSnippets, sendSnippets, SNIPPET_LANGUAGES } from './api-snippets';
+import { PUBLIC_RENDER_ROUTE, PUBLIC_TEMPLATE_ROUTE, PUBLIC_TEMPLATES_ROUTE, publicRenderPath, publicTemplatePath, publicTemplatesPath } from '@temply/shared/api';
+import { API_ORIGIN, listSnippet, errorSnippets, metaSnippet, renderSnippets, sendSnippets, SNIPPET_LANGUAGES } from './api-snippets';
 
 /**
  * The snippets are what an integrator pastes. Each one has to hit the path
@@ -28,6 +28,11 @@ describe('API snippets', () => {
   it('the paths match the server’s route patterns', () => {
     expect(publicRenderPath(code)).toBe(PUBLIC_RENDER_ROUTE.replace(':shortCode', code));
     expect(publicTemplatePath(code)).toBe(PUBLIC_TEMPLATE_ROUTE.replace(':shortCode', code));
+  });
+
+  it('the list call reads the templates route', () => {
+    expect(publicTemplatesPath()).toBe(PUBLIC_TEMPLATES_ROUTE);
+    expect(listSnippet()).toContain(`${API_ORIGIN}${publicTemplatesPath()}`);
   });
 
   it('the metadata call reads the template route', () => {
