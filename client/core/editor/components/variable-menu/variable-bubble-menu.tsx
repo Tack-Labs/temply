@@ -4,6 +4,7 @@ import { EditorBubbleMenuProps } from '../text-menu/text-bubble-menu';
 import { TooltipProvider } from '../ui/tooltip';
 import { MenuToolbar } from '../ui/menu-toolbar';
 import { VariableMenuContent } from './variable-menu-content';
+import { PLACED_INSIDE_THE_PANE } from '@/editor/utils/menu-placement';
 
 export function VariableBubbleMenu(props: EditorBubbleMenuProps) {
   const { editor, appendTo } = props;
@@ -19,7 +20,7 @@ export function VariableBubbleMenu(props: EditorBubbleMenuProps) {
     },
     tippyOptions: {
       popperOptions: {
-        modifiers: [{ name: 'flip', enabled: false }],
+        modifiers: PLACED_INSIDE_THE_PANE,
       },
       plugins: [sticky],
       sticky: 'popper',

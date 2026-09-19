@@ -4,6 +4,7 @@ import { EditorBubbleMenuProps } from '../text-menu/text-bubble-menu';
 import { TooltipProvider } from '../ui/tooltip';
 import { MenuToolbar } from '../ui/menu-toolbar';
 import { InlineImageMenuContent } from './inline-image-menu-content';
+import { PLACED_INSIDE_THE_PANE } from '@/editor/utils/menu-placement';
 
 export function InlineImageBubbleMenu(props: EditorBubbleMenuProps) {
   const { editor } = props;
@@ -22,7 +23,7 @@ export function InlineImageBubbleMenu(props: EditorBubbleMenuProps) {
     },
     tippyOptions: {
       popperOptions: {
-        modifiers: [{ name: 'flip', enabled: false }],
+        modifiers: PLACED_INSIDE_THE_PANE,
       },
       plugins: [sticky],
       sticky: 'popper',

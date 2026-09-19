@@ -6,6 +6,7 @@ import { TooltipProvider } from '../ui/tooltip';
 import { MenuToolbar } from '../ui/menu-toolbar';
 import { SpacerMenuContent } from './spacer-menu-content';
 import { useEditorGesture } from '@/editor/utils/use-editor-gesture';
+import { PLACED_INSIDE_THE_PANE } from '@/editor/utils/menu-placement';
 
 export function SpacerBubbleMenu(props: EditorBubbleMenuProps) {
   const { editor } = props;
@@ -39,7 +40,7 @@ export function SpacerBubbleMenu(props: EditorBubbleMenuProps) {
       // spacer does not push it into whatever follows.
       offset: [0, -Math.min(state.currentHeight, 34)] as [number, number],
       popperOptions: {
-        modifiers: [{ name: 'flip', enabled: false }],
+        modifiers: PLACED_INSIDE_THE_PANE,
       },
     },
   };

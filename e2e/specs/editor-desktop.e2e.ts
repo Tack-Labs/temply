@@ -965,6 +965,48 @@ test.describe('editor on the desktop', () => {
     await expectOnScreen(page, bubbleMenu(page, 'Section'), 'its menu');
   });
 
+  test('a block scrolled to the top of the canvas keeps its menu in reach', async ({ page, api, name }) => {
+    // The canvas scrolls inside a pane that begins under the app header, and
+    // a Section's menu is placed above the block. Scroll the block until it
+    // rests on that edge and the menu was drawn above the pane, where the
+    // pane's own overflow cut it away: the block on screen, and the only way
+    // to act on it gone. It slides down onto the block instead — which side
+    // it is on stays chosen, because a Section and the Repeat inside it
+    // divide the two sides between them.
+    const doc = JSON.stringify({
+      type: 'doc',
+      content: [
+        ...Array.from({ length: 6 }, (_, i) => ({ type: 'paragraph', content: [{ type: 'text', text: `Above ${i + 1}` }] })),
+        { type: 'section', content: [{ type: 'paragraph', content: [{ type: 'text', text: 'Inside' }] }] },
+        ...Array.from({ length: 40 }, (_, i) => ({ type: 'paragraph', content: [{ type: 'text', text: `Below ${i + 1}` }] })),
+      ],
+    });
+    const t = await api.createTemplate({ title: name('top of the pane'), content: doc });
+    const pm = await openEditor(page, t.id);
+    const section = pm.locator('table[data-type="section"]');
+    await section.locator('p').first().click();
+    const menu = bubbleMenu(page, 'Section');
+    await expectOnScreen(page, menu, 'the section menu where the block was clicked');
+
+    // Scrolled the way a customer scrolls, until the block is the first thing
+    // in the pane. The menu is still the same menu: nothing was clicked.
+    await page.mouse.move(650, 500);
+    await page.mouse.wheel(0, 400);
+    await expect(section, 'the block itself is still on screen').toBeInViewport();
+
+    // Geometry alone cannot tell a menu that is placed here from one a pane
+    // is clipping, so the question is what a customer's press would land on.
+    const padding = menu.getByRole('button', { name: 'Padding' });
+    const box = (await padding.boundingBox())!;
+    const reachable = await page.evaluate(
+      ([x, y]) => !!document.elementFromPoint(x, y)?.closest('[role="toolbar"]'),
+      [box.x + box.width / 2, box.y + box.height / 2] as [number, number]
+    );
+    expect(reachable, 'the point over Padding belongs to the menu, so a click there reaches it').toBe(true);
+    await padding.click();
+    await expect(page.getByRole('menu'), 'and the control it reaches is the one it names').toBeVisible();
+  });
+
   test('a Section inserted with the mouse alone carries its menu', async ({ page, api, name }) => {
     // The whole route out of the canvas: the drag handle sits beside the
     // canvas in the DOM and the block panel on the body, so a customer who

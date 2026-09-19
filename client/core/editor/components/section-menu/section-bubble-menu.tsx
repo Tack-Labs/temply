@@ -10,6 +10,7 @@ import { getClosestNodeByName } from '@/editor/utils/columns';
 import { SectionMenuContent } from './section-menu-content';
 import { useEditorGesture } from '@/editor/utils/use-editor-gesture';
 import { layerWillTakeEscape } from '@/editor/utils/escape-layer';
+import { PLACED_INSIDE_THE_PANE } from '@/editor/utils/menu-placement';
 
 export function SectionBubbleMenu(props: EditorBubbleMenuProps) {
   const { appendTo, editor } = props;
@@ -114,7 +115,7 @@ export function SectionBubbleMenu(props: EditorBubbleMenuProps) {
         tippyRef.current = instance;
       },
       popperOptions: {
-        modifiers: [{ name: 'flip', enabled: false }],
+        modifiers: PLACED_INSIDE_THE_PANE,
       },
       getReferenceClientRect,
       appendTo: () => appendTo?.current,
