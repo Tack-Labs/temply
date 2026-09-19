@@ -119,6 +119,40 @@ test.describe('preview', () => {
     await expect(toggle).toHaveAttribute('aria-pressed', 'false');
   });
 
+  test('a script in a Custom HTML block runs nowhere', async ({ page, api, name }) => {
+    // The block is whatever the author typed and the render passes it
+    // through as written, so the preview is the one place a customer's
+    // markup runs. It used to run on the app's origin — one member's
+    // template as whoever previewed it next, with their session. The frame
+    // is sandboxed now: the block still shows, and nothing in it can reach
+    // the frame's own document, let alone the page around it.
+    const doc = JSON.stringify({
+      type: 'doc',
+      content: [
+        { type: 'paragraph', content: [{ type: 'text', text: 'Before the block' }] },
+        {
+          type: 'htmlCodeBlock',
+          content: [{
+            type: 'text',
+            text: '<p>From the block</p><script>document.body.dataset.ran="1";try{parent.document.body.dataset.pwned="1"}catch(e){}</script><img src="x" onerror="document.body.dataset.ran=(document.body.dataset.ran||\'\')+\'img\';try{parent.document.body.dataset.pwned=\'img\'}catch(e){}">',
+          }],
+        },
+      ],
+    });
+    const { id } = await api.createTemplate({ title: name('inert html'), content: doc });
+    await page.goto(`/templates/${id}`);
+    await expect(page.getByText('Before the block')).toBeVisible();
+    await view(page, 'Preview');
+
+    await expect(frame(page).getByText('From the block'), 'the block itself is shown').toBeVisible();
+    // Judged once the frame has finished loading: an inline script runs as
+    // it is parsed and an image's onerror before the load event, so a frame
+    // that is complete has fired everything it was ever going to.
+    await expect.poll(() => frame(page).locator('body').evaluate(() => document.readyState)).toBe('complete');
+    await expect(frame(page).locator('body'), 'nothing in the block ran in the frame').not.toHaveAttribute('data-ran', /./);
+    await expect(page.locator('body'), 'and nothing reached the page around it').not.toHaveAttribute('data-pwned', /./);
+  });
+
   test('HTML and Text views show the source, and HTML copies', async ({ page, api, name, context }) => {
     await context.grantPermissions(['clipboard-read', 'clipboard-write']);
     const { id } = await api.createTemplate({ title: name('sources'), content: DOC });

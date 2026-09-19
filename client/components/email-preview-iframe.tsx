@@ -1,4 +1,4 @@
-import { useEffect, type RefObject, useRef } from 'react';
+import { useMemo } from 'react';
 import { MailOpenIcon } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '~/lib/classname';
@@ -6,7 +6,6 @@ import { Button } from './ui/button';
 
 type EmailPreviewIFrameProps = {
   innerHTML: string;
-  isServer?: boolean;
   showOpenInNewTab?: boolean;
   wrapperClassName?: string;
   /** Render the email the way a client that forces dark mode would. */
@@ -32,58 +31,49 @@ const FORCE_DARK_STYLE = `
   }
 `;
 
-function renderHTMLToIFrame(
-  ref: RefObject<HTMLIFrameElement | null>,
-  html: string,
-  forceDark = false
-) {
-  if (!ref || !ref?.current) {
-    return;
-  }
-
-  const doc = ref.current.contentDocument;
-  if (!doc) {
-    return;
-  }
-
-  doc.open();
-  doc.write(`
-    <!DOCTYPE html>
-    <html>
-      <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
-        ${forceDark ? `<style>${FORCE_DARK_STYLE}</style>` : ''}
-      </head>
-      <body>
-        ${html}
-      </body>
-    </html>
-  `);
-  doc.close();
+/** The page the frame shows: the email, in a document of its own. */
+function emailDocument(html: string, forceDark: boolean): string {
+  return `<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
+    ${forceDark ? `<style>${FORCE_DARK_STYLE}</style>` : ''}
+  </head>
+  <body>
+    ${html}
+  </body>
+</html>`;
 }
 
+/**
+ * The email, shown inert.
+ *
+ * A Custom HTML block is whatever the author typed, and the render passes it
+ * through as written; so the preview is the one place in the app where a
+ * customer's markup runs. It used to be written straight into a frame that
+ * shared the app's origin, which made a `<script>` in one member's template
+ * run as whoever previewed it next — with their session, against the API.
+ * `sandbox=""` gives the frame an origin of its own and no script at all,
+ * the same footing the share page and the dashboard thumbnails already put
+ * an email on. Nothing an email client would honour is lost: scripts never
+ * ran in an inbox either.
+ */
 export function EmailPreviewIFrame(props: EmailPreviewIFrameProps) {
   const {
     innerHTML,
-    isServer,
     showOpenInNewTab = true,
     wrapperClassName,
     forceDark = false,
     ...defaultProps
   } = props;
 
-  const iframeRef = useRef<HTMLIFrameElement>(null);
+  const document = useMemo(() => emailDocument(innerHTML, forceDark), [innerHTML, forceDark]);
 
-  useEffect(() => {
-    if (!iframeRef.current || isServer) {
-      return;
-    }
-
-    renderHTMLToIFrame(iframeRef, innerHTML, forceDark);
-  }, [innerHTML, iframeRef, isServer, forceDark]);
-
+  // The new tab is the app's own page around a frame on the same terms as
+  // the one below — a popup written the email directly would be back on the
+  // app's origin, and a Blob URL inherits it too.
   function handleOpen() {
     if (innerHTML.trim().length === 0) {
       toast.error('There is no data to preview.');
@@ -99,26 +89,19 @@ export function EmailPreviewIFrame(props: EmailPreviewIFrameProps) {
       return;
     }
 
-    newDoc.open();
-    newDoc.write(innerHTML);
-    newDoc.close();
+    newDoc.title = 'Email preview';
+    newDoc.body.style.margin = '0';
+    const frame = newDoc.createElement('iframe');
+    frame.setAttribute('sandbox', '');
+    frame.title = 'Email preview';
+    frame.style.cssText = 'position:fixed;inset:0;width:100%;height:100%;border:0;background:#fff';
+    frame.srcdoc = document;
+    newDoc.body.appendChild(frame);
   }
 
   return (
     <div className={cn('relative', wrapperClassName)}>
-      <iframe
-        title="Email preview"
-        {...defaultProps}
-        onLoad={() => {
-          if (isServer) {
-            return;
-          }
-
-          renderHTMLToIFrame(iframeRef, innerHTML, forceDark);
-        }}
-        ref={iframeRef}
-        srcDoc={isServer ? innerHTML : ''}
-      />
+      <iframe title="Email preview" {...defaultProps} sandbox="" srcDoc={document} />
 
       {showOpenInNewTab ? (
         <Button
