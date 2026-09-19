@@ -65,7 +65,6 @@ export const authPlugin = new Elysia({ name: 'auth' })
         const payload = await verifyToken(sessionCookie, {
           secretKey: process.env.CLERK_SECRET_KEY,
         });
-        console.log('[auth] verified via __session token:', payload.sub);
         // v2 tokens carry the org under `o`; v1 tokens spell it out.
         const claims = payload as Record<string, unknown> & { o?: { id?: string; rol?: string } };
         const identity: Identity = {
@@ -74,8 +73,9 @@ export const authPlugin = new Elysia({ name: 'auth' })
           orgRole: normaliseRole(claims.o?.rol ?? claims.org_role),
         };
         return identity;
-      } catch (e) {
-        console.log('[auth] __session verifyToken failed:', (e as Error)?.message);
+      } catch {
+        // A stale or foreign token is the ordinary way a request arrives
+        // signed out; the fallback below says so if it also fails.
       }
     }
 
@@ -91,7 +91,6 @@ export const authPlugin = new Elysia({ name: 'auth' })
           const authObj = authState.toAuth();
           const userId: string | undefined = authObj?.userId ?? undefined;
           if (userId) {
-            console.log('[auth] verified via authenticateRequest:', userId);
             const identity: Identity = {
               userId,
               orgId: (authObj as { orgId?: string | null })?.orgId ?? null,
@@ -100,7 +99,7 @@ export const authPlugin = new Elysia({ name: 'auth' })
             return identity;
           }
         }
-        console.log('[auth] authenticateRequest status:', authState.status, 'reason:', authState.reason);
+        console.warn('[auth] session not accepted:', authState.status, authState.reason);
       } catch (e) {
         console.error('[auth] authenticateRequest error:', (e as Error)?.message);
       }
