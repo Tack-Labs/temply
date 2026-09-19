@@ -70,17 +70,20 @@ const HeaderUserMenu = dynamic(() => import('~/components/header-user-menu'), { 
  * it matters — but a hint is all a header needs to choose its button. Read
  * after mount: the page is prerendered and has no cookie at build time.
  */
-function useSignedInHint(): boolean {
+function useSignedInHint(): [boolean, (signedIn: boolean) => void] {
   const [signedIn, setSignedIn] = useState(false);
   useEffect(() => {
     const uat = document.cookie.split('; ').find((c) => c.startsWith('__client_uat='))?.split('=')[1];
     setSignedIn(!!uat && uat !== '0');
   }, []);
-  return signedIn;
+  return [signedIn, setSignedIn];
 }
 
 export function Header() {
-  const isSignedIn = useSignedInHint();
+  // A hint can be stale: a session that expired without a sign-out leaves
+  // the stamp behind. The menu it summons brings Clerk, and Clerk's answer
+  // corrects the header.
+  const [isSignedIn, setSignedIn] = useSignedInHint();
   const pathname = usePathname();
   // This header is shared with the playground, where those sections do not
   // exist — from anywhere but the landing page the links have to route home
@@ -140,7 +143,7 @@ export function Header() {
                 <Link href="/dashboard/templates">Dashboard</Link>
               </Button>
               <div className="hidden sm:block">
-                <HeaderUserMenu />
+                <HeaderUserMenu onSignedOut={() => setSignedIn(false)} />
               </div>
             </>
           ) : (
