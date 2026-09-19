@@ -67,10 +67,11 @@ test.describe('billing', () => {
       await page.goto('/dashboard/settings/api-keys');
       await expect(page.getByText("You've used all 1 API keys on your plan.")).toBeVisible();
       await page.getByRole('button', { name: 'Create key' }).first().click();
-      // The radio is named by its label, the "Pro" tag the lock adds, and the
-      // hint sentence under it; the first two are matched at the start. The
-      // tag is set off by a margin, not a space, so the name runs them together.
-      await expect(page.getByRole('dialog', { name: 'Create API key' }).getByRole('radio', { name: /^Live ?Pro\b/ })).toBeDisabled();
+      // The radio is named by its label alone; the Pro marker and the terms
+      // under it are its description, which is where they belong.
+      const live = page.getByRole('dialog', { name: 'Create API key' }).getByRole('radio', { name: 'Live', exact: true });
+      await expect(live).toBeDisabled();
+      await expect(live).toHaveAccessibleDescription(/^Pro Renders what you published\./);
       await page.keyboard.press('Escape');
 
       // Versions: a publish on Free keeps none.

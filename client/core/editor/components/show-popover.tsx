@@ -8,7 +8,7 @@ import { useKnownNames } from '../utils/use-known-names';
 import { Popover, PopoverContent, PopoverTrigger } from './popover';
 import { InputAutocomplete } from './ui/input-autocomplete';
 import { useInputDock, type InputDockSpec } from './ui/input-dock';
-import { Tooltip, TooltipContent, TooltipTrigger } from './ui/tooltip';
+import { Tooltip, TooltipContent, TooltipLabel, TooltipTrigger } from './ui/tooltip';
 
 /** The condition as the phone's dock takes it. Shared with the Repeat
  *  sheet's Show-if row, so the two ask the same question in the same words. */
@@ -88,23 +88,21 @@ function _ShowPopover(props: ShowPopoverProps) {
         else highlightShowIfKey(editor, null);
       }}
     >
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <PopoverTrigger
-            className={cn(
-              'mly:flex mly:size-7 mly:items-center mly:justify-center mly:gap-1 mly:rounded-md mly:px-1.5 mly:text-sm mly:data-[state=open]:bg-soft-gray mly:transition-colors mly:hover:bg-soft-gray mly:focus-visible:relative mly:focus-visible:z-10 ',
-              // A configured condition is a normal state, not a problem: it
-                // used to light up in the danger colour.
-                showIfKey &&
-                'mly:bg-accent-wash mly:text-accent-ink mly:data-[state=open]:bg-accent-wash mly:hover:bg-accent-wash'
-            )}
-          >
-            <Eye className="mly:h-3 mly:w-3 mly:stroke-[2.5]" />
-          </PopoverTrigger>
-        </TooltipTrigger>
-        <TooltipContent sideOffset={8}>Show block conditionally</TooltipContent>
-      </Tooltip>
+      <TooltipLabel label="Show block conditionally">
+        <PopoverTrigger
+          className={cn(
+            'mly:flex mly:size-7 mly:items-center mly:justify-center mly:gap-1 mly:rounded-md mly:px-1.5 mly:text-sm mly:data-[state=open]:bg-soft-gray mly:transition-colors mly:hover:bg-soft-gray mly:focus-visible:relative mly:focus-visible:z-10 ',
+            // A configured condition is a normal state, not a problem: it
+            // used to light up in the danger colour.
+            showIfKey &&
+              'mly:bg-accent-wash mly:text-accent-ink mly:data-[state=open]:bg-accent-wash mly:hover:bg-accent-wash'
+          )}
+        >
+          <Eye className="mly:h-3 mly:w-3 mly:stroke-[2.5]" />
+        </PopoverTrigger>
+      </TooltipLabel>
       <PopoverContent
+        aria-label="Show if"
         className="mly:flex mly:w-max mly:rounded-lg mly:p-0.5!"
         side="top"
         sideOffset={8}
@@ -122,7 +120,7 @@ function _ShowPopover(props: ShowPopoverProps) {
         <div className="mly:flex mly:items-center mly:gap-1.5 mly:px-1.5 mly:text-sm mly:leading-none">
           Show if
           <Tooltip>
-            <TooltipTrigger>
+            <TooltipTrigger type="button" aria-label="About Show if">
               <InfoIcon
                 className={cn('mly:size-3 mly:stroke-[2.5] mly:text-gray-500')}
               />
@@ -146,6 +144,7 @@ function _ShowPopover(props: ShowPopoverProps) {
         <form onSubmit={(e) => e.preventDefault()}>
           <InputAutocomplete
             editor={editor}
+            aria-label="Show if"
             value={showIfKey || ''}
             onValueChange={(value) => onShowIfKeyValueChange?.(value)}
             onSelectOption={(value) => {

@@ -1,7 +1,7 @@
 import { BaseButton } from '@/editor/components/base-button';
 import { cn } from '@/editor/utils/classname';
 import { BubbleMenuItem } from './text-menu/text-bubble-menu';
-import { Tooltip, TooltipContent, TooltipTrigger } from './ui/tooltip';
+import { Tooltip, TooltipContent, TooltipLabel, TooltipTrigger } from './ui/tooltip';
 
 export function BubbleMenuButton(item: BubbleMenuItem) {
   const { tooltip } = item;
@@ -10,10 +10,6 @@ export function BubbleMenuButton(item: BubbleMenuItem) {
     <BaseButton
       variant="ghost"
       size="sm"
-      // An icon alone names nothing. The tooltip is the label on a desktop and
-      // there is no hover at all on a phone, where these same buttons are what
-      // the Style sheet is made of.
-      {...(item.icon && tooltip ? { 'aria-label': tooltip } : {})}
       {...(item.command ? { onClick: item.command } : {})}
       data-state={item?.isActive?.()}
       className={cn(
@@ -43,14 +39,20 @@ export function BubbleMenuButton(item: BubbleMenuItem) {
     </BaseButton>
   );
 
-  if (tooltip) {
-    return (
-      <Tooltip>
-        <TooltipTrigger asChild>{content}</TooltipTrigger>
-        <TooltipContent sideOffset={8}>{tooltip}</TooltipContent>
-      </Tooltip>
-    );
+  if (!tooltip) {
+    return content;
   }
 
-  return content;
+  // An icon alone names nothing. The tooltip is the label on a desktop and
+  // there is no hover at all on a phone, where these same buttons are what the
+  // Style sheet is made of. A button that shows its name instead of an icon
+  // already has one, and taking the tooltip as its name would only repeat it.
+  return item.icon ? (
+    <TooltipLabel label={tooltip}>{content}</TooltipLabel>
+  ) : (
+    <Tooltip>
+      <TooltipTrigger asChild>{content}</TooltipTrigger>
+      <TooltipContent sideOffset={8}>{tooltip}</TooltipContent>
+    </Tooltip>
+  );
 }

@@ -5,7 +5,6 @@ import { ReactRenderer } from '@tiptap/react';
 import { SuggestionKeyDownProps, SuggestionOptions } from '@tiptap/suggestion';
 import {
   forwardRef,
-  Fragment,
   RefObject,
   useCallback,
   useEffect,
@@ -19,6 +18,11 @@ import { DEFAULT_SLASH_COMMANDS } from './default-slash-commands';
 import { TooltipProvider } from '@/editor/components/ui/tooltip';
 import { SlashCommandItem } from './slash-command-item';
 import { filterSlashCommands } from './slash-command-search';
+
+/** The highlighted row is named to the reader by its id, so the row and the
+ *  panel above it have to agree on what that id is. */
+export const rowId = (groupIndex: number, commandIndex: number) =>
+  `slash-command-${groupIndex}-${commandIndex}`;
 
 type CommandListProps = {
   items: BlockGroupItem[];
@@ -184,15 +188,18 @@ const CommandList = forwardRef<SuggestionListRef, CommandListProps>((props, ref)
   }, []);
 
   // A search with no match says so, like the variable menu does, instead
-  // of the menu vanishing under the caret.
+  // of the menu vanishing under the caret. A status rather than a list: there
+  // is nothing to choose from, and the whole of it is the sentence.
   if (!groups || groups.length === 0) {
     return (
       <div
+        role="status"
+        aria-label="Block menu"
         data-state="open"
         data-side="top"
         className="overlay-panel mly:z-50 mly:w-72 mly:rounded-md mly:border mly:border-gray-200 mly:bg-panel mly:p-2 mly:text-sm mly:text-gray-500 mly:shadow-md"
       >
-        No result
+        No block matches
       </div>
     );
   }
@@ -204,14 +211,22 @@ const CommandList = forwardRef<SuggestionListRef, CommandListProps>((props, ref)
         data-side="top"
         className="overlay-panel mly:z-50 mly:w-72 mly:overflow-hidden mly:rounded-md mly:border mly:border-gray-200 mly:bg-panel mly:shadow-md"
       >
+        {/* The caret never leaves the canvas — the rows are driven with the
+            arrow keys and pressed with Enter — so the highlighted row is
+            named here rather than focused, which is what
+            `aria-activedescendant` is for. */}
         <div
           id="slash-command"
+          role="listbox"
+          aria-label="Block menu"
+          aria-activedescendant={rowId(selectedGroupIndex, selectedCommandIndex)}
           ref={commandListContainer}
           className="mly:no-scrollbar mly:h-auto mly:max-h-[330px] mly:overflow-y-auto"
         >
           {groups.map((group, groupIndex) => (
-            <Fragment key={groupIndex}>
+            <div role="group" aria-label={group.title} key={groupIndex}>
               <span
+                aria-hidden="true"
                 className={cn(
                   'mly:block mly:border-b mly:border-gray-200 mly:bg-soft-gray mly:p-2 mly:text-xs mly:uppercase mly:text-gray-400',
                   groupIndex > 0 ? 'mly:border-t' : ''
@@ -241,7 +256,7 @@ const CommandList = forwardRef<SuggestionListRef, CommandListProps>((props, ref)
                   );
                 })}
               </div>
-            </Fragment>
+            </div>
           ))}
         </div>
         <div className="mly:border-t mly:border-gray-200 mly:px-1 mly:py-3 mly:pl-4">

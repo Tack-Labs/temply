@@ -5,7 +5,7 @@ import {
 } from '../nodes/paragraph/paragraph';
 import { Popover, PopoverContent, PopoverTrigger } from './popover';
 import { cn } from '../utils/classname';
-import { Tooltip, TooltipContent, TooltipTrigger } from './ui/tooltip';
+import { TooltipLabel } from './ui/tooltip';
 import { LtrIcon, RtlIcon } from './icons/text-direction-icon';
 
 type TextDirectionSwitchProps = {
@@ -42,19 +42,17 @@ export function TextDirectionSwitch(props: TextDirectionSwitchProps) {
 
   return (
     <Popover>
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <PopoverTrigger
-            className={cn(
-              'mly:flex mly:size-7 mly:items-center mly:justify-center mly:gap-1 mly:rounded-md mly:px-1.5 mly:text-sm mly:data-[state=open]:bg-soft-gray mly:transition-colors mly:hover:bg-soft-gray mly:focus-visible:relative mly:focus-visible:z-10 '
-            )}
-          >
-            <activeDirection.icon className="mly:h-3 mly:w-3 mly:stroke-[2.5]" />
-          </PopoverTrigger>
-        </TooltipTrigger>
-        <TooltipContent sideOffset={8}>Text direction</TooltipContent>
-      </Tooltip>
+      <TooltipLabel label="Text direction">
+        <PopoverTrigger
+          className={cn(
+            'mly:flex mly:size-7 mly:items-center mly:justify-center mly:gap-1 mly:rounded-md mly:px-1.5 mly:text-sm mly:data-[state=open]:bg-soft-gray mly:transition-colors mly:hover:bg-soft-gray mly:focus-visible:relative mly:focus-visible:z-10 '
+          )}
+        >
+          <activeDirection.icon className="mly:h-3 mly:w-3 mly:stroke-[2.5]" />
+        </PopoverTrigger>
+      </TooltipLabel>
       <PopoverContent
+        aria-label="Text direction"
         className="mly:flex mly:w-max mly:gap-0.5 mly:rounded-lg mly:p-0.5!"
         side="top"
         sideOffset={8}

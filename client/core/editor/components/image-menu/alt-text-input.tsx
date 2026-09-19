@@ -94,6 +94,7 @@ export function AltTextInput({
       </Tooltip>
 
       <PopoverContent
+        aria-label="Alt text"
         align="end"
         side="top"
         sideOffset={8}

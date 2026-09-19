@@ -8,6 +8,7 @@ import {
 } from '@/editor/components/ui/tooltip';
 import { useCallback, useState, useRef, useEffect, RefObject } from 'react';
 import { cn } from '@/editor/utils/classname';
+import { rowId } from './slash-command-view';
 
 type SlashCommandItemProps = {
   item: BlockItem;
@@ -107,6 +108,14 @@ export function SlashCommandItem(props: SlashCommandItemProps) {
     <Tooltip open={open} key={`${groupIndex}-${commandIndex}`}>
       <TooltipTrigger asChild>
         <button
+          id={rowId(groupIndex, commandIndex)}
+          role="option"
+          aria-selected={isActive}
+          // The row's name is the block's name. Left to the content it would
+          // be the title and the description run together, which is why the
+          // suite's locator needed a word-boundary regex to tell `Image` from
+          // `Inline Image`; the description is what the preview is for.
+          aria-label={item.title}
           className={cn(
             'mly:flex mly:w-full mly:items-center mly:gap-2 mly:rounded-md mly:px-2 mly:py-1 mly:text-left mly:text-sm mly:text-gray-900 mly:transition-colors mly:hover:bg-gray-100 mly:hover:text-gray-900',
             // The keyboard's row is a selection, so it takes the accent wash;

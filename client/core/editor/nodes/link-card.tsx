@@ -76,6 +76,7 @@ export function LinkCardComponent(props: NodeViewProps) {
           </div>
         </PopoverTrigger>
         <PopoverContent
+          aria-label="Link Card"
           align="end"
           className="mly:flex mly:w-96 mly:flex-col mly:gap-2"
           sideOffset={10}

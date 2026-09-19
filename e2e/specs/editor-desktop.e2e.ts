@@ -1,7 +1,7 @@
 import type { Page } from '@playwright/test';
 import { test, expect } from '../fixtures/test';
 import type { makeApi } from '../fixtures/api';
-import { bubbleMenu, docOf, expectOnScreen, insertHere, insertViaSlash, newLine, openEditor, slashRow } from '../fixtures/canvas';
+import { bubbleMenu, docOf, expectOnScreen, insertHere, insertViaSlash, newLine, openEditor, slashMenu, slashRow } from '../fixtures/canvas';
 
 // The canvas is a contenteditable, so ProseMirror's own class names stand in
 // for roles it does not give, and a node view's `data-type` stands in for
@@ -20,8 +20,8 @@ import { bubbleMenu, docOf, expectOnScreen, insertHere, insertViaSlash, newLine,
 // from every other button in the canvas. `.ProseMirror-selectednode` is the
 // mark ProseMirror puts on a block taken whole: a node selection is a state
 // of the document rather than of the DOM, and nothing else says it happened.
-// `#slash-command` and `.tippy-box` are the two other exceptions this file
-// needs, both explained where they are used. Outside the canvas there is one
+// `.tippy-box` is the one other exception this file needs, explained where
+// it is used. Outside the canvas there is one
 // more: the cheatsheet's keys are `kbd` elements carrying neither a role nor
 // a name, so the element itself is what a case counts and reads. The
 // sanctioned list, and what would retire each hook, is in e2e/README.md.
@@ -61,14 +61,21 @@ test.describe('editor on the desktop', () => {
     await newLine(page);
     await page.keyboard.type('/');
 
-    const menu = page.locator('#slash-command');
+    const menu = slashMenu(page);
     await expect(menu).toBeVisible();
-    await expect(menu.getByText('Blocks', { exact: true })).toBeVisible();
-    await expect(menu.getByText('Components', { exact: true })).toBeVisible();
+    await expect(menu.getByRole('group', { name: 'Blocks' })).toBeVisible();
+    await expect(menu.getByRole('group', { name: 'Components' })).toBeVisible();
     for (const title of [...BLOCKS, ...COMPONENTS]) {
       await expect(slashRow(page, title), `${title} is offered`).toBeVisible();
     }
-    await expect(menu.getByRole('button')).toHaveCount(BLOCKS.length + COMPONENTS.length);
+    await expect(menu.getByRole('option')).toHaveCount(BLOCKS.length + COMPONENTS.length);
+    // The row a keystroke would take is named to the reader rather than
+    // focused: the caret stays in the canvas, so nothing else could say it.
+    await expect(menu).toHaveAttribute('aria-activedescendant', 'slash-command-0-0');
+    await expect(slashRow(page, BLOCKS[0]!)).toHaveAttribute('aria-selected', 'true');
+    await page.keyboard.press('ArrowDown');
+    await expect(menu).toHaveAttribute('aria-activedescendant', 'slash-command-0-1');
+    await expect(slashRow(page, BLOCKS[1]!)).toHaveAttribute('aria-selected', 'true');
     await page.keyboard.press('Escape');
     await expect(menu).toBeHidden();
   });
@@ -172,7 +179,7 @@ test.describe('editor on the desktop', () => {
   test('the block menu filters as the customer types', async ({ page, api, name }) => {
     const t = await api.createTemplate({ title: name('slash filter') });
     await openEditor(page, t.id);
-    const menu = page.locator('#slash-command');
+    const menu = slashMenu(page);
 
     await newLine(page);
     await page.keyboard.type('/head');
@@ -192,7 +199,9 @@ test.describe('editor on the desktop', () => {
 
     await page.keyboard.type('zzz');
     await expect(menu).toHaveCount(0);
-    await expect(page.getByText('No result', { exact: true })).toBeVisible();
+    // What stands in its place is a status, not an empty list of choices,
+    // and it is named so a reader knows which panel is speaking.
+    await expect(page.getByRole('status', { name: 'Block menu' })).toHaveText('No block matches');
   });
 
   test('a sub-list offers pre-designed blocks and goes back', async ({ page, api, name }) => {
@@ -239,19 +248,26 @@ test.describe('editor on the desktop', () => {
     // would take the whole document and format every line of it.
     await pm.getByText('Line 12', { exact: true }).click({ clickCount: 3 });
 
-    const menu = bubbleMenu(page, 'Bold');
-    for (const control of ['Bold', 'Italic', 'Underline', 'Strikethrough', 'Code']) {
-      await expect(menu.getByRole('button', { name: control, exact: true })).toBeVisible();
+    const menu = bubbleMenu(page, 'Text formatting');
+    // Every control the menu offers, by the name a screen reader reads. Most
+    // of these are an icon and a tooltip, and a tooltip is `aria-describedby`
+    // — so until the tooltip became the name as well, this list was five
+    // buttons and seven anonymous ones.
+    for (const control of [
+      'Turn into', 'Bold', 'Italic', 'Underline', 'Strikethrough', 'Code',
+      'Alignment', 'Text direction', 'Bullet list', 'Numbered list',
+      'Link address', 'Text colour',
+    ]) {
+      await expect(menu.getByRole('button', { name: control, exact: true }),
+        `${control} is named`).toBeVisible();
     }
     await expectOnScreen(page, menu, 'the text menu');
 
     await menu.getByRole('button', { name: 'Bold', exact: true }).click();
     await expect(pm.locator('strong')).toHaveText('Line 12');
 
-    // Turn into has no accessible name — it is the menu's first control, and
-    // its popover is the only one holding "Heading 1".
-    await menu.getByRole('button').first().click();
-    const turnInto = menu.getByRole('dialog').filter({ hasText: 'Heading 1' });
+    await menu.getByRole('button', { name: 'Turn into', exact: true }).click();
+    const turnInto = menu.getByRole('dialog', { name: 'Turn into' });
     await expectOnScreen(page, turnInto, 'the Turn into popover');
     await turnInto.getByRole('button', { name: 'Heading 1', exact: true }).click();
     await expect(pm.locator('h1')).toHaveText('Line 12');
@@ -273,9 +289,9 @@ test.describe('editor on the desktop', () => {
     const pm = await openEditor(page, t.id);
     await pm.getByText('Hello from e2e').click({ clickCount: 3 });
 
-    const menu = bubbleMenu(page, 'Bold');
-    await menu.getByRole('button').first().click();
-    const turnInto = menu.getByRole('dialog').filter({ hasText: 'Heading 1' });
+    const menu = bubbleMenu(page, 'Text formatting');
+    await menu.getByRole('button', { name: 'Turn into', exact: true }).click();
+    const turnInto = menu.getByRole('dialog', { name: 'Turn into' });
     await expectOnScreen(page, turnInto, 'the Turn into popover');
 
     const row = (await turnInto.getByRole('button', { name: 'Heading 1', exact: true }).boundingBox())!;
@@ -296,7 +312,7 @@ test.describe('editor on the desktop', () => {
     // stores is what says a size landed.
     let pm = await open('spacer');
     await insertViaSlash(page, 'Spacer');
-    const spacer = bubbleMenu(page, 'md');
+    const spacer = bubbleMenu(page, 'Spacer');
     await expectOnScreen(page, spacer, 'the spacer menu');
     await spacer.getByRole('button', { name: 'xl', exact: true }).click();
     await expect(pm.locator('div[data-maily-component="spacer"]')).toHaveAttribute('data-height', '64');
@@ -304,7 +320,7 @@ test.describe('editor on the desktop', () => {
     // Section: a menu with named selects, a named delete, and colour popups.
     pm = await open('section');
     await insertViaSlash(page, 'Section');
-    const section = bubbleMenu(page, 'Delete Section');
+    const section = bubbleMenu(page, 'Section');
     await expectOnScreen(page, section, 'the section menu');
     await section.getByRole('button', { name: 'Padding' }).click();
     await expectOnScreen(page, page.getByRole('menu'), 'the Padding menu');
@@ -319,10 +335,10 @@ test.describe('editor on the desktop', () => {
     // anything being typed into it; the case after this one pins that.
     pm = await open('columns');
     await insertViaSlash(page, 'Columns');
-    const columns = bubbleMenu(page, 'Columns and widths');
+    const columns = bubbleMenu(page, 'Columns');
     await expectOnScreen(page, columns, 'the columns menu');
     await columns.getByRole('button', { name: 'Columns and widths' }).click();
-    const widths = columns.getByRole('dialog').filter({ hasText: '2 Columns' });
+    const widths = columns.getByRole('dialog', { name: 'Columns and widths' });
     await expectOnScreen(page, widths, 'the Columns and widths popover');
     await widths.getByRole('button', { name: '3 Columns' }).click();
     await expect(pm.locator('div[data-type="column"]')).toHaveCount(3);
@@ -337,12 +353,10 @@ test.describe('editor on the desktop', () => {
     // it renders is the block plus its state: `Size` belongs to a Logo and
     // appears only once one has a source, `Link address` and `Border radius`
     // only to an Image. A Logo a customer has just asked for has neither a
-    // source nor a picture, so these two are the whole of what it names —
-    // the alignment switch and the eye are labelled by a tooltip, which is
-    // `aria-describedby` and not a name (a finding).
-    const menu = bubbleMenu(page, 'Alt text');
+    // source nor a picture, so what follows is the whole of what it offers.
+    const menu = bubbleMenu(page, 'Image');
     await expectOnScreen(page, menu, 'the image menu');
-    for (const control of ['Image source', 'Alt text']) {
+    for (const control of ['Alignment', 'Image source', 'Alt text', 'Show block conditionally']) {
       await expect(menu.getByRole('button', { name: control, exact: true })).toBeVisible();
     }
     await expect(menu.getByRole('button', { name: 'Size', exact: true })).toHaveCount(0);
@@ -352,7 +366,7 @@ test.describe('editor on the desktop', () => {
     // thing a recipient with images off reads. Enter submits the form and
     // closes the popover, which is what commits the value.
     await menu.getByRole('button', { name: 'Alt text', exact: true }).click();
-    const alt = menu.getByRole('dialog').filter({ has: page.getByRole('textbox', { name: 'Alt text' }) });
+    const alt = menu.getByRole('dialog', { name: 'Alt text' });
     await expectOnScreen(page, alt, 'the Alt text popover');
     await alt.getByRole('textbox', { name: 'Alt text' }).fill('The company mark');
     await page.keyboard.press('Enter');
@@ -388,7 +402,7 @@ test.describe('editor on the desktop', () => {
 
     // The menu a customer reaches for is up without anything being typed,
     // and what is typed goes where the caret was said to be.
-    await expectOnScreen(page, bubbleMenu(page, 'Columns and widths'), 'the columns menu');
+    await expectOnScreen(page, bubbleMenu(page, 'Columns'), 'the columns menu');
     await page.keyboard.type('Left');
     await expect(pm.locator('div[data-type="column"]').first()).toHaveText('Left');
     await expect(pm.locator('div[data-type="column"]').nth(1)).toHaveText('');
@@ -405,10 +419,10 @@ test.describe('editor on the desktop', () => {
     // plus one shadow copy.
     await expect(repeat.locator('.mly-repeat-copy')).toHaveCount(1);
     const indicator = pm.locator('[data-repeat-indicator]');
-    await expect(indicator).toHaveAccessibleName('×2');
+    await expect(indicator).toHaveAccessibleName('Select this Repeat, 2 rows');
 
     await indicator.click();
-    const menu = bubbleMenu(page, 'About Repeat');
+    const menu = bubbleMenu(page, 'Repeat');
     await expectOnScreen(page, menu, 'the repeat menu');
     await menu.getByRole('button', { name: 'items', exact: true }).click();
     await menu.getByPlaceholder('ie. payload.items').fill('orders');
@@ -416,9 +430,16 @@ test.describe('editor on the desktop', () => {
     await expect.poll(async () => JSON.stringify(await docOf(api, t.id)).includes('"each":"orders"'),
       { message: 'the saved Repeat names the list it walks' }).toBe(true);
 
+    // At one row the strip draws no count, and the count used to be all the
+    // name it had: a `role="button"` with nothing on it.
+    await menu.getByRole('button', { name: 'Fewer preview rows' }).click();
+    await expect(repeat.locator('.mly-repeat-copy')).toHaveCount(0);
+    await expect(indicator).toHaveAccessibleName('Select this Repeat');
+
+    await menu.getByRole('button', { name: 'More preview rows' }).click();
     await menu.getByRole('button', { name: 'More preview rows' }).click();
     await expect(repeat.locator('.mly-repeat-copy')).toHaveCount(2);
-    await expect(indicator).toHaveAccessibleName('×3');
+    await expect(indicator).toHaveAccessibleName('Select this Repeat, 3 rows');
 
     // The same number is what the sample-data panel offers, because the count
     // is one state shared between the canvas and the panel.
@@ -441,19 +462,15 @@ test.describe('editor on the desktop', () => {
     await page.keyboard.type('Left');
     await expect(pm.locator('div[data-type="column"]').first()).toHaveText('Left');
 
-    const section = bubbleMenu(page, 'Delete Section');
+    const section = bubbleMenu(page, 'Section');
     await expect(section).toBeVisible();
     // The Columns menu stands down inside a Section; its controls move into
     // the Section menu behind a button that says which they are.
-    await expect(bubbleMenu(page, 'Columns and widths')).toHaveCount(0);
+    await expect(bubbleMenu(page, 'Columns')).toHaveCount(0);
     const column = section.getByRole('button', { name: 'Column', exact: true });
     await expect(column).toBeVisible();
     await column.click();
-    // Named by what it holds rather than by its words: the Columns menu's
-    // controls are icons, so the only text in this popover is the labels of
-    // the selects, which the Section menu's own popovers share.
-    const inside = section.getByRole('dialog')
-      .filter({ has: page.getByRole('button', { name: 'Columns and widths' }) });
+    const inside = section.getByRole('dialog', { name: 'Column' });
     await expectOnScreen(page, inside, 'the Column popover');
     await expect(inside.getByRole('button', { name: 'Delete Columns' })).toBeVisible();
   });
@@ -468,8 +485,8 @@ test.describe('editor on the desktop', () => {
     await insertHere(page, 'Section');
     await pm.locator('table[data-type="section"] p').first().click();
 
-    const repeatMenu = bubbleMenu(page, 'About Repeat');
-    const sectionMenu = bubbleMenu(page, 'Delete Section');
+    const repeatMenu = bubbleMenu(page, 'Repeat');
+    const sectionMenu = bubbleMenu(page, 'Section');
     await expectOnScreen(page, repeatMenu, 'the repeat menu');
     await expectOnScreen(page, sectionMenu, 'the section menu');
     // Which one moves is not a toss-up. Each menu asks whether a nested
@@ -520,7 +537,7 @@ test.describe('editor on the desktop', () => {
     // and, because the pill's node view flags it open, keeps the variable
     // bubble menu — which offers the same two fields — from raising over it.
     await pill.click();
-    const fields = page.getByRole('dialog').filter({ has: page.getByRole('textbox', { name: 'Variable' }) });
+    const fields = page.getByRole('dialog', { name: 'Variable' });
     await expectOnScreen(page, fields, 'the variable popover');
     await fields.getByRole('textbox', { name: 'Variable' }).fill('given_name');
     await fields.getByRole('textbox', { name: 'Placeholder' }).fill('there');
@@ -539,15 +556,13 @@ test.describe('editor on the desktop', () => {
     await pm.getByText('Hello from e2e').click();
     await page.keyboard.press('ControlOrMeta+A');
 
-    // The eye has no accessible name; it is the menu's last control, and it
-    // renders only for a paragraph or a heading. Its dialog is the only one
-    // that holds the words "Show if" and a field placeheld "e.g. isMember".
-    // The locator is read again for the second press, by which time the
-    // popover has closed and given the last place back.
-    const menu = bubbleMenu(page, 'Bold');
-    const eye = menu.getByRole('button').last();
+    // The eye renders only for a paragraph or a heading, and it says what it
+    // does: a tooltip is a description, so until it became the name too this
+    // was "the menu's last control" and nothing else.
+    const menu = bubbleMenu(page, 'Text formatting');
+    const eye = menu.getByRole('button', { name: 'Show block conditionally', exact: true });
     await eye.click();
-    const dialog = menu.getByRole('dialog').filter({ hasText: 'Show if' });
+    const dialog = menu.getByRole('dialog', { name: 'Show if' });
     await expectOnScreen(page, dialog, 'the Show if popover');
     await dialog.getByPlaceholder('e.g. isMember').fill('isMember');
     await page.keyboard.press('Enter');
@@ -572,6 +587,22 @@ test.describe('editor on the desktop', () => {
     await expect(pm.locator('p[data-show-if-key]')).toHaveCount(0);
     await expect.poll(async () => JSON.stringify(await docOf(api, t.id)).includes('"showIfKey":"isMember"'),
       { message: 'the saved block no longer carries the condition' }).toBe(false);
+  });
+
+  test('the autosave says nothing until it has something to say', async ({ page, api, name }) => {
+    // The word and the announcement are two things. The one that carried
+    // both sat at opacity 0 while idle still holding "Saved", and a live
+    // region is read whatever its opacity — so a template nobody had touched
+    // announced that it had been saved.
+    const t = await api.createTemplate({ title: name('autosave') });
+    const pm = await openEditor(page, t.id);
+    const status = page.getByRole('status');
+    await expect(status, 'nothing has happened, so there is nothing to announce').toHaveText('');
+
+    await pm.click();
+    await page.keyboard.press('End');
+    await page.keyboard.type('!');
+    await expect(status).toHaveText('Saved');
   });
 
   test('the cheatsheet lists what the editor answers to', async ({ page, api, name }) => {
@@ -601,7 +632,7 @@ test.describe('editor on the desktop', () => {
     // this case going red is the right answer. The ⌘ set every Mac customer
     // actually reads has no browser here to render it, and is pinned in
     // client/lib/editor-shortcuts.test.ts instead.
-    const keys = ['/', '@', '---', 'Ctrl+Alt+C', '# ', '- ', '1. ', '> ', '**text**', 'Shift+Enter', 'Ctrl+Shift+↑', 'Ctrl+Shift+↓', 'Ctrl+Shift+D', 'Ctrl+Shift+Space', 'Ctrl+Shift+Backspace', 'Ctrl+B', 'Ctrl+I', 'Ctrl+U', 'Ctrl+Z'];
+    const keys = ['/', '@', '---', 'Ctrl+Alt+C', '# ', '- ', '1. ', '> ', '**text**', 'Shift+Enter', 'Ctrl+Shift+↑', 'Ctrl+Shift+↓', 'Ctrl+Shift+D', 'Ctrl+Shift+Space', 'Ctrl+Shift+F', 'Ctrl+Shift+Backspace', 'Ctrl+B', 'Ctrl+I', 'Ctrl+U', 'Ctrl+Z'];
     await expect(sheet.locator('kbd'), 'every shortcut is listed, in its group and in order').toHaveText(keys);
     // And again unnormalised. The assertion above trims each key before
     // comparing, so it reads `# ` as `#` — and the trailing space is the
@@ -644,9 +675,9 @@ test.describe('editor on the desktop', () => {
     await open('slash');
     await newLine(page);
     await page.keyboard.type('/');
-    await expect(page.locator('#slash-command')).toBeVisible();
+    await expect(slashMenu(page)).toBeVisible();
     await page.keyboard.press('Escape');
-    await expect(page.locator('#slash-command')).toBeHidden();
+    await expect(slashMenu(page)).toBeHidden();
 
     await open('variable');
     await newLine(page);
@@ -717,7 +748,7 @@ test.describe('editor on the desktop', () => {
     await marked.click({ clickCount: 3 });
     // The menu raises on a range the editor has taken into its own state, so
     // waiting for it is what says the selection is there to be marked.
-    await expect(bubbleMenu(page, 'Bold')).toBeVisible();
+    await expect(bubbleMenu(page, 'Text formatting')).toBeVisible();
     await page.keyboard.press('ControlOrMeta+B');
     await expect(marked.locator('strong')).toHaveText('marked');
     await page.keyboard.press('ControlOrMeta+I');
@@ -755,6 +786,23 @@ test.describe('editor on the desktop', () => {
     await expect(movable).toHaveCount(2);
     await page.keyboard.press('ControlOrMeta+Shift+Backspace');
     await expect(movable).toHaveCount(1);
+
+    // Blocks: the route into the menu that acts on the selection, and the
+    // Escape that gives the caret back. Every bubble menu is appended outside
+    // the editor — the text menu to the page itself — so Tab leads to none of
+    // them and this is the only way in from the keyboard. What makes it a
+    // route rather than a trip is the selection surviving both halves: the
+    // bold at the end lands on what was selected before any of it.
+    await movable.click({ clickCount: 3 });
+    const formatting = bubbleMenu(page, 'Text formatting');
+    await expect(formatting).toBeVisible();
+    await page.keyboard.press('ControlOrMeta+Shift+F');
+    await expect(formatting.getByRole('button', { name: 'Turn into', exact: true }),
+      'the first control of the menu takes the focus').toBeFocused();
+    await page.keyboard.press('Escape');
+    await expect(pm, 'Escape hands the caret back to the canvas').toBeFocused();
+    await page.keyboard.press('ControlOrMeta+B');
+    await expect(pm.locator('strong'), 'and the selection it came from is still there').toHaveText('movable');
   });
 
   test('a document that ends in a list still has a line of its own to type on', async ({ page, api, name }) => {
@@ -871,10 +919,10 @@ test.describe('editor on the desktop', () => {
     // hidden whether or not the gate held.
     await expect(pm, 'autofocus has landed in the canvas').toHaveClass(/ProseMirror-focused/);
     await expect(pm.locator('table[data-type="section"] p').first()).toHaveText('Inside');
-    await expect(bubbleMenu(page, 'Delete Section'), 'no Section menu before anything is asked for').toBeHidden();
+    await expect(bubbleMenu(page, 'Section'), 'no Section menu before anything is asked for').toBeHidden();
 
     await pm.locator('table[data-type="section"] p').first().click();
-    await expectOnScreen(page, bubbleMenu(page, 'Delete Section'), 'the section menu after the click');
+    await expectOnScreen(page, bubbleMenu(page, 'Section'), 'the section menu after the click');
   });
 
   test('a Section inserted with the mouse alone carries its menu', async ({ page, api, name }) => {
@@ -897,12 +945,28 @@ test.describe('editor on the desktop', () => {
     await pm.locator('> p').hover();
     const add = page.getByRole('button', { name: 'Add a block below' });
     await expect(add, 'the drag handle offers a block below').toBeVisible();
+
+    // The handle advertises the way to the same block without a pointer, and
+    // what it advertises has to be the binding the editor answers to: it
+    // named ⌘⇧L long after TextAlign took that combination and the editor
+    // moved to Space. Both halves are read, because they are written
+    // separately — `aria-keyshortcuts` names its modifiers where the tooltip
+    // draws them. The Ctrl set is written out for the same reason the
+    // cheatsheet case writes it out: this project's browser descriptor
+    // reports a platform `useIsApple` reads as not an Apple one, whatever
+    // machine the suite runs on, and the ⌘ set is pinned in
+    // client/lib/editor-shortcuts.test.ts.
+    const handle = page.getByRole('button', { name: 'Block actions' }).first();
+    await expect(handle).toHaveAttribute('aria-keyshortcuts', 'Control+Shift+Space');
+    await handle.hover();
+    await expect(page.getByRole('tooltip')).toHaveText('Block actions — or press Ctrl+Shift+Space');
+
     await add.click();
 
     await expect(slashRow(page, 'Section')).toBeVisible();
     await slashRow(page, 'Section').click();
     await expect(pm.locator('table[data-type="section"]'), 'the Section is inserted').toHaveCount(1);
-    await expectOnScreen(page, bubbleMenu(page, 'Delete Section'), 'the section menu after the insert');
+    await expectOnScreen(page, bubbleMenu(page, 'Section'), 'the section menu after the insert');
   });
 
   test('a Section’s menu can be put down, and gives the block above back', async ({ page, api, name }) => {
@@ -927,7 +991,7 @@ test.describe('editor on the desktop', () => {
     await expect(pm, 'autofocus has landed in the canvas').toHaveClass(/ProseMirror-focused/);
     await expect(pm.locator('table[data-type="section"] p').first()).toHaveText('Inside');
 
-    const menu = bubbleMenu(page, 'Delete Section');
+    const menu = bubbleMenu(page, 'Section');
     // The menu is down until it is asked for, so raising it is what the click
     // below proves rather than something that was already true.
     await expect(menu, 'the menu is down before the Section is clicked').toBeHidden();
@@ -956,7 +1020,7 @@ test.describe('editor on the desktop', () => {
     // Asking again brings it back: the dismissal was of this visit to the
     // Section, not of the menu for good.
     await pm.locator('table[data-type="section"] p').first().click();
-    await expectOnScreen(page, bubbleMenu(page, 'Delete Section'), 'the section menu again');
+    await expectOnScreen(page, bubbleMenu(page, 'Section'), 'the section menu again');
   });
 
   test('the canvas keeps the focus through the block menu, so nothing typed is lost', async ({ page, api, name }) => {

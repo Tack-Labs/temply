@@ -329,12 +329,21 @@ curl -X POST -H "Authorization: Bearer tply_live_..." \\
               ).map((option) => {
                 const locked = option.mode === 'live' && (featureLocked || atLimit);
                 const active = keyMode === option.mode;
+                // The name is the word on the chip and nothing else. Read off
+                // the content it was the whole tile — "Live" ran into "Pro"
+                // with no separator, and the sentence underneath followed it
+                // — so the choice took twenty words to hear. Both of those
+                // still reach a reader, as the description they are.
+                const hintId = `api-key-${option.mode}-hint`;
+                const lockId = `api-key-${option.mode}-lock`;
                 return (
                   <button
                     key={option.mode}
                     type="button"
                     role="radio"
                     aria-checked={active}
+                    aria-label={option.label}
+                    aria-describedby={locked ? `${lockId} ${hintId}` : hintId}
                     disabled={locked}
                     onClick={() => setKeyMode(option.mode)}
                     className={cn(
@@ -346,9 +355,15 @@ curl -X POST -H "Authorization: Bearer tply_live_..." \\
                   >
                     <span className={cn('text-sm font-medium', active ? 'text-accent-ink' : 'text-ink')}>
                       {option.label}
-                      {locked ? <span className="ml-1.5 text-xs font-normal text-muted">Pro</span> : null}
+                      {locked ? (
+                        <span id={lockId} className="ml-1.5 text-xs font-normal text-muted">
+                          Pro
+                        </span>
+                      ) : null}
                     </span>
-                    <span className="text-xs text-muted">{option.hint}</span>
+                    <span id={hintId} className="text-xs text-muted">
+                      {option.hint}
+                    </span>
                   </button>
                 );
               })}

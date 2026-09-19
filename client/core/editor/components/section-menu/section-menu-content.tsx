@@ -196,6 +196,7 @@ export function SectionMenuContent({ editor }: { editor: Editor }) {
               <ChevronUp className="mly:h-3 mly:w-3" />
             </PopoverTrigger>
             <PopoverContent
+              aria-label="Column"
               className="mly:w-max mly:rounded-lg mly:p-0.5!"
               side="top"
               sideOffset={8}

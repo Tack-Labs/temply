@@ -16,6 +16,8 @@ import { Popover, PopoverContent, PopoverTrigger } from './popover';
 import { Divider } from './ui/divider';
 import { DragHandle } from '../plugins/drag-handle/drag-handle';
 import { cn } from '../utils/classname';
+import { ariaKeys, formatKeys } from '~/lib/editor-shortcuts';
+import { useIsApple } from '~/lib/use-platform';
 
 export type ContentMenuProps = {
   editor: Editor;
@@ -25,6 +27,13 @@ export function ContentMenu(props: ContentMenuProps) {
   const { editor } = props;
 
   const [menuOpen, setMenuOpen] = useState(false);
+  // What actually selects the block. This advertised ⌘⇧L for as long as that
+  // binding existed and for a while after it did not — TextAlign claims
+  // Mod-Shift-L and answers first, which is why the editor moved to Space.
+  // Rendered the way every other shortcut in the product is rendered, and on
+  // the same guess about the keyboard until the browser can say.
+  const isApple = useIsApple() ?? true;
+  const selectBlock = 'Mod+Shift+Space';
   const [currentNode, setCurrentNode] = useState<Node | null>(null);
   const [currentNodePos, setCurrentNodePos] = useState<number>(-1);
 
@@ -157,19 +166,20 @@ export function ContentMenu(props: ContentMenuProps) {
                     }}
                     type="button"
                     aria-label="Block actions"
-                    aria-keyshortcuts="Meta+Shift+L"
+                    aria-keyshortcuts={ariaKeys(selectBlock, isApple)}
                   >
                     <GripVertical className="mly:size-3.5 mly:shrink-0" />
                   </BaseButton>
                 </TooltipTrigger>
                 <TooltipContent sideOffset={8}>
-                  Block actions — or press ⌘⇧L
+                  Block actions — or press {formatKeys(selectBlock, isApple)}
                 </TooltipContent>
               </Tooltip>
               <PopoverTrigger className="mly:absolute mly:left-0 mly:top-0 mly:z-0 mly:h-5 mly:w-5" />
             </div>
 
             <PopoverContent
+              aria-label="Block actions"
               align="start"
               side="bottom"
               sideOffset={8}

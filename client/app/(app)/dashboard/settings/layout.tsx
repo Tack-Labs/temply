@@ -10,6 +10,10 @@ import { cn } from '~/lib/classname';
 /** Plan and API keys are leaves; Account owns the section root and every
  *  path under it that is not one of theirs — Clerk's own Security tab and
  *  its sub-pages live there. */
+
+/** A path is the tab's own, or one of the pages Clerk routes beneath it. */
+const isUnder = (pathname: string, href: string) =>
+  pathname === href || pathname.startsWith(`${href}/`);
 const TABS = [
   { href: '/dashboard/settings', label: 'Account', adminOnly: false },
   { href: '/dashboard/settings/team', label: 'Team', adminOnly: false },
@@ -34,12 +38,17 @@ export default function SettingsLayout({ children }: { children: React.ReactNode
 
       <nav className="flex gap-5 border-b border-line" aria-label="Settings">
         {tabs.map((tab) => {
+          // Clerk routes its own pages as sub-paths of the tab that embeds
+          // it — Members and Invitations under Team, Security under Account
+          // — so a tab owns its path and everything below it. Matching Team
+          // exactly left every Clerk page under it with no current tab at
+          // all, since Account's catch-all rule stands down there too.
           const isActive =
             tab.href === '/dashboard/settings'
               ? pathname === tab.href ||
                 (pathname.startsWith('/dashboard/settings/') &&
-                  !TABS.some((other) => other.href !== tab.href && pathname.startsWith(other.href)))
-              : pathname === tab.href;
+                  !TABS.some((other) => other.href !== tab.href && isUnder(pathname, other.href)))
+              : isUnder(pathname, tab.href);
 
           return (
             <Link

@@ -1,14 +1,14 @@
 import { describe, expect, test } from 'bun:test';
-import { EDITOR_SHORTCUTS, formatKeys } from './editor-shortcuts';
+import { EDITOR_SHORTCUTS, ariaKeys, formatKeys } from './editor-shortcuts';
 
 /** What the cheatsheet and the docs table render, group by group. */
 const rendered = (isApple: boolean) =>
   EDITOR_SHORTCUTS.flatMap((group) => group.items.map((item) => formatKeys(item.keys, isApple)));
 
 describe('EDITOR_SHORTCUTS', () => {
-  test('is four groups of nineteen shortcuts', () => {
+  test('is four groups of twenty shortcuts', () => {
     expect(EDITOR_SHORTCUTS.map((group) => group.title)).toEqual(['Insert', 'Write', 'Blocks', 'Text']);
-    expect(rendered(true)).toHaveLength(19);
+    expect(rendered(true)).toHaveLength(20);
   });
 
   test('lists no shortcut twice', () => {
@@ -79,14 +79,29 @@ describe('formatKeys', () => {
     expect(rendered(true)).toEqual([
       '/', '@', '---', '⌘⌥C',
       '# ', '- ', '1. ', '> ', '**text**', '⇧Enter',
-      '⌘⇧↑', '⌘⇧↓', '⌘⇧D', '⌘⇧Space', '⌘⇧⌫',
+      '⌘⇧↑', '⌘⇧↓', '⌘⇧D', '⌘⇧Space', '⌘⇧F', '⌘⇧⌫',
       '⌘B', '⌘I', '⌘U', '⌘Z',
     ]);
     expect(rendered(false)).toEqual([
       '/', '@', '---', 'Ctrl+Alt+C',
       '# ', '- ', '1. ', '> ', '**text**', 'Shift+Enter',
-      'Ctrl+Shift+↑', 'Ctrl+Shift+↓', 'Ctrl+Shift+D', 'Ctrl+Shift+Space', 'Ctrl+Shift+Backspace',
+      'Ctrl+Shift+↑', 'Ctrl+Shift+↓', 'Ctrl+Shift+D', 'Ctrl+Shift+Space', 'Ctrl+Shift+F', 'Ctrl+Shift+Backspace',
       'Ctrl+B', 'Ctrl+I', 'Ctrl+U', 'Ctrl+Z',
     ]);
+  });
+});
+
+describe('ariaKeys', () => {
+  test('names the modifier rather than drawing it, per platform', () => {
+    // What a screen reader is handed, which is not what the tooltip shows:
+    // `aria-keyshortcuts` takes the modifier's name, and a glyph there is
+    // read out as a character or skipped.
+    expect(ariaKeys('Mod+Shift+Space', true)).toBe('Meta+Shift+Space');
+    expect(ariaKeys('Mod+Shift+Space', false)).toBe('Control+Shift+Space');
+  });
+
+  test('leaves a combination with no Mod in it alone', () => {
+    expect(ariaKeys('Shift+Enter', true)).toBe('Shift+Enter');
+    expect(ariaKeys('Shift+Enter', false)).toBe('Shift+Enter');
   });
 });

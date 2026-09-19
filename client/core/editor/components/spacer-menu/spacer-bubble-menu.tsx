@@ -3,6 +3,7 @@ import { BubbleMenu } from '@tiptap/react';
 import { EditorBubbleMenuProps } from '../text-menu/text-bubble-menu';
 import { useSpacerState } from './use-spacer-state';
 import { TooltipProvider } from '../ui/tooltip';
+import { MenuToolbar } from '../ui/menu-toolbar';
 import { SpacerMenuContent } from './spacer-menu-content';
 import { useEditorGesture } from '@/editor/utils/use-editor-gesture';
 
@@ -44,12 +45,15 @@ export function SpacerBubbleMenu(props: EditorBubbleMenuProps) {
   };
 
   return (
-    <BubbleMenu
-      {...bubbleMenuProps}
-      className="mly:flex mly:gap-0.5 mly:rounded-lg mly:border mly:border-gray-200 mly:bg-panel mly:p-0.5 mly:shadow-md"
-    >
+    <BubbleMenu {...bubbleMenuProps}>
       <TooltipProvider>
-        <SpacerMenuContent editor={editor} />
+        <MenuToolbar
+          editor={editor}
+          label="Spacer"
+          className="mly:flex mly:gap-0.5 mly:rounded-lg mly:border mly:border-gray-200 mly:bg-panel mly:p-0.5 mly:shadow-md"
+        >
+          <SpacerMenuContent editor={editor} />
+        </MenuToolbar>
       </TooltipProvider>
     </BubbleMenu>
   );

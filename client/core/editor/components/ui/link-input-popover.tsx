@@ -4,7 +4,7 @@ import { BaseButton } from '../base-button';
 import { cn } from '@/editor/utils/classname';
 import { useEffect, useRef, useState, type ComponentPropsWithoutRef } from 'react';
 import { useInputDock } from './input-dock';
-import { Tooltip, TooltipTrigger, TooltipContent } from './tooltip';
+import { TooltipLabel } from './tooltip';
 import { DEFAULT_PLACEHOLDER_URL, useMailyContext } from '@/editor/provider';
 import { InputAutocomplete } from './input-autocomplete';
 import { useKnownNames } from '@/editor/utils/use-known-names';
@@ -186,10 +186,7 @@ export function LinkInputPopover(props: LinkInputPopoverProps) {
       </BaseButton>
     );
     return tooltip ? (
-      <Tooltip>
-        <TooltipTrigger asChild>{button}</TooltipTrigger>
-        <TooltipContent sideOffset={8}>{tooltip}</TooltipContent>
-      </Tooltip>
+      <TooltipLabel label={tooltip}>{button}</TooltipLabel>
     ) : (
       button
     );
@@ -214,15 +211,13 @@ export function LinkInputPopover(props: LinkInputPopoverProps) {
       }}
     >
       {tooltip ? (
-        <Tooltip>
-          <TooltipTrigger asChild>{popoverButton}</TooltipTrigger>
-          <TooltipContent sideOffset={8}>{tooltip}</TooltipContent>
-        </Tooltip>
+        <TooltipLabel label={tooltip}>{popoverButton}</TooltipLabel>
       ) : (
         popoverButton
       )}
 
       <PopoverContent
+        aria-label={tooltip || 'Link address'}
         align="end"
         side="top"
         className="mly:w-max mly:rounded-none mly:border-none mly:bg-transparent mly:p-0! mly:shadow-none"
@@ -279,6 +274,7 @@ export function LinkInputPopover(props: LinkInputPopoverProps) {
 
                 <InputAutocomplete
                   editor={editor}
+                  aria-label={tooltip ?? 'Link address'}
                   value={draft}
                   onValueChange={setDraft}
                   autoCompleteOptions={autoCompleteOptions}

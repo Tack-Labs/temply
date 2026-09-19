@@ -3,7 +3,7 @@
 import { HexColorPicker, HexColorInput } from 'react-colorful';
 import { Popover, PopoverContent, PopoverTrigger } from '../popover';
 import { BaseButton } from '../base-button';
-import { Tooltip, TooltipContent, TooltipTrigger } from './tooltip';
+import { TooltipLabel } from './tooltip';
 import { cn } from '@/editor/utils/classname';
 import { COLOR_PRESETS } from '~/lib/color-presets';
 import { ReactNode } from 'react';
@@ -83,15 +83,13 @@ export function ColorPicker(props: ColorPickerProps) {
       }}
     >
       {tooltip ? (
-        <Tooltip>
-          <TooltipTrigger asChild>{popoverButton}</TooltipTrigger>
-          <TooltipContent sideOffset={8}>{tooltip}</TooltipContent>
-        </Tooltip>
+        <TooltipLabel label={tooltip}>{popoverButton}</TooltipLabel>
       ) : (
         popoverButton
       )}
 
       <PopoverContent
+        aria-label={tooltip || 'Colour'}
         className="mly:w-max mly:max-w-[calc(100vw-2rem)] mly:rounded-none mly:border-0 mly:bg-transparent! mly:p-0! mly:shadow-none mly:drop-shadow-md"
         sideOffset={8}
       >

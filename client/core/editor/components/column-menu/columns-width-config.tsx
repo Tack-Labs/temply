@@ -29,6 +29,7 @@ export function ColumnsWidthConfig(props: ColumnsWidthConfigProps) {
         <SlidersVertical className="mly:h-3 mly:w-3 mly:stroke-[2.5]" />
       </PopoverTrigger>
       <PopoverContent
+        aria-label="Columns and widths"
         className="mly:w-[300px] mly:rounded-lg mly:p-0.5!"
         side="top"
         sideOffset={8}

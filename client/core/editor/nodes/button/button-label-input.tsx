@@ -42,8 +42,11 @@ export function ButtonLabelInput(props: ButtonLabelInputProps) {
 
   return (
     <div className="mly:isolate mly:flex mly:rounded-lg">
+      {/* The pill is named by the variable it holds: the label is what the
+          button on the canvas says, and the pill is where it is read. */}
       {!isEditing && (
         <button
+          type="button"
           onClick={() => {
             setIsEditing(true);
             setTimeout(() => {
@@ -66,6 +69,7 @@ export function ButtonLabelInput(props: ButtonLabelInputProps) {
       {isEditing && (
         <InputAutocomplete
           editor={editor}
+          aria-label="Button label"
           value={value}
           onValueChange={(value) => {
             onValueChange?.(value);

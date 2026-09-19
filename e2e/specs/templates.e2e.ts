@@ -57,10 +57,13 @@ test.describe('templates', () => {
     await expect(page.getByRole('link', { name: other })).toHaveCount(0);
     await search.fill('zzzz-nothing-is-called-this');
     await expect(page.getByText('No templates match')).toBeVisible();
-    // The no-match state offers two ways out with the same name: the × in
-    // the box (an aria-label alone) and the empty state's own button, which
-    // is the one with the words on it and the one pressed here.
-    await page.getByRole('button', { name: 'Clear search' }).filter({ hasText: 'Clear search' }).click();
+    // Two ways out of the no-match state, and they used to share a name —
+    // "Clear search" both for the × in the box and for the button in the
+    // empty state, which is a list a reader cannot choose from. The × keeps
+    // the name of the action; the empty state is named for what the reader
+    // is after.
+    await expect(page.getByRole('button', { name: 'Clear search' })).toHaveCount(1);
+    await page.getByRole('button', { name: 'Show all templates' }).click();
     await expect(page.getByRole('link', { name: other })).toBeVisible();
   });
 

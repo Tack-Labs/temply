@@ -141,8 +141,12 @@ export function RepeatMenuContent({ editor }: { editor: Editor }) {
           </TooltipContent>
         </Tooltip>
       </div>
+      {/* Named by the list it holds rather than by what pressing it does:
+          the name of the list is the one thing this menu exists to show, and
+          an aria-label here would hide it. */}
       {!isUpdatingKey && (
         <button
+          type="button"
           onClick={() => {
             setIsUpdatingKey(true);
             setTimeout(() => {
@@ -175,6 +179,7 @@ export function RepeatMenuContent({ editor }: { editor: Editor }) {
         >
           <InputAutocomplete
             editor={editor}
+            aria-label="Repeat over"
             placeholder="ie. payload.items"
             value={state?.each || ''}
             onValueChange={(value) => {

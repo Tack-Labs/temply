@@ -25,29 +25,40 @@ export type { EmailEditorSandboxProps };
  * once a save is under way and stays as "Saved". A failure is the only state
  * that asks for anything, and it asks with a button.
  */
+/**
+ * What the autosave has to say, and nothing when it has nothing.
+ *
+ * The word and the announcement are two elements on purpose. A live region is
+ * read whatever its opacity, so the one that used to carry both said "Saved"
+ * on a template nobody had touched — `idle` fell through to the same branch
+ * as `saved` and was merely faded out. The visible word stays through the
+ * fade, so the strip leaves rather than blinking out, and is `aria-hidden`
+ * because the live region beside it is the half a reader hears; Retry sits
+ * outside both, being a control rather than a status.
+ */
 export function SaveStatus({ status, onRetry }: { status: AutosaveStatus; onRetry: () => void }) {
   const visible = status === 'saving' || status === 'saved' || status === 'error';
+  const word = status === 'error' ? 'Not saved' : status === 'saving' ? 'Saving…' : 'Saved';
   return (
-    <span
-      aria-live="polite"
-      className={cn(
-        'flex items-center gap-1 text-xs transition-opacity duration-base ease-out motion-reduce:transition-none',
-        visible ? 'opacity-100' : 'opacity-0',
-        status === 'error' ? 'text-danger-ink' : 'text-muted',
-      )}
-    >
+    <span className="flex items-center gap-1 text-xs">
+      <span
+        aria-hidden
+        className={cn(
+          'transition-opacity duration-base ease-out motion-reduce:transition-none',
+          visible ? 'opacity-100' : 'opacity-0',
+          status === 'error' ? 'text-danger-ink' : 'text-muted',
+        )}
+      >
+        {word}
+      </span>
       {status === 'error' ? (
-        <>
-          Not saved
-          <Button variant="link" size="sm" className="h-auto px-1 text-xs" onClick={onRetry}>
-            Retry
-          </Button>
-        </>
-      ) : status === 'saving' ? (
-        'Saving…'
-      ) : (
-        'Saved'
-      )}
+        <Button variant="link" size="sm" className="h-auto px-1 text-xs" onClick={onRetry}>
+          Retry
+        </Button>
+      ) : null}
+      <span className="sr-only" role="status">
+        {visible ? word : ''}
+      </span>
     </span>
   );
 }

@@ -130,6 +130,7 @@ export function ButtonView(props: NodeViewProps) {
           </div>
         </PopoverTrigger>
         <PopoverContent
+          aria-label="Button"
           align="end"
           side="top"
           className="mly:w-max mly:rounded-lg mly:p-0.5!"

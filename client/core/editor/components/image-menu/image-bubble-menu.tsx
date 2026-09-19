@@ -2,6 +2,7 @@ import { BubbleMenu } from '@tiptap/react';
 import { sticky } from 'tippy.js';
 import { EditorBubbleMenuProps } from '../text-menu/text-bubble-menu';
 import { TooltipProvider } from '../ui/tooltip';
+import { MenuToolbar } from '../ui/menu-toolbar';
 import { ImageMenuContent } from './image-menu-content';
 import { useEditorGesture } from '@/editor/utils/use-editor-gesture';
 
@@ -36,12 +37,15 @@ export function ImageBubbleMenu(props: EditorBubbleMenuProps) {
   };
 
   return (
-    <BubbleMenu
-      {...bubbleMenuProps}
-      className="mly:flex mly:rounded-lg mly:border mly:border-gray-200 mly:bg-panel mly:p-0.5 mly:shadow-md"
-    >
+    <BubbleMenu {...bubbleMenuProps}>
       <TooltipProvider>
-        <ImageMenuContent editor={editor} />
+        <MenuToolbar
+          editor={editor}
+          label="Image"
+          className="mly:flex mly:rounded-lg mly:border mly:border-gray-200 mly:bg-panel mly:p-0.5 mly:shadow-md"
+        >
+          <ImageMenuContent editor={editor} />
+        </MenuToolbar>
       </TooltipProvider>
     </BubbleMenu>
   );

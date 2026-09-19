@@ -9,9 +9,7 @@ async function createKey(page: Page, mode: 'Test' | 'Live', keyName: string): Pr
   // the same dialog.
   await page.getByRole('button', { name: 'Create key' }).first().click();
   const dialog = page.getByRole('dialog', { name: 'Create API key' });
-  // Each radio is named by its label and the hint sentence under it, so the
-  // label is matched at the start of the name rather than as the whole of it.
-  await dialog.getByRole('radio', { name: new RegExp(`^${mode}\\b`) }).click();
+  await dialog.getByRole('radio', { name: mode, exact: true }).click();
   await dialog.getByRole('textbox', { name: 'Key name' }).fill(keyName);
   await dialog.getByRole('button', { name: 'Create key' }).click();
   await expect(page.getByText('Your new key')).toBeVisible();
@@ -51,6 +49,23 @@ test.describe('api keys', () => {
     const refused = await render(page.request, short_code, key);
     expect(refused.status()).toBe(401);
     expect((await refused.json()).message).toBe('Invalid or revoked API key');
+  });
+
+  test('each key type is offered by its name, with its terms as the description', async ({ page }) => {
+    // The choice is two words. Read off the tile it was twenty: "Live" ran
+    // straight into the "Pro" marker with no separator and then into the
+    // sentence of terms underneath, so hearing the second option meant
+    // hearing the whole of the first.
+    await page.goto('/dashboard/settings/api-keys');
+    await page.getByRole('button', { name: 'Create key' }).first().click();
+    const dialog = page.getByRole('dialog', { name: 'Create API key' });
+    const group = dialog.getByRole('radiogroup', { name: 'Key type' });
+    await expect(group.getByRole('radio', { name: 'Live', exact: true })).toBeVisible();
+    const test = group.getByRole('radio', { name: 'Test', exact: true });
+    await expect(test).toBeVisible();
+    // The terms are still read, as the description they are.
+    await expect(test).toHaveAccessibleDescription('Renders your draft. Free on every plan, 1,000 calls a month.');
+    await dialog.getByRole('button', { name: 'Cancel' }).click();
   });
 
   test('a live key renders what is published', async ({ page, api, name }) => {

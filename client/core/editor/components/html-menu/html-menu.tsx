@@ -4,6 +4,7 @@ import { sticky } from 'tippy.js';
 import { getRenderContainer } from '../../utils/get-render-container';
 import { EditorBubbleMenuProps } from '../text-menu/text-bubble-menu';
 import { TooltipProvider } from '../ui/tooltip';
+import { MenuToolbar } from '../ui/menu-toolbar';
 import { HTMLMenuContent } from './html-menu-content';
 import { useEditorGesture } from '@/editor/utils/use-editor-gesture';
 
@@ -47,12 +48,15 @@ export function HTMLBubbleMenu(props: EditorBubbleMenuProps) {
   };
 
   return (
-    <BubbleMenu
-      {...bubbleMenuProps}
-      className="mly:flex mly:items-stretch mly:rounded-lg mly:border mly:border-gray-200 mly:bg-panel mly:p-0.5 mly:shadow-md"
-    >
+    <BubbleMenu {...bubbleMenuProps}>
       <TooltipProvider>
-        <HTMLMenuContent editor={editor} />
+        <MenuToolbar
+          editor={editor}
+          label="Custom HTML"
+          className="mly:flex mly:items-stretch mly:rounded-lg mly:border mly:border-gray-200 mly:bg-panel mly:p-0.5 mly:shadow-md"
+        >
+          <HTMLMenuContent editor={editor} />
+        </MenuToolbar>
       </TooltipProvider>
     </BubbleMenu>
   );

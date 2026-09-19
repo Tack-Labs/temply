@@ -46,6 +46,7 @@ export const EDITOR_SHORTCUTS: ShortcutGroup[] = [
       { keys: 'Mod+Shift+Down', what: 'Move the block down' },
       { keys: 'Mod+Shift+D', what: 'Duplicate the block' },
       { keys: 'Mod+Shift+Space', what: 'Select the whole block' },
+      { keys: 'Mod+Shift+F', what: 'Move to the menu for the block or the selection; Escape comes back' },
       { keys: 'Mod+Shift+Backspace', what: 'Delete the block' },
     ],
   },
@@ -73,4 +74,14 @@ export function formatKeys(keys: string, isApple: boolean): string {
     .replace('Up', '↑')
     .replace('Down', '↓')
     .replaceAll('+', isApple ? '' : '+');
+}
+
+/**
+ * The same combination as `aria-keyshortcuts` writes it: named modifiers, in
+ * the order the specification lists them, never glyphs. `Mod` is the one that
+ * differs by platform, and it differs here too — `Meta` on an Apple keyboard,
+ * `Control` everywhere else.
+ */
+export function ariaKeys(keys: string, isApple: boolean): string {
+  return keys.replace('Mod', isApple ? 'Meta' : 'Control');
 }

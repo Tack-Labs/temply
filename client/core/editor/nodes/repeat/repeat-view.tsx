@@ -70,6 +70,11 @@ export function RepeatView(props: NodeViewProps) {
       ) : (
         <div
           role="button"
+          // With one preview row the strip is an icon and a rule, so the count
+          // it usually carries was the whole of its name — and at ×1 it had
+          // none at all. The name says what pressing it does either way, and
+          // keeps the count where a reader was already finding it.
+          aria-label={count > 1 ? `Select this Repeat, ${count} rows` : 'Select this Repeat'}
           data-repeat-indicator=""
           className="mly:absolute mly:inset-y-0 mly:right-0 mly:flex mly:translate-x-full mly:cursor-pointer mly:flex-col mly:items-center mly:gap-1 mly:opacity-60"
           contentEditable={false}

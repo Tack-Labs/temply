@@ -61,9 +61,12 @@ export function TemplateList({ templates, canDuplicate }: TemplateListProps) {
           icon={SearchIcon}
           title="No templates match"
           description={`Nothing matches “${query.trim()}”. Try a different title, preview text, or short code.`}
+          // Not a second "Clear search": the × in the field already answers
+          // to that name, and two buttons with one name is a list a reader
+          // cannot choose from. This one is named for what they are after.
           action={
             <Button variant="secondary" onClick={clearSearch}>
-              Clear search
+              Show all templates
             </Button>
           }
         />

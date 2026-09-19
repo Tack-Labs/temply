@@ -72,5 +72,13 @@ test.describe('team', () => {
     // role, which skips what the reader cannot reach.
     if (onPhone()) await page.getByRole('button', { name: 'Organization', exact: true }).click();
     await expect(page.getByRole('button', { name: 'Members' })).toBeVisible();
+
+    // Clerk routes its own pages as sub-paths of this one, and the tab used
+    // to match its href exactly — so every page Clerk navigated to left the
+    // settings nav with no current tab at all.
+    await page.getByRole('button', { name: 'Members' }).click();
+    await expect(page).toHaveURL(/\/dashboard\/settings\/team\//);
+    await expect(tab, 'the Team tab is still the current one on Clerk\u2019s own page')
+      .toHaveAttribute('aria-current', 'page');
   });
 });

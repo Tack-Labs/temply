@@ -8,6 +8,7 @@ import { LucideIcon } from 'lucide-react';
 import { SVGIcon } from '../icons/grid-lines';
 import { Divider } from '../ui/divider';
 import { TooltipProvider } from '../ui/tooltip';
+import { MenuToolbar } from '../ui/menu-toolbar';
 import { TextBubbleContent } from './text-bubble-content';
 import { RepeatExtension } from '@/editor/nodes/repeat/repeat';
 import { TurnIntoBlock } from './turn-into-block';
@@ -113,16 +114,19 @@ export function TextBubbleMenu(props: TextBubbleMenuProps) {
   };
 
   return (
-    <BubbleMenu
-      {...bubbleMenuProps}
-      className="mly:flex mly:gap-0.5 mly:rounded-lg mly:border mly:border-gray-200 mly:bg-panel mly:p-0.5 mly:shadow-md"
-    >
+    <BubbleMenu {...bubbleMenuProps}>
       <TooltipProvider>
-        <TurnIntoBlock options={turnIntoBlockOptions} />
+        <MenuToolbar
+          editor={editor}
+          label="Text formatting"
+          className="mly:flex mly:gap-0.5 mly:rounded-lg mly:border mly:border-gray-200 mly:bg-panel mly:p-0.5 mly:shadow-md"
+        >
+          <TurnIntoBlock options={turnIntoBlockOptions} />
 
-        <Divider className="mly:mx-0" />
+          <Divider className="mly:mx-0" />
 
-        <TextBubbleContent editor={editor} />
+          <TextBubbleContent editor={editor} />
+        </MenuToolbar>
       </TooltipProvider>
     </BubbleMenu>
   );

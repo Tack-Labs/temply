@@ -8,7 +8,7 @@ import {
 import { useMemo } from 'react';
 import { BaseButton } from '../base-button';
 import { cn } from '@/editor/utils/classname';
-import { Tooltip, TooltipContent, TooltipTrigger } from '../ui/tooltip';
+import { TooltipLabel } from '../ui/tooltip';
 
 type TurnIntoBlockProps = {
   options: TurnIntoOptions;
@@ -33,20 +33,18 @@ export function TurnIntoBlock(props: TurnIntoBlockProps) {
 
   return (
     <Popover>
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <PopoverTrigger
-            className={cn(
-              'mly:flex mly:aspect-square mly:h-7 mly:items-center mly:justify-center mly:gap-1 mly:rounded-md mly:px-1.5 mly:text-sm mly:data-[state=open]:bg-soft-gray mly:transition-colors mly:hover:bg-soft-gray mly:focus-visible:relative mly:focus-visible:z-10 '
-            )}
-          >
-            <ActiveIcon className="mly:h-3 mly:w-3 mly:shrink-0 mly:stroke-[2.5]" />
-            <ChevronDownIcon className="mly:h-3 mly:w-3 mly:shrink-0 mly:stroke-[2.5]" />
-          </PopoverTrigger>
-        </TooltipTrigger>
-        <TooltipContent sideOffset={8}>Turn into</TooltipContent>
-      </Tooltip>
+      <TooltipLabel label="Turn into">
+        <PopoverTrigger
+          className={cn(
+            'mly:flex mly:aspect-square mly:h-7 mly:items-center mly:justify-center mly:gap-1 mly:rounded-md mly:px-1.5 mly:text-sm mly:data-[state=open]:bg-soft-gray mly:transition-colors mly:hover:bg-soft-gray mly:focus-visible:relative mly:focus-visible:z-10 '
+          )}
+        >
+          <ActiveIcon className="mly:h-3 mly:w-3 mly:shrink-0 mly:stroke-[2.5]" />
+          <ChevronDownIcon className="mly:h-3 mly:w-3 mly:shrink-0 mly:stroke-[2.5]" />
+        </PopoverTrigger>
+      </TooltipLabel>
       <PopoverContent
+        aria-label="Turn into"
         align="start"
         side="bottom"
         sideOffset={8}

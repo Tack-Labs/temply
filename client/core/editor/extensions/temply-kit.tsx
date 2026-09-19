@@ -12,6 +12,7 @@ import Focus from '@tiptap/extension-focus';
 import Dropcursor from '@tiptap/extension-dropcursor';
 
 import { BlockKeyboardShortcuts } from './block-keyboard';
+import { MenuFocus } from './menu-focus';
 import { Color } from './color';
 import { HorizontalRule } from './horizontal-rule';
 import { Footer } from '../nodes/footer';
@@ -101,6 +102,10 @@ export const TemplyKit = Extension.create<TemplyKitOptions>({
   addExtensions() {
     const extensions: AnyExtension[] = [
       BlockKeyboardShortcuts,
+      // The bubble menus hang outside the editor in source order, so nothing
+      // leads to them by Tab. This is the route in, and Escape is the route
+      // back.
+      MenuFocus,
       ShowIfHighlight,
       // A document that ends in a list or a blockquote has nowhere at the top
       // level left to type: the caret can only land inside the wrapper, so

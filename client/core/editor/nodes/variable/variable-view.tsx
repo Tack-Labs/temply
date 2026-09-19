@@ -64,6 +64,7 @@ export function VariableView(props: NodeViewProps) {
           })}
         </PopoverTrigger>
         <PopoverContent
+          aria-label="Variable"
           align="start"
           side="bottom"
           className="mly:w-max mly:rounded-lg mly:p-0.5!"

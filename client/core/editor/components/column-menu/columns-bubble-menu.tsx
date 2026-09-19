@@ -5,6 +5,7 @@ import { sticky } from 'tippy.js';
 import { EditorBubbleMenuProps } from '../text-menu/text-bubble-menu';
 import { isTextSelected } from '@/editor/utils/is-text-selected';
 import { TooltipProvider } from '../ui/tooltip';
+import { MenuToolbar } from '../ui/menu-toolbar';
 import { ColumnsMenuContent } from './columns-menu-content';
 import { useEditorGesture } from '@/editor/utils/use-editor-gesture';
 
@@ -58,12 +59,15 @@ export function ColumnsBubbleMenu(props: EditorBubbleMenuProps) {
   };
 
   return (
-    <BubbleMenu
-      {...bubbleMenuProps}
-      className="mly:rounded-lg mly:border mly:border-gray-200 mly:bg-panel mly:p-0.5 mly:shadow-md"
-    >
+    <BubbleMenu {...bubbleMenuProps}>
       <TooltipProvider>
-        <ColumnsMenuContent editor={editor} />
+        <MenuToolbar
+          editor={editor}
+          label="Columns"
+          className="mly:rounded-lg mly:border mly:border-gray-200 mly:bg-panel mly:p-0.5 mly:shadow-md"
+        >
+          <ColumnsMenuContent editor={editor} />
+        </MenuToolbar>
       </TooltipProvider>
     </BubbleMenu>
   );
