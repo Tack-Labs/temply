@@ -12,11 +12,11 @@ const doc = { type: 'doc', content: [
 /** Drives the model the way the view would: a tap resolving to `pos`, inside
  *  the block that holds it. Returns true when the tap selected a block and
  *  false when it was left to ProseMirror (a second tap: place the caret). */
-function tap(editor: ReturnType<typeof makeEditor>, pos: number) {
+function tap(editor: ReturnType<typeof makeEditor>, pos: number, focused = true) {
   const { view } = editor;
   const $pos = view.state.doc.resolve(pos);
   const inside = $pos.depth > 0 ? $pos.before($pos.depth) : -1;
-  const tap = tapTransaction(view.state, pos, inside);
+  const tap = tapTransaction(view.state, pos, inside, focused);
   if (!tap) return false;
   view.dispatch(tap.tr);
   return !tap.edit;
@@ -68,6 +68,17 @@ describe('BlockSelection (touch)', () => {
     view.dispatch(tap!.tr);
     expect(selectedBlock(editor)!.node.type.name).toBe('variable');
     expect(isEditingText(editor)).toBe(false);
+    editor.destroy();
+  });
+
+  it('a caret parked by autofocus, with no focus, still lets the first tap select', () => {
+    // How a template opens: a text selection in the first block, the
+    // editor not focused, no keyboard. The tap is the first gesture.
+    const editor = makeEditor(doc, { touch: true });
+    editor.commands.setTextSelection(2);
+    expect(editor.isFocused).toBe(false);
+    expect(tap(editor, 2, false)).toBe(true);
+    expect(selectedBlock(editor)?.pos).toBe(0);
     editor.destroy();
   });
 

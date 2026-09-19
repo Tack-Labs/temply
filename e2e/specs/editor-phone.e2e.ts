@@ -78,11 +78,10 @@ test.describe('editor on the phone', () => {
     await expect(para).toContainText('typed');
   });
 
-  // The same gap, as the test that turns on once it is closed: with nothing
-  // selected the unfocused caret in the first textblock is read as "already
-  // typing" (block-selection.ts, tapTransaction), and the first tap on that
-  // block raises the keyboard instead of the action bar.
-  test.fixme('one tap on the first block selects it', async ({ page, api, name }) => {
+  // A template opens with a caret parked in its first block by autofocus
+  // and no keyboard up. That caret used to read as "already typing", so
+  // the first tap on that block raised the keyboard instead of the bar.
+  test('one tap on the first block selects it', async ({ page, api, name }) => {
     const t = await api.createTemplate({ title: name('first') });
     await page.goto(`/templates/${t.id}`);
     await phone.ready(page);

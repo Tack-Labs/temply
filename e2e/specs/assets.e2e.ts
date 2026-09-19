@@ -16,7 +16,12 @@ test.describe('assets', () => {
   test('an upload lands in the library', async ({ page, api, fakes, name }) => {
     const file = fileName(name('upload'));
     await page.goto('/dashboard/assets');
+    // The upload is what the case is about, and under a full parallel run
+    // it can take longer than a toast's own timeout — so the response is
+    // waited for by name, and the toast is read once it has arrived.
+    const uploaded = page.waitForResponse((res) => res.url().endsWith('/api/v1/assets') && res.request().method() === 'POST', { timeout: 30_000 });
     await fileInput(page).setInputFiles({ name: file, mimeType: 'image/png', buffer: PNG_1x1 });
+    expect((await uploaded).ok()).toBe(true);
     await expect(page.getByText('Image uploaded')).toBeVisible();
     await expect(page.getByRole('button', { name: `Preview ${file}` })).toBeVisible();
     api.trackAsset((await api.assetNamed(file)).id);

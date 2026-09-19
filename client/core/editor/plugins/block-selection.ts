@@ -19,7 +19,7 @@ export function isEditingText(editor: Editor): boolean {
  * already selected textblock, whose transaction puts the caret where the
  * finger is. Null when the tap resolved to nothing to act on.
  */
-export function tapTransaction(state: EditorState, pos: number, inside: number): { tr: Transaction; edit: boolean } | null {
+export function tapTransaction(state: EditorState, pos: number, inside: number, focused = true): { tr: Transaction; edit: boolean } | null {
   const current = state.selection instanceof NodeSelection ? state.selection.from : null;
   const insideNode = inside >= 0 ? state.doc.nodeAt(inside) : null;
   // A selectable inline atom — a variable pill — is its own target: it has
@@ -40,8 +40,12 @@ export function tapTransaction(state: EditorState, pos: number, inside: number):
   if (!target) return null;
   // Already typing in this block: the tap is the browser's — it moves the
   // caret, and a long press selects a word — not a step back to the block.
+  // Typing means the editor has the focus. A template opens with a caret
+  // parked in its first block by autofocus and no keyboard up; that caret
+  // used to read as "already typing", so the first tap on the first block
+  // raised the keyboard instead of the bar.
   const { selection } = state;
-  if (selection instanceof TextSelection && selection.$from.parent.isTextblock && selection.$from.before(selection.$from.depth) === targetPos) {
+  if (focused && selection instanceof TextSelection && selection.$from.parent.isTextblock && selection.$from.before(selection.$from.depth) === targetPos) {
     return null;
   }
   if (current === targetPos && target.isTextblock) {
@@ -108,7 +112,7 @@ export const BlockSelection = Extension.create({
               }
               const found = view.posAtCoords({ left: event.clientX, top: event.clientY });
               if (!found) return false;
-              const tap = tapTransaction(view.state, found.pos, found.inside);
+              const tap = tapTransaction(view.state, found.pos, found.inside, view.hasFocus());
               if (!tap) return false;
               event.preventDefault();
               if (tap.tr.selectionSet) view.dispatch(tap.tr);
