@@ -165,7 +165,9 @@ describe('GET /api/public/v1/templates/:shortCode', () => {
     const retryAfter = Number(res.headers.get('retry-after'));
     expect(retryAfter).toBeGreaterThan(0);
     expect(retryAfter).toBeLessThanOrEqual(60);
-    expect((await res.json()).message).toContain(` calls a minute`);
+    // The message names the limit and the wait: without the numbers a
+    // caller reading it learns nothing they can act on.
+    expect((await res.json()).message).toBe(`This key may make ${limit} calls a minute. Try again in ${retryAfter}s.`);
 
     // A refused call is not a call: the month's counter stops at the fuse.
     const { getApiUsage } = await import('../lib/api-quota');

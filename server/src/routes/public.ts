@@ -47,7 +47,7 @@ async function resolve(ctx: { request: Request; params: { shortCode: string }; d
   if (!burst.allowed) {
     return {
       error: tooManyRequests(
-        `This key may make  calls a minute. Try again in s.`,
+        `This key may make ${burst.limit} calls a minute. Try again in ${burst.retryAfterSeconds}s.`,
         burst.retryAfterSeconds,
       ),
     };
