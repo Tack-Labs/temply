@@ -1,3 +1,5 @@
+import { execFileSync } from 'node:child_process';
+import { join } from 'node:path';
 import { test, expect } from '@playwright/test';
 import { onPhone } from '../fixtures/project';
 
@@ -35,12 +37,15 @@ test.describe('marketing', () => {
     const icon = await request.get('/apple-icon');
     expect(icon.headers()['content-type']).toBe('image/png');
 
+    // Each page is dated by the last commit that touched what it is made
+    // of, not by the deploy. The terms page is the probe: its sources are
+    // the page and the legal facts, and git says when they last changed.
     const sitemap = await (await request.get('/sitemap.xml')).text();
-    const stamps = [...sitemap.matchAll(/<lastmod>([^<]+)<\/lastmod>/g)].map((m) => new Date(m[1]));
-    expect(stamps.length).toBe(5);
-    // Dated by their last change, so a page untouched for weeks says so
-    // rather than claiming this deploy.
-    expect(stamps.some((d) => Date.now() - d.getTime() > 24 * 60 * 60 * 1000), 'at least one page is older than today').toBe(true);
+    const entries = [...sitemap.matchAll(/<loc>([^<]+)<\/loc>\s*<lastmod>([^<]+)<\/lastmod>/g)].map((m) => [m[1], new Date(m[2])] as const);
+    expect(entries.length).toBe(5);
+    const terms = entries.find(([loc]) => loc.endsWith('/terms'))![1];
+    const committed = new Date(execFileSync('git', ['log', '-1', '--format=%cI', '--', 'app/(marketing)/terms', 'lib/legal.ts'], { cwd: join(import.meta.dirname, '..', '..', 'client'), encoding: 'utf8' }).trim());
+    expect(terms.getTime()).toBe(committed.getTime());
   });
 
   test('every docs nav link has a section', async ({ page }) => {
