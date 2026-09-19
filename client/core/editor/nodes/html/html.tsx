@@ -8,11 +8,14 @@ import {
   ReactNodeViewRenderer,
 } from '@tiptap/react';
 import html from 'highlight.js/lib/languages/xml';
-import { createLowlight, common } from 'lowlight';
+import { createLowlight } from 'lowlight';
 import { HTMLCodeBlockView } from './html-view';
 import { DEFAULT_SECTION_SHOW_IF_KEY } from '@/extensions';
 
-const lowlight = createLowlight(common);
+// One grammar. This block holds HTML and nothing else, and lowlight's
+// `common` set — thirty-odd languages nobody could pick — was the heaviest
+// single import the editor route carried.
+const lowlight = createLowlight();
 lowlight.register('html', html);
 
 export type HtmlCodeBlockAttributes = {
