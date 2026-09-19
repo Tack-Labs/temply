@@ -2,7 +2,12 @@
   "name": "temply",
   "private": true,
   "type": "module",
-  "workspaces": ["shared", "client", "server", "e2e"],
+  "workspaces": [
+    "shared",
+    "client",
+    "server",
+    "e2e"
+  ],
   "scripts": {
     "dev": "bun run dev:server & bun run dev:client & wait",
     "dev:public": "bun run scripts/dev-public.ts",
@@ -13,5 +18,9 @@
     "test": "bun test",
     "e2e": "bun run --filter @temply/e2e test",
     "e2e:ui": "bun run --filter @temply/e2e ui"
+  },
+  "overrides": {
+    "postcss": "^8.5.23",
+    "uuid": "^11.1.1"
   }
 }
