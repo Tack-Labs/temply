@@ -50,9 +50,6 @@ export const metadata: Metadata = {
       'A block editor for transactional email. Build it without code, send it from your own app.',
     images: ['/og-image.png'],
   },
-  icons: {
-    icon: '/brand/logo.svg',
-  },
   robots: 'index, follow',
 };
 

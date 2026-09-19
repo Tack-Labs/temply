@@ -18,6 +18,27 @@ import {
 import { Button } from '~/components/ui/button';
 import { useParallax } from '~/hooks/use-parallax';
 import { useReveal } from '~/hooks/use-reveal';
+import { SITE_URL } from '~/lib/site';
+
+// What a search engine is told this page is, in its own vocabulary: the
+// company and the product, with the plan that costs nothing named as such.
+// A client component still renders on the server, so the script is in the
+// HTML a crawler reads.
+const structuredData = {
+  '@context': 'https://schema.org',
+  '@graph': [
+    { '@type': 'Organization', name: 'Temply', url: SITE_URL, logo: `${SITE_URL}/brand/logo.png` },
+    {
+      '@type': 'SoftwareApplication',
+      name: 'Temply',
+      url: SITE_URL,
+      applicationCategory: 'BusinessApplication',
+      operatingSystem: 'Web',
+      description: 'A block editor for transactional email. Build it without code, send it from your own app.',
+      offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
+    },
+  ],
+};
 
 /** Position in the hero's entrance sequence. The stagger is declared beside the
  *  element it belongs to rather than in a stack of numbered CSS classes. */
@@ -84,6 +105,7 @@ export default function Home() {
     // panels; clip keeps that bleed from becoming a horizontal scrollbar on
     // phones (clip, unlike hidden, creates no scroll container).
     <div className="overflow-x-clip">
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }} />
       {/* One dot field for the whole page, fixed so the content scrolls over
           it like a workbench — this is what keeps the mid-page from going
           flat. Sections with their own opaque band (Blocks) carry their own

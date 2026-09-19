@@ -11,6 +11,38 @@ test.describe('marketing', () => {
     await expect(page.getByRole('heading', { name: 'Introduction' })).toBeVisible();
   });
 
+  test('a crawler is given the page in its own terms', async ({ page, request }) => {
+    // Titles come from one template, the icons come in the formats each
+    // browser takes, the manifest and the sitemap answer, and the front
+    // page says what it is in schema.org's vocabulary.
+    await page.goto('/');
+    await expect(page).toHaveTitle('Temply — write the email, we handle the HTML');
+    const graph = await page.locator('script[type="application/ld+json"]').first().textContent();
+    expect(JSON.parse(graph!)['@graph'].map((n: { '@type': string }) => n['@type'])).toEqual(['Organization', 'SoftwareApplication']);
+    await expect(page.locator('link[rel="icon"][type="image/png"]')).toHaveCount(1);
+    await expect(page.locator('link[rel="icon"][type="image/svg+xml"]')).toHaveCount(1);
+    await expect(page.locator('link[rel="apple-touch-icon"]')).toHaveCount(1);
+    await expect(page.locator('link[rel="manifest"]')).toHaveCount(1);
+
+    for (const [path, title] of [['/docs', 'Documentation — Temply'], ['/playground', 'Playground — Temply'], ['/terms', 'Terms of service — Temply']]) {
+      await page.goto(path);
+      await expect(page).toHaveTitle(title);
+    }
+
+    const manifest = await request.get('/manifest.webmanifest');
+    expect(manifest.ok()).toBe(true);
+    expect((await manifest.json()).name).toBe('Temply');
+    const icon = await request.get('/apple-icon');
+    expect(icon.headers()['content-type']).toBe('image/png');
+
+    const sitemap = await (await request.get('/sitemap.xml')).text();
+    const stamps = [...sitemap.matchAll(/<lastmod>([^<]+)<\/lastmod>/g)].map((m) => new Date(m[1]));
+    expect(stamps.length).toBe(5);
+    // Dated by their last change, so a page untouched for weeks says so
+    // rather than claiming this deploy.
+    expect(stamps.some((d) => Date.now() - d.getTime() > 24 * 60 * 60 * 1000), 'at least one page is older than today').toBe(true);
+  });
+
   test('every docs nav link has a section', async ({ page }) => {
     await page.goto('/docs');
     const links = page.getByRole('navigation', { name: /contents|on this page/i }).getByRole('link');
