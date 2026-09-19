@@ -115,6 +115,12 @@ trace, reproduce the failure locally: outside CI a retry records one, and
     design, being a picture of repetition rather than places to type; the
     indicator is a `role="button"` among many; and a Spacer is a band of
     nothing with no `data-type` at all.
+  - `link[rel=…]`, `script[type="application/ld+json"]` — what a crawler is
+    given lives in `<head>`, where nothing has a role or a name; the
+    attribute is the contract.
+  - `body` — of the page, and of the sandboxed preview frame: the case that
+    proves a Custom HTML block's script ran nowhere reads an attribute a
+    script would have put on the body itself, and a body has no name.
 
   Three of these are a product finding standing in for a role, and retiring
   the finding retires the hook: the pill, the preview copies and the Spacer
