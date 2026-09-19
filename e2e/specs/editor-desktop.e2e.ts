@@ -940,6 +940,16 @@ test.describe('editor on the desktop', () => {
     const pm = await openEditor(page, t.id);
     await expect(pm.locator('> p')).toHaveText('The only line');
 
+    // Where the canvas sits is this case's own setup, not something left to
+    // whatever scrolled last: a hover only scrolls what is not already in
+    // view, so a line resting on the bottom edge is hovered where it lies and
+    // the Section built under it takes its menu off the fold with it. The
+    // section menu is placed with tippy's flip disabled, by the same decision
+    // that keeps it pinned to the block's top corner, so nothing brings it
+    // back. The case is about the route through the handle; the fold is the
+    // menu-anchoring cases' subject, and they seed it themselves.
+    await pm.locator('> p').evaluate((el) => el.scrollIntoView({ block: 'center' }));
+
     // Hovering is not a gesture — nothing is asked for by it — but it is what
     // brings the handle out.
     await pm.locator('> p').hover();
@@ -959,7 +969,12 @@ test.describe('editor on the desktop', () => {
     const handle = page.getByRole('button', { name: 'Block actions' }).first();
     await expect(handle).toHaveAttribute('aria-keyshortcuts', 'Control+Shift+Space');
     await handle.hover();
-    await expect(page.getByRole('tooltip')).toHaveText('Block actions — or press Ctrl+Shift+Space');
+    // Read off the handle rather than off the tooltip: tippy gives every box
+    // it positions `role="tooltip"`, and the handle rides in one of those, so
+    // the role alone names two things here. The description is the half a
+    // reader is given anyway — Radix points the trigger at the tooltip with
+    // `aria-describedby`, and only while it is up.
+    await expect(handle).toHaveAccessibleDescription('Block actions — or press Ctrl+Shift+Space');
 
     await add.click();
 
