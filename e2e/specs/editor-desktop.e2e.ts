@@ -925,6 +925,46 @@ test.describe('editor on the desktop', () => {
     await expectOnScreen(page, bubbleMenu(page, 'Section'), 'the section menu after the click');
   });
 
+  test('a block inserted at the bottom of a scrolled canvas is brought into view', async ({ page, api, name }) => {
+    // ProseMirror scrolls the selection into view inside the transaction that
+    // makes it, and a Section is drawn by a React node view that has not
+    // mounted yet — so the scroll is measured against a placeholder of no
+    // height and lands nowhere. On a canvas already scrolled to its bottom
+    // the new block was left below the fold with its menu, which is the only
+    // way to reach what a Section can be told to do: the customer picked
+    // Section and nothing appeared to happen.
+    const doc = JSON.stringify({
+      type: 'doc',
+      content: Array.from({ length: 14 }, (_, i) => ({
+        type: 'paragraph',
+        content: [{ type: 'text', text: `Line ${i + 1}` }],
+      })),
+    });
+    const t = await api.createTemplate({ title: name('insert at the bottom'), content: doc });
+    const pm = await openEditor(page, t.id);
+    await expect(pm.locator('> p').last()).toHaveText('Line 14');
+
+    // The block the insert happens under is the last one resting wholly on
+    // screen, with the rest of the canvas below the fold — the state a
+    // customer is in whenever the document is taller than the window, and
+    // the only one where there is anywhere for a new block to be lost.
+    const lastWhollyVisible = await pm.locator('> p').evaluateAll((lines) =>
+      lines.reduce((best, line, index) => {
+        const rect = line.getBoundingClientRect();
+        return rect.top >= 0 && rect.bottom <= window.innerHeight ? index : best;
+      }, 0),
+    );
+    const under = pm.locator('> p').nth(lastWhollyVisible);
+    await under.hover();
+    await page.getByRole('button', { name: 'Add a block below' }).click();
+    await slashRow(page, 'Section').click();
+
+    const section = pm.locator('table[data-type="section"]');
+    await expect(section, 'the Section is inserted').toHaveCount(1);
+    await expectOnScreen(page, section, 'the Section that was just made');
+    await expectOnScreen(page, bubbleMenu(page, 'Section'), 'its menu');
+  });
+
   test('a Section inserted with the mouse alone carries its menu', async ({ page, api, name }) => {
     // The whole route out of the canvas: the drag handle sits beside the
     // canvas in the DOM and the block panel on the body, so a customer who
