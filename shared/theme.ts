@@ -1,5 +1,3 @@
-
-
 export type FallbackFont =
   | 'serif'
   | 'sans-serif'

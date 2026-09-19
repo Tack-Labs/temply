@@ -42,8 +42,10 @@ const { createTestApp, createTestDb, get, givePlan, post } = await import('../te
 
 let db: ReturnType<typeof createTestDb>;
 let app: ReturnType<typeof createTestApp>;
-const ADMIN = 'user_admin';
-const member = { 'x-org-id': ADMIN, 'x-org-role': 'member' };
+// A user is admin of the one-person workspace named after them, so the
+// owner is both the user id and the org id.
+const OWNER = 'user_owner';
+const member = { 'x-org-id': OWNER, 'x-org-role': 'member' };
 
 // The routes read these per request, so they are set per test and put
 // back after: every test file shares the one process.
@@ -69,12 +71,12 @@ afterEach(() => {
 describe('GET /api/v1/billing', () => {
   it('401s without a user, and 403s a user with no workspace', async () => {
     expect((await get(app, '/api/v1/billing')).status).toBe(401);
-    expect((await get(app, '/api/v1/billing', ADMIN, { 'x-org-id': '' })).status).toBe(403);
+    expect((await get(app, '/api/v1/billing', OWNER, { 'x-org-id': '' })).status).toBe(403);
   });
 
   it('reports the plan, the usage and the limits, with an unbounded limit sent as null', async () => {
-    await givePlan(db, ADMIN, 'enterprise');
-    const body = await (await get(app, '/api/v1/billing', ADMIN)).json();
+    await givePlan(db, OWNER, 'enterprise');
+    const body = await (await get(app, '/api/v1/billing', OWNER)).json();
     expect(body.plan).toBe('enterprise');
     expect(body.usage.templates).toBe(0);
     expect(body.limits.maxTemplates).toBeNull();
@@ -91,34 +93,34 @@ describe('POST /api/v1/billing/checkout', () => {
   });
 
   it('makes a Stripe customer for a workspace that has none, then a session pointing back at the plan page', async () => {
-    const res = await post(app, '/api/v1/billing/checkout', { plan: 'pro' }, ADMIN);
+    const res = await post(app, '/api/v1/billing/checkout', { plan: 'pro' }, OWNER);
     expect(res.status).toBe(200);
     expect((await res.json()).url).toBe('https://checkout.stripe.test/s_1');
-    expect(customersCreated).toEqual([{ metadata: { orgId: ADMIN, userId: ADMIN } }]);
+    expect(customersCreated).toEqual([{ metadata: { orgId: OWNER, userId: OWNER } }]);
     const [session] = checkoutsCreated;
     expect(session.customer).toBe('cus_1');
     expect(session.line_items).toEqual([{ price: 'price_pro', quantity: 1 }]);
     expect(session.success_url).toBe('https://temply.test/dashboard/settings/plan?success=true');
-    expect(session.metadata).toEqual({ orgId: ADMIN, userId: ADMIN, plan: 'pro' });
+    expect(session.metadata).toEqual({ orgId: OWNER, userId: OWNER, plan: 'pro' });
     // The row was made with the customer on it, so the webhook has somewhere to land.
-    const [row] = await db.select().from(subscriptions).where(eq(subscriptions.org_id, ADMIN));
+    const [row] = await db.select().from(subscriptions).where(eq(subscriptions.org_id, OWNER));
     expect(row.stripe_customer_id).toBe('cus_1');
     expect(row.plan).toBe('free');
   });
 
   it('reuses the customer a workspace already has', async () => {
-    await db.insert(subscriptions).values({ id: 'sub_row', user_id: ADMIN, org_id: ADMIN, stripe_customer_id: 'cus_existing', plan: 'free', status: 'active' });
-    await post(app, '/api/v1/billing/checkout', { plan: 'pro' }, ADMIN);
+    await db.insert(subscriptions).values({ id: 'sub_row', user_id: OWNER, org_id: OWNER, stripe_customer_id: 'cus_existing', plan: 'free', status: 'active' });
+    await post(app, '/api/v1/billing/checkout', { plan: 'pro' }, OWNER);
     expect(customersCreated).toHaveLength(0);
     expect(checkoutsCreated[0].customer).toBe('cus_existing');
   });
 
   it('refuses a plan Checkout does not sell, and says so when the price is not configured', async () => {
-    expect((await post(app, '/api/v1/billing/checkout', { plan: 'enterprise' }, ADMIN)).status).toBe(400);
+    expect((await post(app, '/api/v1/billing/checkout', { plan: 'enterprise' }, OWNER)).status).toBe(400);
     const price = process.env.STRIPE_PRICE_PRO;
     delete process.env.STRIPE_PRICE_PRO;
     try {
-      const res = await post(app, '/api/v1/billing/checkout', { plan: 'pro' }, ADMIN);
+      const res = await post(app, '/api/v1/billing/checkout', { plan: 'pro' }, OWNER);
       expect(res.status).toBe(500);
       expect((await res.json()).message).toContain('not configured');
     } finally {
@@ -130,14 +132,14 @@ describe('POST /api/v1/billing/checkout', () => {
 describe('POST /api/v1/billing/portal', () => {
   it('is for admins, and needs a customer to open a portal for', async () => {
     expect((await post(app, '/api/v1/billing/portal', {}, 'user_member', member)).status).toBe(403);
-    const none = await post(app, '/api/v1/billing/portal', {}, ADMIN);
+    const none = await post(app, '/api/v1/billing/portal', {}, OWNER);
     expect(none.status).toBe(400);
     expect((await none.json()).message).toBe('No subscription found');
   });
 
   it('opens the portal for the workspace’s customer, returning to the plan page', async () => {
-    await db.insert(subscriptions).values({ id: 'sub_row', user_id: ADMIN, org_id: ADMIN, stripe_customer_id: 'cus_existing', plan: 'pro', status: 'active' });
-    const res = await post(app, '/api/v1/billing/portal', {}, ADMIN);
+    await db.insert(subscriptions).values({ id: 'sub_row', user_id: OWNER, org_id: OWNER, stripe_customer_id: 'cus_existing', plan: 'pro', status: 'active' });
+    const res = await post(app, '/api/v1/billing/portal', {}, OWNER);
     expect((await res.json()).url).toBe('https://portal.stripe.test/p_1');
     expect(portalsCreated).toEqual([{ customer: 'cus_existing', return_url: 'https://temply.test/dashboard/settings/plan' }]);
   });

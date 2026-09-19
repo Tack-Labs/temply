@@ -15,7 +15,7 @@ import {
   Plugin,
   EditorState,
 } from '@tiptap/pm/state';
-import tippy, { Instance, } from 'tippy.js';
+import tippy, { Instance } from 'tippy.js';
 import {
   ySyncPluginKey,
   absolutePositionToRelativePosition,

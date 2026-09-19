@@ -1,4 +1,4 @@
-import type { EditorThemeOptions, } from '@temply/shared/theme';
+import type { EditorThemeOptions } from '@temply/shared/theme';
 
 export const DEFAULT_VALUES: Record<string, string> = {
   '--mly-font': 'Inter',

@@ -19,7 +19,7 @@ mock.module('resend', () => ({
 const { emailsRoutes } = await import('./emails');
 const { createTestApp, createTestDb, post } = await import('../test/helpers');
 const { ANONYMOUS_RENDERS_PER_MINUTE, resetBurstWindows } = await import('../lib/rate-limit');
-const { TEMPLATE_CONTENT_MAX_BYTES } = await import('@temply/shared/plans');
+const { TEMPLATE_CONTENT_MAX_LENGTH } = await import('@temply/shared/plans');
 
 let db: TestDb;
 let app: any;
@@ -62,7 +62,7 @@ describe('POST /api/v1/emails/preview', () => {
   });
 
   it('refuses a document past the content ceiling before rendering it', async () => {
-    const text = 'x'.repeat(TEMPLATE_CONTENT_MAX_BYTES);
+    const text = 'x'.repeat(TEMPLATE_CONTENT_MAX_LENGTH);
     const oversized = { type: 'doc', content: [{ type: 'paragraph', content: [{ type: 'text', text }] }] };
     const res = await post(app, '/api/v1/emails/preview', { content: oversized }, null);
     expect(res.status).toBe(413);

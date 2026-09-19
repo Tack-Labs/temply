@@ -7,14 +7,14 @@ import { useState } from 'react';
 import { toast } from 'sonner';
 import { Button } from '~/components/ui/button';
 import { Card } from '~/components/ui/surfaces';
+import { isEmailAddress } from '@temply/shared/email';
 
-const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 /** Splits on commas, spaces and newlines — a pasted list arrives any way. */
 function parseEmails(raw: string): { valid: string[]; invalid: string[] } {
   const parts = raw.split(/[\s,;]+/).map((p) => p.trim()).filter(Boolean);
   const unique = [...new Set(parts.map((p) => p.toLowerCase()))];
-  return { valid: unique.filter((p) => EMAIL.test(p)), invalid: unique.filter((p) => !EMAIL.test(p)) };
+  return { valid: unique.filter((p) => isEmailAddress(p)), invalid: unique.filter((p) => !isEmailAddress(p)) };
 }
 
 /**

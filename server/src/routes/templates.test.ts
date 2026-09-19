@@ -1,4 +1,4 @@
-import { TEMPLATE_CONTENT_MAX_BYTES } from '@temply/shared/plans';
+import { TEMPLATE_CONTENT_MAX_LENGTH } from '@temply/shared/plans';
 import { beforeEach, describe, expect, it } from 'bun:test';
 import { eq, sql } from 'drizzle-orm';
 import { brands, mails, orgPrefs, templateVersions } from '@temply/shared/schema';
@@ -59,7 +59,7 @@ describe('POST /api/v1/templates', () => {
   });
 
   it('refuses a document or a theme past the content ceiling', async () => {
-    const heavy = 'x'.repeat(TEMPLATE_CONTENT_MAX_BYTES + 1);
+    const heavy = 'x'.repeat(TEMPLATE_CONTENT_MAX_LENGTH + 1);
     expect((await post(app, '/api/v1/templates', { title: 'Heavy', content: heavy }, OWNER)).status).toBe(400);
     expect((await post(app, '/api/v1/templates', { title: 'Heavy', content: '{}', theme: heavy }, OWNER)).status).toBe(400);
     const { id } = await createTemplate(OWNER);

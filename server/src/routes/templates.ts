@@ -2,7 +2,7 @@ import { Elysia, t } from 'elysia';
 import type { JSONContent } from '@tiptap/core';
 import { eq, and, desc, sql } from 'drizzle-orm';
 import { mails, templateVersions } from '@temply/shared/schema';
-import { TEMPLATE_CONTENT_MAX_BYTES } from '@temply/shared/plans';
+import { TEMPLATE_CONTENT_MAX_LENGTH } from '@temply/shared/plans';
 import { generateShareToken, generateShortCode } from '../lib/codes';
 import { nextStamp } from '../lib/stamp';
 import { hasUnpublishedChanges } from '@temply/shared/publish';
@@ -77,8 +77,8 @@ async function snapshotVersion(db: Db, row: Row) {
 const templateBody = t.Object({
   title: t.String({ minLength: 3, maxLength: 200 }),
   previewText: t.Optional(t.String({ maxLength: 500 })),
-  content: t.String({ maxLength: TEMPLATE_CONTENT_MAX_BYTES }),
-  theme: t.Optional(t.String({ maxLength: TEMPLATE_CONTENT_MAX_BYTES })),
+  content: t.String({ maxLength: TEMPLATE_CONTENT_MAX_LENGTH }),
+  theme: t.Optional(t.String({ maxLength: TEMPLATE_CONTENT_MAX_LENGTH })),
 });
 
 async function ownRow(db: Db, orgId: string, id: string): Promise<Row | undefined> {

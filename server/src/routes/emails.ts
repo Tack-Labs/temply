@@ -4,7 +4,8 @@ import { render } from '../render/render';
 import { MissingVariablesError } from '../render/engine';
 import { json, tooManyRequests, unauthorized, unprocessable } from '../lib/errors';
 import { ANONYMOUS_RENDERS_PER_MINUTE, checkPerMinute, clientAddress } from '../lib/rate-limit';
-import { TEMPLATE_CONTENT_MAX_BYTES } from '@temply/shared/plans';
+import { TEMPLATE_CONTENT_MAX_LENGTH } from '@temply/shared/plans';
+import { isEmailAddress } from '@temply/shared/email';
 import { authPlugin } from '../plugins/auth';
 import { dbPlugin } from '../plugins/db';
 
@@ -29,8 +30,6 @@ const TEST_SENDS_PER_HOUR = 20;
  */
 const TEST_SEND_MAX_RECIPIENTS = 5;
 
-/** The shape of an address, as loosely as an inbox would take it. */
-const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const sendCounts = new Map<string, { hour: string; count: number }>();
 
 function overRateLimit(userId: string): boolean {
@@ -71,8 +70,8 @@ export const emailsRoutes = new Elysia()
       }
       const { content, theme, previewText, payload, pretty, plainText } = body;
       const size = typeof content === 'string' ? content.length : JSON.stringify(content ?? null).length;
-      if (size > TEMPLATE_CONTENT_MAX_BYTES) {
-        const message = `This email is too large to render — the limit is ${Math.round(TEMPLATE_CONTENT_MAX_BYTES / 1000)} KB of content.`;
+      if (size > TEMPLATE_CONTENT_MAX_LENGTH) {
+        const message = `This email is too large to render — the limit is ${Math.round(TEMPLATE_CONTENT_MAX_LENGTH / 1000)}K characters of content.`;
         return json({ status: 413, message, errors: [message] }, 413);
       }
       const contentJson = typeof content === 'string' ? JSON.parse(content) : content;
@@ -124,12 +123,12 @@ export const emailsRoutes = new Elysia()
         const message = `A test send goes to at most ${TEST_SEND_MAX_RECIPIENTS} addresses.`;
         return json({ status: 400, message, errors: [message] }, 400);
       }
-      const malformed = recipients.find((address: string) => !EMAIL.test(address));
+      const malformed = recipients.find((address: string) => !isEmailAddress(address));
       if (malformed) {
         const message = `"${malformed}" is not an email address.`;
         return json({ status: 400, message, errors: [message] }, 400);
       }
-      if (body.replyTo && !EMAIL.test(body.replyTo.trim())) {
+      if (body.replyTo && !isEmailAddress(body.replyTo.trim())) {
         const message = 'Reply-to must be an email address.';
         return json({ status: 400, message, errors: [message] }, 400);
       }
@@ -190,7 +189,7 @@ export const emailsRoutes = new Elysia()
         fromName: t.Optional(t.String({ maxLength: 100 })),
         replyTo: t.Optional(t.String({ maxLength: 254 })),
         to: t.String({ minLength: 1, maxLength: 1000 }),
-        content: t.String({ minLength: 1, maxLength: TEMPLATE_CONTENT_MAX_BYTES }),
+        content: t.String({ minLength: 1, maxLength: TEMPLATE_CONTENT_MAX_LENGTH }),
         theme: t.Optional(t.Any()),
         payload: t.Optional(t.Any()),
       }),

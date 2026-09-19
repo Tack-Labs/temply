@@ -14,7 +14,8 @@
     "./preflight": "./preflight.ts",
     "./bytes": "./bytes.ts",
     "./publish": "./publish.ts",
-    "./api": "./api.ts"
+    "./api": "./api.ts",
+    "./email": "./email.ts"
   },
   "dependencies": {
     "@tiptap/core": "^2.11.5",

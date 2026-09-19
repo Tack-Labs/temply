@@ -176,7 +176,9 @@ export const publicRoutes = new Elysia()
       })
       .from(mails)
       .where(live ? and(scopeOf(key), isNotNull(mails.published_at)) : scopeOf(key))
-      .orderBy(desc(mails.updated_at));
+      // Ordered by the stamp the list reports: for a live key a draft edit
+      // changes nothing it can see, so it must not reorder what it sees.
+      .orderBy(desc(live ? mails.published_at : mails.updated_at));
     await recordUse(ctx.db, key);
     return json({
       templates: rows.map((row) => ({

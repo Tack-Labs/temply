@@ -94,7 +94,7 @@ export function EmailPreviewIFrame(props: EmailPreviewIFrameProps) {
     const frame = newDoc.createElement('iframe');
     frame.setAttribute('sandbox', '');
     frame.title = 'Email preview';
-    frame.style.cssText = 'position:fixed;inset:0;width:100%;height:100%;border:0;background:#fff';
+    frame.style.cssText = 'position:fixed;inset:0;width:100%;height:100%;border:0';
     frame.srcdoc = document;
     newDoc.body.appendChild(frame);
   }
