@@ -17,6 +17,7 @@ import { webhookRoutes } from './routes/webhooks/stripe';
 import { clerkWebhookRoutes } from './routes/webhooks/clerk';
 import { authRoutes } from './routes/auth/logout';
 import { healthRoutes } from './routes/health';
+import { cspReportRoutes } from './routes/csp-report';
 
 // Error monitoring, off without a DSN so a checkout reports nothing by
 // accident. Only errors: no tracing, and nothing about the user beyond what
@@ -61,6 +62,7 @@ const app = new Elysia()
   .use(clerkWebhookRoutes)
   .use(authRoutes)
   .use(healthRoutes)
+  .use(cspReportRoutes)
   // Bind to loopback only: this service trusts a proxy-forwarded user id and
   // must never be reachable directly from the network.
   // The largest legitimate body is a 5 MB image plus multipart framing;

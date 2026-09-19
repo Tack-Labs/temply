@@ -10,6 +10,69 @@ function devOriginFromEnv() {
   }
 }
 
+/**
+ * The host Clerk's client talks to, read off the publishable key the way
+ * Clerk's own SDK reads it: the part after the prefix is that host in
+ * base64, with a `$` on the end. The dev instance lives under
+ * clerk.accounts.dev and the production one under a subdomain of ours, so
+ * the policy cannot name it ahead of time.
+ */
+function clerkHostFromKey() {
+  const key = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY ?? '';
+  const encoded = key.replace(/^pk_(test|live)_/, '');
+  try {
+    const host = Buffer.from(encoded, 'base64').toString('utf8').replace(/\$$/, '');
+    return /^[a-z0-9.-]+$/i.test(host) ? `https://${host}` : '';
+  } catch {
+    return '';
+  }
+}
+
+/** Sentry's ingest host, from the DSN, when there is one. */
+function sentryHostFromDsn() {
+  try {
+    return process.env.NEXT_PUBLIC_SENTRY_DSN ? `https://${new URL(process.env.NEXT_PUBLIC_SENTRY_DSN).host}` : '';
+  } catch {
+    return '';
+  }
+}
+
+/**
+ * The Content-Security-Policy, reported and not yet enforced. Every host
+ * here is one the app actually reaches: Clerk (its script, its frames and
+ * Cloudflare's bot check), Sentry's ingest, ImageKit's upload endpoint, and
+ * Google Fonts inside the preview frame. Images are wide open on purpose —
+ * an email carries images from wherever its author put them, and the
+ * previews show the email. Scripts still allow inline: Next's hydration
+ * script and the theme script are inline, and moving them behind a nonce
+ * means rendering every page dynamically, a separate decision. Report-only
+ * first; enforced once a week of reports at /api/csp-report says it would
+ * block nothing a customer needs.
+ */
+function contentSecurityPolicy() {
+  const clerk = clerkHostFromKey();
+  const sentry = sentryHostFromDsn();
+  const dev = process.env.NODE_ENV === 'development';
+  const directives = {
+    'default-src': ["'self'"],
+    'script-src': ["'self'", "'unsafe-inline'", dev && "'unsafe-eval'", clerk, 'https://challenges.cloudflare.com'],
+    'style-src': ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
+    'font-src': ["'self'", 'data:', 'https://fonts.gstatic.com'],
+    'img-src': ["'self'", 'data:', 'blob:', 'https:', 'http:'],
+    'connect-src': ["'self'", clerk, sentry, 'https://clerk-telemetry.com', 'https://upload.imagekit.io'],
+    'frame-src': ["'self'", clerk, 'https://challenges.cloudflare.com'],
+    'worker-src': ["'self'", 'blob:'],
+    'object-src': ["'none'"],
+    'base-uri': ["'self'"],
+    'form-action': ["'self'"],
+    'frame-ancestors': ["'none'"],
+    'report-uri': ['/api/csp-report'],
+  };
+  return Object.entries(directives)
+    .map(([name, sources]) => `${name} ${sources.filter(Boolean).join(' ')}`)
+    .join('; ');
+}
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   // The e2e stack builds and serves the client while `next dev` is running
@@ -31,15 +94,15 @@ const nextConfig = {
     config.resolve.alias['@'] = process.cwd() + '/core';
     return config;
   },
-  // The headers every response carries. No Content-Security-Policy yet:
-  // Clerk, ImageKit and the editor's inline styles each need an allow-list
-  // that has to be written against the real hosts, and a wrong one takes
-  // sign-in down; the rest costs nothing and closes the common holes.
+  // The headers every response carries. The Content-Security-Policy is
+  // report-only: a wrong allow-list takes sign-in down, so it is watched
+  // before it is enforced (see contentSecurityPolicy above).
   async headers() {
     return [
       {
         source: '/(.*)',
         headers: [
+          { key: 'Content-Security-Policy-Report-Only', value: contentSecurityPolicy() },
           // Only meaningful over HTTPS, and browsers ignore it otherwise, so
           // the LAN dev origin is unaffected.
           { key: 'Strict-Transport-Security', value: 'max-age=63072000; includeSubDomains' },

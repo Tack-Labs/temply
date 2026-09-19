@@ -31,6 +31,18 @@ test.describe('marketing', () => {
       await expect(page).toHaveTitle(title);
     }
 
+    // The policy is reported, not enforced, and names the Clerk host the
+    // build was given; the report endpoint answers through the proxy.
+    const csp = (await request.get('/')).headers()['content-security-policy-report-only'];
+    expect(csp).toContain('report-uri /api/csp-report');
+    expect(csp).toContain('clerk.accounts.dev');
+    expect(csp).toContain("frame-ancestors 'none'");
+    const report = await request.post('/api/csp-report', {
+      headers: { 'content-type': 'application/csp-report' },
+      data: JSON.stringify({ 'csp-report': { 'effective-directive': 'img-src', 'blocked-uri': 'http://x', 'document-uri': '/' } }),
+    });
+    expect(report.status()).toBe(200);
+
     const manifest = await request.get('/manifest.webmanifest');
     expect(manifest.ok()).toBe(true);
     expect((await manifest.json()).name).toBe('Temply');
