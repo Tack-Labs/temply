@@ -27,6 +27,13 @@ jobs:
       - name: Install
         run: bun install --frozen-lockfile
 
+      # A critical advisory in Next sat unnoticed for a release because nobody
+      # runs `bun audit` by hand. High and above fails the build; moderate
+      # advisories are read, not gated on — the one open today is fixed
+      # only across a major of the editor's framework.
+      - name: Audit
+        run: bun audit --audit-level=high
+
       - name: Typecheck
         run: bun run typecheck
 
