@@ -5,7 +5,7 @@ import { LEGAL } from '~/lib/legal';
 import { PLAN_LIMITS, TEST_API_CALLS_PER_MONTH } from '@temply/shared/plans';
 
 export const metadata: Metadata = {
-  title: 'Terms of service — Temply',
+  title: 'Terms of service',
   description: 'The agreement between you and Temply when you use the product.',
 };
 

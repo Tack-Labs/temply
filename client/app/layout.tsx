@@ -31,7 +31,9 @@ export const metadata: Metadata = {
   // Every relative URL below — the OG image, canonical links — resolves
   // against this, so the domain lives in one environment variable.
   metadataBase: new URL(SITE_URL),
-  title: 'Temply — write the email, we handle the HTML',
+  // Sub-pages name themselves and the template adds the brand, so "— Temply"
+  // is written once and cannot be misspelt on the ninth page.
+  title: { default: 'Temply — write the email, we handle the HTML', template: '%s — Temply' },
   description:
     'A block editor for transactional email. Build it without code, send it from your own app.',
   twitter: {

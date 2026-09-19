@@ -12,7 +12,7 @@ import {
 } from '~/components/docs/docs-content';
 
 export const metadata: Metadata = {
-  title: 'Documentation — Temply',
+  title: 'Documentation',
   description:
     'How Temply builds email that survives the clients that still parse HTML like it is 2005.',
 };

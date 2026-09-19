@@ -3,7 +3,7 @@ import { LegalPage, List, P, Section, Strong } from '~/components/legal/legal-pa
 import { LEGAL, PROCESSORS } from '~/lib/legal';
 
 export const metadata: Metadata = {
-  title: 'Privacy policy — Temply',
+  title: 'Privacy policy',
   description: 'What Temply collects, why, who else touches it, and how to get it back or deleted.',
 };
 

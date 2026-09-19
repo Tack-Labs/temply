@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { BrandMark } from '~/components/brand-mark';
 import { Button } from '~/components/ui/button';
 
-export const metadata: Metadata = { title: 'Page not found — Temply', robots: 'noindex' };
+export const metadata: Metadata = { title: 'Page not found', robots: 'noindex' };
 
 /** A route that does not exist. Two ways out — home for a visitor, the
  *  dashboard for someone signed in — since the page cannot know which the

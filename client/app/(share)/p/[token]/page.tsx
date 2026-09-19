@@ -21,7 +21,9 @@ export async function generateMetadata({ params }: { params: Promise<{ token: st
   const { token } = await params;
   const preview = await loadPreview(token);
   return {
-    title: preview ? `${preview.title} — preview` : 'Preview — Temply',
+    // The email's own title, as the author wrote it, with no brand after it:
+    // a reviewer was sent one email, not the product.
+    title: preview ? { absolute: `${preview.title} — preview` } : 'Preview',
     robots: 'noindex',
   };
 }
