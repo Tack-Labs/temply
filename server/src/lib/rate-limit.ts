@@ -43,10 +43,9 @@ export function checkBurst(keyId: string, mode: ApiKeyMode, now: Date = new Date
 }
 
 /**
- * Renders a signed-out caller may ask for in a minute. The playground and
- * the editor's own preview post to the same endpoint, and the editor posts
- * on every pause in typing — sixty is a fast typist with headroom, and far
- * short of what a loop against a public URL would want.
+ * Renders a signed-out caller may ask for in a minute: the playground's
+ * visitors, counted by address. Sixty is a visitor trying things out with
+ * headroom, and far short of what a loop against a public URL would want.
  */
 export const ANONYMOUS_RENDERS_PER_MINUTE = 60;
 

@@ -53,6 +53,14 @@ describe('POST /api/v1/emails/preview', () => {
     expect((await post(app, '/api/v1/emails/preview', { content: doc }, null, from('203.0.113.8'))).status).toBe(200);
   });
 
+  it('does not count a signed-in editor by address, since a workspace can share one', async () => {
+    for (let i = 0; i < ANONYMOUS_RENDERS_PER_MINUTE; i++) {
+      await post(app, '/api/v1/emails/preview', { content: doc }, null, from('203.0.113.7'));
+    }
+    expect((await post(app, '/api/v1/emails/preview', { content: doc }, null, from('203.0.113.7'))).status).toBe(429);
+    expect((await post(app, '/api/v1/emails/preview', { content: doc }, USER, from('203.0.113.7'))).status).toBe(200);
+  });
+
   it('refuses a document past the content ceiling before rendering it', async () => {
     const text = 'x'.repeat(TEMPLATE_CONTENT_MAX_BYTES);
     const oversized = { type: 'doc', content: [{ type: 'paragraph', content: [{ type: 'text', text }] }] };

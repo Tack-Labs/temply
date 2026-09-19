@@ -51,18 +51,23 @@ export const emailsRoutes = new Elysia()
   /**
    * Signed out on purpose: the playground renders through here before a
    * visitor has an account. That makes it the one endpoint anyone can point
-   * a loop at, so it is fused by address and bounded by size — the engine
-   * parses whatever HTML the document carries, and that work is the cost.
+   * a loop at, so a stranger is fused by address and every caller is
+   * bounded by size — the engine parses whatever HTML the document carries,
+   * and that work is the cost. Someone signed in is not counted by address:
+   * a workspace behind one office connection shares an address, and the
+   * editor asks for a render on every pause in typing.
    */
   .post(
     '/api/v1/emails/preview',
-    async ({ body, request, server }) => {
-      const fuse = checkPerMinute(`address:${clientAddress(request, server)}`, ANONYMOUS_RENDERS_PER_MINUTE);
-      if (!fuse.allowed) {
-        return tooManyRequests(
-          `Previews are limited to ${fuse.limit} a minute. Try again in ${fuse.retryAfterSeconds}s.`,
-          fuse.retryAfterSeconds,
-        );
+    async ({ body, request, server, userId }) => {
+      if (!userId) {
+        const fuse = checkPerMinute(`address:${clientAddress(request, server)}`, ANONYMOUS_RENDERS_PER_MINUTE);
+        if (!fuse.allowed) {
+          return tooManyRequests(
+            `Previews are limited to ${fuse.limit} a minute. Try again in ${fuse.retryAfterSeconds}s.`,
+            fuse.retryAfterSeconds,
+          );
+        }
       }
       const { content, theme, previewText, payload, pretty, plainText } = body;
       const size = typeof content === 'string' ? content.length : JSON.stringify(content ?? null).length;
