@@ -99,7 +99,10 @@ export const authPlugin = new Elysia({ name: 'auth' })
             return identity;
           }
         }
-        console.warn('[auth] session not accepted:', authState.status, authState.reason);
+        // A dev-instance browser carries __clerk_db_jwt on every visit and is
+        // signed out most of the time; only a __session token Clerk refused is
+        // worth a line.
+        if (cookieHeader.includes('__session=')) console.warn('[auth] session not accepted:', authState.status, authState.reason);
       } catch (e) {
         console.error('[auth] authenticateRequest error:', (e as Error)?.message);
       }
