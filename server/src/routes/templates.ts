@@ -2,6 +2,7 @@ import { Elysia, t } from 'elysia';
 import type { JSONContent } from '@tiptap/core';
 import { eq, and, desc, sql } from 'drizzle-orm';
 import { mails, templateVersions } from '@temply/shared/schema';
+import { TEMPLATE_CONTENT_MAX_BYTES } from '@temply/shared/plans';
 import { generateShareToken, generateShortCode } from '../lib/codes';
 import { nextStamp } from '../lib/stamp';
 import { hasUnpublishedChanges } from '@temply/shared/publish';
@@ -65,6 +66,19 @@ async function snapshotVersion(db: Db, row: Row) {
       sql`${templateVersions.id} NOT IN (SELECT id FROM (SELECT ${templateVersions.id} FROM ${templateVersions} WHERE ${templateVersions.template_id} = ${row.id} ORDER BY ${templateVersions.created_at} DESC LIMIT 10)) AND ${templateVersions.template_id} = ${row.id}`,
     );
 }
+
+/**
+ * What a save may carry. The document and the theme are bounded by the
+ * content ceiling: the request limit above them is sized for an image
+ * upload, and autosave writes the document on every pause in typing, so
+ * an unbounded one would be stored, versioned and rendered at any weight.
+ */
+const templateBody = t.Object({
+  title: t.String({ minLength: 3, maxLength: 200 }),
+  previewText: t.Optional(t.String({ maxLength: 500 })),
+  content: t.String({ maxLength: TEMPLATE_CONTENT_MAX_BYTES }),
+  theme: t.Optional(t.String({ maxLength: TEMPLATE_CONTENT_MAX_BYTES })),
+});
 
 async function ownRow(db: Db, orgId: string, id: string): Promise<Row | undefined> {
   const [row] = await db.select().from(mails).where(and(eq(mails.id, id), eq(mails.org_id, orgId))).limit(1);
@@ -178,7 +192,7 @@ export const templatesRoutes = new Elysia()
     });
     const [inserted] = await ctx.db.select().from(mails).where(eq(mails.id, id)).limit(1);
     return json({ template: withFlags(inserted) });
-  }, { body: t.Object({ title: t.String({ minLength: 3 }), previewText: t.Optional(t.String()), content: t.String(), theme: t.Optional(t.String()) }) })
+  }, { body: templateBody })
 
   // Saves the draft. The published copy is untouched until /publish.
   .post('/api/v1/templates/:id', async (ctx) => {
@@ -197,7 +211,7 @@ export const templatesRoutes = new Elysia()
     if (theme !== undefined) patch.theme = theme;
     await ctx.db.update(mails).set(patch).where(and(eq(mails.id, ctx.params.id), eq(mails.org_id, ctx.orgId)));
     return json({ status: 'ok' });
-  }, { body: t.Object({ title: t.String({ minLength: 3 }), previewText: t.Optional(t.String()), content: t.String(), theme: t.Optional(t.String()) }) })
+  }, { body: templateBody })
 
   .post('/api/v1/templates/:id/publish', async (ctx) => {
     if (!ctx.userId) return unauthorized();

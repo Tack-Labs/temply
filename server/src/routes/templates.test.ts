@@ -1,3 +1,4 @@
+import { TEMPLATE_CONTENT_MAX_BYTES } from '@temply/shared/plans';
 import { beforeEach, describe, expect, it } from 'bun:test';
 import { eq, sql } from 'drizzle-orm';
 import { brands, mails, orgPrefs, templateVersions } from '@temply/shared/schema';
@@ -55,6 +56,14 @@ describe('POST /api/v1/templates', () => {
   it('rejects a title shorter than 3 characters', async () => {
     const res = await post(app, '/api/v1/templates', { title: 'ab', content: '{}' }, OWNER);
     expect(res.status).toBe(400);
+  });
+
+  it('refuses a document or a theme past the content ceiling', async () => {
+    const heavy = 'x'.repeat(TEMPLATE_CONTENT_MAX_BYTES + 1);
+    expect((await post(app, '/api/v1/templates', { title: 'Heavy', content: heavy }, OWNER)).status).toBe(400);
+    expect((await post(app, '/api/v1/templates', { title: 'Heavy', content: '{}', theme: heavy }, OWNER)).status).toBe(400);
+    const { id } = await createTemplate(OWNER);
+    expect((await post(app, `/api/v1/templates/${id}`, { title: 'Heavy', content: heavy }, OWNER)).status).toBe(400);
   });
 
   it('returns 402 once a free user hits the template cap', async () => {
