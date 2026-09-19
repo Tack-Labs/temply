@@ -1,12 +1,11 @@
 'use client';
 
-import { useAuth } from '@clerk/nextjs';
+import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { BrandMark } from '~/components/brand-mark';
 import { ThemeToggle } from '~/components/theme-toggle';
-import { UserMenu } from '~/components/dashboard/user-menu';
 import { Button } from '~/components/ui/button';
 import { cn } from '~/lib/classname';
 
@@ -59,8 +58,29 @@ function useActiveSection(enabled: boolean) {
   return active;
 }
 
+// Fetched only for a signed-in visitor: it brings Clerk with it, and a
+// visitor who is not signed in has no use for either.
+const HeaderUserMenu = dynamic(() => import('~/components/header-user-menu'), { ssr: false });
+
+/**
+ * Whether anyone is signed in, read the way Clerk's own client reads it
+ * before it has loaded: `__client_uat` is the cookie Clerk keeps for
+ * exactly this, the time of the last sign-in or 0 for nobody. It is the
+ * hint and not the session — the session is httpOnly and verified where
+ * it matters — but a hint is all a header needs to choose its button. Read
+ * after mount: the page is prerendered and has no cookie at build time.
+ */
+function useSignedInHint(): boolean {
+  const [signedIn, setSignedIn] = useState(false);
+  useEffect(() => {
+    const uat = document.cookie.split('; ').find((c) => c.startsWith('__client_uat='))?.split('=')[1];
+    setSignedIn(!!uat && uat !== '0');
+  }, []);
+  return signedIn;
+}
+
 export function Header() {
-  const { isSignedIn } = useAuth();
+  const isSignedIn = useSignedInHint();
   const pathname = usePathname();
   // This header is shared with the playground, where those sections do not
   // exist — from anywhere but the landing page the links have to route home
@@ -120,7 +140,7 @@ export function Header() {
                 <Link href="/dashboard/templates">Dashboard</Link>
               </Button>
               <div className="hidden sm:block">
-                <UserMenu align="end" showLabel={false} surface="page" />
+                <HeaderUserMenu />
               </div>
             </>
           ) : (

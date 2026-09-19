@@ -14,6 +14,30 @@ test.describe('auth', () => {
     await context.close();
   });
 
+  test('the front page knows who is signed in without loading Clerk for who is not', async ({ page, browser }) => {
+    // The marketing header reads sign-in state off Clerk's own hint cookie,
+    // so a visitor who is not signed in never fetches Clerk to be shown a
+    // Sign in button — and one who is still gets the door to the dashboard
+    // and the account menu, which brings Clerk with it on demand.
+    await page.goto('/');
+    await expect(page.getByRole('link', { name: 'Dashboard' })).toBeVisible();
+    if (!onPhone()) {
+      await page.getByRole('button', { name: 'Account', exact: true }).click();
+      await expect(page.getByRole('menuitem', { name: /sign out/i })).toBeVisible();
+      await page.keyboard.press('Escape');
+    }
+
+    const context = await browser.newContext({ storageState: { cookies: [], origins: [] } });
+    const stranger = await context.newPage();
+    const scripts: string[] = [];
+    stranger.on('request', (req) => { if (req.resourceType() === 'script') scripts.push(req.url()); });
+    await stranger.goto('/');
+    await expect(stranger.getByRole('link', { name: 'Sign in' })).toBeVisible();
+    await expect(stranger.getByRole('link', { name: 'Dashboard' })).toHaveCount(0);
+    expect(scripts.some((url) => /clerk/i.test(url)), 'no Clerk script was fetched for a stranger').toBe(false);
+    await context.close();
+  });
+
   test('the signed-in user lands on the dashboard', async ({ page }) => {
     await page.goto('/dashboard');
     // DashboardPage's h1 is "Welcome back[, name]" — the one heading that

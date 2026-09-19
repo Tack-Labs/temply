@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { Clerk } from '~/components/clerk';
 
 /**
  * The shell both auth screens share: the brand above the card, the terms
@@ -9,6 +10,7 @@ import Link from 'next/link';
  */
 export default function AuthLayout({ children }: { children: React.ReactNode }) {
   return (
+    <Clerk>
     <main className="flex min-h-screen flex-col items-center justify-center gap-6 bg-surface px-4">
       <Link href="/" className="text-lg font-semibold tracking-tight text-ink">
         Temply
@@ -26,5 +28,6 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
         .
       </p>
     </main>
+    </Clerk>
   );
 }

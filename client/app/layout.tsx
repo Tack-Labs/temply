@@ -1,5 +1,4 @@
 import type { Metadata } from 'next';
-import { ClerkProvider } from '@clerk/nextjs';
 import { Geist, Geist_Mono, Space_Grotesk } from 'next/font/google';
 import { GoogleAnalytics } from '~/components/google-analytics';
 import { Providers } from './providers';
@@ -61,33 +60,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <ClerkProvider
-      // Signing out — and deleting the account, which signs out — lands on
-      // the front page, not on whatever settings sub-path Clerk was showing.
-      afterSignOutUrl="/"
-      // A finished sign-up goes to the dashboard wherever the flow ran —
-      // the card on /login or Clerk's own verification screens — and so
-      // does a sign-in that arrived with nowhere particular to return to.
-      // Without these Clerk falls back to "/", the marketing page.
-      signUpForceRedirectUrl="/onboarding"
-      signInFallbackRedirectUrl="/dashboard"
-      // Clerk otherwise titles its screens after the instance name, so the
-      // sign-in page for Temply read "Sign in to My Application".
-      localization={{
-        signIn: {
-          start: {
-            title: 'Sign in to Temply',
-            subtitle: 'Pick up where you left off.',
-          },
-        },
-        signUp: {
-          start: {
-            title: 'Create your Temply account',
-            subtitle: 'Save the emails you build and send them from your own app.',
-          },
-        },
-      }}
-    >
+    <>
       {/* The font variables go on <body>, not <html>. Giving <html> a
           className hands it to React, which then reconciles it on hydration and
           strips the `dark` class the blocking script below just added — so a
@@ -119,6 +92,6 @@ export default function RootLayout({
           <Providers>{children}</Providers>
         </body>
       </html>
-    </ClerkProvider>
+    </>
   );
 }
