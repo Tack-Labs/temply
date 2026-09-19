@@ -88,15 +88,30 @@ async function ownRow(db: Db, orgId: string, id: string): Promise<Row | undefine
 export const templatesRoutes = new Elysia()
   .use(authPlugin)
   .use(dbPlugin)
+  /**
+   * The list, as the dashboard draws it: a title, a code, two dates and a
+   * flag per row. It used to select every column — the document, the
+   * published copy and the theme rode along for each template, megabytes
+   * per dashboard load that the page then threw away. The flag needs only
+   * the two stamps, so the row carries only what is shown.
+   */
   .get('/api/v1/templates', (ctx) => {
     if (!ctx.userId) return unauthorized();
     if (!ctx.orgId) return noWorkspace();
     return ctx.db
-      .select()
+      .select({
+        id: mails.id,
+        title: mails.title,
+        preview_text: mails.preview_text,
+        short_code: mails.short_code,
+        created_at: mails.created_at,
+        updated_at: mails.updated_at,
+        published_at: mails.published_at,
+      })
       .from(mails)
       .where(eq(mails.org_id, ctx.orgId))
       .orderBy(desc(mails.updated_at))
-      .then((rows) => json({ templates: rows.map(withFlags) }));
+      .then((rows) => json({ templates: rows.map((row) => ({ ...row, has_unpublished_changes: hasUnpublishedChanges(row) })) }));
   })
 
   .get('/api/v1/templates/:id', async (ctx) => {

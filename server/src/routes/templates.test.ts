@@ -129,6 +129,19 @@ describe('GET /api/v1/templates', () => {
     expect(templates[0].title).toBe('Mine');
   });
 
+  it('carries what the dashboard shows and not the document', async () => {
+    const { id } = await createTemplate(OWNER, 'Light');
+    await post(app, `/api/v1/templates/${id}/publish`, {}, OWNER);
+    const { templates } = await (await get(app, '/api/v1/templates', OWNER)).json();
+    expect(Object.keys(templates[0]).sort()).toEqual(
+      ['created_at', 'has_unpublished_changes', 'id', 'preview_text', 'published_at', 'short_code', 'title', 'updated_at'],
+    );
+    expect(templates[0].has_unpublished_changes).toBe(false);
+    await post(app, `/api/v1/templates/${id}`, { title: 'Light again', content: '{"type":"doc"}' }, OWNER);
+    const after = await (await get(app, '/api/v1/templates', OWNER)).json();
+    expect(after.templates[0].has_unpublished_changes).toBe(true);
+  });
+
   it('hides another user’s template behind a 404', async () => {
     const template = await createTemplate(OWNER);
     const res = await get(app, `/api/v1/templates/${template.id}`, OTHER);
