@@ -409,6 +409,10 @@ test.describe('editor on the desktop', () => {
   });
 
   test('a Repeat names its list and previews it', async ({ page, api, name }) => {
+    // A cold editor, a slash insert and three popups in turn: on CI's shared
+    // runner the case ran past its thirty seconds at the list-name field in
+    // the last two runs, and passed the moment it was retried warm.
+    test.slow();
     const t = await api.createTemplate({ title: name('repeat') });
     const pm = await openEditor(page, t.id);
     await insertViaSlash(page, 'Repeat');
