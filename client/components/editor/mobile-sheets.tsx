@@ -1,8 +1,7 @@
 'use client';
 
-import type { Editor } from '@tiptap/core';
-import { useEffect, useMemo, useState } from 'react';
-import { BracesIcon, ChevronLeftIcon } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { BracesIcon } from 'lucide-react';
 import { Button } from '~/components/ui/button';
 import { Label } from '~/components/ui/label';
 import { ContentPreview } from '~/components/content-preview';
@@ -10,15 +9,13 @@ import { ContentSource } from '~/components/content-source';
 import { PreflightPanel } from '~/components/preflight-panel';
 import { PreviewDataPanel } from '~/components/preview-data-panel';
 import { TemplateThemePanel } from '~/components/template-theme-panel';
-import { EmptyState, ErrorState, lift } from '~/components/ui/surfaces';
-import { blockCatalogue, insertBlock } from '~/core/editor/block-catalogue';
-import type { BlockItem } from '@/blocks/types';
+import { EmptyState, ErrorState } from '~/components/ui/surfaces';
 import { cn } from '~/lib/classname';
 import { CopyHtmlButton, DownloadButton, fileSlug } from '../email-editor-sandbox';
 import { BottomSheet } from './bottom-sheet';
 import type { TemplateEditorModel } from './use-template-editor';
 
-export type SheetId = 'details' | 'brand' | 'data' | 'checks' | 'eye' | 'add' | null;
+export type SheetId = 'details' | 'brand' | 'data' | 'checks' | 'eye' | null;
 
 const inputClass =
   'h-11 w-full rounded-md border border-line bg-raised px-3 text-base text-ink placeholder:text-faint';
@@ -53,42 +50,8 @@ function Field({
   );
 }
 
-/** A catalogue entry: icon over label, a thumb-sized target that lifts on
- *  touch the way every other tile in the app does — a tint here would say
- *  "row", not "tile". */
-function CatalogueTile({ item, onPick }: { item: BlockItem; onPick: () => void }) {
-  return (
-    <button
-      type="button"
-      onClick={onPick}
-      className={cn(
-        'flex min-h-[4.5rem] flex-col items-center justify-center gap-1.5 rounded-md border border-line bg-raised px-1 text-center text-xs text-ink',
-        lift,
-      )}
-    >
-      <span className="[&_svg]:size-5">{item.icon}</span>
-      {item.title}
-    </button>
-  );
-}
-
 /**
- * Brings the canvas to the selected block once the sheet that asked for it
- * has gone. The sheet's own scroll lock swallows any scroll asked for while
- * it is still up, so this waits a frame — and every caller dispatches its
- * selection before `onClose`, which is still inside the lock. Centred, not
- * ProseMirror's own scrollIntoView: that stops as soon as the block is inside
- * the window, which is under the bottom bar.
- */
-function revealSelectedBlock(editor: Editor | null): void {
-  if (!editor) return;
-  requestAnimationFrame(() =>
-    editor.view.dom.querySelector('.ProseMirror-selectednode')?.scrollIntoView({ block: 'center' }),
-  );
-}
-
-/**
- * The six bottom sheets that hold everything a phone editor cannot fit
+ * The five bottom sheets that hold everything a phone editor cannot fit
  * beside the canvas. Each one is a thin shell around a panel the desktop
  * layout already owns — the phone changes where a control lives, never what
  * it does.
@@ -97,38 +60,17 @@ export function MobileSheets({
   model,
   open,
   onClose,
-  onSelectBlockAt,
   returnFocus,
 }: {
   model: TemplateEditorModel;
   open: SheetId;
   onClose: () => void;
-  onSelectBlockAt: (pos: number) => void;
   /** Passed through to every sheet; see BottomSheet. */
   returnFocus?: boolean;
 }) {
   const [eyeTab, setEyeTab] = useState<'preview' | 'html' | 'text'>('preview');
-  // Headers/Footers are a group, not a block: tapping one opens its own
-  // commands in this same grid instead of inserting anything. Cleared
-  // whenever the sheet closes so it always reopens at the top.
-  const [sub, setSub] = useState<BlockItem | null>(null);
-  // blockCatalogue() rescans the slash-command registry on every call.
-  const groups = useMemo(() => blockCatalogue(), []);
   const close = (o: boolean) => {
     if (!o) onClose();
-  };
-
-  const pick = (item: BlockItem) => {
-    if (item.commands) {
-      setSub(item);
-      return;
-    }
-    const editor = model.editor;
-    if (editor) insertBlock(editor, item);
-    setSub(null);
-    onClose();
-    // A block appended to the end lands below the fold.
-    revealSelectedBlock(editor);
   };
 
   // The tab only re-asks for a render on its own click; reopening the sheet
@@ -190,18 +132,13 @@ export function MobileSheets({
               : '.'}
           </p>
         ) : (
+          // No onSelect: a read-only canvas has nothing to jump a finding
+          // to, so every row renders plain rather than as a dead button.
           <PreflightPanel
             issues={model.preflight.issues}
             bytes={model.preflight.bytes}
             expanded
             collapsible={false}
-            onSelect={(pos) => {
-              onSelectBlockAt(pos);
-              onClose();
-              // The finding names a block the canvas may have scrolled past,
-              // and the outline is no answer if it is off screen.
-              revealSelectedBlock(model.editor);
-            }}
           />
         )}
       </BottomSheet>
@@ -284,47 +221,6 @@ export function MobileSheets({
             />
           )}
         </div>
-      </BottomSheet>
-
-      <BottomSheet
-        open={open === 'add'}
-        onOpenChange={(o) => {
-          if (!o) setSub(null);
-          close(o);
-        }}
-        title={sub ? sub.title : 'Add a block'}
-        height="full"
-      >
-        {sub ? (
-          <div className="space-y-3 py-1">
-            <button
-              type="button"
-              onClick={() => setSub(null)}
-              className="-mx-1 flex min-h-11 items-center gap-1 px-1 text-sm font-medium text-muted transition-colors duration-fast ease-out hover:text-ink motion-reduce:transition-none"
-            >
-              <ChevronLeftIcon className="size-4" />
-              Add a block
-            </button>
-            <div className="grid grid-cols-4 gap-2">
-              {sub.commands?.map((item) => (
-                <CatalogueTile key={item.title} item={item} onPick={() => pick(item)} />
-              ))}
-            </div>
-          </div>
-        ) : (
-          <div className="space-y-5 py-1">
-            {groups.map((group) => (
-              <section key={group.id}>
-                <h3 className="mb-2 text-xs font-medium text-muted">{group.title}</h3>
-                <div className="grid grid-cols-4 gap-2">
-                  {group.items.map((item) => (
-                    <CatalogueTile key={item.title} item={item} onPick={() => pick(item)} />
-                  ))}
-                </div>
-              </section>
-            ))}
-          </div>
-        )}
       </BottomSheet>
     </>
   );

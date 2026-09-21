@@ -101,10 +101,6 @@ trace, reproduce the failure locally: outside CI a retry records one, and
   - `.tippy-box` — every bubble menu is re-parented into one, and it is the
     element that carries `data-placement` and the box an anchoring assertion
     measures.
-  - `[inert]` — the phone's bar keeps all four faces mounted and marks the
-    three that are down `inert`; Playwright's role engine is blind to it, so
-    `phone.live` excludes them by selector or a control asserted visible
-    would pass in every face.
   - `[data-editor-bottom-bar]` — the bar's controls share their names with
     the sheets that open above them, so the bar is what makes a name mean
     one of them.
@@ -148,8 +144,7 @@ trace, reproduce the failure locally: outside CI a retry records one, and
 
 The editor is covered twice because it is two products.
 `editor-desktop.e2e.ts` asserts the slash menu, the bubble menus and the
-keyboard, on `desktop-chromium` only; `editor-phone.e2e.ts` asserts the tap
-model, the bar's faces, the sheets and the dock, on `phone-chromium` only.
-Delete's escalation through wrappers is asserted on the phone because
-`deleteBlock` is wired only to the phone's action bar — the desktop's delete
-paths remove exactly the block.
+keyboard, on `desktop-chromium` only; `editor-phone.e2e.ts` asserts that the
+canvas reads and does not write, and that the sections nav and its sheets
+still reach details, brand, sample data, checks and preview, on
+`phone-chromium` only.

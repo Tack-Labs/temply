@@ -63,14 +63,15 @@ test.describe('checks', () => {
     await expect(page.getByText('Published', { exact: true })).toHaveCount(0);
   });
 
-  test('a finding on the phone jumps to its block', async ({ page, api, name }) => {
-    test.skip(!onPhone(), 'desktop rows are not buttons: there is nothing to jump with');
+  test('a finding on the phone does not offer to jump to its block', async ({ page, api, name }) => {
+    test.skip(!onPhone(), 'the desktop panel never turned a finding into a button either');
     const { id } = await api.createTemplate({ title: name('jump'), content: DOC });
     await open(page, id);
     await page.getByRole('button', { name: /^Checks/ }).click();
-    await page.getByRole('dialog', { name: 'Checks' }).getByRole('button', { name: MESSAGES.button }).click();
-    await expect(page.getByRole('dialog', { name: 'Checks' })).toBeHidden();
-    await expect(page.locator('.ProseMirror-selectednode')).toHaveCount(1);
-    await expect(page.getByRole('button', { name: 'Delete', exact: true })).toBeVisible();
+    // The canvas is read-only, so there is nowhere left to send the tap: the
+    // finding is a plain row, not a button that would jump to it.
+    const sheet = page.getByRole('dialog', { name: 'Checks' });
+    await expect(sheet.getByText(MESSAGES.button)).toBeVisible();
+    await expect(sheet.getByRole('button', { name: MESSAGES.button })).toHaveCount(0);
   });
 });

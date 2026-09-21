@@ -88,9 +88,9 @@ test.describe('marketing', () => {
     const context = await browser.newContext({ storageState: { cookies: [], origins: [] } });
     const page = await context.newPage();
     await page.goto('/playground');
-    // The phone shell has no Content section; its floating "Add block" button
-    // is the mark that the editor mounted.
-    if (onPhone()) await expect(page.getByRole('button', { name: 'Add block' })).toBeVisible();
+    // The phone shell reads the demo rather than editing it, and says so
+    // under the header — that banner is the mark that the editor mounted.
+    if (onPhone()) await expect(page.getByText('Open on a desktop to try the editor.')).toBeVisible();
     else await expect(page.getByRole('heading', { name: 'Content', exact: true })).toBeVisible();
     await expect(page.locator('.ProseMirror')).toContainText('Welcome to Temply');
     await context.close();
