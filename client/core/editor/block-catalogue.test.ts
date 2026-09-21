@@ -65,7 +65,7 @@ describe('insertBlock', () => {
   const divider = blockCatalogue().flatMap((g) => g.items).find((i) => i.title === 'Divider')!;
 
   it('inserts below the selected block instead of replacing it', () => {
-    const editor = makeEditor(doc, { touch: true });
+    const editor = makeEditor(doc);
     editor.view.dispatch(editor.state.tr.setSelection(NodeSelection.create(editor.state.doc, 0)));
 
     insertBlock(editor, divider);
@@ -79,7 +79,7 @@ describe('insertBlock', () => {
   });
 
   it('inserts at the end when no block is selected', () => {
-    const editor = makeEditor(doc, { touch: true });
+    const editor = makeEditor(doc);
     // What the tap-off-the-page clear leaves: a caret at the top, no block.
     editor.commands.setTextSelection(1);
 
@@ -95,7 +95,7 @@ describe('insertBlock', () => {
   });
 
   it('selects the block it inserted, so the action bar has a subject', () => {
-    const editor = makeEditor(doc, { touch: true });
+    const editor = makeEditor(doc);
     editor.commands.setTextSelection(1);
 
     insertBlock(editor, divider);
@@ -107,7 +107,7 @@ describe('insertBlock', () => {
   });
 
   it('undoes in one step, leaving no anchor paragraph behind', () => {
-    const editor = makeEditor(doc, { touch: true });
+    const editor = makeEditor(doc);
     editor.view.dispatch(editor.state.tr.setSelection(NodeSelection.create(editor.state.doc, 0)));
 
     insertBlock(editor, divider);

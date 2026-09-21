@@ -11,9 +11,9 @@ const doc = {
   ],
 };
 
-// The Style sheet's button menu writes through `updateButton` against a
-// NodeSelection of the button — the touch selection model's shape — rather
-// than the node view's own updateAttributes. This is the path it relies on.
+// `updateButton` writes against a NodeSelection of the button — the whole
+// block selected, not a caret inside the node view — rather than through
+// the node view's own updateAttributes. This is the path it relies on.
 describe('button menu writes', () => {
   it('updates the selected button node through the button command', () => {
     const editor = makeEditor(doc);

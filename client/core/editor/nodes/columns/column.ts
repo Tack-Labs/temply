@@ -99,13 +99,13 @@ export const ColumnExtension = Node.create({
     return {
       // `updateAttributes` resolves a selection to "the last node of this
       // type inside it", which for a caret in one column is that column —
-      // right — but for the `columns` wrapper itself node-selected (the only
-      // selection touch can ever put on this block: a tap walks straight to
-      // the wrapper, never to a column inside it) silently picks whichever
-      // column sorts last, changing one column while the control reads as
-      // acting on the whole block. Selecting the wrapper means the whole
-      // block was selected, so the write fans out to every column in it
-      // instead; a single `column` active keeps writing to just that one.
+      // right — but for the `columns` wrapper itself node-selected (a
+      // NodeSelection spanning the whole block, not a caret inside one
+      // column) silently picks whichever column sorts last, changing one
+      // column while the control reads as acting on the whole block.
+      // Selecting the wrapper means the whole block was selected, so the
+      // write fans out to every column in it instead; a single `column`
+      // active keeps writing to just that one.
       updateColumn: (attrs) =>
         ((props) => {
           const { tr, state, dispatch } = props;

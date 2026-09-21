@@ -31,7 +31,7 @@ const withCaret = () => {
 /** What a tap on a Columns block leaves: the wrapper itself node-selected,
  *  with no caret anywhere inside it. */
 const withColumnsSelected = () => {
-  const editor = makeEditor(doc, { touch: true });
+  const editor = makeEditor(doc);
   editor.view.dispatch(editor.state.tr.setSelection(NodeSelection.create(editor.state.doc, columnsPos)));
   expect(editor.isActive('column')).toBe(false);
   return editor;

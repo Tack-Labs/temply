@@ -16,9 +16,9 @@ export type CatalogueGroup = {
  * An inline image is an unselectable inline atom whose own click handler sets
  * a TextSelection, so a tap raises the keyboard and the text bar instead of
  * the block bar — its width, alt, link and source controls are unreachable by
- * thumb. A link card has no entry in MENU_CONTENT, so the action bar offers no
- * Style at all; its seven fields live in a node-view popover laid out for a
- * mouse. Offering either from `+` would be a dead end; the slash menu keeps
+ * thumb. A link card has no Style controls of its own for a phone sheet to
+ * show; its seven fields live in a node-view popover laid out for a mouse.
+ * Offering either from `+` would be a dead end; the slash menu keeps
  * them, and a card that arrived from a desktop can still be moved and deleted.
  * The set is explicit because `blockCatalogue()`'s "rest" fallback re-adds
  * anything the group titles do not name.

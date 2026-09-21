@@ -5,11 +5,7 @@ import { extensions } from '../extensions';
 
 // Builds a real tiptap editor against the app's extension set, with no React
 // tree — for unit tests that exercise ProseMirror-level commands directly.
-// `opts.touch` is accepted but does nothing: the editor core no longer has a
-// touch mode, and dropping the option here would mean editing every case
-// across the suite that still passes it for a document shape unrelated to
-// touch at all.
-export function makeEditor(content: JSONContent, opts: { touch?: boolean } = {}): Editor {
+export function makeEditor(content: JSONContent): Editor {
   const element = document.createElement('div');
   document.body.appendChild(element);
   const editor = new Editor({

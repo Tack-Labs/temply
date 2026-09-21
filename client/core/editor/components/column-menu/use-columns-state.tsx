@@ -13,10 +13,11 @@ export const useColumnsState = (editor: Editor) => {
       return {
         isSectionActive: ctx.editor.isActive('section'),
         isColumnActive: ctx.editor.isActive('column'),
-        // The count and the widths belong to the wrapper, and touch selects
-        // the wrapper with no caret in any column — so `isColumnActive` is
-        // false there and would hide the two settings a Columns block exists
-        // for. Indices run from the first column either way.
+        // The count and the widths belong to the wrapper, and a
+        // NodeSelection of the wrapper carries no caret in any column — so
+        // `isColumnActive` is false there and would hide the two settings a
+        // Columns block exists for. Indices run from the first column
+        // either way.
         isColumnsSelected: isColumnsSelected(ctx.editor),
 
         currentVerticalAlignment:

@@ -121,11 +121,11 @@ trace, reproduce the failure locally: outside CI a retry records one, and
   Three of these are a product finding standing in for a role, and retiring
   the finding retires the hook: the pill, the preview copies and the Spacer
   would each be reachable by role or attribute if the node view set one.
-  `.ProseMirror`, `.tippy-box` and `[inert]` are not findings — they are the
-  contract of a contenteditable, of the popup library, and of a tool
-  limitation respectively. The block panel and the bubble menus were on this
-  list too, and are not any more: the panel is a named listbox whose rows are
-  options, and every bubble menu is a named toolbar.
+  `.ProseMirror` and `.tippy-box` are not findings — they are the contract of
+  a contenteditable and of the popup library respectively. The block panel
+  and the bubble menus were on this list too, and are not any more: the
+  panel is a named listbox whose rows are options, and every bubble menu is
+  a named toolbar.
 - No `waitForTimeout`. Wait for a state with an assertion.
 - Every test stands alone: it seeds through `api`, names data with `name()`,
   and the fixture deletes what it made.

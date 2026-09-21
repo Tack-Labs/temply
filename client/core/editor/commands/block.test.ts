@@ -102,7 +102,7 @@ describe('a selected inline atom', () => {
     // run in front of it — rewriting the paragraph to "⟦name⟧|Hi  there" with
     // the two runs merged. `isInlineAtomSelected` is the flag a caller checks
     // before offering move or duplicate for a pill.
-    const editor = makeEditor(pillDoc, { touch: true });
+    const editor = makeEditor(pillDoc);
     selectBlockAt(editor, pillPos);
     expect(runs(editor)).toBe('Hi |⟦name⟧| there');
     expect(selectedBlock(editor)!.node.type.name).toBe('variable');
@@ -111,7 +111,7 @@ describe('a selected inline atom', () => {
   });
 
   it('is not what a selected block reports', () => {
-    const editor = makeEditor(doc, { touch: true });
+    const editor = makeEditor(doc);
     selectBlockAt(editor, 0);
     expect(isInlineAtomSelected(editor)).toBe(false);
     editor.commands.setTextSelection(2);
@@ -120,7 +120,7 @@ describe('a selected inline atom', () => {
   });
 
   it('refuses to move — its siblings are text runs, not blocks, and swapping would rewrite the paragraph', () => {
-    const editor = makeEditor(pillDoc, { touch: true });
+    const editor = makeEditor(pillDoc);
     selectBlockAt(editor, pillPos);
     const before = runs(editor);
     expect(moveBlock(editor, 'up')).toBe(false);
@@ -133,7 +133,7 @@ describe('a selected inline atom', () => {
   });
 
   it('deletes to a caret between the words it stood among', () => {
-    const editor = makeEditor(pillDoc, { touch: true });
+    const editor = makeEditor(pillDoc);
     selectBlockAt(editor, pillPos);
     expect(deleteBlock(editor)).toBe(true);
     expect(runs(editor)).toBe('Hi  there');
@@ -146,7 +146,6 @@ describe('a selected inline atom', () => {
   it('deletes to its own paragraph when it started one, not to the top of the email', () => {
     const editor = makeEditor(
       { type: 'doc', content: [para('first'), { type: 'paragraph', content: [pill('name'), { type: 'text', text: ' there' }] }] },
-      { touch: true },
     );
     selectBlockAt(editor, 8);
     expect(deleteBlock(editor)).toBe(true);
@@ -167,7 +166,7 @@ describe('enclosingNodes around a repeat', () => {
   };
 
   it('finds the repeat around a selected block inside it', () => {
-    const editor = makeEditor(inRepeat, { touch: true });
+    const editor = makeEditor(inRepeat);
     // The paragraph inside the repeat: doc(0) > para "before" (0..8) > repeat opens at 8, its paragraph at 9.
     selectBlockAt(editor, 9);
     expect(selectedBlock(editor)!.node.textContent).toBe('inside');
@@ -178,7 +177,7 @@ describe('enclosingNodes around a repeat', () => {
   });
 
   it('is empty for a block with no such wrapper, and for the wrapper itself', () => {
-    const editor = makeEditor(inRepeat, { touch: true });
+    const editor = makeEditor(inRepeat);
     selectBlockAt(editor, 0);
     expect(enclosingNodes(editor, ['repeat'])).toEqual([]);
     // The repeat selected as a node is not inside a repeat.
@@ -195,7 +194,6 @@ describe('enclosingNodes', () => {
   it('lists the wrappers around the selected block from the outside in', () => {
     const editor = makeEditor(
       { type: 'doc', content: [wrap('section', [wrap('columns', [wrap('column', [para('left')]), wrap('column', [para('right')])])])] },
-      { touch: true },
     );
     selectBlockAt(editor, 3); // "left": section opens at 0, columns at 1, column at 2, paragraph at 3
     expect(selectedBlock(editor)!.node.textContent).toBe('left');
@@ -204,7 +202,7 @@ describe('enclosingNodes', () => {
   });
 
   it('is empty for a top-level block', () => {
-    const editor = makeEditor({ type: 'doc', content: [para('a')] }, { touch: true });
+    const editor = makeEditor({ type: 'doc', content: [para('a')] });
     selectBlockAt(editor, 0);
     expect(enclosingNodes(editor, ['repeat', 'section', 'columns'])).toEqual([]);
     editor.destroy();
