@@ -43,6 +43,7 @@ import { cn } from '~/lib/classname';
 import { useVisualViewport } from '~/hooks/use-visual-viewport';
 import { SaveStatus } from '../email-editor-sandbox';
 import { bottomBarState, EditorBottomBar, type BottomBarState, type IdleTab } from './bottom-bar';
+import { DesktopOnlyBanner } from './desktop-only-banner';
 import { MobileSheets, type SheetId } from './mobile-sheets';
 import { ShellFrameContext } from './shell-context';
 import { StylePanel } from './style-panel';
@@ -139,16 +140,15 @@ export function MobileEditorLayout({
     // Focus is what turns `state` back to 'text' — bottomBarState reads
     // editor.isFocused, and the field surface's own input held DOM focus
     // until this closed it. Only for the text-bar path: a Style sheet being
-    // resumed instead makes the editor non-editable on purpose (see the
-    // setEditable effect below), and focusing a non-editable view is a bug
-    // there, not a fix. `editor.commands.focus()` defers its real work to a
-    // rAF itself (tiptap's own focus command), which is what lets it win —
-    // it lands after React has committed the field face as inert and the
-    // input inside it has already given up focus, rather than racing it.
-    // The flag has to go back by hand first: the effect below is a render
-    // late, and tiptap's focus command reaches for the DOM inside this same
-    // tap (iOS raises the keyboard only for a focus made there), which a
-    // still-read-only view would swallow.
+    // resumed instead leaves the editor read-only, and focusing a
+    // non-editable view is a bug there, not a fix. `editor.commands.focus()`
+    // defers its real work to a rAF itself (tiptap's own focus command),
+    // which is what lets it win — it lands after React has committed the
+    // field face as inert and the input inside it has already given up
+    // focus, rather than racing it. The flag has to go back by hand first:
+    // tiptap's focus command reaches for the DOM inside this same tap (iOS
+    // raises the keyboard only for a focus made there), which a still-
+    // read-only view would swallow.
     if (resume?.editing) {
       setEditable(editor, true);
       editor?.commands.focus();
@@ -169,6 +169,7 @@ export function MobileEditorLayout({
   const selectionState = useEditorState({ editor, selector: ({ editor }) => bottomBarState(editor, panelOpen) }) ?? 'idle';
   const state: BottomBarState = dock ? 'field' : selectionState;
   const canUndo = useEditorState({ editor, selector: ({ editor }) => editor?.can().undo() ?? false }) ?? false;
+  const isEmpty = useEditorState({ editor, selector: ({ editor }) => editor?.isEmpty ?? true }) ?? true;
 
   // Aa takes the keyboard's place: opening it blurs the editor so the
   // keyboard drops, closing it gives focus back. The SelectionExtension
@@ -253,26 +254,6 @@ export function MobileEditorLayout({
   useEffect(() => {
     if (model.publishArmed || model.sendArmed) setSheet('checks');
   }, [model.publishArmed, model.sendArmed]);
-
-  // Read-only under a sheet. Every menu control the Style sheet reuses ends
-  // its command with focus(), which the desktop needs to keep its caret and
-  // which here would raise the keyboard under the sheet; ProseMirror only
-  // gives DOM focus to an editable view, so the flag is what stops it. The
-  // commands themselves still dispatch.
-  // The field surface counts as a cover too, for a different reason: its
-  // onCommit was built against the selection at open time but applies against
-  // the selection at commit time, so a tap on the canvas underneath — which
-  // moves the caret, or clears the selection outright on the page margin —
-  // landed the link on the wrong text.
-  useEffect(() => {
-    const readOnly = !!(sheet || styleOpen || dock);
-    setEditable(editor, !readOnly);
-    // Read-only belongs to this effect for as long as it runs, and no longer:
-    // whatever raised the flag can go away without lowering it, and an editor
-    // left read-only answers no taps and raises no keyboard, with nothing on
-    // screen that could put it right.
-    return () => setEditable(editor, true);
-  }, [editor, sheet, styleOpen, dock]);
 
   // The eye sheet is the only thing that puts the model into a rendered mode,
   // and the canvas is `hidden` while the mode is not 'edit' — so the canvas
@@ -499,6 +480,8 @@ export function MobileEditorLayout({
         )}
       </header>
 
+      <DesktopOnlyBanner playground={!model.template} />
+
       {/* A failed save asks for something, so it is `danger` and it is on the
           screen rather than behind a tap: the ⋯ menu that holds the status is
           closed, and while text is being edited that button is replaced by
@@ -545,8 +528,16 @@ export function MobileEditorLayout({
             onPickImage={imageUploads ? model.pickFromLibrary : undefined}
             isLibraryImage={isLibraryUrl}
             setEditor={model.setEditor}
-            touch
+            editable={false}
           />
+          {/* With the placeholder gone — tiptap hides it when the editor is
+              not editable — an empty document would be a blank rectangle
+              that reads as broken. */}
+          {isEmpty ? (
+            <p className="px-4 py-10 text-center text-sm text-muted">
+              Nothing in this email yet. Open it on a desktop to add blocks.
+            </p>
+          ) : null}
         </div>
         {/* Room to scroll the last block clear of whatever opens over it — a
             half sheet's worth. It is an element and not padding on the

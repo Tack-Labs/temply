@@ -83,7 +83,11 @@ export function EditorBottomBar({
         // The faces and the FAB all stay mounted and swap by opacity, so
         // without this the invisible ones keep their place in the tab order
         // and their buttons answer the keyboard. `inert` takes them out of
-        // focus and out of the accessibility tree in one prop.
+        // focus and out of a real browser's accessibility tree; `aria-hidden`
+        // rides beside it because Playwright's role locators — used by name
+        // alone, with nothing to scope them to the visible face — go by the
+        // DOM's own `aria-hidden`/`display: none`, not by `inert`.
+        aria-hidden={state === 'text' || state === 'field'}
         inert={state === 'text' || state === 'field'}
       >
         <Button
@@ -109,6 +113,7 @@ export function EditorBottomBar({
           <nav
             aria-label="Editor sections"
             className={cn('flex items-stretch justify-around transition-opacity duration-base ease-out motion-reduce:transition-none', state === 'idle' ? 'opacity-100' : 'pointer-events-none opacity-0')}
+            aria-hidden={state !== 'idle'}
             inert={state !== 'idle'}
           >
             <span className="flex min-w-16 flex-col items-center justify-center gap-0.5 text-2xs font-medium text-accent-ink">
@@ -140,6 +145,7 @@ export function EditorBottomBar({
           {/* block */}
           <div
             className={cn('transition-opacity duration-base ease-out motion-reduce:transition-none', state === 'block' ? 'opacity-100' : 'pointer-events-none opacity-0')}
+            aria-hidden={state !== 'block'}
             inert={state !== 'block'}
           >
             {editor ? <BlockActionBar editor={editor} styleOpen={styleOpen} onStyle={onStyle} /> : null}
@@ -147,6 +153,7 @@ export function EditorBottomBar({
           {/* text */}
           <div
             className={cn('transition-opacity duration-base ease-out motion-reduce:transition-none', state === 'text' ? 'opacity-100' : 'pointer-events-none opacity-0')}
+            aria-hidden={state !== 'text'}
             inert={state !== 'text'}
           >
             {editor ? <TextFormatBar editor={editor} panelOpen={panelOpen} onTogglePanel={onTogglePanel} /> : null}
@@ -168,6 +175,7 @@ export function EditorBottomBar({
               'grid transition-[grid-template-rows,opacity] duration-base motion-reduce:transition-none',
               state === 'field' ? 'grid-rows-[1fr] opacity-100 ease-out' : 'pointer-events-none grid-rows-[0fr] opacity-0 ease-in',
             )}
+            aria-hidden={state !== 'field'}
             inert={state !== 'field'}
           >
             <div className="overflow-hidden">

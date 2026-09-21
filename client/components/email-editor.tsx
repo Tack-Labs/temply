@@ -19,6 +19,9 @@ type EmailEditorProps = {
   allowedMimeTypes?: string[];
   onPickImage?: () => Promise<string | null>;
   isLibraryImage?: (src: string) => boolean;
+  /** False mounts the canvas read-only: the phone shows a template rather
+   *  than editing one. */
+  editable?: boolean;
   touch?: boolean;
 };
 
@@ -31,6 +34,7 @@ export function EmailEditor(props: EmailEditorProps) {
     allowedMimeTypes,
     onPickImage,
     isLibraryImage,
+    editable = true,
     touch,
   } = props;
 
@@ -47,6 +51,7 @@ export function EmailEditor(props: EmailEditorProps) {
           onPickImage={onPickImage}
           isLibraryImage={isLibraryImage}
           touch={touch}
+          editable={editable}
           config={{
             hasMenuBar: false,
             wrapClassName: cn('editor-wrap', isLoading && 'hidden'),

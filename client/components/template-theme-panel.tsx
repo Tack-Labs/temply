@@ -183,14 +183,17 @@ export function TemplateThemePanel({
             {showAdvanced ? 'Hide advanced' : 'Advanced'}
           </button>
           {/* The 0fr→1fr grid row is the one way to animate to a height the
-              content decides; `overflow-hidden` clips the panel while it grows. */}
+              content decides; `overflow-hidden` clips the panel while it grows.
+              Collapsed to zero height is still on screen, so the fields inside
+              need `inert` too — otherwise a screen reader, or a role query
+              like Playwright's, reaches a "Background" swatch nobody can see. */}
           <div
             className={cn(
               'grid transition-[grid-template-rows] duration-base ease-out motion-reduce:transition-none',
               showAdvanced ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'
             )}
           >
-            <div className="overflow-hidden">
+            <div className="overflow-hidden" aria-hidden={!showAdvanced} inert={!showAdvanced}>
               <div className="mt-3">
                 <RawThemeFields theme={theme} onChange={handleEdit} touch={touch} />
               </div>

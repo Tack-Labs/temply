@@ -1,5 +1,6 @@
 import type { Page } from '@playwright/test';
 import { test, expect } from '../fixtures/test';
+import { onPhone } from '../fixtures/editor';
 import { PNG_1x1 } from '../fixtures/api';
 
 const fileName = (what: string) => `${what}.png`;
@@ -43,6 +44,9 @@ test.describe('assets', () => {
   });
 
   test('a library image goes into a template', async ({ page, api, name }) => {
+    // The library picker is a canvas node-view control, and the phone
+    // canvas reads the email rather than editing it — see editor-phone.e2e.ts.
+    test.skip(onPhone(), 'the phone canvas is read-only: nothing in it offers the library');
     const { name: file } = await api.uploadAsset(fileName(name('insert')));
     // An image with no source is the block that offers the library; its alt
     // is what the placed image answers to afterwards.
