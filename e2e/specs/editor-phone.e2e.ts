@@ -4,6 +4,26 @@ import { phone } from '../fixtures/phone';
 const paragraph = (text: string) => ({ type: 'paragraph', content: [{ type: 'text', text }] });
 const TWO_PARAGRAPHS = JSON.stringify({ type: 'doc', content: [paragraph('Hello from e2e'), paragraph('A second paragraph')] });
 const EMPTY = JSON.stringify({ type: 'doc', content: [{ type: 'paragraph' }] });
+// A link card is a Popover the node view opens on itself, keyed off
+// `props.selected` rather than the bar's tap model — the one place a tap on
+// a read-only canvas could still open an editable surface if the node view
+// forgot to check `editor.isEditable`.
+const LINK_CARD_DOC = JSON.stringify({
+  type: 'doc',
+  content: [{
+    type: 'linkCard',
+    attrs: {
+      mailyComponent: 'linkCard',
+      title: 'A link card from e2e',
+      description: 'Read-only on the phone',
+      link: 'https://example.com',
+      linkTitle: '',
+      image: '',
+      subTitle: '',
+      badgeText: '',
+    },
+  }],
+});
 
 /** A tap where a finger would land: inside the block's text, clear of any control. */
 async function tapBlock(page: import('@playwright/test').Page, block: import('@playwright/test').Locator) {
@@ -38,6 +58,17 @@ test.describe('editor on the phone', () => {
     await page.keyboard.type('nothing');
     await expect(page.locator('.ProseMirror')).toContainText('Hello from e2e');
     await expect(page.locator('.ProseMirror')).not.toContainText('nothing');
+    expect((await api.getTemplate(t.id)).content, 'the document is what it was').toBe(before);
+  });
+
+  test('a link card opens no settings on a tap', async ({ page, api, name }) => {
+    const t = await api.createTemplate({ title: name('link-card'), content: LINK_CARD_DOC });
+    const before = (await api.getTemplate(t.id)).content;
+    await page.goto(`/templates/${t.id}`);
+    await phone.ready(page);
+
+    await tapBlock(page, page.getByText('A link card from e2e'));
+    await expect(page.getByRole('dialog', { name: 'Link Card' })).toHaveCount(0);
     expect((await api.getTemplate(t.id)).content, 'the document is what it was').toBe(before);
   });
 
