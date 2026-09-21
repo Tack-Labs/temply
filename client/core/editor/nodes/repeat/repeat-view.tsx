@@ -3,6 +3,7 @@ import { DOMSerializer } from '@tiptap/pm/model';
 import { Repeat2 } from 'lucide-react';
 import { useLayoutEffect, useMemo, useRef, type MouseEvent as ReactMouseEvent } from 'react';
 import { countFromDecorations } from '@/editor/extensions/repeat-preview';
+import { cn } from '@/editor/utils/classname';
 
 export function RepeatView(props: NodeViewProps) {
   const { editor, getPos, node, decorations } = props;
@@ -49,33 +50,56 @@ export function RepeatView(props: NodeViewProps) {
 
       {/* The strip in the margin says "this is a repeat" — the box itself
           looks like whatever is inside it — and carries the preview count.
-          It is also the target that selects the wrapper for the bubble
-          menu, and fades until the block has focus. */}
+          On an editable canvas it is also the target that selects the
+          wrapper for the bubble menu, and fades until the block has focus.
+          On the read-only phone selecting a wrapper reaches nothing — there
+          is no bubble menu to raise — so it drops role, tabindex and every
+          handler rather than offer a screen reader or a keyboard a button
+          that leads nowhere. */}
+      {/* biome-ignore lint/a11y/noStaticElementInteractions: role and every handler below are conditional on editor.isEditable — inert on the read-only phone */}
+      {/* biome-ignore lint/a11y/useAriaPropsSupportedByRole: aria-label is conditional along with role="button" */}
       <div
-        role="button"
+        role={editor.isEditable ? 'button' : undefined}
         // With one preview row the strip is an icon and a rule, so the count
         // it usually carries was the whole of its name — and at ×1 it had
         // none at all. The name says what pressing it does either way, and
         // keeps the count where a reader was already finding it.
-        aria-label={count > 1 ? `Select this Repeat, ${count} rows` : 'Select this Repeat'}
+        aria-label={
+          editor.isEditable
+            ? count > 1
+              ? `Select this Repeat, ${count} rows`
+              : 'Select this Repeat'
+            : undefined
+        }
         data-repeat-indicator=""
-        className="mly:absolute mly:inset-y-0 mly:right-0 mly:flex mly:translate-x-full mly:cursor-pointer mly:flex-col mly:items-center mly:gap-1 mly:opacity-60"
+        className={cn(
+          'mly:absolute mly:inset-y-0 mly:right-0 mly:flex mly:translate-x-full mly:flex-col mly:items-center mly:gap-1 mly:opacity-60',
+          editor.isEditable && 'mly:cursor-pointer',
+        )}
         contentEditable={false}
         // Reachable by Tab, and a press selects the Repeat the way a click
         // does. The mousedown is swallowed so a click does not move the
         // focus here: the menu that selection raises follows the editor's
         // focus, and a strip that took it would have nothing to show for
         // the click. A press hands the focus back for the same reason.
-        tabIndex={0}
-        onMouseDown={(event) => event.preventDefault()}
-        onClick={() => {
-          editor.commands.setNodeSelection(getPos());
-        }}
-        onKeyDown={(event) => {
-          if (event.key !== 'Enter' && event.key !== ' ') return;
-          event.preventDefault();
-          editor.chain().setNodeSelection(getPos()).focus().run();
-        }}
+        tabIndex={editor.isEditable ? 0 : undefined}
+        onMouseDown={editor.isEditable ? (event) => event.preventDefault() : undefined}
+        onClick={
+          editor.isEditable
+            ? () => {
+                editor.commands.setNodeSelection(getPos());
+              }
+            : undefined
+        }
+        onKeyDown={
+          editor.isEditable
+            ? (event) => {
+                if (event.key !== 'Enter' && event.key !== ' ') return;
+                event.preventDefault();
+                editor.chain().setNodeSelection(getPos()).focus().run();
+              }
+            : undefined
+        }
       >
         {mark}
       </div>

@@ -11,7 +11,7 @@ import { getNodeOptions } from '@/editor/utils/node-options';
 import { NodeViewProps } from '@tiptap/core';
 import { NodeViewWrapper } from '@tiptap/react';
 import { AlertTriangle, Braces, Pencil } from 'lucide-react';
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import {
   DEFAULT_RENDER_VARIABLE_FUNCTION,
   VariableOptions,
@@ -36,14 +36,26 @@ export function VariableView(props: NodeViewProps) {
     return variableRender;
   }, [editor]);
 
+  // Radix's PopoverTrigger wraps the pill in a real <button>, and the
+  // read-only phone still renders this node — so the open state is
+  // controlled here rather than left to Radix, the way button-view.tsx
+  // keeps its settings popover shut on a canvas that cannot use it. Without
+  // this a tap opens the id/placeholder inputs, and typing into either one
+  // is a transaction that flips a published template to "Unpublished
+  // changes" for a document nothing actually changed.
+  const [open, setOpen] = useState(false);
+
   return (
     <NodeViewWrapper
       className="react-component mly:inline-block mly:leading-none"
       draggable="false"
     >
       <Popover
-        onOpenChange={(open) => {
-          editor.storage.variable.popover = open;
+        open={open && editor.isEditable}
+        onOpenChange={(next) => {
+          const nextOpen = next && editor.isEditable;
+          setOpen(nextOpen);
+          editor.storage.variable.popover = nextOpen;
         }}
       >
         <PopoverTrigger>

@@ -5,7 +5,7 @@ import { useMemo } from 'react';
 import { HtmlCodeBlockAttributes } from './html';
 
 export function HTMLCodeBlockView(props: NodeViewProps) {
-  const { node, updateAttributes } = props;
+  const { node, updateAttributes, editor } = props;
 
   let { language, activeTab = 'code' } = node.attrs as HtmlCodeBlockAttributes;
   activeTab ||= 'code';
@@ -83,7 +83,11 @@ export function HTMLCodeBlockView(props: NodeViewProps) {
           }}
           contentEditable={false}
           onClick={() => {
-            if (!isEmpty) {
+            // An empty block left on Preview from a desktop session still
+            // renders this tab on the read-only phone; a tap must not switch
+            // it back to Code there, since that's a transaction on a
+            // document nothing actually changed.
+            if (!editor.isEditable || !isEmpty) {
               return;
             }
 

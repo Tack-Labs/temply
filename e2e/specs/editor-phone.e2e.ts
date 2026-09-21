@@ -24,6 +24,37 @@ const LINK_CARD_DOC = JSON.stringify({
     },
   }],
 });
+// Same hole, on the most common node in a template: Radix's PopoverTrigger
+// wraps the pill in a real <button>, so the settings popover has to be kept
+// shut by hand rather than by nothing existing to open.
+const VARIABLE_DOC = JSON.stringify({
+  type: 'doc',
+  content: [{
+    type: 'paragraph',
+    content: [{
+      type: 'variable',
+      attrs: { id: 'first_name', label: null, fallback: 'Alex', required: true, hideDefaultValue: false },
+    }],
+  }],
+});
+// An empty Custom HTML block left on the Preview tab from a desktop session:
+// the tab's own click handler, not a Popover, is what had no `isEditable` guard.
+const HTML_PREVIEW_DOC = JSON.stringify({
+  type: 'doc',
+  content: [{
+    type: 'htmlCodeBlock',
+    attrs: { activeTab: 'preview', language: 'html' },
+    content: [],
+  }],
+});
+const REPEAT_DOC = JSON.stringify({
+  type: 'doc',
+  content: [{
+    type: 'repeat',
+    attrs: { each: 'items' },
+    content: [{ type: 'paragraph', content: [{ type: 'text', text: 'Repeated row' }] }],
+  }],
+});
 
 /** A tap where a finger would land: inside the block's text, clear of any control. */
 async function tapBlock(page: import('@playwright/test').Page, block: import('@playwright/test').Locator) {
@@ -70,6 +101,43 @@ test.describe('editor on the phone', () => {
     await tapBlock(page, page.getByText('A link card from e2e'));
     await expect(page.getByRole('dialog', { name: 'Link Card' })).toHaveCount(0);
     expect((await api.getTemplate(t.id)).content, 'the document is what it was').toBe(before);
+  });
+
+  test('a variable pill opens no settings on a tap', async ({ page, api, name }) => {
+    const t = await api.createTemplate({ title: name('variable'), content: VARIABLE_DOC });
+    const before = (await api.getTemplate(t.id)).content;
+    await page.goto(`/templates/${t.id}`);
+    await phone.ready(page);
+
+    await tapBlock(page, page.getByText('first_name'));
+    await expect(page.getByRole('dialog', { name: 'Variable' })).toHaveCount(0);
+    expect((await api.getTemplate(t.id)).content, 'the document is what it was').toBe(before);
+  });
+
+  test('an empty Custom HTML preview does not flip tabs on a tap', async ({ page, api, name }) => {
+    const t = await api.createTemplate({ title: name('html'), content: HTML_PREVIEW_DOC });
+    const before = (await api.getTemplate(t.id)).content;
+    await page.goto(`/templates/${t.id}`);
+    await phone.ready(page);
+
+    const block = page.locator('[data-type="htmlCodeBlock"]');
+    await tapBlock(page, block);
+    // Flipping to Code swaps the shadow-rooted preview div for a `<pre>`;
+    // its absence is what the tap failing to fire looks like from outside.
+    await expect(block.locator('pre')).toHaveCount(0);
+    expect((await api.getTemplate(t.id)).content, 'the document is what it was').toBe(before);
+  });
+
+  test('the repeat strip is not a button on a read-only canvas', async ({ page, api, name }) => {
+    const t = await api.createTemplate({ title: name('repeat'), content: REPEAT_DOC });
+    await page.goto(`/templates/${t.id}`);
+    await phone.ready(page);
+
+    // The strip's preview draws a second, static copy of the row beside the
+    // live one, so the text is expected twice — `.first()` reaches the live
+    // row without the case asserting anything about the copy.
+    await expect(page.getByText('Repeated row').first()).toBeVisible();
+    await expect(page.getByRole('button', { name: /Select this Repeat/ })).toHaveCount(0);
   });
 
   test('an empty email says so', async ({ page, api, name }) => {

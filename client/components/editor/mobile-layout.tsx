@@ -70,7 +70,11 @@ export function MobileEditorLayout({
   const [frameEl, setFrameEl] = useState<HTMLElement | null>(null);
   const [sheet, setSheet] = useState<SheetId>(null);
 
-  const isEmpty = useEditorState({ editor, selector: ({ editor }) => editor?.isEmpty ?? true }) ?? true;
+  // False, not true, while `editor` is still null: the lazy chunk that
+  // creates it is still loading, and its own "Loading the editor…" already
+  // says so — defaulting to empty would show both messages at once for
+  // every template until the editor exists to say otherwise.
+  const isEmpty = useEditorState({ editor, selector: ({ editor }) => editor?.isEmpty ?? false }) ?? false;
 
   // Arming is the whole explanation on desktop, where it expands the
   // preflight panel beside the button. Nothing on the phone reads
@@ -305,12 +309,21 @@ export function MobileEditorLayout({
           />
           {/* With the placeholder gone — tiptap hides it when the editor is
               not editable — an empty document would be a blank rectangle
-              that reads as broken. */}
-          {isEmpty ? (
-            <p className="px-4 py-10 text-center text-sm text-muted">
-              Nothing in this email yet. Open it on a desktop to add blocks.
-            </p>
-          ) : null}
+              that reads as broken. Always mounted and grid-rows'd rather
+              than conditionally rendered, so the message rises in rather
+              than appearing the instant the lazy editor reports empty. */}
+          <div
+            className={cn(
+              'grid transition-[grid-template-rows,opacity] duration-base ease-out motion-reduce:transition-none',
+              isEmpty ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0',
+            )}
+          >
+            <div className="overflow-hidden" aria-hidden={!isEmpty} inert={!isEmpty}>
+              <p className="px-4 py-10 text-center text-sm text-muted">
+                Nothing in this email yet. Open it on a desktop to add blocks.
+              </p>
+            </div>
+          </div>
         </div>
       </div>
 

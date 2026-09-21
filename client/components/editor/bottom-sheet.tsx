@@ -21,7 +21,6 @@ export function BottomSheet({
   title,
   showTitle = true,
   height = 'half',
-  returnFocus = true,
   children,
 }: {
   open: boolean;
@@ -29,10 +28,6 @@ export function BottomSheet({
   title: string;
   showTitle?: boolean;
   height?: 'half' | 'full';
-  /** False while the sheet is closing to hand the keyboard to the shell's
-   *  input dock: Radix would otherwise put focus back on the trigger and
-   *  drop the keyboard the dock just raised. */
-  returnFocus?: boolean;
   children: React.ReactNode;
 }) {
   // Rendered inside the shell's frame, not on the page: the frame is sized
@@ -57,9 +52,6 @@ export function BottomSheet({
           onOpenAutoFocus={(event) => {
             event.preventDefault();
             (event.currentTarget as HTMLElement).focus();
-          }}
-          onCloseAutoFocus={(event) => {
-            if (!returnFocus) event.preventDefault();
           }}
           className={cn(
             'sheet-up inset-x-0 bottom-0 z-50 flex flex-col rounded-t-xl border-t border-line bg-raised shadow-xl outline-none',
