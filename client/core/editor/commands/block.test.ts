@@ -1,17 +1,10 @@
 import { describe, expect, it } from 'bun:test';
 import { TextSelection } from '@tiptap/pm/state';
 import '../test/dom';
-import { caretFitsAfterLastBlock, makeEditor } from '../test/make-editor';
-import { blockCommands, canDeleteBlock, clearBlockSelection, deleteBlock, duplicateBlock, enclosingNodes, isInlineAtomSelected, moveBlock, selectBlockAt, selectedBlock } from './block';
+import { makeEditor } from '../test/make-editor';
+import { blockCommands, clearBlockSelection, deleteBlock, duplicateBlock, enclosingNodes, isInlineAtomSelected, moveBlock, selectBlockAt, selectedBlock } from './block';
 
 const para = (text: string) => ({ type: 'paragraph', content: [{ type: 'text', text }] });
-/** The empty paragraph the editor keeps at the end of a document that ends in
- *  a list or a blockquote — the only shapes ProseMirror will place no caret
- *  after. It is made on the first transaction and outlives the wrapper that
- *  called for it, so it is named where it shows up rather than filtered out of
- *  sight of these assertions. Everywhere else the caret already fits, and the
- *  cases assert that with `caretFitsAfterLastBlock` instead. */
-const TRAILING_LINE = 'paragraph';
 const doc = { type: 'doc', content: [para('one'), para('two'), para('three')] };
 const texts = (editor: ReturnType<typeof makeEditor>) => editor.getJSON().content!.map((n) => n.content?.[0]?.text ?? '');
 const pill = (id: string) => ({ type: 'variable', attrs: { id } });
@@ -74,8 +67,8 @@ describe('block commands', () => {
 
   it('deleting a block whose neighbours are not blocks leaves a caret, not a node selection', () => {
     // What sits behind a deleted node is only a candidate if it is a block:
-    // behind a pill is the text run in front of it, which the action bar has
-    // no subject for.
+    // behind a pill is the text run in front of it, which a node selection
+    // would give as a text run rather than a block.
     const editor = makeEditor({ type: 'doc', content: [{ type: 'paragraph', content: [{ type: 'text', text: 'Hi ' }, pill('name')] }] });
     selectBlockAt(editor, 4);
     expect(deleteBlock(editor)).toBe(true);
@@ -104,11 +97,11 @@ describe('a selected inline atom', () => {
   };
   const pillPos = 4; // "Hi " is three characters, so the pill starts here
 
-  it('is told apart from a block, so the bar can leave move and duplicate out', () => {
+  it('is told apart from a block, so move and duplicate can be left out for it', () => {
     // Move up on a pill swapped it with its *sibling inline node* — the text
     // run in front of it — rewriting the paragraph to "⟦name⟧|Hi  there" with
-    // the two runs merged. The bar never offers the button now, and this is
-    // the flag it decides that from.
+    // the two runs merged. `isInlineAtomSelected` is the flag a caller checks
+    // before offering move or duplicate for a pill.
     const editor = makeEditor(pillDoc, { touch: true });
     selectBlockAt(editor, pillPos);
     expect(runs(editor)).toBe('Hi |⟦name⟧| there');
@@ -196,53 +189,6 @@ describe('enclosingNodes around a repeat', () => {
   });
 });
 
-describe('deleteBlock inside a wrapper', () => {
-  const wrap = (type: string, children: unknown[]) => ({ type, content: children });
-  const topLevel = (editor: ReturnType<typeof makeEditor>) => editor.state.doc.content.content.map((n) => n.type.name);
-
-  it('takes the repeat with it when the block was its only one', () => {
-    const editor = makeEditor({ type: 'doc', content: [para('a'), wrap('repeat', [{ type: 'paragraph' }]), para('b')] }, { touch: true });
-    selectBlockAt(editor, 4); // the sole paragraph inside the repeat
-    expect(deleteBlock(editor)).toBe(true);
-    expect(topLevel(editor)).toEqual(['paragraph', 'paragraph']);
-    expect(selectedBlock(editor)!.node.textContent).toBe('b');
-    editor.destroy();
-  });
-
-  it('takes only the block when the repeat has another', () => {
-    const editor = makeEditor({ type: 'doc', content: [wrap('repeat', [para('x'), para('y')])] }, { touch: true });
-    selectBlockAt(editor, 1);
-    expect(deleteBlock(editor)).toBe(true);
-    expect(topLevel(editor)).toEqual(['repeat']);
-    expect(caretFitsAfterLastBlock(editor)).toBe(true);
-    expect(editor.state.doc.firstChild!.childCount).toBe(1);
-    expect(editor.state.doc.firstChild!.textContent).toBe('y');
-    editor.destroy();
-  });
-
-  it('takes the section with it the same way', () => {
-    const editor = makeEditor({ type: 'doc', content: [para('a'), wrap('section', [para('x')])] }, { touch: true });
-    selectBlockAt(editor, 4);
-    expect(deleteBlock(editor)).toBe(true);
-    expect(topLevel(editor)).toEqual(['paragraph']);
-    editor.destroy();
-  });
-
-  it('leaves a column standing: its block is emptied, the columns keep their count', () => {
-    const editor = makeEditor(
-      { type: 'doc', content: [wrap('columns', [wrap('column', [para('left')]), wrap('column', [para('right')])])] },
-      { touch: true },
-    );
-    selectBlockAt(editor, 2); // "left"
-    expect(deleteBlock(editor)).toBe(true);
-    expect(topLevel(editor)).toEqual(['columns']);
-    expect(caretFitsAfterLastBlock(editor)).toBe(true);
-    expect(editor.state.doc.firstChild!.childCount).toBe(2);
-    expect(editor.state.doc.firstChild!.firstChild!.textContent).toBe('');
-    editor.destroy();
-  });
-});
-
 describe('enclosingNodes', () => {
   const wrap = (type: string, children: unknown[], attrs?: Record<string, unknown>) => ({ type, content: children, ...(attrs ? { attrs } : {}) });
 
@@ -261,77 +207,6 @@ describe('enclosingNodes', () => {
     const editor = makeEditor({ type: 'doc', content: [para('a')] }, { touch: true });
     selectBlockAt(editor, 0);
     expect(enclosingNodes(editor, ['repeat', 'section', 'columns'])).toEqual([]);
-    editor.destroy();
-  });
-});
-
-describe('deleteBlock inside the other wrappers that need a child', () => {
-  const wrap = (type: string, children: unknown[], attrs?: Record<string, unknown>) => ({ type, content: children, ...(attrs ? { attrs } : {}) });
-  const topLevel = (editor: ReturnType<typeof makeEditor>) => editor.state.doc.content.content.map((n) => n.type.name);
-  const item = (text: string) => wrap('listItem', [para(text)]);
-
-  it('takes a list with its only item', () => {
-    const editor = makeEditor({ type: 'doc', content: [para('a'), wrap('orderedList', [item('one')]), para('b')] }, { touch: true });
-    selectBlockAt(editor, 5); // the paragraph inside the item: list opens at 3, item at 4, paragraph at 5
-    expect(selectedBlock(editor)!.node.textContent).toBe('one');
-    expect(deleteBlock(editor)).toBe(true);
-    expect(topLevel(editor)).toEqual(['paragraph', 'paragraph']);
-    editor.destroy();
-  });
-
-  it('takes only the item when the list has another', () => {
-    const editor = makeEditor({ type: 'doc', content: [wrap('bulletList', [item('one'), item('two')])] }, { touch: true });
-    selectBlockAt(editor, 2);
-    expect(deleteBlock(editor)).toBe(true);
-    expect(topLevel(editor)).toEqual(['bulletList', TRAILING_LINE]);
-    expect(editor.state.doc.firstChild!.childCount).toBe(1);
-    expect(editor.state.doc.firstChild!.textContent).toBe('two');
-    editor.destroy();
-  });
-
-  it('takes a blockquote with its only block', () => {
-    const editor = makeEditor({ type: 'doc', content: [para('a'), wrap('blockquote', [para('quote')])] }, { touch: true });
-    selectBlockAt(editor, 4);
-    expect(deleteBlock(editor)).toBe(true);
-    expect(topLevel(editor)).toEqual(['paragraph', TRAILING_LINE]);
-    editor.destroy();
-  });
-
-  it('takes the columns block when every column is already empty', () => {
-    const editor = makeEditor(
-      { type: 'doc', content: [para('a'), wrap('columns', [wrap('column', [{ type: 'paragraph' }]), wrap('column', [{ type: 'paragraph' }])])] },
-      { touch: true },
-    );
-    selectBlockAt(editor, 5); // the empty paragraph in the first column
-    expect(canDeleteBlock(editor)).toBe(true);
-    expect(deleteBlock(editor)).toBe(true);
-    expect(topLevel(editor)).toEqual(['paragraph']);
-    editor.destroy();
-  });
-
-  it('refuses an empty column cell while another column has content, and the bar knows', () => {
-    const editor = makeEditor(
-      { type: 'doc', content: [wrap('columns', [wrap('column', [{ type: 'paragraph' }]), wrap('column', [para('right')])])] },
-      { touch: true },
-    );
-    selectBlockAt(editor, 2); // the empty paragraph in the first column
-    expect(canDeleteBlock(editor)).toBe(false);
-    expect(blockCommands.remove.isEnabled(editor)).toBe(false);
-    expect(deleteBlock(editor)).toBe(false);
-    expect(editor.state.doc.firstChild!.childCount).toBe(2);
-    editor.destroy();
-  });
-
-  it('empties a column cell that has words, and keeps the columns', () => {
-    const editor = makeEditor(
-      { type: 'doc', content: [wrap('columns', [wrap('column', [para('left')]), wrap('column', [para('right')])])] },
-      { touch: true },
-    );
-    selectBlockAt(editor, 2);
-    expect(canDeleteBlock(editor)).toBe(true);
-    expect(deleteBlock(editor)).toBe(true);
-    expect(editor.state.doc.firstChild!.childCount).toBe(2);
-    expect(editor.state.doc.firstChild!.firstChild!.textContent).toBe('');
     editor.destroy();
   });
 });

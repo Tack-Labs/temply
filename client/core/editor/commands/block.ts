@@ -5,14 +5,15 @@ import { ArrowDownIcon, ArrowUpIcon, CopyIcon, Trash2Icon } from 'lucide-react';
 import type { EditorCommand } from './types';
 
 /**
- * The block the phone's action bar acts on. For a NodeSelection the selected
+ * The block a node-specific bubble menu (Repeat, Button, Variable) or the
+ * Style sheet's wrapper controls act on. For a NodeSelection the selected
  * node is already the answer — and it is the only route a leaf block (a
  * spacer, a divider, a button) ever arrives by, since a cursor cannot sit
  * inside one. Otherwise the walk starts at the deepest resolved depth, which
  * is already the textblock directly holding the cursor's inline content:
- * inside a column or a section the inner block is what the person tapped,
- * never the wrapping column/section/columns/repeat node. The `isLeaf` test in
- * the walk is unreachable today and kept as the correct guard for a future
+ * inside a column or a section the inner block is what was clicked, never
+ * the wrapping column/section/columns/repeat node. The `isLeaf` test in the
+ * walk is unreachable today and kept as the correct guard for a future
  * block-level atom.
  */
 export function selectedBlock(editor: Editor): { node: Node; pos: number; depth: number } | null {
@@ -33,9 +34,8 @@ export function selectedBlock(editor: Editor): { node: Node; pos: number; depth:
  * The nodes of the given types strictly around the selected block — the
  * Section and the Columns a paragraph sits in, say — from the outside in.
  * Empty when there are none, and never including the selected block itself.
- * The phone's tap model never selects a wrapper (see `tapTransaction`), so a
- * wrapper's settings are reached from whichever block inside it was tapped;
- * this is how the Style sheet and the bar find them.
+ * This is how the Style sheet finds a wrapper's settings from a caret in one
+ * of its blocks, without the wrapper itself ever being selected.
  */
 export function enclosingNodes(editor: Editor, typeNames: readonly string[]): Array<{ node: Node; pos: number }> {
   const block = selectedBlock(editor);
@@ -50,13 +50,11 @@ export function enclosingNodes(editor: Editor, typeNames: readonly string[]): Ar
 }
 
 /**
- * Whether the action bar's subject is an inline atom — a variable pill —
- * rather than a block. The tap model selects a pill outright because it has
- * settings of its own, but it lives among words, not among blocks: its
- * siblings are the text runs on either side of it, so Move up, Move down and
- * Duplicate would act on those. The bar leaves those three out for an inline
- * atom rather than disabling them or quietly retargeting them at the
- * paragraph around it.
+ * Whether the selection is an inline atom — a variable pill — rather than a
+ * block. A pill can be node-selected because it has settings of its own, but
+ * it lives among words, not among blocks: its siblings are the text runs on
+ * either side of it, so Move up, Move down and Duplicate would act on those
+ * runs instead of a sibling block.
  */
 export function isInlineAtomSelected(editor: Editor): boolean {
   const { selection } = editor.state;
@@ -74,10 +72,9 @@ export function selectBlockAt(editor: Editor, pos: number): void {
 }
 
 /**
- * Nothing selected: a caret in the first textblock. The action bar has no
- * subject then, so the phone's bottom bar falls back to its tabs. A document
- * with no textblock at all keeps the selection it has — there is nowhere for
- * a caret to go.
+ * Nothing selected: a caret in the first textblock. A document with no
+ * textblock at all keeps the selection it has — there is nowhere for a caret
+ * to go.
  */
 export function clearBlockSelection(editor: Editor): void {
   const caret = Selection.findFrom(editor.state.doc.resolve(0), 1, true);
@@ -88,9 +85,8 @@ export function clearBlockSelection(editor: Editor): void {
 /** Swaps the block with its sibling in the same parent. False at an edge, or
  *  when the selection is an inline atom rather than a block — a pill's
  *  siblings are the text runs on either side of it, and swapping with one of
- *  those merges the paragraph's two text runs into one. Nothing calls this
- *  for a pill today (the bar leaves the buttons out), but the command has to
- *  refuse it directly rather than trust every future caller to check first. */
+ *  those merges the paragraph's two text runs into one. The command refuses
+ *  it directly rather than trust every caller to check first. */
 export function moveBlock(editor: Editor, direction: 'up' | 'down'): boolean {
   if (isInlineAtomSelected(editor)) return false;
   const block = selectedBlock(editor);
@@ -121,77 +117,27 @@ export function duplicateBlock(editor: Editor): boolean {
   return true;
 }
 
-/** Wrappers that go with their last block. Each requires at least one
- *  block, so deleting the only one would leave ProseMirror to put an empty
- *  paragraph back — a Delete that visibly does nothing, and on the phone,
- *  where the wrapper itself is never selected, no way to be rid of it. */
-const GOES_WITH_LAST_BLOCK = new Set(['repeat', 'section', 'blockquote', 'listItem', 'bulletList', 'orderedList']);
-
-const isEmptyTextblock = (node: Node) => node.isTextblock && node.content.size === 0;
-
-/** Every column holds nothing but one empty block. */
-const columnsAreEmpty = (columns: Node) => {
-  let empty = true;
-  columns.forEach((column) => {
-    if (column.childCount !== 1 || !isEmptyTextblock(column.firstChild!)) empty = false;
-  });
-  return empty;
-};
-
-/**
- * What Delete takes for the current selection: the block, or the wrapper
- * that would be left holding nothing without it. A column is the one case
- * with a rule of its own — the Columns block decides how many columns there
- * are, so a column is never deleted on its own. Its last block with words in
- * it is emptied (the delete leaves the empty paragraph the schema requires),
- * and once every column is empty the Columns block goes. An empty cell beside
- * a column with content is the one place Delete has nothing to do, and says
- * so with null, which the bar reads as disabled.
- */
-function deletionTarget(editor: Editor): { pos: number; node: Node } | null {
-  const block = selectedBlock(editor);
-  if (!block) return null;
-  let { pos, node } = block;
-  const $pos = editor.state.doc.resolve(pos);
-  let depth = $pos.depth;
-  while (depth >= 1) {
-    const parent = $pos.node(depth);
-    if (parent.type.name === 'column') {
-      if (parent.childCount > 1 || !isEmptyTextblock(node) || depth < 2) break;
-      const columns = $pos.node(depth - 1);
-      if (!columnsAreEmpty(columns)) return null;
-      depth -= 1;
-      pos = $pos.before(depth);
-      node = columns;
-      depth -= 1;
-      continue;
-    }
-    if (parent.childCount > 1 || !GOES_WITH_LAST_BLOCK.has(parent.type.name)) break;
-    pos = $pos.before(depth);
-    node = parent;
-    depth -= 1;
-  }
-  return { pos, node };
-}
-
-/** Whether Delete would change anything for the current selection. */
+/** Whether Delete would change anything for the current selection: always,
+ *  since there is always a selected block to remove. Kept as its own
+ *  function because `blockCommands.remove` reads enablement and effect
+ *  through the same question. */
 export function canDeleteBlock(editor: Editor): boolean {
-  return deletionTarget(editor) !== null;
+  return selectedBlock(editor) !== null;
 }
 
 export function deleteBlock(editor: Editor): boolean {
-  const target = deletionTarget(editor);
-  if (!target) return false;
-  const { pos, node } = target;
+  const block = selectedBlock(editor);
+  if (!block) return false;
+  const { pos, node } = block;
   const tr = editor.state.tr.delete(pos, pos + node.nodeSize);
-  // Something must stay selected — the action bar has nothing to act on
-  // otherwise. Prefer the block that slid into the deleted one's place, then
-  // the block before it, and otherwise a caret at the gap the deletion left.
-  // Both neighbours are tested for being blocks: an inline atom's neighbours
-  // are the text runs of the paragraph it stood in, and selecting one of
-  // those as a node gives the bar a text run for a subject. The caret is
-  // taken from that gap rather than the start of the document so deleting a
-  // pill that opened its paragraph does not jump to the top of the email.
+  // Something must stay selected. Prefer the block that slid into the
+  // deleted one's place, then the block before it, and otherwise a caret at
+  // the gap the deletion left. Both neighbours are tested for being blocks:
+  // an inline atom's neighbours are the text runs of the paragraph it stood
+  // in, and selecting one of those as a node would select a text run rather
+  // than a block. The caret is taken from that gap rather than the start of
+  // the document so deleting a pill that opened its paragraph does not jump
+  // to the top of the email.
   const doc = tr.doc;
   const $at = doc.resolve(Math.min(pos, doc.content.size));
   const next = $at.nodeAfter;

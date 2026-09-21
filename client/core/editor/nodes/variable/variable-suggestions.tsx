@@ -3,7 +3,6 @@ import {
   useVariableOptions,
 } from '@/editor/utils/node-options';
 import { processVariables } from '@/editor/utils/variable';
-import { isTouchEditor } from '@/editor/plugins/block-selection';
 import { ReactRenderer } from '@tiptap/react';
 import { SuggestionKeyDownProps, SuggestionOptions } from '@tiptap/suggestion';
 import { forwardRef, useImperativeHandle, useRef } from 'react';
@@ -88,16 +87,6 @@ export function getVariableSuggestions(
 ): Omit<SuggestionOptions, 'editor'> {
   return {
     char,
-
-    /**
-     * Desktop only. This list is a floating menu placed over the text, and its
-     * footer offers arrow keys and Enter — none of which a thumb has. The phone
-     * has its own answer in the bottom bar, so on touch the trigger character
-     * stays what it looks like: a character. Same line the bubble menus are
-     * drawn on in `editor/index.tsx`, just enforced from inside the extension,
-     * which is where this one is rendered from.
-     */
-    allow: ({ editor }) => !isTouchEditor(editor),
 
     items: ({ query, editor }) => {
       const variables = getVariableOptions(editor)?.variables;

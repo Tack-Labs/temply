@@ -1,4 +1,3 @@
-import { isTouchEditor } from '@/editor/plugins/block-selection';
 import {
   Popover,
   PopoverContent,
@@ -42,10 +41,7 @@ export function VariableView(props: NodeViewProps) {
       className="react-component mly:inline-block mly:leading-none"
       draggable="false"
     >
-      {/* On touch the pill's controls are the Style sheet's; the tap that
-          would open this selects the pill instead (BlockSelection). */}
       <Popover
-        open={isTouchEditor(editor) ? false : undefined}
         onOpenChange={(open) => {
           editor.storage.variable.popover = open;
         }}

@@ -2,17 +2,20 @@ import { Editor, type JSONContent } from '@tiptap/core';
 import { GapCursor } from '@tiptap/pm/gapcursor';
 import type { ResolvedPos } from '@tiptap/pm/model';
 import { extensions } from '../extensions';
-import { BlockSelection } from '../plugins/block-selection';
 
 // Builds a real tiptap editor against the app's extension set, with no React
 // tree — for unit tests that exercise ProseMirror-level commands directly.
+// `opts.touch` is accepted but does nothing: the editor core no longer has a
+// touch mode, and dropping the option here would mean editing every case
+// across the suite that still passes it for a document shape unrelated to
+// touch at all.
 export function makeEditor(content: JSONContent, opts: { touch?: boolean } = {}): Editor {
   const element = document.createElement('div');
   document.body.appendChild(element);
   const editor = new Editor({
     element,
     content,
-    extensions: [...extensions({}), ...(opts.touch ? [BlockSelection] : [])],
+    extensions: extensions({}),
   });
   // EditorView.destroy() only tears down its own contenteditable inside
   // element, never element itself, which would otherwise pile up orphans on

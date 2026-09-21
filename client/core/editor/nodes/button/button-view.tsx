@@ -15,7 +15,6 @@ import { cn } from '@/editor/utils/classname';
 import { useVariableOptions } from '@/editor/utils/node-options';
 import { NodeViewProps, NodeViewWrapper } from '@tiptap/react';
 import { CSSProperties } from 'react';
-import { isTouchEditor } from '@/editor/plugins/block-selection';
 import {
   allowedButtonBorderRadius,
   AllowedButtonVariant,
@@ -60,10 +59,7 @@ export function ButtonView(props: NodeViewProps) {
         textAlign: alignment,
       }}
     >
-      {/* On touch the block's controls are the Style sheet's, fed by
-          ButtonMenuContent; this popover was laid out for a mouse and is
-          wider than a phone. */}
-      <Popover open={props.selected && editor.isEditable && !isTouchEditor(editor)}>
+      <Popover open={props.selected && editor.isEditable}>
         <PopoverTrigger asChild>
           <div>
             <button

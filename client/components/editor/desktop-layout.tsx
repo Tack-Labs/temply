@@ -15,7 +15,6 @@ import {
 } from 'lucide-react';
 import { cn } from '~/lib/classname';
 import { EMAIL_TRANSFORM, isLibraryUrl, UPLOAD_MIME_TYPES, withTransform } from '~/lib/assets';
-import { useCoarsePointer } from '~/hooks/use-coarse-pointer';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/surfaces';
 import { AssetPickerDialog } from '../assets/asset-picker-dialog';
@@ -50,7 +49,6 @@ export function DesktopEditorLayout({
   autofocus?: FocusPosition;
   imageUploads: boolean;
 }) {
-  const touch = useCoarsePointer();
   const {
     template,
     subject, setSubject, previewText, setPreviewText, fromName, setFromName, to, setTo, replyTo, setReplyTo,
@@ -356,7 +354,6 @@ export function DesktopEditorLayout({
               onPickImage={imageUploads ? pickFromLibrary : undefined}
               isLibraryImage={isLibraryUrl}
               setEditor={setEditor}
-              touch={touch}
             />
           </div>
         </div>
