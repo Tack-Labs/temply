@@ -12,6 +12,7 @@ const SWATCH_LABEL = 'text-xs text-muted';
 
 function ColorField({
   label,
+  name = label,
   value,
   fallback,
   onChange,
@@ -19,6 +20,11 @@ function ColorField({
   touch,
 }: {
   label: string;
+  /** What a screen reader hears, where the visible label alone would not say
+   *  which control this is: the groups put a "Background" under both Page and
+   *  Card, and a heading a sighted reader uses to tell them apart is not part
+   *  of either name. The visible label stays short and sits inside this one. */
+  name?: string;
   value?: string;
   fallback: string;
   onChange: (next: string) => void;
@@ -29,7 +35,7 @@ function ColorField({
   touch?: boolean;
 }) {
   const current = value ?? fallback;
-  const id = `theme-${label.toLowerCase().replace(/\s+/g, '-')}`;
+  const id = `theme-${name.toLowerCase().replace(/\s+/g, '-')}`;
 
   return (
     <div className="space-y-1">
@@ -39,32 +45,32 @@ function ColorField({
         </label>
         {hint}
       </span>
-      <ColorPickerPopover id={id} label={label} value={current} onChange={onChange} touch={touch} />
+      <ColorPickerPopover id={id} label={name} value={current} onChange={onChange} touch={touch} />
     </div>
   );
 }
 
 function NumberField({
   label,
+  name = label,
   value,
   fallback,
   onChange,
   max = 120,
-  id: idOverride,
 }: {
   label: string;
+  /** What a screen reader hears, where the visible label alone would not say
+   *  which control this is: both Card and Buttons carry a "Corner". */
+  name?: string;
   value?: string;
   fallback: string;
   onChange: (next: string) => void;
   /** Upper bound for both the slider and the number box. */
   max?: number;
-  /** Needed when two groups share a label (both cards and buttons have a
-   *  "Corner") — the derived id would otherwise collide. */
-  id?: string;
 }) {
   const parsed = parseInt(value ?? fallback, 10);
   const current = Number.isNaN(parsed) ? 0 : parsed;
-  const id = idOverride ?? `theme-${label.toLowerCase().replace(/\s+/g, '-')}`;
+  const id = `theme-${name.toLowerCase().replace(/\s+/g, '-')}`;
 
   return (
     <div className="space-y-1">
@@ -80,7 +86,7 @@ function NumberField({
           max={max}
           step={4}
           value={current}
-          aria-label={`${label} slider`}
+          aria-label={`${name} slider`}
           onChange={(event) => onChange(`${event.target.value}px`)}
           className="min-w-0 flex-1 cursor-pointer accent-accent"
         />
@@ -120,6 +126,7 @@ export function RawThemeFields({
         <ColorField
           touch={touch}
           label="Background"
+          name="Page background"
           value={theme.body?.backgroundColor}
           fallback={d.body?.backgroundColor ?? '#F4F4F5'}
           onChange={(backgroundColor) =>
@@ -139,6 +146,7 @@ export function RawThemeFields({
         <ColorField
           touch={touch}
           label="Background"
+          name="Card background"
           value={theme.container?.backgroundColor}
           fallback={d.container?.backgroundColor ?? '#FFFFFF'}
           onChange={(backgroundColor) =>
@@ -165,6 +173,7 @@ export function RawThemeFields({
         />
         <NumberField
           label="Corner"
+          name="Card corner"
           max={24}
           value={theme.container?.borderRadius}
           fallback={d.container?.borderRadius ?? '0'}
@@ -194,8 +203,8 @@ export function RawThemeFields({
           hint={<ThemeIssueHint issues={issuesForField(theme, 'button-text')} />}
         />
         <NumberField
-          id="theme-button-corner"
           label="Corner"
+          name="Button corner"
           max={24}
           value={theme.button?.borderRadius}
           fallback={d.button?.borderRadius ?? '6px'}

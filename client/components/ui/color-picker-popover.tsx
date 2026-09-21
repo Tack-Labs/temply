@@ -36,7 +36,10 @@ export function ColorPickerPopover({
   return (
     <Popover>
       <PopoverTrigger asChild>
-        <button id={id} type="button" className="flex items-center gap-1.5 rounded-xs">
+        {/* Named here rather than left to a `<label for>`: the swatch is
+            decorative and the only text inside is the hex value, so a trigger
+            that loses its label announces itself as "#FFFFFF". */}
+        <button id={id} type="button" aria-label={label} className="flex items-center gap-1.5 rounded-xs">
           <span
             aria-hidden
             className={`shrink-0 rounded-xs border border-line ${swatchClassName}`}

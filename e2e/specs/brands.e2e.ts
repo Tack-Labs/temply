@@ -27,6 +27,32 @@ test.describe('brands', () => {
     expect(JSON.parse(brand.theme).button?.backgroundColor?.toUpperCase()).toBe('#B25D38');
   });
 
+  test('the two Background swatches are told apart by name', async ({ page, api, name }) => {
+    const title = name('backgrounds');
+    await page.goto('/dashboard/brands');
+    await page.getByRole('button', { name: 'New brand' }).first().click();
+    const dialog = page.getByRole('dialog', { name: 'Create brand' });
+    await dialog.getByRole('textbox', { name: 'Brand name' }).fill(title);
+    await dialog.getByRole('button', { name: 'Advanced' }).click();
+
+    // Page and Card both show a swatch labelled "Background", and the heading
+    // that tells them apart is not part of either name. A swatch is a
+    // decorative square beside a hex value, so one that falls back to its own
+    // text announces itself as "#FFFFFF": the name has to carry the group.
+    await expect(dialog.getByLabel('Page background', { exact: true })).toBeVisible();
+    await dialog.getByLabel('Card background', { exact: true }).click();
+    await page.getByRole('textbox', { name: 'Card background hex value' }).fill('#123456');
+    await page.keyboard.press('Escape');
+
+    await dialog.getByRole('button', { name: 'Save' }).click();
+    await expect(page.getByText('Brand created')).toBeVisible();
+    const brand = await api.brandNamed(title);
+    api.trackBrand(brand.id);
+    const theme = JSON.parse(brand.theme);
+    expect(theme.container?.backgroundColor?.toUpperCase(), 'the Card swatch is the one that moved').toBe('#123456');
+    expect(theme.body?.backgroundColor?.toUpperCase(), 'the Page swatch is left alone').not.toBe('#123456');
+  });
+
   test('a colour that is hard to read is flagged before it is saved', async ({ page }) => {
     await page.goto('/dashboard/brands');
     await page.getByRole('button', { name: 'New brand' }).first().click();

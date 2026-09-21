@@ -29,7 +29,9 @@ test.describe('brand defaults', () => {
   test('a new template takes the default brand', async ({ page, api, name }) => {
     const { id } = await api.createTemplate({ title: name('takes default') });
     await page.goto(`/templates/${id}`);
-    await expect(page.getByRole('button', { name: 'Brand' })).toHaveText(brandName);
+    // Exact: the Brand sheet's own colour swatch is named "Brand color", and a
+    // substring match takes both.
+    await expect(page.getByRole('button', { name: 'Brand', exact: true })).toHaveText(brandName);
     // The row carries the default from creation — the server writes it at
     // POST, before the editor has opened — and the editor labels that theme
     // with the brand's name rather than with the preset it was saved from.
