@@ -211,10 +211,26 @@ test.describe('editor on the phone', () => {
     await page.goto('/playground');
     await phone.ready(page);
     await expect(page.getByText('Open on a desktop to try the editor.')).toBeVisible();
-    const before = await page.locator('.ProseMirror').innerText();
-    await tapBlock(page, page.locator('.ProseMirror > *').first());
+
+    // The demo's document arrives after the canvas element does, so a
+    // baseline taken the moment `.ProseMirror` exists can still change for
+    // reasons that have nothing to do with a tap — which is how this read
+    // the tail of its own render as a write, under a loaded runner. Two
+    // identical reads is the document having finished arriving.
+    const canvas = page.locator('.ProseMirror');
+    let before = '';
+    await expect
+      .poll(async () => {
+        const now = await canvas.innerText();
+        const settled = now.length > 0 && now === before;
+        before = now;
+        return settled;
+      }, { message: 'the demo document has finished arriving' })
+      .toBe(true);
+
+    await tapBlock(page, canvas.locator('> *').first());
     await page.keyboard.type('nothing');
-    expect(await page.locator('.ProseMirror').innerText(), 'the demo reads, it does not write').toBe(before);
+    expect(await canvas.innerText(), 'the demo reads, it does not write').toBe(before);
     await context.close();
   });
 });
