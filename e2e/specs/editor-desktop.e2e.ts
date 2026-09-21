@@ -428,6 +428,13 @@ test.describe('editor on the desktop', () => {
     await indicator.click();
     const menu = bubbleMenu(page, 'Repeat');
     await expectOnScreen(page, menu, 'the repeat menu');
+    // Selecting a block moves the selection, and tiptap re-asks every menu a
+    // quarter-second after it moves. The Repeat menu used to answer that by
+    // hiding: the menu a customer had just raised left on its own, out from
+    // under the click they were already making. Waiting for a disappearance
+    // that never comes is the assertion — reading the menu the instant it
+    // appears passes either way.
+    await expect(menu.waitFor({ state: 'hidden', timeout: 1000 })).rejects.toThrow();
     await menu.getByRole('button', { name: 'items', exact: true }).click();
     await menu.getByPlaceholder('ie. payload.items').fill('orders');
     await page.keyboard.press('Enter');
