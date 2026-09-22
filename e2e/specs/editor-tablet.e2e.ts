@@ -16,8 +16,11 @@ async function targets(menu: ReturnType<typeof bubbleMenu>) {
 
 // A tablet is above the phone breakpoint, so it gets the desktop editor and
 // edits with it — but it reaches that editor with a finger. iPad metrics on
-// Chromium: WebKit is a nightly tier, and what these assert is the pointer
-// and the width, not Safari's engine.
+// Chromium, because WebKit is the nightly tier rather than this one. The
+// same probe was run against WebKit before these were written and answered
+// the same on all four counts — the coarse pointer, the absent hover, the
+// handle a tap brings out, and the 44px the rule gives the toolbar — so
+// Chromium is standing in here, not guessing.
 test.describe('editor on a tablet', () => {
   // Portrait, the narrowest a tablet gets while still above the phone
   // breakpoint: finger-sized controls make the toolbar wider, and this is
