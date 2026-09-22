@@ -511,3 +511,18 @@
   outline-offset: 3px;
   border-radius: 4px;
 }
+
+/* A finger gets something it can hit. The bubble menus are built from 28px
+   icon buttons — right under a mouse, and under the 44px a touch device is
+   designed to — and a tablet meets them with no hover to fall back on, so the
+   tooltip that names each icon never opens for it either. Stated as minimums
+   rather than sizes: the buttons set their own width and height with
+   `!important`, and a minimum outranks both without fighting them. Only the
+   toolbar's own controls grow; what a menu opens is portalled out of here. */
+@media (pointer: coarse) {
+  [role='toolbar'] button,
+  [role='toolbar'] [role='button'] {
+    min-block-size: 44px;
+    min-inline-size: 44px;
+  }
+}

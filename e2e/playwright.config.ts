@@ -53,8 +53,9 @@ export default defineConfig({
       // and brand defaults move workspace-wide state and run serially on
       // one project. The desktop editor spec asserts the slash menu, the
       // bubble menus and the keyboard, none of which the phone shell
-      // renders.
-      testIgnore: [/setup\//, /specs\/stack\.e2e\.ts$/, /specs\/billing\.e2e\.ts$/, /specs\/brands-default\.e2e\.ts$/, /specs\/editor-desktop\.e2e\.ts$/],
+      // renders. The tablet spec brings its own viewport and pointer, so it
+      // would run twice over for nothing.
+      testIgnore: [/setup\//, /specs\/stack\.e2e\.ts$/, /specs\/billing\.e2e\.ts$/, /specs\/brands-default\.e2e\.ts$/, /specs\/editor-desktop\.e2e\.ts$/, /specs\/editor-tablet\.e2e\.ts$/],
     },
   ],
   webServer: [
