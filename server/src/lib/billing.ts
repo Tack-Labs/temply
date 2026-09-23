@@ -1,28 +1,24 @@
-import Stripe from 'stripe';
-import { eq, sql, and, count, isNull, or } from 'drizzle-orm';
+import { eq, sql, and, count, isNull, lte, ne, or } from 'drizzle-orm';
 import { subscriptions, mails, apiKeysTable, brands, assets } from '@temply/shared/schema';
 import type { Db } from '../plugins/db';
 import { PLAN_LIMITS as planLimits, type Plan } from '@temply/shared/plans';
 import { formatBytes } from '@temply/shared/bytes';
 
+type SubscriptionRow = typeof subscriptions.$inferSelect;
 
-/** The Stripe client. STRIPE_API_BASE, set only by the e2e stack, points it
- *  at a fake on localhost; production never sets it and reaches Stripe.
- *  stripe-node has no basePath config — its base path is always `/v1/` — so
- *  the fake listens on its own port rather than under a path prefix, and
- *  the value must be a bare origin (`http://host:port`): only its scheme,
- *  host and port are read, and a path on it is silently ignored. */
-export function getStripe(): Stripe {
-  const key = process.env.STRIPE_SECRET_KEY;
-  if (!key) throw new Error('STRIPE_SECRET_KEY is not set');
-  const base = process.env.STRIPE_API_BASE;
-  if (!base) return new Stripe(key, {});
-  const url = new URL(base);
-  return new Stripe(key, {
-    host: url.hostname,
-    port: url.port ? Number(url.port) : url.protocol === 'https:' ? 443 : 80,
-    protocol: url.protocol.replace(':', '') as 'http' | 'https',
-  });
+/**
+ * Whether a row pays for its plan right now. A cancellation past its end
+ * date no longer does, even before `subscription_expired` lands: Lemon
+ * Squeezy retries a failed delivery only a few times, and a lost one must
+ * not leave the plan running for free. `notPaying` is the same rule in SQL,
+ * for a write that must not race it; the two must agree.
+ */
+function paying(sub: SubscriptionRow, now = new Date().toISOString()): boolean {
+  return sub.plan !== 'free' && sub.status === 'active' && !(sub.cancel_at && sub.cancel_at <= now);
+}
+
+export function notPaying(now = new Date().toISOString()) {
+  return or(eq(subscriptions.plan, 'free'), ne(subscriptions.status, 'active'), lte(subscriptions.cancel_at, now));
 }
 
 /**
@@ -38,7 +34,7 @@ export async function getPlan(db: Db, orgId: string): Promise<{ plan: Plan; stat
     .where(or(eq(subscriptions.org_id, orgId), and(eq(subscriptions.user_id, orgId), isNull(subscriptions.org_id))))
     .limit(1);
 
-  if (!sub || sub.plan === 'free' || sub.status !== 'active') {
+  if (!sub || !paying(sub)) {
     return { plan: 'free', status: 'active', cancelAt: null };
   }
   return { plan: sub.plan as Plan, status: sub.status, cancelAt: sub.cancel_at ?? null };

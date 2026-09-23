@@ -30,7 +30,7 @@ Never npm, yarn or pnpm.
 | Database | SQLite via `bun:sqlite` and Drizzle ORM 0.45; schema in `shared/schema.ts`, boot-time migrations in `src/plugins/db.ts` |
 | Rendering | `@react-email/render` + `juice` turn the editor document into table-based, inlined HTML (`src/render/`) |
 | Auth | `@clerk/backend` 3 verifies sessions and webhooks; proxied requests carry identity in headers proven by `INTERNAL_API_SECRET` |
-| Billing | Stripe SDK 22 (Checkout, Customer Portal, webhooks) |
+| Billing | Lemon Squeezy as merchant of record (hosted checkout, customer portal, webhooks), through its REST API with `fetch` — no SDK |
 | Email | Resend 4 for test sends and the contact form |
 | Images | ImageKit 6 for uploads |
 | Validation | Elysia's `t` schemas |
@@ -58,7 +58,7 @@ What you need before the app is useful:
 | Service | Keys | Used for |
 |---|---|---|
 | [Clerk](https://clerk.com) | publishable + secret | Sign-in, organizations, team membership. Enable **Organizations** in the Clerk dashboard. |
-| [Stripe](https://stripe.com) | secret, a Pro price id, webhook secret | Plans and billing. Checkout sells Pro only; Enterprise is by hand. |
+| [Lemon Squeezy](https://www.lemonsqueezy.com) | API key, store id, a variant per paid plan, webhook secret | Plans and billing, sold under Lemon Squeezy's name as merchant of record. Checkout sells Pro only; Enterprise is by hand. |
 | [Resend](https://resend.com) | API key, a verified sender | Test sends from the editor, contact-form delivery. |
 | [ImageKit](https://imagekit.io) | public + private key, URL endpoint | Image uploads. Without it, images are URL-only. |
 | [Sentry](https://sentry.io) | DSN | Error reports. Optional; nothing is sent without a DSN. |
@@ -81,13 +81,15 @@ same value must be in `client/.env` and `server/.env`.
 | `CLERK_SECRET_KEY` | both | yes | Clerk server key. |
 | `CLERK_WEBHOOK_SIGNING_SECRET` | server | for purges | Verifies `organization.deleted` / `user.deleted` webhooks. Without it the endpoint answers 503 and deleted workspaces are never purged. |
 | `INTERNAL_API_SECRET` | both | yes | Random string proving a request came from the Next.js proxy. Without it the API ignores forwarded identities and every dashboard call is signed out. |
-| `NEXT_PUBLIC_APP_URL` | both | yes | The site's own address. Client: metadata, sitemap, docs snippets, legal pages, dev-origin allow-list. Server: absolute image URLs in rendered email, Stripe return URLs. `bun run dev:public` writes it. |
+| `NEXT_PUBLIC_APP_URL` | both | yes | The site's own address. Client: metadata, sitemap, docs snippets, legal pages, dev-origin allow-list. Server: absolute image URLs in rendered email, the checkout return URL. `bun run dev:public` writes it. |
 | `API_URL` | client | no | Where Next.js reaches the API. Defaults to `http://127.0.0.1:3001`; the Railway container sets this automatically. |
 | `SQLITE_DB_PATH` | server | no | Database file, default `maily.db` in `server/`. Created on first run. |
 | `HOST` | server | no | The interface the API listens on, default `127.0.0.1`. The API trusts the identity the Next proxy forwards, so it must never be reachable from the internet; the Railway container pins it to loopback. |
-| `STRIPE_SECRET_KEY` | server | for billing | Checkout, portal and webhook verification. |
-| `STRIPE_PRICE_PRO` | server | for billing | The Pro plan's recurring price id — the only thing Checkout sells. |
-| `STRIPE_WEBHOOK_SECRET` | server | for billing | Signing secret of the `/api/webhooks/stripe` endpoint. |
+| `LEMONSQUEEZY_API_KEY` | server | for billing | Opens checkouts and portal links, and cancels the subscription of a deleted workspace. A test-mode key sells in test mode. |
+| `LEMONSQUEEZY_STORE_ID` | server | for billing | The store checkouts are opened in. |
+| `LEMONSQUEEZY_VARIANT_PRO` | server | for billing | The Pro plan's subscription variant — the only thing checkout sells. |
+| `LEMONSQUEEZY_VARIANT_ENTERPRISE` | server | no | The variant an Enterprise plan arranged by hand is sold as, so its webhooks grant Enterprise. |
+| `LEMONSQUEEZY_WEBHOOK_SECRET` | server | for billing | The signing secret you gave the `/api/webhooks/lemonsqueezy` webhook (6–40 characters). It also signs the workspace into each checkout, so changing it strands checkouts opened before the change. |
 | `RESEND_API_KEY` | server | for sending | Test sends from the editor and contact-form delivery. Without it sends are refused and contact messages are stored but not delivered. |
 | `SENDING_FROM_ADDRESS`, `SENDING_FROM_LABEL` | server | no | The verified sender test sends go out from; users set a display name only. Defaults `send@temply.app` / `Temply`. |
 | `CONTACT_EMAIL` | server | for contact form | Where contact-form messages are delivered. |
@@ -127,7 +129,7 @@ bun run dev:public
 
 This starts a [cloudflared](https://developers.cloudflare.com/cloudflare-one/connections/connect-apps/downloads/)
 quick tunnel to `:9000`, writes the address into both env files as
-`NEXT_PUBLIC_APP_URL`, re-points the Stripe webhook endpoint through the
+`NEXT_PUBLIC_APP_URL`, re-points the Lemon Squeezy webhook through its
 API, prints the Clerk endpoint URL for you to paste into the Clerk
 dashboard, then runs `bun run dev`. One address then serves the site, the
 API and both webhooks — the same shape as production.
@@ -149,19 +151,23 @@ Set both webhooks up once:
   `organization.deleted` and `user.deleted`; put the signing secret in
   `CLERK_WEBHOOK_SIGNING_SECRET`. A deleted workspace is purged and its
   subscription cancelled.
-- **Stripe** → `<address>/api/webhooks/stripe` for
-  `checkout.session.completed`, `customer.subscription.updated`,
-  `customer.subscription.deleted`; secret in `STRIPE_WEBHOOK_SECRET`. The
-  script creates this one for you if it does not exist. Stripe also needs
-  a Customer Portal configuration (Settings → Billing → Customer portal)
-  before "Manage subscription" works.
+- **Lemon Squeezy** → `<address>/api/webhooks/lemonsqueezy` for
+  `subscription_created`, `subscription_updated` and
+  `subscription_expired`, signed with `LEMONSQUEEZY_WEBHOOK_SECRET`. The
+  script creates or re-points this one for you. A webhook that already
+  exists keeps its secret, so `server/.env` must hold the same one; with
+  none there, the script gives the webhook a fresh one and writes it in.
+  Plans are variants of one subscription product; put their ids in
+  `LEMONSQUEEZY_VARIANT_PRO` (and `_ENTERPRISE`). "Manage subscription"
+  opens Lemon Squeezy's own customer portal for the workspace's
+  subscription.
 
-Test cards: `4242 4242 4242 4242` with any future expiry and any CVC.
+In test mode, pay with `4242 4242 4242 4242`, any future expiry and any CVC.
 
 Once the production Railway service is receiving the webhooks, a
 tunnel that only exists to look at the work from a phone should not move
 them: `bun run dev:public --keep-webhooks` writes the envs and starts the
-dev servers but leaves Stripe and Clerk where they point.
+dev servers but leaves Lemon Squeezy and Clerk where they point.
 
 ## Gates
 
@@ -235,13 +241,14 @@ this setup does not promise zero-downtime releases.
 
    `PORT=8080`, `SQLITE_DB_PATH=/data/maily.db` and
    `BACKUP_DIR=/data/backups` are image defaults. Leave `API_URL` unset;
-   startup supplies the loopback URL. Add Clerk/Stripe webhook secrets,
-   Stripe price and key, Resend and ImageKit values for the features you
-   use. Runtime secrets belong in Railway, not the Dockerfile or GitHub
-   build arguments. `NEXT_PUBLIC_*` values are compiled into the client,
-   so changing one requires a new build. The Docker build deliberately
-   uses no real Clerk secret. Runtime Sentry reporting is supported;
-   this container build does not upload Sentry source maps.
+   startup supplies the loopback URL. Add the Clerk webhook secret, the
+   Lemon Squeezy key, store, variants and webhook secret, and Resend and
+   ImageKit values for the features you use. Runtime secrets belong in
+   Railway, not the Dockerfile or GitHub build arguments.
+   `NEXT_PUBLIC_*` values are compiled into the client, so changing one
+   requires a new build. The Docker build deliberately uses no real Clerk
+   secret. Runtime Sentry reporting is supported; this container build
+   does not upload Sentry source maps.
 4. Create a Railway **project token scoped to the production environment**.
    In the GitHub repository, create an Actions environment named
    **`production`**, restricted to the `main` branch. Add its secret and
@@ -266,7 +273,7 @@ this setup does not promise zero-downtime releases.
    cancelled halfway through a release.
 6. Set Clerk's allowed production domain and register the webhooks at
    `https://<domain>/api/webhooks/clerk` and
-   `https://<domain>/api/webhooks/stripe`, using the events in *Setup*.
+   `https://<domain>/api/webhooks/lemonsqueezy`, using the events in *Setup*.
    Confirm the operator/contact details in `client/lib/legal.ts`.
 
 Use branch protection on `main` to require the three validation jobs:
@@ -332,7 +339,7 @@ client/
   lib/site.ts           SITE_URL and friends — the only place the domain lives
   scripts/check-*.ts    the design gates
 server/
-  src/routes/           one file per resource; webhooks/ for Stripe and Clerk
+  src/routes/           one file per resource; webhooks/ for Lemon Squeezy and Clerk
   src/render/           the email renderer
   src/plugins/db.ts     SQLite schema and the boot-time migrations
   scripts/backup-db.ts

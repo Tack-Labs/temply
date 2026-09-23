@@ -301,7 +301,7 @@ export class RepeatNotListError extends Error {
  * Root-relative sources ("/brand/logo.png") resolve against the app in a
  * browser tab and against nothing in an inbox or a sandboxed preview frame.
  * The renderer makes them absolute with the app's own origin — the same
- * origin billing sends Stripe back to — so the editor, the API and the review
+ * origin a finished checkout returns to — so the editor, the API and the review
  * page all show the same image.
  */
 function absoluteSrc<T extends string | null | undefined>(src: T): T | string {

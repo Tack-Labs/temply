@@ -5,7 +5,7 @@ import { SALES_EMAIL } from '~/lib/site';
 
 import { Suspense, useEffect } from 'react';
 import { CheckIcon, Loader2Icon, XIcon, LockIcon } from 'lucide-react';
-import { useMutation, useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useMinimumDisplay } from '~/hooks/use-minimum-display';
 import { httpGet, httpPost } from '~/lib/http';
 import { toast } from 'sonner';
@@ -150,9 +150,6 @@ function PlanContent() {
     if (searchParams.get('success') === 'true') {
       toast.success('Subscription updated');
     }
-    if (searchParams.get('canceled') === 'true') {
-      toast('Checkout canceled');
-    }
   }, [searchParams]);
 
   const { data, isLoading, isError, refetch } = useQuery({
@@ -162,6 +159,7 @@ function PlanContent() {
   const showLoading = useMinimumDisplay(isLoading);
   const { orgRole } = useAuth();
   const isAdmin = orgRole === 'org:admin';
+  const queryClient = useQueryClient();
 
   const { mutateAsync: createCheckout, isPending: isCheckoutLoading } = useMutation({
     mutationFn: (plan: 'pro') =>
@@ -169,7 +167,13 @@ function PlanContent() {
     onSuccess: (data) => {
       window.location.href = data.url;
     },
-    onError: (error) => toast.error(error.message || 'Could not start checkout'),
+    // A refusal usually means this page is older than the plan: it loaded
+    // before the webhook landed. Reading the plan again catches it up.
+    onError: (error) => {
+      toast.error(error.message || 'Could not start checkout');
+      queryClient.invalidateQueries({ queryKey: ['billing'] });
+      queryClient.invalidateQueries({ queryKey: ['quota'] });
+    },
   });
 
   const { mutateAsync: createPortal, isPending: isPortalLoading } = useMutation({

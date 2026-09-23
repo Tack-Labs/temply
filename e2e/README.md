@@ -1,9 +1,9 @@
 # e2e
 
-Playwright, against a stack Playwright starts itself: a fakes server (Stripe,
-ImageKit, Resend), the API on a fresh SQLite, and the built client. The
-stack takes its own ports (client 9101, API 3101, fakes 3999, Stripe 3998)
-and builds the client into `client/.next-e2e` rather than `.next`, so a dev
+Playwright, against a stack Playwright starts itself: a fakes server (Lemon
+Squeezy, ImageKit, Resend), the API on a fresh SQLite, and the built client.
+The stack takes its own ports (client 9101, API 3101, fakes 3999) and
+builds the client into `client/.next-e2e` rather than `.next`, so a dev
 checkout on 9000/3001 is left alone, including the build it serves from.
 
 ## Run
@@ -31,8 +31,8 @@ other, since it writes memberships and roles through Clerk's backend API.
 Setup signs in the first user, makes their own "e2e first workspace" the
 active one (created through Clerk's backend API on the first run, and never
 whichever workspace Clerk last remembered for them), and puts it on
-Enterprise through the app's checkout and a forged
-`checkout.session.completed` — every spec seeds into it and both browser
+Enterprise through the app's checkout and a forged `subscription_created`
+for the Enterprise variant — every spec seeds into it and both browser
 projects run at once, so it needs the plan with no ceilings. The second
 user is a member of that workspace and the admin of "e2e second
 workspace"; setup makes both once and never removes them, since Clerk keeps

@@ -60,8 +60,8 @@ export default defineConfig({
   ],
   webServer: [
     {
-      // Started first: the API's requests to Stripe and ImageKit need this
-      // listening before the API itself does.
+      // Started first: the API's requests to Lemon Squeezy and ImageKit need
+      // this listening before the API itself does.
       command: 'bun fakes/index.ts',
       cwd: import.meta.dirname,
       url: `${FAKES_URL}/__health`,

@@ -23,11 +23,11 @@ async function handleRequest(request: NextRequest, { params }: { params: Promise
     // Proves to the API that these forwarded ids came from our own proxy.
     'x-internal-token': process.env.INTERNAL_API_SECRET || '',
   };
-  // Webhook signatures ride on their own headers. Stripe and Clerk post to
-  // this host, and without these the API sees an unsigned body and refuses
-  // every event. Nothing else in the app sends them, so forwarding them is
-  // safe: a forged one is still verified against the secret downstream.
-  for (const name of ['stripe-signature', 'svix-id', 'svix-timestamp', 'svix-signature']) {
+  // Webhook signatures ride on their own headers. Lemon Squeezy and Clerk
+  // post to this host, and without these the API sees an unsigned body and
+  // refuses every event. Nothing else in the app sends them, so forwarding
+  // them is safe: a forged one is still verified against the secret downstream.
+  for (const name of ['x-signature', 'svix-id', 'svix-timestamp', 'svix-signature']) {
     const value = request.headers.get(name);
     if (value) headers[name] = value;
   }

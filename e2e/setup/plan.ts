@@ -4,69 +4,90 @@ import type { fakes as Fakes } from '../fakes/client';
 
 /**
  * A workspace's plan moved the way a paying customer moves it: the app
- * opens a checkout (the fake Stripe answers it and records what the app
- * sent), then Stripe's webhook arrives, signed with the webhook secret, and
- * the app updates the row. Only the webhook is ours to forge — everything
- * else is the real billing path, so a broken checkout route, proxy header
- * or signature check fails here, once, instead of as a 402 inside some
- * unrelated spec.
+ * opens a checkout (the fake Lemon Squeezy answers it and records what the
+ * app sent), then Lemon Squeezy's webhook arrives, signed with the webhook
+ * secret, and the app updates the row. Only the webhook is ours to forge —
+ * everything else is the real billing path, so a broken checkout route,
+ * proxy header or signature check fails here, once, instead of as a 402
+ * inside some unrelated spec.
  */
 
-type FakesClient = Pick<typeof Fakes, 'requests' | 'signStripeEvent'>;
+type FakesClient = Pick<typeof Fakes, 'requests' | 'signLemonSqueezyEvent'>;
 export type PaidPlan = 'pro' | 'enterprise';
-export type CheckoutSession = { orgId: string; userId: string; customer: string };
+/** The custom data the app signed into the checkout, which Lemon Squeezy
+ *  hands back on every event of the subscription it starts. */
+export type CheckoutData = { orgId: string; userId: string; token: string };
 
-/**
- * The checkout session the app most recently opened with the fake Stripe.
- * Stripe receives form-encoded bodies, so the fake records the metadata flat
- * as `metadata[orgId]`; it is the one place the org id the app is scoped to
- * can be read from outside.
- */
-export async function recordedCheckout(fakes: FakesClient): Promise<CheckoutSession> {
-  const sessions = (await fakes.requests('stripe')).filter((r) => r.method === 'POST' && r.path === '/v1/checkout/sessions');
-  const session = sessions.at(-1);
-  if (!session) throw new Error('the fake Stripe recorded no checkout session');
-  const sent = session.body as Record<string, string>;
-  const out = { orgId: sent['metadata[orgId]'], userId: sent['metadata[userId]'], customer: sent.customer };
-  if (!out.orgId || !out.userId || !out.customer) throw new Error(`checkout metadata missing: ${JSON.stringify(out)}`);
+/** The variant each plan is sold as, as stackEnv() configured the API. */
+function variantOf(plan: PaidPlan): number {
+  const env = stackEnv();
+  return Number(plan === 'pro' ? env.LEMONSQUEEZY_VARIANT_PRO : env.LEMONSQUEEZY_VARIANT_ENTERPRISE);
+}
+
+/** The checkout the app most recently opened with the fake Lemon Squeezy —
+ *  the one place the org id the app is scoped to, and the token binding it,
+ *  can be read from outside. */
+export async function recordedCheckout(fakes: FakesClient): Promise<CheckoutData> {
+  const checkouts = (await fakes.requests('lemonsqueezy')).filter((r) => r.method === 'POST' && r.path === '/v1/checkouts');
+  const checkout = checkouts.at(-1);
+  if (!checkout) throw new Error('the fake Lemon Squeezy recorded no checkout');
+  const sent = checkout.body as { data?: { attributes?: { checkout_data?: { custom?: Record<string, string> } } } };
+  const custom = sent.data?.attributes?.checkout_data?.custom ?? {};
+  const out = { orgId: custom.org_id, userId: custom.user_id, token: custom.token };
+  if (!out.orgId || !out.userId || !out.token) throw new Error(`checkout custom data missing: ${JSON.stringify(out)}`);
   return out;
 }
 
 async function postWebhook(request: APIRequestContext, fakes: FakesClient, event: object): Promise<void> {
   // The secret the API was started with — stackEnv() is the one place it is
   // decided, and it is not in this process's own environment.
-  const { body, signature } = fakes.signStripeEvent(event, stackEnv().STRIPE_WEBHOOK_SECRET);
-  const res = await request.post('/api/webhooks/stripe', { data: body, headers: { 'content-type': 'application/json', 'stripe-signature': signature } });
+  const { body, signature } = fakes.signLemonSqueezyEvent(event, stackEnv().LEMONSQUEEZY_WEBHOOK_SECRET);
+  const res = await request.post('/api/webhooks/lemonsqueezy', { data: body, headers: { 'content-type': 'application/json', 'x-signature': signature } });
   if (!res.ok()) throw new Error(`webhook: ${res.status()} ${await res.text()}`);
 }
 
 /**
- * Stripe's `checkout.session.completed` for a session the app opened, signed
- * with the webhook secret. Only this event is forged — the checkout itself
- * went through the app — and the app accepts whatever plan the metadata
- * names, which is how the run reaches Enterprise: the checkout route only
- * sells Pro.
+ * A subscription event as Lemon Squeezy sends it. `updated_at` is the time
+ * of sending: the app drops an event older than the last one it applied, so
+ * events a test sends in order must be stamped in order.
  */
-export async function completeCheckout(request: APIRequestContext, fakes: FakesClient, session: CheckoutSession, plan: PaidPlan): Promise<void> {
-  const stamp = Date.now();
-  await postWebhook(request, fakes, {
-    id: `evt_e2e_${plan}_${stamp}`,
-    object: 'event',
-    type: 'checkout.session.completed',
+function subscriptionEvent(
+  name: string,
+  subscriptionId: string,
+  session: CheckoutData,
+  attributes: { status: string; variant_id: number; renews_at?: string | null; ends_at?: string | null },
+) {
+  return {
+    meta: { event_name: name, custom_data: { org_id: session.orgId, user_id: session.userId, token: session.token } },
     data: {
-      object: {
-        id: `cs_e2e_${stamp}`,
-        object: 'checkout.session',
-        customer: session.customer,
-        subscription: `sub_e2e_${plan}_${stamp}`,
-        metadata: { orgId: session.orgId, userId: session.userId, plan },
-      },
+      type: 'subscriptions',
+      id: subscriptionId,
+      attributes: { renews_at: null, ends_at: null, ...attributes, updated_at: new Date().toISOString() },
     },
-  });
+  };
+}
+
+const inDays = (days: number) => new Date(Date.now() + days * 86_400_000).toISOString();
+
+/**
+ * `subscription_created` for a checkout the app opened. Only this event is
+ * forged — the checkout itself went through the app — and the app grants
+ * whichever plan the variant is sold as, which is how the run reaches
+ * Enterprise: the checkout route only sells Pro. Returns the subscription id
+ * later events name.
+ */
+export async function completeCheckout(request: APIRequestContext, fakes: FakesClient, session: CheckoutData, plan: PaidPlan): Promise<string> {
+  const subscriptionId = `sub_e2e_${plan}_${Date.now()}`;
+  await postWebhook(request, fakes, subscriptionEvent('subscription_created', subscriptionId, session, {
+    status: 'active',
+    variant_id: variantOf(plan),
+    renews_at: inDays(30),
+  }));
+  return subscriptionId;
 }
 
 /** Opens a checkout through the app, then completes it on `plan`. */
-export async function upgradeTo(request: APIRequestContext, fakes: FakesClient, plan: PaidPlan): Promise<CheckoutSession> {
+export async function upgradeTo(request: APIRequestContext, fakes: FakesClient, plan: PaidPlan): Promise<CheckoutData> {
   const checkout = await request.post('/api/v1/billing/checkout', { data: { plan: 'pro' } });
   if (!checkout.ok()) throw new Error(`checkout: ${checkout.status()} ${await checkout.text()}`);
   const session = await recordedCheckout(fakes);
@@ -74,13 +95,22 @@ export async function upgradeTo(request: APIRequestContext, fakes: FakesClient, 
   return session;
 }
 
-/** Stripe's `customer.subscription.deleted` for a customer: the app puts the workspace back on Free. */
-export async function cancelSubscription(request: APIRequestContext, fakes: FakesClient, customer: string): Promise<void> {
-  const stamp = Date.now();
-  await postWebhook(request, fakes, {
-    id: `evt_e2e_cancel_${stamp}`,
-    object: 'event',
-    type: 'customer.subscription.deleted',
-    data: { object: { id: `sub_e2e_cancelled_${stamp}`, object: 'subscription', customer, status: 'canceled' } },
-  });
+/** `subscription_updated` for a cancellation made in the portal: renewal
+ *  stops, and the plan runs to the end of the period already paid for. */
+export async function cancelSubscription(request: APIRequestContext, fakes: FakesClient, session: CheckoutData, subscriptionId: string, plan: PaidPlan): Promise<void> {
+  await postWebhook(request, fakes, subscriptionEvent('subscription_updated', subscriptionId, session, {
+    status: 'cancelled',
+    variant_id: variantOf(plan),
+    ends_at: inDays(30),
+  }));
+}
+
+/** `subscription_expired`: the period ran out, and the app puts the
+ *  workspace back on Free. */
+export async function expireSubscription(request: APIRequestContext, fakes: FakesClient, session: CheckoutData, subscriptionId: string, plan: PaidPlan): Promise<void> {
+  await postWebhook(request, fakes, subscriptionEvent('subscription_expired', subscriptionId, session, {
+    status: 'expired',
+    variant_id: variantOf(plan),
+    ends_at: new Date().toISOString(),
+  }));
 }

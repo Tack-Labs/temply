@@ -84,13 +84,18 @@ export const subscriptions = sqliteTable('subscriptions', {
    *  user_id stays as who did it. Null only on rows from before
    *  organizations, until adoption moves them. */
   org_id: text('org_id'),
-  stripe_customer_id: text('stripe_customer_id').unique(),
-  stripe_subscription_id: text('stripe_subscription_id'),
+  /** The Lemon Squeezy subscription that can still bill this workspace;
+   *  null once it has expired, so nothing tries to cancel it again. */
+  lemonsqueezy_subscription_id: text('lemonsqueezy_subscription_id'),
+  /** The subscription's own `updated_at` as of the event this row last
+   *  took. Webhooks can arrive out of order, and one older than this is
+   *  dropped rather than rolling the plan back. */
+  lemonsqueezy_updated_at: text('lemonsqueezy_updated_at'),
   plan: text('plan').notNull().default('free'),
   status: text('status').notNull().default('active'),
   current_period_end: text('current_period_end'),
-  /** When a cancellation scheduled in the portal takes effect; null while
-   *  the plan simply renews. The plan stays paid until this passes, so the
+  /** When a cancellation made in the portal takes effect; null while the
+   *  plan simply renews. The plan stays paid until this passes, so the
    *  page can say "ends 5 Oct" instead of pretending nothing happened. */
   cancel_at: text('cancel_at'),
   created_at: text('created_at').default(now),

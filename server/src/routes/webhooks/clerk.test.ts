@@ -47,7 +47,7 @@ async function seedOrg(orgId: string) {
   await db.insert(apiKeysTable).values({ id: crypto.randomUUID(), user_id: owner, org_id: orgId, name: 'Prod', key_prefix: 'tply_', key_hash: `hash_${orgId}`, mode: 'live' });
   await db.insert(brands).values({ id: crypto.randomUUID(), user_id: owner, org_id: orgId, name: 'Look', theme: '{}' });
   await db.insert(assets).values({ id: crypto.randomUUID(), user_id: owner, org_id: orgId, imagekit_file_id: `file_${orgId}`, url: 'https://ik/x.png', name: 'x.png', mime: 'image/png', bytes: 10 });
-  await db.insert(subscriptions).values({ id: crypto.randomUUID(), user_id: owner, org_id: orgId, plan: 'pro', status: 'active', stripe_subscription_id: `sub_${orgId}`, stripe_customer_id: `cus_${orgId}` });
+  await db.insert(subscriptions).values({ id: crypto.randomUUID(), user_id: owner, org_id: orgId, plan: 'pro', status: 'active', lemonsqueezy_subscription_id: `sub_${orgId}` });
   await db.insert(orgUsage).values({ org_id: orgId, period: '2026-09', count: 5 });
   await db.insert(orgPrefs).values({ org_id: orgId, default_brand_id: 'classic' });
 }

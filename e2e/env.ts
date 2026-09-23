@@ -20,11 +20,10 @@ process.env.E2E_RUN_ID = process.env.E2E_RUN_ID ?? RUN_ID;
 // the e2e stack gets its own ports throughout. Client is 9101, not 9100: on
 // this machine 9100 is held by an unrelated long-running Flutter DevTools
 // process for a different project.
-export const PORTS = { client: 9101, api: 3101, fakes: 3999, stripe: 3998 } as const;
+export const PORTS = { client: 9101, api: 3101, fakes: 3999 } as const;
 export const BASE_URL = `http://localhost:${PORTS.client}`;
 export const API_URL = `http://127.0.0.1:${PORTS.api}`;
 export const FAKES_URL = `http://127.0.0.1:${PORTS.fakes}`;
-export const STRIPE_URL = `http://127.0.0.1:${PORTS.stripe}`;
 
 /** A fresh database per run. Under e2e/.tmp so a crashed run leaves a file
  *  you can open, and the next run does not see it. */
@@ -136,13 +135,14 @@ export function stackEnv(): Record<string, string> {
     API_URL,
     SQLITE_DB_PATH: DB_PATH,
     INTERNAL_API_SECRET: process.env.INTERNAL_API_SECRET || 'e2e-internal-secret',
-    STRIPE_SECRET_KEY: process.env.STRIPE_SECRET_KEY || 'sk_test_e2e',
-    STRIPE_WEBHOOK_SECRET: process.env.STRIPE_WEBHOOK_SECRET || 'whsec_e2e',
-    // The Stripe fake answers on its own port. The price id only has to
-    // exist: the checkout route refuses without one, and the fake never
-    // looks at it.
-    STRIPE_API_BASE: STRIPE_URL,
-    STRIPE_PRICE_PRO: 'price_e2e_pro',
+    LEMONSQUEEZY_API_KEY: process.env.LEMONSQUEEZY_API_KEY || 'ls_e2e',
+    LEMONSQUEEZY_WEBHOOK_SECRET: process.env.LEMONSQUEEZY_WEBHOOK_SECRET || 'ls_webhook_e2e',
+    LEMONSQUEEZY_API_BASE: `${FAKES_URL}/lemonsqueezy`,
+    // The store only has to exist for the checkout route; the variants are
+    // what the forged webhooks name, and each must map to its plan.
+    LEMONSQUEEZY_STORE_ID: '1',
+    LEMONSQUEEZY_VARIANT_PRO: '101',
+    LEMONSQUEEZY_VARIANT_ENTERPRISE: '202',
     IMAGEKIT_PUBLIC_KEY: 'public_e2e',
     IMAGEKIT_PRIVATE_KEY: 'private_e2e',
     IMAGEKIT_URL_ENDPOINT: `${FAKES_URL}/imagekit/cdn`,

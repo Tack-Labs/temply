@@ -14,14 +14,14 @@ export const LEGAL = {
   contactEmail: CONTACT_EMAIL,
   governingLaw: 'England and Wales',
   /** ISO date; shown as "Last updated". Bump it when the text changes. */
-  updated: '2026-09-05',
+  updated: '2026-09-23',
 } as const;
 
 /** The services personal data passes through, named so the privacy policy
  *  is honest about who else holds it and why. */
 export const PROCESSORS = [
   { name: 'Clerk', purpose: 'sign-in, accounts and team membership', site: 'https://clerk.com' },
-  { name: 'Stripe', purpose: 'payments and invoices; card details never reach us', site: 'https://stripe.com' },
+  { name: 'Lemon Squeezy', purpose: 'checkout, payments and invoices, as the merchant of record that sells you the plan; card details never reach us', site: 'https://www.lemonsqueezy.com' },
   { name: 'Resend', purpose: 'the email we send: test sends from the editor and contact-form delivery', site: 'https://resend.com' },
   { name: 'ImageKit', purpose: 'storing the images you upload for your templates', site: 'https://imagekit.io' },
   { name: 'Sentry', purpose: 'error reports when something in the product breaks', site: 'https://sentry.io' },

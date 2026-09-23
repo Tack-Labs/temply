@@ -126,9 +126,7 @@ const nextConfig = {
       },
     ];
   },
-  // Billing and API keys moved under Settings. These catch bookmarks and Stripe
-  // checkout sessions already in flight, whose return URLs were baked at
-  // creation.
+  // Billing and API keys moved under Settings. These catch bookmarks.
   async redirects() {
     return [
       { source: '/dashboard/billing', destination: '/dashboard/settings/plan', permanent: false },

@@ -26,7 +26,6 @@ export function initTables(sqlite: Database) {
   )`);
   sqlite.run(`CREATE TABLE IF NOT EXISTS subscriptions (
     id TEXT PRIMARY KEY, user_id TEXT NOT NULL UNIQUE,
-    stripe_customer_id TEXT UNIQUE, stripe_subscription_id TEXT,
     plan TEXT NOT NULL DEFAULT 'free', status TEXT NOT NULL DEFAULT 'active',
     current_period_end TEXT,
     created_at TEXT DEFAULT (datetime('now')), updated_at TEXT DEFAULT (datetime('now'))
@@ -109,6 +108,12 @@ export function initTables(sqlite: Database) {
     WHERE published_at IS NULL`);
 
   addColumnIfMissing(sqlite, 'subscriptions', 'cancel_at', 'TEXT');
+  // Databases from before Lemon Squeezy keep their Stripe columns, unread:
+  // SQLite cannot drop a UNIQUE column in place.
+  addColumnIfMissing(sqlite, 'subscriptions', 'lemonsqueezy_subscription_id', 'TEXT');
+  addColumnIfMissing(sqlite, 'subscriptions', 'lemonsqueezy_updated_at', 'TEXT');
+  // Every webhook finds its row by subscription.
+  sqlite.run(`CREATE INDEX IF NOT EXISTS subscriptions_lemonsqueezy_subscription_id ON subscriptions(lemonsqueezy_subscription_id)`);
 
   // One-time migration: the top plan was renamed from `scale` to `enterprise`.
   sqlite.run(`UPDATE subscriptions SET plan = 'enterprise' WHERE plan = 'scale'`);

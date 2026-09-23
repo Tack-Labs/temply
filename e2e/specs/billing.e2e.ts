@@ -5,12 +5,12 @@ import { makeApi } from '../fixtures/api';
 import { renameTo, publish } from '../fixtures/editor';
 import { refreshSession, signInAs } from '../fixtures/session';
 import { readWorkspaces } from '../fixtures/workspaces';
-import { recordedCheckout, completeCheckout, cancelSubscription, type CheckoutSession } from '../setup/plan';
+import { recordedCheckout, completeCheckout, cancelSubscription, expireSubscription, type CheckoutData } from '../setup/plan';
 
 // The second user's own workspace is the one Free workspace the run has;
-// these tests move it Free → Pro → Free in order, so they run serially, on
-// one project (phone-chromium ignores the file), with no retry: a retry
-// would find the plan already moved.
+// these tests move it Free → Pro → cancelled → Free in order, so they run
+// serially, on one project (phone-chromium ignores the file), with no
+// retry: a retry would find the plan already moved.
 test.describe.configure({ mode: 'serial', retries: 0 });
 
 /** The plan card is a plain box with no role of its own, so the card that
@@ -21,7 +21,8 @@ const currentPlanRow = (page: Page, plan: 'Free' | 'Pro') => page.getByText(new 
 test.describe('billing', () => {
   let context: BrowserContext | undefined;
   let page: Page;
-  let session: CheckoutSession;
+  let session: CheckoutData;
+  let subscriptionId: string;
 
   test.beforeEach(async ({ browser }) => {
     ({ context, page } = await signInAs(browser, TEST_USER_2, readWorkspaces().second));
@@ -96,9 +97,17 @@ test.describe('billing', () => {
     await page.getByRole('button', { name: 'Upgrade' }).click();
     await expect(page).toHaveURL(/\/dashboard\/settings\/plan\?success=true/);
     await expect(page.getByText('Subscription updated')).toBeVisible();
-    // Stripe's webhook is the only forged step; the checkout above was real.
+    // Loaded before the webhook, the page still reads Free.
+    await expect(currentPlanRow(page, 'Free')).toBeVisible();
+    // Lemon Squeezy's webhook is the only forged step; the checkout above
+    // was real.
     session = await recordedCheckout(fakes);
-    await completeCheckout(page.request, fakes, session, 'pro');
+    subscriptionId = await completeCheckout(page.request, fakes, session, 'pro');
+    // So it still offers Upgrade. A second subscription would bill the
+    // workspace twice: the checkout is refused, and the page catches up.
+    await page.getByRole('button', { name: 'Upgrade' }).click();
+    await expect(page.getByText('This workspace already has a paid plan. Change it from Manage subscription.')).toBeVisible();
+    await expect(currentPlanRow(page, 'Pro')).toBeVisible();
     await page.goto('/dashboard/settings/plan');
     await expect(currentPlanRow(page, 'Pro')).toBeVisible();
     await expect(page.getByRole('button', { name: 'Manage subscription' })).toBeVisible();
@@ -120,8 +129,23 @@ test.describe('billing', () => {
     await expect(page).toHaveURL(/portal=fake/);
   });
 
-  test('a cancelled subscription returns the workspace to Free', async ({ fakes }) => {
-    await cancelSubscription(page.request, fakes, session.customer);
+  test('a cancelled plan runs to its end date and offers the way back', async ({ fakes }) => {
+    await cancelSubscription(page.request, fakes, session, subscriptionId, 'pro');
+    await page.goto('/dashboard/settings/plan');
+    // The plan is still Pro until the period paid for runs out; the badge
+    // says when, where "Current plan" stood.
+    await expect(page.getByText(/^Pro\s*Ends .+$/)).toBeVisible();
+    await expect(currentPlanRow(page, 'Pro')).toHaveCount(0);
+    await expect(page.getByText('0 / 50,000')).toBeVisible();
+    // The cancellation is undone in the portal. The session is renewed
+    // first for the reason the portal test gives.
+    await refreshSession(page);
+    await page.getByRole('button', { name: 'Resume plan' }).click();
+    await expect(page).toHaveURL(/portal=fake/);
+  });
+
+  test('an expired subscription returns the workspace to Free', async ({ fakes }) => {
+    await expireSubscription(page.request, fakes, session, subscriptionId, 'pro');
     await page.goto('/dashboard/settings/plan');
     await expect(currentPlanRow(page, 'Free')).toBeVisible();
     await expect(page.getByRole('button', { name: 'Manage subscription' })).toHaveCount(0);

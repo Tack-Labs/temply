@@ -3,7 +3,7 @@
  * URL — metadata, the sitemap, docs snippets, the legal pages — reads it
  * from here, so the domain is an environment variable, not a string to
  * hunt for. NEXT_PUBLIC_APP_URL is the same variable the API server uses
- * for image URLs and Stripe return URLs; the two must agree.
+ * for image URLs and the checkout return URL; the two must agree.
  */
 export const SITE_URL = (process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:9000').replace(/\/$/, '');
 

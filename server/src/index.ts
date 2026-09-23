@@ -13,7 +13,7 @@ import { emailsRoutes } from './routes/emails';
 import { publicRoutes } from './routes/public';
 import { workspaceRoutes } from './routes/workspace';
 import { contactRoutes } from './routes/contact';
-import { webhookRoutes } from './routes/webhooks/stripe';
+import { lemonSqueezyWebhookRoutes } from './routes/webhooks/lemonsqueezy';
 import { clerkWebhookRoutes } from './routes/webhooks/clerk';
 import { authRoutes } from './routes/auth/logout';
 import { healthRoutes } from './routes/health';
@@ -58,7 +58,7 @@ const app = new Elysia()
   .use(publicRoutes)
   .use(workspaceRoutes)
   .use(contactRoutes)
-  .use(webhookRoutes)
+  .use(lemonSqueezyWebhookRoutes)
   .use(clerkWebhookRoutes)
   .use(authRoutes)
   .use(healthRoutes)

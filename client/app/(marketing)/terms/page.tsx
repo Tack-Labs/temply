@@ -80,8 +80,9 @@ export default function TermsPage() {
         <List
           items={[
             <>
-              <Strong>Billing.</Strong> Paid plans are billed monthly in advance by card through Stripe. Your
-              subscription renews automatically until you cancel.
+              <Strong>Billing.</Strong> Paid plans are sold through Lemon Squeezy, our reseller and merchant of
+              record: it takes payment, monthly in advance, and charges any sales tax or VAT due. Your subscription
+              renews automatically until you cancel.
             </>,
             <>
               <Strong>Cancelling.</Strong> Cancel any time from the plan page. Your plan stays active until the end

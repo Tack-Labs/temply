@@ -1,14 +1,14 @@
 import { Elysia } from 'elysia';
 import { verifyWebhook } from '@clerk/backend/webhooks';
-import { getStripe } from '../../lib/billing';
 import { json } from '../../lib/errors';
 import { getImageKit } from '../../lib/imagekit';
+import { cancelSubscription } from '../../lib/lemonsqueezy';
 import { purgeLegacyUser, purgeOrganization } from '../../lib/purge';
 import { dbPlugin } from '../../plugins/db';
 
 /**
  * Clerk tells us when an account goes; nothing else does. Without this a
- * deleted organization kept its templates, keys and — worst — its Stripe
+ * deleted organization kept its templates, keys and — worst — its
  * subscription, so a customer who left kept paying. Register the endpoint
  * in the Clerk dashboard for organization.deleted and user.deleted.
  */
@@ -29,11 +29,7 @@ export const clerkWebhookRoutes = new Elysia()
     }
 
     const effects = {
-      cancelSubscription: process.env.STRIPE_SECRET_KEY
-        ? async (id: string) => {
-            await getStripe().subscriptions.cancel(id);
-          }
-        : undefined,
+      cancelSubscription: process.env.LEMONSQUEEZY_API_KEY ? cancelSubscription : undefined,
       deleteFile: (() => {
         const ik = getImageKit();
         return ik ? async (id: string) => { await ik.deleteFile(id); } : undefined;

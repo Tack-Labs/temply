@@ -13,8 +13,8 @@ type Fixtures = {
   /** What this test may ask of the fakes: `requests` is scoped to the test,
    *  and `reset` is left off on purpose (see the fixture). */
   fakes: {
-    requests: (service: 'stripe' | 'imagekit' | 'resend') => Promise<Recorded[]>;
-    signStripeEvent: typeof fakes.signStripeEvent;
+    requests: (service: 'lemonsqueezy' | 'imagekit' | 'resend') => Promise<Recorded[]>;
+    signLemonSqueezyEvent: typeof fakes.signLemonSqueezyEvent;
   };
   api: ReturnType<typeof makeApi>;
 };
@@ -70,7 +70,7 @@ export const test = base.extend<Fixtures>({
   // biome-ignore lint/correctness/noEmptyPattern: as above
   fakes: async ({}, use) => {
     const startedAt = Date.now();
-    await use({ requests: (service) => fakes.requests(service, startedAt), signStripeEvent: fakes.signStripeEvent });
+    await use({ requests: (service) => fakes.requests(service, startedAt), signLemonSqueezyEvent: fakes.signLemonSqueezyEvent });
   },
   // Seeding goes through the page's own cookie jar rather than the
   // standalone `request` fixture, which starts from the stored session and
