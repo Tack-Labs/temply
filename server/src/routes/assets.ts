@@ -1,10 +1,11 @@
 import { Elysia, t } from 'elysia';
-import { and, count, desc, eq, like, sql } from 'drizzle-orm';
+import { and, count, desc, eq, like } from 'drizzle-orm';
 import { assets, mails, templateVersions } from '@temply/shared/schema';
 import { PLAN_LIMITS } from '@temply/shared/plans';
 import { checkStorageLimit, getPlan, getStorageUsed } from '../lib/billing';
 import { json, notFound, paymentRequired, unauthorized } from '../lib/errors';
 import { assetFolder, getImageKit } from '../lib/imagekit';
+import { nextStamp } from '../lib/stamp';
 import { authPlugin } from '../plugins/auth';
 import { noWorkspace } from '../lib/workspace';
 import { dbPlugin } from '../plugins/db';
@@ -118,6 +119,9 @@ export const assetsRoutes = new Elysia()
       bytes: uploaded.size,
       width: uploaded.width ?? null,
       height: uploaded.height ?? null,
+      // The column default counts whole seconds, and the library lists newest
+      // first: two uploads in one second would come back in either order.
+      created_at: nextStamp(),
     };
     // If this insert fails the ImageKit file is orphaned; reconciliation is
     // a documented non-goal for now.
@@ -129,7 +133,7 @@ export const assetsRoutes = new Elysia()
   .get('/api/v1/assets', async (ctx) => {
     if (!ctx.userId) return unauthorized();
     if (!ctx.orgId) return noWorkspace();
-    const list = await ctx.db.select().from(assets).where(eq(assets.org_id, ctx.orgId)).orderBy(desc(assets.created_at), desc(sql`rowid`));
+    const list = await ctx.db.select().from(assets).where(eq(assets.org_id, ctx.orgId)).orderBy(desc(assets.created_at), desc(assets.id));
     const { plan } = await getPlan(ctx.db, ctx.orgId);
     const raw = PLAN_LIMITS[plan].maxStorageBytes;
     return json({
