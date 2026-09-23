@@ -1,6 +1,6 @@
 import { Tooltip, TooltipContent, TooltipTrigger } from './tooltip';
 import { LucideIcon } from 'lucide-react';
-import { SVGIcon } from '../icons/grid-lines';
+import { SVGIcon } from '../icons/svg-icon';
 import { DropdownSelect } from '~/components/ui/dropdown-select';
 
 type SelectProps = {

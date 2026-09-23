@@ -37,7 +37,7 @@ start() {
 
 start
 curl -fsS --max-time 10 "$address/" >/dev/null
-curl -fsS --max-time 10 "$address/favicon.svg" >/dev/null
+curl -fsS --max-time 10 "$address/brand/icon.svg" >/dev/null
 asset=$(docker exec "$name" find /app/client/.next/static -type f -name '*.js' -print -quit)
 curl -fsS --max-time 10 "$address/_next/static/${asset#/app/client/.next/static/}" >/dev/null
 # Client-supplied identity headers must not bypass the Next.js proxy.

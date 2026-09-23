@@ -1,9 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" role="img" aria-labelledby="t-title t-desc">
-  <title id="t-title">Temply</title>
-  <desc id="t-desc">Three indigo bars tapering downward, forming a T that is also a stack of templates.</desc>
-  <g fill="#4F46E5">
-    <rect x="6" y="7" width="36" height="9.5" rx="3.5"/>
-    <rect x="13" y="20.5" width="22" height="9.5" rx="3.5"/>
-    <rect x="19" y="34" width="10" height="9.5" rx="3.5"/>
-  </g>
-</svg>

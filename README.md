@@ -33,7 +33,7 @@ Never npm, yarn or pnpm.
 | Billing | Stripe SDK 22 (Checkout, Customer Portal, webhooks) |
 | Email | Resend 4 for test sends and the contact form |
 | Images | ImageKit 6 for uploads |
-| Validation | zod 3 and Elysia's `t` schemas |
+| Validation | Elysia's `t` schemas |
 | Monitoring | `@sentry/bun` 10 |
 
 **Shared** (`shared/`): the Drizzle schema, plan limits, the renderer
@@ -48,9 +48,10 @@ cp .env.example client/.env     # then keep only the client block
 cp .env.example server/.env     # then keep only the server block
 ```
 
-`.env.example` is one file with two blocks; each side loads only its own
-file. Where a key appears in both blocks the values must match
-(`INTERNAL_API_SECRET`, `NEXT_PUBLIC_APP_URL`, the Clerk keys).
+`.env.example` holds only the values you have to supply, in two blocks;
+each side loads only its own file. Where a key appears in both blocks the
+values must match (`INTERNAL_API_SECRET`, `NEXT_PUBLIC_APP_URL`, the Clerk
+keys).
 
 What you need before the app is useful:
 
@@ -71,9 +72,8 @@ node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
 
 ## Environment variables
 
-`client/.env` and `server/.env` are separate files; `.env.example` shows
-both blocks with comments. "Both" below means the same value must be in
-each file.
+The full list, optional ones and their defaults included. "Both" means the
+same value must be in `client/.env` and `server/.env`.
 
 | Variable | Side | Required | What it does |
 |---|---|---|---|
@@ -89,7 +89,8 @@ each file.
 | `STRIPE_WEBHOOK_SECRET` | server | for billing | Signing secret of the `/api/webhooks/stripe` endpoint. |
 | `RESEND_API_KEY` | server | for sending | Test sends from the editor and contact-form delivery. Without it sends are refused and contact messages are stored but not delivered. |
 | `SENDING_FROM_ADDRESS`, `SENDING_FROM_LABEL` | server | no | The verified sender test sends go out from; users set a display name only. Defaults `send@temply.app` / `Temply`. |
-| `CONTACT_EMAIL`, `CONTACT_FROM_EMAIL` | server | for contact form | Where contact-form messages are delivered, and the sender they arrive from. |
+| `CONTACT_EMAIL` | server | for contact form | Where contact-form messages are delivered. |
+| `CONTACT_FROM_EMAIL` | server | no | The sender contact-form messages arrive from. Defaults to Resend's test sender `onboarding@resend.dev`; set a verified address in production. |
 | `IMAGEKIT_PUBLIC_KEY`, `IMAGEKIT_PRIVATE_KEY`, `IMAGEKIT_URL_ENDPOINT` | server | for uploads | Image uploads. Unset: the library and uploads are off, pasted image URLs still work. |
 | `NEXT_PUBLIC_SENTRY_DSN`, `SENTRY_DSN` | client / both | no | Error reporting. The `NEXT_PUBLIC_` one reaches the browser bundle; server runtimes read `SENTRY_DSN` first. Nothing is reported when unset. |
 | `NEXT_PUBLIC_SENTRY_ENVIRONMENT`, `SENTRY_ENVIRONMENT` | client / server | no | Environment tag on reports; defaults to `NODE_ENV`. |
@@ -301,8 +302,6 @@ For an additional consistent snapshot, run the existing backup script
 `cd /app/server && bun scripts/backup-db.ts`. Do not use `railway run` for
 this: it runs locally and cannot access the mounted volume. Export useful
 snapshots off the volume and enable scheduled Railway volume backups.
-`server/litestream.yml` remains an optional replication
-example and is not launched by this image.
 
 ### Restoring data and rollback
 
@@ -338,6 +337,8 @@ server/
   scripts/backup-db.ts
 shared/
   schema.ts plans.ts theme.ts preflight.ts
+e2e/                    Playwright specs and the fakes they run against
+deploy/railway/         container start, smoke test and deploy scripts
 scripts/dev-public.ts   the tunnel workflow
 ```
 

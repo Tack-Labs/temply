@@ -18,7 +18,9 @@ import { useInputDock } from '../ui/input-dock';
  * the desktop's bubble menu gives a pill follows below.
  */
 export function VariableMenuContent({ editor }: { editor: Editor }) {
-  // The node by identity — see ButtonMenuContent for why not its attrs.
+  // The node, compared by identity — not its attrs: tiptap's default
+  // equality walks the object and calls valueOf on each value, and a null
+  // attribute throws inside it. A new node object arrives on every change.
   const node = useEditorState({
     editor,
     selector: ({ editor }) => {

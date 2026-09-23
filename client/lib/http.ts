@@ -112,18 +112,6 @@ export async function httpGet<ResponseType = AppResponse>(
   return httpCall<ResponseType>(queryUrl, options);
 }
 
-export async function httpPatch<ResponseType = AppResponse>(
-  url: string,
-  body: Record<string, any>,
-  options?: HttpOptionsType
-): Promise<ApiReturn<ResponseType>> {
-  return httpCall<ResponseType>(url, {
-    ...options,
-    method: 'PATCH',
-    body: JSON.stringify(body),
-  });
-}
-
 export async function httpPut<ResponseType = AppResponse>(
   url: string,
   body: Record<string, any>,

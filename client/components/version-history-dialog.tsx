@@ -1,7 +1,7 @@
 'use client';
 
 import { HistoryIcon, Loader2Icon, RotateCcwIcon, Undo2Icon } from 'lucide-react';
-import type { Mail } from '~/db/schema';
+import type { Mail } from '@temply/shared/schema';
 import { ConfirmDialog } from '~/components/ui/confirm-dialog';
 import { List, Row } from '~/components/ui/item';
 import { useMemo, useState } from 'react';

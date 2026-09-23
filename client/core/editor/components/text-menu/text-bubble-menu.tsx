@@ -5,7 +5,7 @@ import { isCustomNodeSelected } from '@/editor/utils/is-custom-node-selected';
 import { isTextSelected } from '@/editor/utils/is-text-selected';
 import { BubbleMenu, BubbleMenuProps } from '@tiptap/react';
 import { LucideIcon } from 'lucide-react';
-import { SVGIcon } from '../icons/grid-lines';
+import { SVGIcon } from '../icons/svg-icon';
 import { Divider } from '../ui/divider';
 import { TooltipProvider } from '../ui/tooltip';
 import { MenuToolbar } from '../ui/menu-toolbar';

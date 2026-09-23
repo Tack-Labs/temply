@@ -1,13 +1,3 @@
-import type { ZodError } from 'zod';
-
-export function serializeZodError(error: ZodError) {
-  const errors = error.errors.map((e) => `${e.path.join('.')}: ${e.message}`);
-  return new Response(JSON.stringify({ status: 400, message: 'Validation error', errors }), {
-    status: 400,
-    headers: { 'Content-Type': 'application/json' },
-  });
-}
-
 export function json(data: unknown, status = 200) {
   return new Response(JSON.stringify(data), {
     status,

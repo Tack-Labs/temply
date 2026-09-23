@@ -13,7 +13,7 @@ import { hasUnpublishedChanges } from '@temply/shared/publish';
 import { clearDraft, PLAYGROUND_DRAFT_ID } from '~/lib/drafts';
 import { createEditorUploader } from '~/lib/assets';
 import { useCopyToClipboard } from '~/hooks/use-copy-to-clipboard';
-import type { Mail } from '~/db/schema';
+import type { Mail } from '@temply/shared/schema';
 import type { ContentMode } from '../content-mode-switch';
 import {
   initialPreviewData,

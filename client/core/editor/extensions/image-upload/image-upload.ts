@@ -12,9 +12,6 @@ export type ImageUploadOptions = Omit<ImageUploadPluginOptions, 'editor'> & {
   /** Whether a src is one the host app stores, as opposed to a pasted URL. */
   isLibraryImage?: (src: string) => boolean;
 };
-export type ImageUploadStorage = {
-  placeholderImages: Set<string>;
-};
 
 export const ImageUploadExtension = Extension.create<ImageUploadOptions>({
   name: 'imageUpload',

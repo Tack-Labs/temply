@@ -8,8 +8,7 @@
  * through SQLite itself while the server keeps writing, where copying the
  * file would catch it mid-transaction. Run it from cron (hourly is cheap —
  * the file is small) and ship the directory somewhere off the machine; a
- * backup on the same disk as the database is a backup of nothing. For
- * continuous replication instead of snapshots, see litestream.yml.
+ * backup on the same disk as the database is a backup of nothing.
  */
 import { Database } from 'bun:sqlite';
 import { mkdirSync, readdirSync, statSync, unlinkSync } from 'node:fs';

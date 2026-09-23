@@ -48,9 +48,6 @@ export const alignCommands: EditorCommand[] = (['left', 'center', 'right'] as co
   run: (e, options) => { chain(e, options).setTextAlign(side).run(); },
 }));
 
-/** The three the format bar shows without opening the panel. */
-export const PRIMARY_TEXT_COMMANDS: EditorCommand[] = [textCommands.bold, textCommands.italic, textCommands.underline];
-
 export function currentTextColor(editor: Editor): string {
   return editor.getAttributes('textStyle').color || DEFAULT_TEXT_COLOR;
 }
