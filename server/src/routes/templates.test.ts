@@ -485,6 +485,14 @@ describe('version history', () => {
     return { template, versions };
   }
 
+  it('numbers each publish and lists the newest ten, newest first, however fast they land', async () => {
+    await givePlan(db, OWNER, 'pro');
+    const template = await createTemplate(OWNER, 'Rapid');
+    for (let i = 0; i < 12; i++) await post(app, `/api/v1/templates/${template.id}/publish`, {}, OWNER);
+    const { versions } = await (await get(app, `/api/v1/templates/${template.id}/versions`, OWNER)).json();
+    expect(versions.map((v: { version_number: number }) => v.version_number)).toEqual([12, 11, 10, 9, 8, 7, 6, 5, 4, 3]);
+  });
+
   it('restores an earlier version into the draft without snapshotting or publishing', async () => {
     const { template, versions } = await publishedTwice('Version one', 'Version two');
     expect(versions).toHaveLength(2);

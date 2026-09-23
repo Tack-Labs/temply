@@ -45,11 +45,10 @@ function publishedPatch(row: Pick<Row, 'content' | 'theme' | 'preview_text'>, st
  * list within minutes.
  */
 async function snapshotVersion(db: Db, row: Row) {
-  const [maxVersion] = await db
-    .select({ max: sql<number>`COALESCE(MAX(${templateVersions.version_number}), 0)` })
-    .from(templateVersions)
-    .where(eq(templateVersions.template_id, row.id));
-  const vn = (maxVersion?.max ?? 0) + 1;
+  // Numbered inside the insert: read first and written after, two publishes
+  // of one template could both take the same number, and the unique index
+  // on (template_id, version_number) would refuse the second.
+  const next = sql`(SELECT COALESCE(MAX(${templateVersions.version_number}), 0) + 1 FROM ${templateVersions} WHERE ${templateVersions.template_id} = ${row.id})`;
   await db.insert(templateVersions).values({
     id: crypto.randomUUID(),
     template_id: row.id,
@@ -59,12 +58,12 @@ async function snapshotVersion(db: Db, row: Row) {
     preview_text: row.preview_text,
     content: row.content,
     theme: row.theme,
-    version_number: vn,
+    version_number: next,
   });
   await db
     .delete(templateVersions)
     .where(
-      sql`${templateVersions.id} NOT IN (SELECT id FROM (SELECT ${templateVersions.id} FROM ${templateVersions} WHERE ${templateVersions.template_id} = ${row.id} ORDER BY ${templateVersions.created_at} DESC LIMIT 10)) AND ${templateVersions.template_id} = ${row.id}`,
+      sql`${templateVersions.id} NOT IN (SELECT id FROM (SELECT ${templateVersions.id} FROM ${templateVersions} WHERE ${templateVersions.template_id} = ${row.id} ORDER BY ${templateVersions.version_number} DESC LIMIT 10)) AND ${templateVersions.template_id} = ${row.id}`,
     );
 }
 
@@ -325,7 +324,7 @@ export const templatesRoutes = new Elysia()
   .get('/api/v1/templates/:id/versions', async (ctx) => {
     if (!ctx.userId) return unauthorized();
     if (!ctx.orgId) return noWorkspace();
-    const versions = await ctx.db.select({ id: templateVersions.id, version_number: templateVersions.version_number, title: templateVersions.title, created_at: templateVersions.created_at }).from(templateVersions).where(eq(templateVersions.template_id, ctx.params.id)).orderBy(desc(templateVersions.created_at));
+    const versions = await ctx.db.select({ id: templateVersions.id, version_number: templateVersions.version_number, title: templateVersions.title, created_at: templateVersions.created_at }).from(templateVersions).where(eq(templateVersions.template_id, ctx.params.id)).orderBy(desc(templateVersions.version_number));
     return json({ versions });
   })
 

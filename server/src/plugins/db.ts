@@ -62,6 +62,10 @@ export function initTables(sqlite: Database) {
   sqlite.run(`CREATE INDEX IF NOT EXISTS assets_user_id ON assets(user_id)`);
   // Every integrator call finds its key by hash.
   sqlite.run(`CREATE INDEX IF NOT EXISTS api_keys_key_hash ON api_keys(key_hash)`);
+  // One number per version of a template. Its leading column also serves
+  // every lookup of a template's versions, which need no index of their own.
+  renumberClashingVersions(sqlite);
+  sqlite.run(`CREATE UNIQUE INDEX IF NOT EXISTS template_versions_number ON template_versions(template_id, version_number)`);
 
   addColumnIfMissing(sqlite, 'mails', 'theme', 'TEXT');
   addColumnIfMissing(sqlite, 'template_versions', 'theme', 'TEXT');
@@ -124,6 +128,29 @@ export function initTables(sqlite: Database) {
       sqlite.run(`UPDATE ${table} SET ${col} = datetime('now') WHERE ${col} IS NULL`);
     }
   }
+}
+
+/**
+ * A unique index refuses to build over a clash, and a boot that fails takes
+ * the service down. Versions used to be numbered by reading the highest and
+ * writing the next, so two publishes of one template at once could have
+ * shared a number. The later copy moves to the top of its template's
+ * history; nothing is deleted. Runs only until the index exists.
+ */
+function renumberClashingVersions(sqlite: Database) {
+  if (sqlite.query(`SELECT 1 FROM sqlite_master WHERE type = 'index' AND name = 'template_versions_number'`).get()) return;
+  const clashes = sqlite
+    .query(`SELECT v.id, v.template_id FROM template_versions v WHERE EXISTS (
+      SELECT 1 FROM template_versions o
+      WHERE o.template_id = v.template_id AND o.version_number = v.version_number AND o.rowid < v.rowid
+    ) ORDER BY v.rowid`)
+    .all() as Array<{ id: string; template_id: string }>;
+  const renumber = sqlite.prepare(`UPDATE template_versions
+    SET version_number = (SELECT MAX(version_number) + 1 FROM template_versions WHERE template_id = ?)
+    WHERE id = ?`);
+  sqlite.transaction(() => {
+    for (const clash of clashes) renumber.run(clash.template_id, clash.id);
+  })();
 }
 
 /** SQLite has no `ADD COLUMN IF NOT EXISTS`, and existing installs already have
