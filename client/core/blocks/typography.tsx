@@ -4,10 +4,7 @@ import {
   Heading1,
   Heading2,
   Heading3,
-  DivideIcon,
   TextQuote,
-  FootprintsIcon,
-  EraserIcon,
 } from 'lucide-react';
 
 export const text: BlockItem = {
@@ -70,17 +67,6 @@ export const heading3: BlockItem = {
   },
 };
 
-export const hardBreak: BlockItem = {
-  title: 'Hard Break',
-  description: 'Add a break between lines.',
-  searchTerms: ['break', 'line'],
-  icon: <DivideIcon className="mly:h-4 mly:w-4" />,
-  command: ({ editor, range }) => {
-    // @ts-ignore
-    editor.chain().focus().deleteRange(range).setHardBreak().run();
-  },
-};
-
 export const blockquote: BlockItem = {
   title: 'Blockquote',
   description: 'Add blockquote.',
@@ -92,24 +78,3 @@ export const blockquote: BlockItem = {
   },
 };
 
-export const footer: BlockItem = {
-  title: 'Footer',
-  description: 'Add a footer text to email.',
-  searchTerms: ['footer', 'text'],
-  icon: <FootprintsIcon className="mly:h-4 mly:w-4" />,
-  command: ({ editor, range }) => {
-    // @ts-ignore
-    editor.chain().focus().deleteRange(range).setFooter().run();
-  },
-};
-
-export const clearLine: BlockItem = {
-  title: 'Clear Line',
-  description: 'Clear the current line.',
-  searchTerms: ['clear', 'line'],
-  icon: <EraserIcon className="mly:h-4 mly:w-4" />,
-  command: ({ editor, range }) => {
-    // @ts-ignore
-    editor.chain().focus().selectParentNode().deleteSelection().run();
-  },
-};

@@ -1,9 +1,12 @@
 import { createClerkClient } from '@clerk/backend';
-const clerk = createClerkClient({ secretKey: process.env.CLERK_SECRET_KEY });
 import { Elysia } from 'elysia';
+import { authPlugin } from '../../plugins/auth';
+import { dbPlugin } from '../../plugins/db';
 
 export const authRoutes = new Elysia()
-  .post('/auth/logout', async (ctx: any) => {
+  .use(authPlugin)
+  .use(dbPlugin)
+  .post('/auth/logout', async (ctx) => {
     const clerk = createClerkClient({ secretKey: process.env.CLERK_SECRET_KEY });
     const cookieHeader = ctx.request.headers.get('cookie') || '';
     const sessionId = cookieHeader.split(';').find((c: string) => c.trim().startsWith('__session='))?.split('=')[1];

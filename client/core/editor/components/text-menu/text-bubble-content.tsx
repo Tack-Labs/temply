@@ -7,7 +7,6 @@ import {
   ItalicIcon,
   List,
   ListOrdered,
-  LucideIcon,
   StrikethroughIcon,
   UnderlineIcon,
 } from 'lucide-react';
@@ -19,6 +18,8 @@ import { LinkInputPopover } from '../ui/link-input-popover';
 import { Divider } from '../ui/divider';
 import { ColorPicker } from '../ui/color-picker';
 import { BaseButton } from '../base-button';
+import { ShowPopover } from '../show-popover';
+import { textCommands } from '@/editor/commands/text';
 
 type TextBubbleContentProps = {
   editor: Editor;
@@ -35,36 +36,36 @@ export function TextBubbleContent(props: TextBubbleContentProps) {
   const items: BubbleMenuItem[] = [
     {
       name: 'bold',
-      isActive: () => editor?.isActive('bold')!,
-      command: () => editor?.chain().focus().toggleBold().run()!,
+      isActive: () => !!editor?.isActive('bold'),
+      command: () => !!editor?.chain().focus().toggleBold().run(),
       icon: BoldIcon,
       tooltip: 'Bold',
     },
     {
       name: 'italic',
-      isActive: () => editor?.isActive('italic')!,
-      command: () => editor?.chain().focus().toggleItalic().run()!,
+      isActive: () => !!editor?.isActive('italic'),
+      command: () => !!editor?.chain().focus().toggleItalic().run(),
       icon: ItalicIcon,
       tooltip: 'Italic',
     },
     {
       name: 'underline',
-      isActive: () => editor?.isActive('underline')!,
-      command: () => editor?.chain().focus().toggleUnderline().run()!,
+      isActive: () => !!editor?.isActive('underline'),
+      command: () => !!editor?.chain().focus().toggleUnderline().run(),
       icon: UnderlineIcon,
       tooltip: 'Underline',
     },
     {
       name: 'strike',
-      isActive: () => editor?.isActive('strike')!,
-      command: () => editor?.chain().focus().toggleStrike().run()!,
+      isActive: () => !!editor?.isActive('strike'),
+      command: () => !!editor?.chain().focus().toggleStrike().run(),
       icon: StrikethroughIcon,
       tooltip: 'Strikethrough',
     },
     {
       name: 'code',
-      isActive: () => editor?.isActive('code')!,
-      command: () => editor?.chain().focus().toggleCode().run()!,
+      isActive: () => !!editor?.isActive('code'),
+      command: () => !!editor?.chain().focus().toggleCode().run(),
       icon: CodeIcon,
       tooltip: 'Code',
     },
@@ -107,14 +108,14 @@ export function TextBubbleContent(props: TextBubbleContentProps) {
             command={() => {
               editor.chain().focus().toggleBulletList().run();
             }}
-            tooltip="Bullet List"
+            tooltip={textCommands.bulletList.label}
           />
           <BubbleMenuButton
             icon={ListOrdered}
             command={() => {
               editor.chain().focus().toggleOrderedList().run();
             }}
-            tooltip="Ordered List"
+            tooltip={textCommands.orderedList.label}
           />
         </>
       )}
@@ -139,9 +140,9 @@ export function TextBubbleContent(props: TextBubbleContentProps) {
             .setLink({ href: value })
             .setIsUrlVariable(isVariable ?? false)
             .setUnderline()
-            .run()!;
+            .run();
         }}
-        tooltip="External URL"
+        tooltip="Link address"
         editor={editor}
         isVariable={state.isUrlVariable}
       />
@@ -153,7 +154,7 @@ export function TextBubbleContent(props: TextBubbleContentProps) {
         onColorChange={(color) => {
           editor?.chain().setColor(color).run();
         }}
-        tooltip="Text Color"
+        tooltip="Text colour"
         suggestedColors={suggestedColors}
       >
         <BaseButton
@@ -173,6 +174,30 @@ export function TextBubbleContent(props: TextBubbleContentProps) {
           </div>
         </BaseButton>
       </ColorPicker>
+
+      {/* Paragraphs and headings have carried a showIfKey all along — the
+          renderer honours it and this menu's state already read it — but no
+          control ever offered it, so text was the one block type you could not
+          make conditional. */}
+      {(state.isParagraphActive || state.isHeadingActive) && (
+        <>
+          <Divider />
+          <ShowPopover
+            showIfKey={
+              state.isHeadingActive ? state.headingShowIfKey : state.paragraphShowIfKey
+            }
+            onShowIfKeyValueChange={(showIfKey) => {
+              editor
+                ?.chain()
+                .updateAttributes(state.isHeadingActive ? 'heading' : 'paragraph', {
+                  showIfKey,
+                })
+                .run();
+            }}
+            editor={editor}
+          />
+        </>
+      )}
     </>
   );
 }

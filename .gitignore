@@ -15,6 +15,12 @@ dist
 build
 .vercel
 
+# typescript
+*.tsbuildinfo
+
+# editors
+.idea/
+
 # misc
 .DS_Store
 *.pem
@@ -34,13 +40,37 @@ yarn-error.log*
 # turbo
 .turbo
 
-# vercel
-.vercel
-
-# clerk configuration (can include secrets)
-/.clerk/
+# clerk configuration (can include secrets); written inside client/
+.clerk/
 
 # local sqlite database
 server/*.db
 server/*.db-shm
 server/*.db-wal
+
+# Specs, plans and other working paperwork stay out of the repo (user rule: no
+# docs commits). The whole directory, not just docs/superpowers/ — an agent
+# running `git add -A` had already staged docs/plans and docs/specs once.
+#
+# Anchored to the repo root on purpose. Written as `docs/` it matches a
+# directory of that name at any depth, which swallowed client/components/docs
+# and client/app/(marketing)/docs — and Tailwind skips whatever .gitignore
+# excludes, so the utilities used only in those files stopped being generated
+# and the documentation page lost its layout.
+/docs/
+
+# Database snapshots from `bun run db:backup`
+server/backups/
+
+# Brainstorming mockups and specs — local working notes, not part of the app.
+.superpowers/
+
+# The e2e stack's own client build, kept apart from the dev server's .next
+/client/.next-e2e/
+
+# Playwright artifacts and the local Clerk keys (e2e/)
+/e2e/.env
+/e2e/.auth/
+/e2e/test-results/
+/e2e/playwright-report/
+/e2e/.tmp/

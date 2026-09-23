@@ -1,8 +1,10 @@
 import { BubbleMenu } from '@tiptap/react';
 import { sticky } from 'tippy.js';
-import { TextBubbleContent } from '../text-menu/text-bubble-content';
 import { EditorBubbleMenuProps } from '../text-menu/text-bubble-menu';
 import { TooltipProvider } from '../ui/tooltip';
+import { MenuToolbar } from '../ui/menu-toolbar';
+import { VariableMenuContent } from './variable-menu-content';
+import { PLACED_INSIDE_THE_PANE } from '@/editor/utils/menu-placement';
 
 export function VariableBubbleMenu(props: EditorBubbleMenuProps) {
   const { editor, appendTo } = props;
@@ -18,7 +20,7 @@ export function VariableBubbleMenu(props: EditorBubbleMenuProps) {
     },
     tippyOptions: {
       popperOptions: {
-        modifiers: [{ name: 'flip', enabled: false }],
+        modifiers: PLACED_INSIDE_THE_PANE,
       },
       plugins: [sticky],
       sticky: 'popper',
@@ -29,12 +31,15 @@ export function VariableBubbleMenu(props: EditorBubbleMenuProps) {
   };
 
   return (
-    <BubbleMenu
-      {...bubbleMenuProps}
-      className="mly:flex mly:gap-0.5 mly:rounded-lg mly:border mly:border-slate-200 mly:bg-white mly:p-0.5 mly:shadow-md"
-    >
+    <BubbleMenu {...bubbleMenuProps}>
       <TooltipProvider>
-        <TextBubbleContent showListMenu={false} editor={editor} />
+        <MenuToolbar
+          editor={editor}
+          label="Variable"
+          className="mly:flex mly:gap-0.5 mly:rounded-lg mly:border mly:border-slate-200 mly:bg-panel mly:p-0.5 mly:shadow-md"
+        >
+          <VariableMenuContent editor={editor} />
+        </MenuToolbar>
       </TooltipProvider>
     </BubbleMenu>
   );

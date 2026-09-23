@@ -21,10 +21,15 @@ export function ColumnsWidthConfig(props: ColumnsWidthConfigProps) {
 
   return (
     <Popover>
-      <PopoverTrigger className="mly:flex mly:size-7 mly:items-center mly:justify-center mly:gap-1 mly:rounded-md mly:text-sm mly:data-[state=open]:bg-soft-gray mly:hover:bg-soft-gray">
+      <PopoverTrigger
+        aria-label="Columns and widths"
+        title="Columns and widths"
+        className="mly:flex mly:size-7 mly:items-center mly:justify-center mly:gap-1 mly:rounded-md mly:text-sm mly:data-[state=open]:bg-soft-gray mly:transition-colors mly:hover:bg-soft-gray"
+      >
         <SlidersVertical className="mly:h-3 mly:w-3 mly:stroke-[2.5]" />
       </PopoverTrigger>
       <PopoverContent
+        aria-label="Columns and widths"
         className="mly:w-[300px] mly:rounded-lg mly:p-0.5!"
         side="top"
         sideOffset={8}
@@ -84,7 +89,7 @@ export function ColumnsWidthConfig(props: ColumnsWidthConfigProps) {
                     min={1}
                     max={90}
                     type="number"
-                    className="hide-number-controls mly:w-full mly:appearance-none mly:rounded-md mly:bg-soft-gray mly:px-1.5 mly:py-1 mly:pr-6 mly:text-sm mly:tabular-nums mly:outline-hidden mly:focus:bg-soft-gray mly:focus:outline-hidden mly:focus:ring-1 mly:focus:ring-midnight-gray/50"
+                    className="hide-number-controls mly:w-full mly:appearance-none mly:rounded-md mly:bg-soft-gray mly:px-1.5 mly:py-1 mly:pr-6 mly:text-sm mly:tabular-nums mly:focus:bg-soft-gray mly:focus:ring-1 mly:focus:ring-midnight-gray/50"
                     value={value}
                     onChange={(e) => {
                       const value = e.target.value;
@@ -115,8 +120,9 @@ function SwitchButton(props: SwitchButtonProps) {
 
   return (
     <button
+      type="button"
       className={cn(
-        'mly:flex mly:h-7 mly:items-center mly:gap-1 mly:rounded-md mly:px-2 mly:text-sm mly:text-gray-500 mly:hover:bg-soft-gray mly:hover:text-midnight-gray',
+        'mly:flex mly:h-7 mly:items-center mly:gap-1 mly:rounded-md mly:px-2 mly:text-sm mly:text-gray-500 mly:transition-colors mly:hover:bg-soft-gray mly:hover:text-midnight-gray',
         isActive && 'mly:bg-soft-gray mly:text-midnight-gray'
       )}
       onClick={onClick}

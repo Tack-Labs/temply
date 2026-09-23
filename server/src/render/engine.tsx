@@ -1,4 +1,4 @@
-import { Fragment, type CSSProperties, type JSX } from 'react';
+import { Fragment, type ComponentProps, type CSSProperties, type JSX } from 'react';
 import {
   Text,
   Html,
@@ -26,7 +26,6 @@ import { meta } from './meta';
 import { parse } from 'node-html-parser';
 import juice from 'juice';
 import type {
-  FontProps,
   RendererThemeOptions as ThemeOptions,
 } from '@temply/shared/theme';
 import {
@@ -42,12 +41,44 @@ interface NodeOptions {
   next?: JSONContent;
 
   payloadValue?: PayloadValue;
+  /** Which item of a Repeat this content belongs to. The margins a Repeat
+   *  trims — the first block's top, the last block's bottom — are the
+   *  block's edges, not each item's: trimming every item left the items
+   *  flush against each other while the blocks inside kept their gaps. */
+  repeatItem?: { index: number; count: number };
 }
 
 export interface MarkType {
-  [key: string]: any;
+  [key: string]: unknown;
   type: string;
   attrs?: Record<string, any> | undefined;
+}
+
+/**
+ * A spacer's height in pixels.
+ *
+ * The attribute is meant to be a number, but the slash command inserted the
+ * toolbar's size name instead — so documents in the wild carry `"sm"`, which
+ * reached the stylesheet as `height: smpx` and collapsed the spacer to
+ * nothing. Names are translated, anything else falls back to the default.
+ */
+const SPACER_SIZES: Record<string, number> = {
+  xs: 4,
+  sm: 8,
+  md: 16,
+  lg: 32,
+  xl: 64,
+};
+const DEFAULT_SPACER_HEIGHT = 8;
+
+function spacerHeight(height: unknown): number {
+  if (typeof height === 'number' && Number.isFinite(height)) return height;
+  if (typeof height === 'string') {
+    if (SPACER_SIZES[height] !== undefined) return SPACER_SIZES[height];
+    const parsed = Number.parseInt(height, 10);
+    if (Number.isFinite(parsed)) return parsed;
+  }
+  return DEFAULT_SPACER_HEIGHT;
 }
 
 const antialiased: CSSProperties = {
@@ -222,6 +253,12 @@ export interface RenderOptions {
    */
   pretty?: boolean;
   plainText?: boolean;
+  /**
+   * The data the template's variables and "Show if" conditions read. Omit it
+   * and variables pass through as `{{name}}` while every conditional block
+   * shows — the behaviour a template author wants while composing.
+   */
+  payload?: Record<string, PayloadValue>;
 }
 
 export type VariableFormatter = (options: {
@@ -233,6 +270,45 @@ export type LinkValues = Map<string, string>;
 
 export type PayloadValue = Record<string, any> | boolean;
 export type PayloadValues = Map<string, PayloadValue>;
+
+/**
+ * What a render with data does about a variable the data does not carry.
+ * `error` is the real thing — the placeholder set in the editor is for
+ * previews, and a send that quietly showed it would mail wrong words;
+ * `placeholder` is the editor's preview, which has nothing better to show;
+ * `empty` drops the pill.
+ */
+export type MissingVariablePolicy = 'error' | 'placeholder' | 'empty';
+
+export class MissingVariablesError extends Error {
+  constructor(readonly missing: string[]) {
+    super(`Missing values for: ${missing.join(', ')}`);
+    this.name = 'MissingVariablesError';
+  }
+}
+
+/** A Repeat's key held something other than a list. The caller's data is
+ *  wrong in a way only the caller can fix, so the API answers 422 rather
+ *  than the 500 a bare Error would become. */
+export class RepeatNotListError extends Error {
+  constructor(readonly key: string) {
+    super(`"${key}" must be a list for the Repeat block to read it`);
+    this.name = 'RepeatNotListError';
+  }
+}
+
+/**
+ * Root-relative sources ("/brand/logo.png") resolve against the app in a
+ * browser tab and against nothing in an inbox or a sandboxed preview frame.
+ * The renderer makes them absolute with the app's own origin — the same
+ * origin a finished checkout returns to — so the editor, the API and the review
+ * page all show the same image.
+ */
+function absoluteSrc<T extends string | null | undefined>(src: T): T | string {
+  if (typeof src !== 'string' || !src.startsWith('/') || src.startsWith('//')) return src;
+  const origin = (process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:9000').replace(/\/$/, '');
+  return `${origin}${src}`;
+}
 
 export class Engine {
   readonly preheader = new Preheader(this);
@@ -249,6 +325,8 @@ export class Engine {
   };
 
   private shouldReplaceVariableValues = false;
+  private missingPolicy: MissingVariablePolicy = 'error';
+  private missing = new Set<string>();
   private variableValues: VariableValues = new Map();
   private linkValues: LinkValues = new Map();
   private openTrackingPixel: string | undefined;
@@ -274,6 +352,19 @@ export class Engine {
 
   setVariableFormatter(formatter: VariableFormatter) {
     this.variableFormatter = formatter;
+  }
+
+  setMissingVariablePolicy(policy: MissingVariablePolicy) {
+    this.missingPolicy = policy;
+  }
+
+  /** Records a variable the data did not carry and answers with what the
+   *  policy allows in its place. */
+  private missingValue(variable: string, placeholder: string, required: boolean): string {
+    if (this.missingPolicy === 'placeholder') return placeholder;
+    if (!required || this.missingPolicy === 'empty') return '';
+    this.missing.add(variable);
+    return placeholder;
   }
 
   /**
@@ -429,7 +520,7 @@ export class Engine {
     try {
       const _ = new URL(href);
       return true;
-    } catch (err) {
+    } catch {
       return false;
     }
   }
@@ -437,9 +528,13 @@ export class Engine {
   async render(
     options: RenderOptions = DEFAULT_RENDER_OPTIONS
   ): Promise<string> {
+    this.missing.clear();
     const markup = this.markup();
-
-    return reactEmailRenderAsync(markup, options);
+    const html = await reactEmailRenderAsync(markup, options);
+    if (this.missingPolicy === 'error' && this.missing.size > 0) {
+      throw new MissingVariablesError([...this.missing]);
+    }
+    return html;
   }
 
   /**
@@ -495,7 +590,11 @@ export class Engine {
     const markup = (
       <Html {...htmlProps}>
         <Head>
-          <Font {...(fontOptions as any)} />
+          {/* The shared FallbackFont union allows stacks like 'system-ui' that
+              react-email's narrower union does not name, though it renders them
+              fine — hence the cast to Font's own props rather than a rewrite of
+              stored themes. */}
+          <Font {...(fontOptions as ComponentProps<typeof Font>)} />
 
           <style
             dangerouslySetInnerHTML={{
@@ -552,11 +651,20 @@ export class Engine {
     const isLastColumnElement = parent?.type === 'column' && !next;
     const isFirstColumnElement = parent?.type === 'column' && !prev;
 
-    const isFirstRepeatElement = parent?.type === 'repeat' && !prev;
-    const isLastRepeatElement = parent?.type === 'repeat' && !next;
+    const { repeatItem } = options || {};
+    const isFirstRepeatElement =
+      parent?.type === 'repeat' && !prev && (!repeatItem || repeatItem.index === 0);
+    const isLastRepeatElement =
+      parent?.type === 'repeat' && !next && (!repeatItem || repeatItem.index === repeatItem.count - 1);
 
-    const isFirstShowElement = parent?.type === 'show' && !prev;
-    const isLastShowElement = parent?.type === 'show' && !next;
+    // A parent is only ever a node this engine has just rendered, so a name
+    // with no case above can never appear here. `show` — the conditional
+    // wrapper that became the `showIfKey` attribute every block now carries —
+    // was the one that did: two branches testing for a parent `renderNode`
+    // throws on before any child of it is reached. Unlike `for` and
+    // `codeBlock`, it was never a node this editor could build, so no stored
+    // document holds one either, and the branches went rather than gaining a
+    // case to justify them.
 
     return {
       isNextSpacer,
@@ -568,21 +676,17 @@ export class Engine {
       isFirstColumnElement,
       isFirstRepeatElement,
       isLastRepeatElement,
-      isFirstShowElement,
-      isLastShowElement,
 
       shouldRemoveTopMargin:
         isPrevSpacer ||
         isFirstSectionElement ||
         isFirstColumnElement ||
-        isFirstRepeatElement ||
-        isFirstShowElement,
+        isFirstRepeatElement,
       shouldRemoveBottomMargin:
         isNextSpacer ||
         isLastSectionElement ||
         isLastColumnElement ||
-        isLastRepeatElement ||
-        isLastShowElement,
+        isLastRepeatElement,
     };
   }
 
@@ -791,12 +895,16 @@ export class Engine {
       });
     }
 
-    return (
+    const value =
       (typeof payloadValue === 'object'
         ? payloadValue[linkWithoutProtocol]
-        : payloadValue) ??
-      this.variableValues.get(linkWithoutProtocol) ??
-      href
+        : payloadValue) ?? this.variableValues.get(linkWithoutProtocol);
+    if (value !== undefined && value !== null) return value;
+    // A destination, an image or a label has no optional form.
+    return this.missingValue(
+      linkWithoutProtocol,
+      this.variableFormatter({ variable: linkWithoutProtocol }),
+      true,
     );
   }
 
@@ -845,8 +953,7 @@ export class Engine {
   }
 
   private variable(node: JSONContent, options?: NodeOptions): JSX.Element {
-    const { payloadValue } = options || {};
-    const { id: variable, fallback } = node.attrs || {};
+    const { id: variable, fallback, required } = node.attrs || {};
 
     const shouldShow = this.shouldShow(node, options);
     if (!shouldShow || !variable) {
@@ -856,7 +963,8 @@ export class Engine {
     const formattedVariable = this.getVariableValue(
       variable,
       fallback,
-      options
+      options,
+      required ?? true
     );
 
     if (node?.marks) {
@@ -872,27 +980,30 @@ export class Engine {
     return <>{formattedVariable}</>;
   }
 
-  getVariableValue(variable: string, fallback?: string, options?: NodeOptions) {
+  getVariableValue(
+    variable: string,
+    fallback?: string,
+    options?: NodeOptions,
+    required: boolean = true,
+  ) {
     const { payloadValue } = options || {};
 
-    let formattedVariable = this.variableFormatter({
+    const formattedVariable = this.variableFormatter({
       variable,
       fallback,
     });
 
-    // If `shouldReplaceVariableValues` is true, replace the variable values
-    // Otherwise, just return the formatted variable
-    if (this.shouldReplaceVariableValues) {
-      formattedVariable =
-        (typeof payloadValue === 'object'
-          ? payloadValue[variable]
-          : payloadValue) ??
-        this.variableValues.get(variable) ??
-        fallback ??
-        formattedVariable;
-    }
+    // Composing: the pill shows as the formatter draws it.
+    if (!this.shouldReplaceVariableValues) return formattedVariable;
 
-    return formattedVariable;
+    const value =
+      (typeof payloadValue === 'object'
+        ? payloadValue[variable]
+        : payloadValue) ?? this.variableValues.get(variable);
+    if (value !== undefined && value !== null) return value;
+    // The editor's placeholder never stands in for missing data on a real
+    // render — see MissingVariablePolicy.
+    return this.missingValue(variable, formattedVariable, required);
   }
 
   private horizontalRule(_: JSONContent, __?: NodeOptions): JSX.Element {
@@ -996,7 +1107,8 @@ export class Engine {
       buttonColor: _buttonColor,
       textColor: _textColor,
       borderRadius,
-      // @TODO: Update the attribute to `textAlign`
+      // The editor and stored templates both say `alignment`; renaming it is a
+      // breaking content migration, not a cleanup.
       alignment = 'left',
 
       paddingTop: _paddingTop,
@@ -1022,11 +1134,13 @@ export class Engine {
       return <></>;
     }
 
+    // "smooth" follows the brand: the theme's button radius when one is set,
+    // the classic 6px otherwise. Round and sharp are absolute choices.
     let radius: string | undefined = '0px';
     if (borderRadius === 'round') {
       radius = '9999px';
     } else if (borderRadius === 'smooth') {
-      radius = '6px';
+      radius = buttonTheme?.borderRadius || '6px';
     }
 
     const { shouldRemoveBottomMargin } = this.getMarginOverrideConditions(
@@ -1084,7 +1198,7 @@ export class Engine {
     return (
       <Container
         style={{
-          height: `${height}px`,
+          height: `${spacerHeight(height)}px`,
         }}
       />
     );
@@ -1102,7 +1216,8 @@ export class Engine {
       alt,
       title,
       size,
-      // @TODO: Update the attribute to `textAlign`
+      // The editor and stored templates both say `alignment`; renaming it is a
+      // breaking content migration, not a cleanup.
       alignment = 'left',
     } = attrs || {};
 
@@ -1128,7 +1243,7 @@ export class Engine {
         <Column align={alignment}>
           <Img
             alt={alt || title || 'Logo'}
-            src={src}
+            src={absoluteSrc(src)}
             style={{
               width: logoSizes[size as AllowedLogoSizes] || size,
               height: logoSizes[size as AllowedLogoSizes] || size,
@@ -1181,7 +1296,7 @@ export class Engine {
     const mainImage = (
       <Img
         alt={alt || title || 'Image'}
-        src={src}
+        src={absoluteSrc(src)}
         style={{
           width: widthStyle, // Use the calculated width
           height: heightStyle, // Use the calculated height
@@ -1510,8 +1625,6 @@ export class Engine {
   }
 
   private columns(node: JSONContent, options?: NodeOptions): JSX.Element {
-    const { attrs } = node;
-
     const shouldShow = this.shouldShow(node, options);
     if (!shouldShow) {
       return <></>;
@@ -1669,20 +1782,32 @@ export class Engine {
     let { payloadValue } = options || {};
     payloadValue = typeof payloadValue === 'object' ? payloadValue : {};
 
+    // No data was supplied, so there is nothing to iterate — show the contents
+    // once. Without this the block rendered as empty space in the editor's
+    // preview, in Copy HTML and in a test send, since all three call render()
+    // with content and theme only. "Show if" needs the same guard for the same
+    // reason.
+    if (!this.shouldReplaceVariableValues) {
+      return (
+        <>{this.getMappedContent(node, { ...options, parent: node })}</>
+      );
+    }
+
     const values = this.payloadValues.get(each) ?? payloadValue[each] ?? [];
     if (!Array.isArray(values)) {
-      throw new Error(`Payload value for each "${each}" is not an array`);
+      throw new RepeatNotListError(each);
     }
 
     return (
       <>
-        {values.map((value) => {
+        {values.map((value, index) => {
           return (
             <Fragment key={generateKey()}>
               {this.getMappedContent(node, {
                 ...options,
                 parent: node,
                 payloadValue: value,
+                repeatItem: { index, count: values.length },
               })}
             </Fragment>
           );
@@ -1692,20 +1817,39 @@ export class Engine {
   }
 
   /**
-   * @deprecated
-   * This for node is an alias for the repeat node
-   * we will remove this in the future
-   * @param node
-   * @param options
-   * @returns JSX.Element
+   * An alias for `repeat`, kept because the schema dropping a node type does
+   * not rewrite the rows already holding it. The editor migrates `for` on load
+   * (`client/core/editor/utils/replace-deprecated.ts`), but the API renders
+   * stored content without the document ever passing through the editor, so
+   * this side has to answer for the old name too. A case here with no node in
+   * the schema is the deliberate shape, not dead weight: deleting it turns a
+   * stored template into a send that throws.
    */
   private for(node: JSONContent, options?: NodeOptions): JSX.Element {
     return this.repeat(node, options);
   }
 
+  /**
+   * The other half of that, for StarterKit's code block, which this product
+   * stopped registering because nothing here could draw it. `htmlCodeBlock`
+   * takes the same `language` attribute and its content expression admits the
+   * text the old node held.
+   */
+  private codeBlock(node: JSONContent, options?: NodeOptions): JSX.Element {
+    return this.htmlCodeBlock(node, options);
+  }
+
   private shouldShow(node: JSONContent, options?: NodeOptions): boolean {
     const showIfKey = node?.attrs?.showIfKey ?? '';
     if (!showIfKey) {
+      return true;
+    }
+
+    // No data was supplied, so no condition can be evaluated — show everything.
+    // Without this a template that used "Show if" lost the block from every
+    // render the app performs, since preview, Copy HTML and test send all call
+    // render() with content and theme only. Variables already work this way.
+    if (!this.shouldReplaceVariableValues) {
       return true;
     }
 
@@ -1790,7 +1934,7 @@ export class Engine {
 
     const image = (
       <img
-        src={src}
+        src={absoluteSrc(src)}
         alt={alt}
         title={title}
         width={width}

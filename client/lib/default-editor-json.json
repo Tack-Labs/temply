@@ -4,8 +4,8 @@
     {
       "type": "logo",
       "attrs": {
-        "src": "/brand/logo.png",
-        "alt": null,
+        "src": "/brand/mark.png",
+        "alt": "Temply",
         "title": null,
         "size": "md",
         "alignment": "left"
@@ -37,7 +37,7 @@
       "content": [
         {
           "type": "text",
-          "text": "Try editing this text, adding a button, or dropping in an image. Everything you see here is built from components on the left."
+          "text": "Try editing this text, adding a button, or dropping in an image. Press / anywhere to insert a new block."
         }
       ]
     },
@@ -45,10 +45,10 @@
       "type": "button",
       "attrs": {
         "text": "Get Started →",
-        "url": "",
+        "url": "https://example.com",
         "alignment": "left",
         "variant": "filled",
-        "borderRadius": "round",
+        "borderRadius": "smooth",
         "buttonColor": null,
         "textColor": null,
         "paddingTop": null,
@@ -63,7 +63,7 @@
       "content": [
         {
           "type": "text",
-          "text": "Temply is open-source and built with modern web standards. Templates render cleanly across all major email clients, including Outlook."
+          "text": "Built with table-based HTML, so it holds together in the email clients that still parse like it is 2005."
         }
       ]
     },

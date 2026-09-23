@@ -1,4 +1,4 @@
-import { NodeSelection, Selection, TextSelection } from '@tiptap/pm/state';
+import { TextSelection } from '@tiptap/pm/state';
 import type { BlockItem } from './types';
 import { ImageIcon } from 'lucide-react';
 
@@ -37,11 +37,11 @@ export const inlineImage: BlockItem = {
       .deleteRange(range)
       // @ts-ignore
       .setInlineImage({
-        src: 'https://maily.to/brand/logo.png',
+        src: '/brand/mark.png',
       })
       // @ts-ignore
       .command((props) => {
-        const { tr, state, view, editor } = props;
+        const { tr, state } = props;
         const { from } = range;
 
         const node = state.doc.nodeAt(from);

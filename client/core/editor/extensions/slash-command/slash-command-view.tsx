@@ -2,12 +2,9 @@ import { BlockGroupItem, BlockItem } from '@/blocks/types';
 import { cn } from '@/editor/utils/classname';
 import { Editor, Range } from '@tiptap/core';
 import { ReactRenderer } from '@tiptap/react';
-import { SuggestionOptions } from '@tiptap/suggestion';
+import { SuggestionKeyDownProps, SuggestionOptions } from '@tiptap/suggestion';
 import {
   forwardRef,
-  Fragment,
-  KeyboardEvent,
-  RefObject,
   useCallback,
   useEffect,
   useImperativeHandle,
@@ -21,6 +18,11 @@ import { TooltipProvider } from '@/editor/components/ui/tooltip';
 import { SlashCommandItem } from './slash-command-item';
 import { filterSlashCommands } from './slash-command-search';
 
+/** The highlighted row is named to the reader by its id, so the row and the
+ *  panel above it have to agree on what that id is. */
+export const rowId = (groupIndex: number, commandIndex: number) =>
+  `slash-command-${groupIndex}-${commandIndex}`;
+
 type CommandListProps = {
   items: BlockGroupItem[];
   command: (item: BlockItem) => void;
@@ -29,7 +31,7 @@ type CommandListProps = {
   query: string;
 };
 
-const CommandList = forwardRef<unknown, CommandListProps>((props, ref) => {
+const CommandList = forwardRef<SuggestionListRef, CommandListProps>((props, ref) => {
   const { items: groups, command, editor, range, query } = props;
 
   const [selectedGroupIndex, setSelectedGroupIndex] = useState(0);
@@ -53,7 +55,7 @@ const CommandList = forwardRef<unknown, CommandListProps>((props, ref) => {
   );
 
   useImperativeHandle(ref, () => ({
-    onKeyDown: ({ event }: { event: KeyboardEvent }) => {
+    onKeyDown: ({ event }: SuggestionKeyDownProps) => {
       const navigationKeys = [
         'ArrowUp',
         'ArrowDown',
@@ -66,7 +68,7 @@ const CommandList = forwardRef<unknown, CommandListProps>((props, ref) => {
         let newGroupIndex = selectedGroupIndex;
 
         switch (event.key) {
-          case 'ArrowLeft':
+          case 'ArrowLeft': {
             event.preventDefault();
 
             const group = groups?.[selectedGroupIndex];
@@ -85,7 +87,8 @@ const CommandList = forwardRef<unknown, CommandListProps>((props, ref) => {
               setSelectedCommandIndex(prevSelectedCommandIndex.current);
             }, 0);
             return true;
-          case 'ArrowRight':
+          }
+          case 'ArrowRight': {
             event.preventDefault();
 
             const command =
@@ -100,6 +103,7 @@ const CommandList = forwardRef<unknown, CommandListProps>((props, ref) => {
             prevSelectedGroupIndex.current = selectedGroupIndex;
             prevSelectedCommandIndex.current = selectedCommandIndex;
             return true;
+          }
           case 'Enter':
             if (!groups.length) {
               return false;
@@ -127,7 +131,7 @@ const CommandList = forwardRef<unknown, CommandListProps>((props, ref) => {
             setSelectedGroupIndex(newGroupIndex);
             setSelectedCommandIndex(newCommandIndex);
             return true;
-          case 'ArrowDown':
+          case 'ArrowDown': {
             if (!groups.length) {
               return false;
             }
@@ -144,6 +148,7 @@ const CommandList = forwardRef<unknown, CommandListProps>((props, ref) => {
             setSelectedGroupIndex(newGroupIndex);
             setSelectedCommandIndex(newCommandIndex);
             return true;
+          }
           default:
             return false;
         }
@@ -184,21 +189,47 @@ const CommandList = forwardRef<unknown, CommandListProps>((props, ref) => {
     };
   }, []);
 
+  // A search with no match says so, like the variable menu does, instead
+  // of the menu vanishing under the caret. A status rather than a list: there
+  // is nothing to choose from, and the whole of it is the sentence.
   if (!groups || groups.length === 0) {
-    return null;
+    return (
+      <div
+        role="status"
+        aria-label="Block menu"
+        data-state="open"
+        data-side="top"
+        className="overlay-panel mly:z-50 mly:w-72 mly:rounded-md mly:border mly:border-gray-200 mly:bg-panel mly:p-2 mly:text-sm mly:text-gray-500 mly:shadow-md"
+      >
+        No block matches
+      </div>
+    );
   }
 
   return (
     <TooltipProvider>
-      <div className="mly:z-50 mly:w-72 mly:overflow-hidden mly:rounded-md mly:border mly:border-gray-200 mly:bg-white mly:shadow-md mly:transition-all">
+      <div
+        data-state="open"
+        data-side="top"
+        className="overlay-panel mly:z-50 mly:w-72 mly:overflow-hidden mly:rounded-md mly:border mly:border-gray-200 mly:bg-panel mly:shadow-md"
+      >
+        {/* The caret never leaves the canvas — the rows are driven with the
+            arrow keys and pressed with Enter — so the highlighted row is
+            named here rather than focused, which is what
+            `aria-activedescendant` is for. */}
+        {/* biome-ignore lint/a11y/useAriaActivedescendantWithTabindex: the list is never focused — see above */}
         <div
           id="slash-command"
+          role="listbox"
+          aria-label="Block menu"
+          aria-activedescendant={rowId(selectedGroupIndex, selectedCommandIndex)}
           ref={commandListContainer}
           className="mly:no-scrollbar mly:h-auto mly:max-h-[330px] mly:overflow-y-auto"
         >
           {groups.map((group, groupIndex) => (
-            <Fragment key={groupIndex}>
+            <div role="group" aria-label={group.title} key={groupIndex}>
               <span
+                aria-hidden="true"
                 className={cn(
                   'mly:block mly:border-b mly:border-gray-200 mly:bg-soft-gray mly:p-2 mly:text-xs mly:uppercase mly:text-gray-400',
                   groupIndex > 0 ? 'mly:border-t' : ''
@@ -228,7 +259,7 @@ const CommandList = forwardRef<unknown, CommandListProps>((props, ref) => {
                   );
                 })}
               </div>
-            </Fragment>
+            </div>
           ))}
         </div>
         <div className="mly:border-t mly:border-gray-200 mly:px-1 mly:py-3 mly:pl-4">
@@ -258,6 +289,12 @@ const CommandList = forwardRef<unknown, CommandListProps>((props, ref) => {
   );
 });
 
+/** What the list component exposes through its imperative handle — the one
+ *  method the suggestion plumbing below actually calls. */
+type SuggestionListRef = {
+  onKeyDown: (props: SuggestionKeyDownProps) => boolean | undefined;
+};
+
 export function getSlashCommandSuggestions(
   groups: BlockGroupItem[] = DEFAULT_SLASH_COMMANDS
 ): Omit<SuggestionOptions, 'editor'> {
@@ -274,8 +311,8 @@ export function getSlashCommandSuggestions(
       return true;
     },
     render: () => {
-      let component: ReactRenderer<any>;
-      let popup: Instance<any>[] | null = null;
+      let component: ReactRenderer<SuggestionListRef>;
+      let popup: Instance[] | null = null;
 
       return {
         onStart: (props) => {
@@ -302,7 +339,7 @@ export function getSlashCommandSuggestions(
 
           component?.updateProps(props);
           currentPopup.setProps({
-            getReferenceClientRect: props.clientRect,
+            getReferenceClientRect: props.clientRect as GetReferenceClientRect,
           });
         },
         onKeyDown: (props) => {
@@ -316,7 +353,7 @@ export function getSlashCommandSuggestions(
             return true;
           }
 
-          return component?.ref?.onKeyDown(props);
+          return component?.ref?.onKeyDown(props) ?? false;
         },
         onExit: () => {
           if (!popup || !popup?.[0] || !component) {

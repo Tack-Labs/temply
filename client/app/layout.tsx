@@ -1,30 +1,54 @@
 import type { Metadata } from 'next';
-import { ClerkProvider } from '@clerk/nextjs';
+import { Geist, Geist_Mono, Space_Grotesk } from 'next/font/google';
 import { GoogleAnalytics } from '~/components/google-analytics';
 import { Providers } from './providers';
+import { SITE_URL } from '~/lib/site';
 import '../core/styles/index.css';
 import './globals.css';
 
+const geistSans = Geist({
+  subsets: ['latin'],
+  weight: ['400', '500', '600'],
+  variable: '--font-geist',
+  display: 'swap',
+});
+
+const geistMono = Geist_Mono({
+  subsets: ['latin'],
+  weight: ['400', '500'],
+  variable: '--font-geist-mono',
+  display: 'swap',
+});
+
+const spaceGrotesk = Space_Grotesk({
+  subsets: ['latin'],
+  weight: ['500', '600', '700'],
+  variable: '--font-space-grotesk',
+  display: 'swap',
+});
+
 export const metadata: Metadata = {
-  title: 'Temply - Beautiful email templates, built fast',
+  // Every relative URL below — the OG image, canonical links — resolves
+  // against this, so the domain lives in one environment variable.
+  metadataBase: new URL(SITE_URL),
+  // Sub-pages name themselves and the template adds the brand, so "— Temply"
+  // is written once and cannot be misspelt on the ninth page.
+  title: { default: 'Temply — write the email, we handle the HTML', template: '%s — Temply' },
   description:
-    'Temply is a drag-and-drop email template builder that makes crafting stunning, responsive emails effortless.',
+    'A block editor for transactional email. Build it without code, send it from your own app.',
   twitter: {
     card: 'summary_large_image',
-    title: 'Temply - Beautiful email templates, built fast',
+    title: 'Temply — write the email, we handle the HTML',
     description:
-      'Temply is a drag-and-drop email template builder that makes crafting stunning, responsive emails effortless.',
-    images: ['https://temply.app/og-image.png'],
+      'A block editor for transactional email. Build it without code, send it from your own app.',
+    images: ['/og-image.png'],
   },
   openGraph: {
     siteName: 'Temply',
-    title: 'Temply - Beautiful email templates, built fast',
+    title: 'Temply — write the email, we handle the HTML',
     description:
-      'Temply is a drag-and-drop email template builder that makes crafting stunning, responsive emails effortless.',
-    images: ['https://temply.app/og-image.png'],
-  },
-  icons: {
-    icon: '/brand/logo.svg',
+      'A block editor for transactional email. Build it without code, send it from your own app.',
+    images: ['/og-image.png'],
   },
   robots: 'index, follow',
 };
@@ -35,15 +59,13 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <ClerkProvider>
+    <>
+      {/* The font variables go on <body>, not <html>. Giving <html> a
+          className hands it to React, which then reconciles it on hydration and
+          strips the `dark` class the blocking script below just added — so a
+          full page load would drop the user's chosen theme. */}
       <html lang="en" suppressHydrationWarning>
         <head>
-          <link rel="preconnect" href="https://fonts.googleapis.com" />
-          <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-          <link
-            rel="stylesheet"
-            href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap"
-          />
           <GoogleAnalytics />
           <script
             dangerouslySetInnerHTML={{
@@ -60,10 +82,15 @@ export default function RootLayout({
             }}
           />
         </head>
-        <body>
+        <body className={`${geistSans.variable} ${geistMono.variable} ${spaceGrotesk.variable}`}>
+          {/* First focusable element on the page. Lets a keyboard user jump the
+              header and sidebar straight to the content. */}
+          <a href="#main-content" className="skip-link">
+            Skip to content
+          </a>
           <Providers>{children}</Providers>
         </body>
       </html>
-    </ClerkProvider>
+    </>
   );
 }

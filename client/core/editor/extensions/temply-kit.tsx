@@ -11,11 +11,15 @@ import Document from '@tiptap/extension-document';
 import Focus from '@tiptap/extension-focus';
 import Dropcursor from '@tiptap/extension-dropcursor';
 
+import { BlockKeyboardShortcuts } from './block-keyboard';
+import { MenuFocus } from './menu-focus';
 import { Color } from './color';
 import { HorizontalRule } from './horizontal-rule';
 import { Footer } from '../nodes/footer';
 import { Spacer } from '../nodes/spacer';
 import { LinkCardExtension, LinkCardOptions } from './link-card';
+import { ShowIfHighlight } from './show-if-highlight';
+import { TrailingNode } from './trailing-node/trailing-node';
 import { ColumnsExtension } from '../nodes/columns/columns';
 import { ColumnExtension } from '../nodes/columns/column';
 import { SectionExtension } from '../nodes/section/section';
@@ -41,6 +45,44 @@ export type TemplyKitOptions = {
   link?: Partial<LinkOptions> | false;
 };
 
+/**
+ * The last blocks of a document that already give the customer somewhere to
+ * type, so a line added after them would buy nothing.
+ *
+ * Two shapes answer that. A textblock takes the caret inside itself —
+ * `paragraph`, `heading` and `footer`, and `htmlCodeBlock`, where the caret
+ * blinks in the `pre` and typing lands in it exactly as it does in a heading.
+ * Everything else named here is an atom or a wrapper that ProseMirror puts a
+ * gap cursor after, which is a caret at the top level in its own right. The
+ * code block is the one shape where getting *out* is not Enter — Enter adds a
+ * line of code — but ArrowDown at the end of it makes the paragraph after it,
+ * so the document still continues.
+ *
+ * Everything not named — `bulletList`, `orderedList` and `blockquote` — puts
+ * the only caret it has inside a wrapper, so the next block a customer asks
+ * for is built in there rather than after it.
+ *
+ * A document the customer never edited must not change shape when we open it,
+ * so the trailing line is added only where there is genuinely nowhere else to
+ * go. It renders as a blank line at the foot of the email, which is the price
+ * of being able to type there at all.
+ */
+const ALREADY_SOMEWHERE_TO_TYPE = [
+  'paragraph',
+  'heading',
+  'footer',
+  'htmlCodeBlock',
+  'section',
+  'columns',
+  'repeat',
+  'horizontalRule',
+  'button',
+  'image',
+  'logo',
+  'linkCard',
+  'spacer',
+];
+
 export const TemplyKit = Extension.create<TemplyKitOptions>({
   name: 'temply-kit',
 
@@ -59,6 +101,18 @@ export const TemplyKit = Extension.create<TemplyKitOptions>({
 
   addExtensions() {
     const extensions: AnyExtension[] = [
+      BlockKeyboardShortcuts,
+      // The bubble menus hang outside the editor in source order, so nothing
+      // leads to them by Tab. This is the route in, and Escape is the route
+      // back.
+      MenuFocus,
+      ShowIfHighlight,
+      // A document that ends in a list or a blockquote has nowhere at the top
+      // level left to type: the caret can only land inside the wrapper, so
+      // everything added afterwards is built in there. One empty paragraph is
+      // kept at the end of those so the document always has a line of its own
+      // to continue on.
+      TrailingNode.configure({ notAfter: ALREADY_SOMEWHERE_TO_TYPE }),
       Document.extend({
         content: '(block|columns)+',
       }),
@@ -90,6 +144,14 @@ export const TemplyKit = Extension.create<TemplyKitOptions>({
         horizontalRule: false,
         dropcursor: false,
         document: false,
+        // The renderer draws one node type per case and throws on anything
+        // else, so a node this kit registers without a case there is a block a
+        // customer can put in a template that can then never be previewed,
+        // preflighted, published or sent. StarterKit's `codeBlock` was exactly
+        // that: no slash entry, no bubble menu, no phone affordance, reachable
+        // only through its own Mod-Alt-C. Temply's code block is
+        // `htmlCodeBlock`, which the renderer knows; this one stays off.
+        codeBlock: false,
       }) as AnyExtension,
       Underline,
       Color.configure({ types: [TextStyle.name, ListItem.name] }),

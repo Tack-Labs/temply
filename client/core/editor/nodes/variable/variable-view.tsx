@@ -11,7 +11,7 @@ import { getNodeOptions } from '@/editor/utils/node-options';
 import { NodeViewProps } from '@tiptap/core';
 import { NodeViewWrapper } from '@tiptap/react';
 import { AlertTriangle, Braces, Pencil } from 'lucide-react';
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import {
   DEFAULT_RENDER_VARIABLE_FUNCTION,
   VariableOptions,
@@ -36,14 +36,26 @@ export function VariableView(props: NodeViewProps) {
     return variableRender;
   }, [editor]);
 
+  // Radix's PopoverTrigger wraps the pill in a real <button>, and the
+  // read-only phone still renders this node — so the open state is
+  // controlled here rather than left to Radix, the way button-view.tsx
+  // keeps its settings popover shut on a canvas that cannot use it. Without
+  // this a tap opens the id/placeholder inputs, and typing into either one
+  // is a transaction that flips a published template to "Unpublished
+  // changes" for a document nothing actually changed.
+  const [open, setOpen] = useState(false);
+
   return (
     <NodeViewWrapper
       className="react-component mly:inline-block mly:leading-none"
       draggable="false"
     >
       <Popover
-        onOpenChange={(open) => {
-          editor.storage.variable.popover = open;
+        open={open && editor.isEditable}
+        onOpenChange={(next) => {
+          const nextOpen = next && editor.isEditable;
+          setOpen(nextOpen);
+          editor.storage.variable.popover = nextOpen;
         }}
       >
         <PopoverTrigger>
@@ -60,6 +72,7 @@ export function VariableView(props: NodeViewProps) {
           })}
         </PopoverTrigger>
         <PopoverContent
+          aria-label="Variable"
           align="start"
           side="bottom"
           className="mly:w-max mly:rounded-lg mly:p-0.5!"
@@ -82,7 +95,7 @@ export function VariableView(props: NodeViewProps) {
                     });
                   }}
                   placeholder="ie. name..."
-                  className="mly:h-7 mly:w-36 mly:rounded-md mly:bg-soft-gray mly:px-2 mly:text-sm mly:text-midnight-gray mly:focus:bg-soft-gray mly:focus:outline-hidden mly:disabled:cursor-not-allowed"
+                  className="mly:h-7 mly:w-36 mly:rounded-md mly:bg-soft-gray mly:px-2 mly:text-sm mly:text-midnight-gray mly:focus:bg-soft-gray mly:disabled:cursor-not-allowed"
                 />
               </label>
 
@@ -92,7 +105,7 @@ export function VariableView(props: NodeViewProps) {
 
                   <label className="mly:relative">
                     <span className="mly:inline-block mly:px-2 mly:pl-1 mly:text-xs mly:text-midnight-gray">
-                      Default
+                      Placeholder
                     </span>
                     <input
                       {...AUTOCOMPLETE_PASSWORD_MANAGERS_OFF}
@@ -103,7 +116,7 @@ export function VariableView(props: NodeViewProps) {
                         });
                       }}
                       placeholder="ie. John Doe..."
-                      className="mly:h-7 mly:w-32 mly:rounded-md mly:bg-soft-gray mly:px-2 mly:pr-6 mly:text-sm mly:text-midnight-gray mly:focus:bg-soft-gray mly:focus:outline-none"
+                      className="mly:h-7 mly:w-32 mly:rounded-md mly:bg-soft-gray mly:px-2 mly:pr-6 mly:text-sm mly:text-midnight-gray mly:focus:bg-soft-gray"
                     />
                     <div className="mly:absolute mly:inset-y-0 mly:right-1 mly:flex mly:items-center">
                       <Pencil className="mly:h-3 mly:w-3 mly:stroke-[2.5] mly:text-midnight-gray" />
@@ -139,9 +152,9 @@ export const DefaultRenderVariable: RenderVariableFunction = (props) => {
     return (
       <div
         className={cn(
-          'mly:inline-grid mly:h-7 mly:min-w-28 mly:max-w-xs mly:grid-cols-[12px_1fr] mly:items-center mly:gap-1.5 mly:rounded-md mly:border mly:border-gray-200 mly:px-2 mly:font-mono mly:text-sm mly:hover:bg-soft-gray',
+          'mly:inline-grid mly:h-7 mly:min-w-28 mly:max-w-xs mly:grid-cols-[12px_1fr] mly:items-center mly:gap-1.5 mly:rounded-md mly:border mly:border-gray-200 mly:px-2 mly:font-mono mly:text-sm mly:transition-colors mly:hover:bg-soft-gray',
           !valid &&
-            'mly:border-rose-400 mly:bg-rose-50 mly:text-rose-600 mly:hover:bg-rose-100'
+            'mly:border-rose-400 mly:bg-rose-50 mly:text-rose-600 mly:transition-colors mly:hover:bg-rose-100'
         )}
       >
         <Braces className="mly:h-3 mly:w-3 mly:shrink-0 mly:stroke-[2.5] mly:text-rose-600" />

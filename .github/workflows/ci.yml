@@ -1,0 +1,180 @@
+name: CI / CD
+
+on:
+  push:
+    branches: [main, feature/**]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  # Once a production release starts, let it finish before the next run.
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
+jobs:
+  check:
+    name: Typecheck, test, design gates
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      # The whole history: the sitemap dates each page by the last commit
+      # that touched it, and a depth-1 clone would date them all today.
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      # Pinned to the version everyone runs locally. On `latest` a Bun release
+      # can turn the suite red with no commit behind it — 1.4.2 did, by
+      # reordering the test files enough to expose global leakage between them.
+      # Upgrading is a commit that runs the gates, not something CI decides.
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.4.2
+
+      - name: Install
+        run: bun install --frozen-lockfile
+
+      # A critical advisory in Next sat unnoticed for a release because nobody
+      # runs `bun audit` by hand. High and above fails the build; moderate
+      # advisories are read, not gated on — the one open today is fixed
+      # only across a major of the editor's framework.
+      - name: Audit
+        run: bun audit --audit-level=high
+
+      - name: Typecheck
+        run: bun run typecheck
+
+      # Biome, on a curated set: the rules that find a bug or an accessibility
+      # gap, not the ones that argue about style. A warning fails the build
+      # the same way an error does, so none can pile up.
+      - name: Lint
+        run: bun run lint
+
+      - name: Deployment script syntax
+        run: bash -n deploy/railway/start.sh deploy/railway/deploy.sh deploy/railway/smoke.sh
+
+      - name: Test
+        run: bun test
+
+      # The design gates: colours stay in the token layer and every motion
+      # sits on a duration token. They fail the build the same way a type
+      # error does.
+      - name: Contrast
+        run: bun run check:contrast
+        working-directory: client
+      - name: Editor contrast
+        run: bun run check:editor-contrast
+        working-directory: client
+      - name: Email dark mode
+        run: bun run check:email-dark
+        working-directory: client
+      - name: Motion tokens
+        run: bun run check:motion
+        working-directory: client
+
+  # Independent of `check`: a type error and a broken sign-in should each
+  # show up as its own red mark, and the browser run's twenty-odd minutes
+  # should not wait on the build job. The stack it drives (fakes, the API on
+  # a fresh SQLite, the built client) is started by Playwright's webServer,
+  # so nothing is started here by hand.
+  e2e:
+    name: Browser tests
+    runs-on: ubuntu-latest
+    # Headroom over the suite's own budget rather than a target: the sign-in
+    # gets two capped attempts before it gives up, and a cold `next build` on
+    # a shared runner can take most of five minutes on its own.
+    timeout-minutes: 35
+    steps:
+      # The whole history: the sitemap dates each page by the last commit
+      # that touched it, and a depth-1 clone would date them all today.
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.4.2
+      - name: Install
+        run: bun install --frozen-lockfile
+      # --with-deps also installs Chromium's system libraries, which the
+      # runner image does not carry.
+      - name: Install Chromium
+        run: bunx playwright install --with-deps chromium
+        working-directory: e2e
+      # The Clerk keys are the dev instance's; the two users exist there
+      # with password sign-in. INTERNAL_API_SECRET only has to agree between
+      # the API and the client of this run's fresh stack, so a fixed value
+      # is enough.
+      # Run from the package, not through `bun run --filter`: Bun prefixes
+      # every line of a filtered script with the package name, and GitHub
+      # reads the `github` reporter's annotations only at column 0.
+      - name: Run
+        run: bunx playwright test
+        working-directory: e2e
+        env:
+          CI: "1"
+          E2E_RUN_ID: ${{ github.run_id }}
+          NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: ${{ secrets.E2E_CLERK_PUBLISHABLE_KEY }}
+          CLERK_SECRET_KEY: ${{ secrets.E2E_CLERK_SECRET_KEY }}
+          E2E_USER_EMAIL: ${{ secrets.E2E_USER_EMAIL }}
+          E2E_USER_PASSWORD: ${{ secrets.E2E_USER_PASSWORD }}
+          E2E_USER_2_EMAIL: ${{ secrets.E2E_USER_2_EMAIL }}
+          E2E_USER_2_PASSWORD: ${{ secrets.E2E_USER_2_PASSWORD }}
+          INTERNAL_API_SECRET: e2e-internal-secret
+      # Screenshots and the report only. A trace or video records the test
+      # user's session cookies and Clerk's testing token, and this
+      # repository's artifacts are public; reproduce locally for a trace.
+      - name: Artifacts
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright
+          path: |
+            e2e/test-results/**/*.png
+            e2e/playwright-report
+          retention-days: 3
+
+  container:
+    name: Production container
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - name: Build both production runtimes
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          load: true
+          tags: temply:ci
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          build-args: |
+            NEXT_PUBLIC_APP_URL=http://localhost:8080
+            NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_ZXhhbXBsZS5jbGVyay5hY2NvdW50cy5kZXYk
+      - name: Verify routing, assets, persistence and process supervision
+        run: bash deploy/railway/smoke.sh temply:ci
+
+  deploy:
+    name: Deploy to Railway
+    needs: [check, e2e, container]
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    environment:
+      name: production
+      url: ${{ vars.RAILWAY_PUBLIC_URL }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.4.2
+      - name: Install Railway CLI
+        run: bun add --global @railway/cli@5.30.1
+      - name: Deploy and wait for this release to become healthy
+        run: bash deploy/railway/deploy.sh
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+          RAILWAY_SERVICE_ID: ${{ vars.RAILWAY_SERVICE_ID }}
+          RAILWAY_PUBLIC_URL: ${{ vars.RAILWAY_PUBLIC_URL }}

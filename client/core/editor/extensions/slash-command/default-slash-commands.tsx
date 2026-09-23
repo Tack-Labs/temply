@@ -7,9 +7,6 @@ import { bulletList, orderedList } from '@/blocks/list';
 import { BlockGroupItem } from '@/blocks/types';
 import {
   blockquote,
-  clearLine,
-  footer,
-  hardBreak,
   heading1,
   heading2,
   heading3,
@@ -46,10 +43,7 @@ export const DEFAULT_SLASH_COMMANDS: BlockGroupItem[] = [
       spacer,
       button,
       linkCard,
-      hardBreak,
       blockquote,
-      footer,
-      clearLine,
     ],
   },
   {
@@ -61,7 +55,6 @@ export const DEFAULT_SLASH_COMMANDS: BlockGroupItem[] = [
         description: 'Add pre-designed headers block',
         searchTerms: ['header', 'headers'],
         icon: <Heading1 className="mly:h-4 mly:w-4" />,
-        preview: 'https://cdn.usemaily.com/previews/header-preview-xyz.png',
         commands: [
           headerLogoWithTextVertical,
           headerLogoWithTextHorizontal,

@@ -29,7 +29,10 @@ const PopoverContent = React.forwardRef<
         align={align}
         sideOffset={sideOffset}
         className={cn(
-          'mly:z-9999 mly:w-72 mly:rounded-md mly:border mly:border-gray-200 mly:bg-white mly:p-4 mly:text-gray-950 mly:shadow-md mly:outline-hidden',
+          // A popover opened from inside a heading is still a form, not a
+          // heading: reset the type it would otherwise inherit from the node
+          // it sits in, since it is not portaled out of the document.
+          'mly:z-9999 mly:w-72 mly:rounded-md mly:border mly:border-gray-200 mly:bg-panel mly:p-4 mly:text-sm mly:font-normal mly:leading-normal mly:not-italic mly:text-gray-950 mly:shadow-md ',
           'mly-editor',
           className
         )}

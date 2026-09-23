@@ -3,9 +3,11 @@ import { drizzle } from 'drizzle-orm/bun-sqlite';
 import * as schema from '@temply/shared/schema';
 import { Elysia } from 'elysia';
 
-let db: ReturnType<typeof drizzle<typeof schema>> | null = null;
+export type Db = ReturnType<typeof drizzle<typeof schema>>;
 
-function initTables(sqlite: Database) {
+let db: Db | null = null;
+
+export function initTables(sqlite: Database) {
   sqlite.run(`CREATE TABLE IF NOT EXISTS mails (
     id TEXT PRIMARY KEY, user_id TEXT NOT NULL, title TEXT NOT NULL,
     preview_text TEXT, content TEXT NOT NULL, short_code TEXT UNIQUE,
@@ -14,6 +16,7 @@ function initTables(sqlite: Database) {
   sqlite.run(`CREATE TABLE IF NOT EXISTS api_keys (
     id TEXT PRIMARY KEY, user_id TEXT NOT NULL, name TEXT NOT NULL,
     key_prefix TEXT NOT NULL, key_hash TEXT NOT NULL,
+    mode TEXT NOT NULL DEFAULT 'live',
     created_at TEXT DEFAULT (datetime('now')), last_used_at TEXT, revoked_at TEXT
   )`);
   sqlite.run(`CREATE TABLE IF NOT EXISTS template_versions (
@@ -23,11 +26,144 @@ function initTables(sqlite: Database) {
   )`);
   sqlite.run(`CREATE TABLE IF NOT EXISTS subscriptions (
     id TEXT PRIMARY KEY, user_id TEXT NOT NULL UNIQUE,
-    stripe_customer_id TEXT UNIQUE, stripe_subscription_id TEXT,
     plan TEXT NOT NULL DEFAULT 'free', status TEXT NOT NULL DEFAULT 'active',
     current_period_end TEXT,
     created_at TEXT DEFAULT (datetime('now')), updated_at TEXT DEFAULT (datetime('now'))
   )`);
+  sqlite.run(`CREATE TABLE IF NOT EXISTS api_usage (
+    user_id TEXT NOT NULL, period TEXT NOT NULL, count INTEGER NOT NULL DEFAULT 0,
+    PRIMARY KEY (user_id, period)
+  )`);
+  sqlite.run(`CREATE TABLE IF NOT EXISTS brands (
+    id TEXT PRIMARY KEY, user_id TEXT NOT NULL, name TEXT NOT NULL,
+    theme TEXT NOT NULL, is_default INTEGER NOT NULL DEFAULT 0,
+    created_at TEXT DEFAULT (datetime('now')), updated_at TEXT DEFAULT (datetime('now'))
+  )`);
+  // The default look is a preset id or a custom brand id, so it can't live on
+  // the brands table (presets are not rows).
+  sqlite.run(`CREATE TABLE IF NOT EXISTS user_prefs (
+    user_id TEXT PRIMARY KEY, default_brand_id TEXT
+  )`);
+  // Carry over any pre-existing default from the old is_default column.
+  sqlite.run(`INSERT OR IGNORE INTO user_prefs (user_id, default_brand_id)
+    SELECT user_id, id FROM brands WHERE is_default = 1`);
+  sqlite.run(`CREATE TABLE IF NOT EXISTS contact_messages (
+    id TEXT PRIMARY KEY, name TEXT NOT NULL, email TEXT NOT NULL,
+    message TEXT NOT NULL, created_at TEXT DEFAULT (datetime('now'))
+  )`);
+  sqlite.run(`CREATE TABLE IF NOT EXISTS assets (
+    id TEXT PRIMARY KEY, user_id TEXT NOT NULL,
+    imagekit_file_id TEXT NOT NULL, url TEXT NOT NULL,
+    name TEXT NOT NULL, mime TEXT NOT NULL, bytes INTEGER NOT NULL,
+    width INTEGER, height INTEGER,
+    created_at TEXT DEFAULT (datetime('now'))
+  )`);
+  sqlite.run(`CREATE INDEX IF NOT EXISTS assets_user_id ON assets(user_id)`);
+  // Every integrator call finds its key by hash.
+  sqlite.run(`CREATE INDEX IF NOT EXISTS api_keys_key_hash ON api_keys(key_hash)`);
+  // One number per version of a template. Its leading column also serves
+  // every lookup of a template's versions, which need no index of their own.
+  renumberClashingVersions(sqlite);
+  sqlite.run(`CREATE UNIQUE INDEX IF NOT EXISTS template_versions_number ON template_versions(template_id, version_number)`);
+
+  addColumnIfMissing(sqlite, 'mails', 'theme', 'TEXT');
+  addColumnIfMissing(sqlite, 'template_versions', 'theme', 'TEXT');
+  // Every key from before test keys existed was a live one.
+  addColumnIfMissing(sqlite, 'api_keys', 'mode', "TEXT NOT NULL DEFAULT 'live'");
+
+  // Organizations. Every scoped row learns which org it belongs to; rows
+  // from before stay null until the owner's first visit adopts them (see
+  // routes/workspace.ts). Usage and prefs move to org-keyed tables.
+  for (const table of ['mails', 'api_keys', 'template_versions', 'subscriptions', 'brands', 'assets']) {
+    addColumnIfMissing(sqlite, table, 'org_id', 'TEXT');
+    sqlite.run(`CREATE INDEX IF NOT EXISTS ${table}_org_id ON ${table}(org_id)`);
+  }
+  sqlite.run(`CREATE UNIQUE INDEX IF NOT EXISTS subscriptions_org_id_unique ON subscriptions(org_id) WHERE org_id IS NOT NULL`);
+  sqlite.run(`CREATE TABLE IF NOT EXISTS org_usage (
+    org_id TEXT NOT NULL, period TEXT NOT NULL, count INTEGER NOT NULL DEFAULT 0,
+    PRIMARY KEY (org_id, period)
+  )`);
+  sqlite.run(`CREATE TABLE IF NOT EXISTS org_prefs (
+    org_id TEXT PRIMARY KEY, default_brand_id TEXT
+  )`);
+  sqlite.run(`CREATE TABLE IF NOT EXISTS rate_windows (
+    bucket TEXT NOT NULL, window_start TEXT NOT NULL, count INTEGER NOT NULL DEFAULT 0,
+    PRIMARY KEY (bucket, window_start)
+  )`);
+
+  // Draft / published split. Rows from before it exist only as a single copy
+  // the API was already serving, so that copy becomes the published one and
+  // nothing an integrator fetches changes. Create and duplicate publish in
+  // the same request, so a row with no published_at at startup can only be
+  // one of those legacy rows — the backfill is safe to run every boot.
+  addColumnIfMissing(sqlite, 'mails', 'published_content', 'TEXT');
+  addColumnIfMissing(sqlite, 'mails', 'published_theme', 'TEXT');
+  addColumnIfMissing(sqlite, 'mails', 'published_preview_text', 'TEXT');
+  addColumnIfMissing(sqlite, 'mails', 'published_at', 'TEXT');
+  addColumnIfMissing(sqlite, 'mails', 'share_token', 'TEXT');
+  sqlite.run(`CREATE UNIQUE INDEX IF NOT EXISTS mails_share_token ON mails(share_token)`);
+  sqlite.run(`UPDATE mails SET
+    published_content = content, published_theme = theme,
+    published_preview_text = preview_text, published_at = updated_at
+    WHERE published_at IS NULL`);
+
+  addColumnIfMissing(sqlite, 'subscriptions', 'cancel_at', 'TEXT');
+  // Databases from before Lemon Squeezy keep their Stripe columns, unread:
+  // SQLite cannot drop a UNIQUE column in place.
+  addColumnIfMissing(sqlite, 'subscriptions', 'lemonsqueezy_subscription_id', 'TEXT');
+  addColumnIfMissing(sqlite, 'subscriptions', 'lemonsqueezy_updated_at', 'TEXT');
+  // Every webhook finds its row by subscription.
+  sqlite.run(`CREATE INDEX IF NOT EXISTS subscriptions_lemonsqueezy_subscription_id ON subscriptions(lemonsqueezy_subscription_id)`);
+
+  // One-time migration: the top plan was renamed from `scale` to `enterprise`.
+  sqlite.run(`UPDATE subscriptions SET plan = 'enterprise' WHERE plan = 'scale'`);
+
+  // Heal timestamps: Drizzle used to send explicit NULLs past the DDL
+  // defaults, so every historic row is missing its dates. Idempotent — only
+  // NULLs are touched, and only once.
+  for (const [table, cols] of [
+    ['mails', ['created_at', 'updated_at']],
+    ['api_keys', ['created_at']],
+    ['template_versions', ['created_at']],
+    ['subscriptions', ['created_at', 'updated_at']],
+    ['brands', ['created_at', 'updated_at']],
+    ['contact_messages', ['created_at']],
+  ] as const) {
+    for (const col of cols) {
+      sqlite.run(`UPDATE ${table} SET ${col} = datetime('now') WHERE ${col} IS NULL`);
+    }
+  }
+}
+
+/**
+ * A unique index refuses to build over a clash, and a boot that fails takes
+ * the service down. Versions used to be numbered by reading the highest and
+ * writing the next, so two publishes of one template at once could have
+ * shared a number. The later copy moves to the top of its template's
+ * history; nothing is deleted. Runs only until the index exists.
+ */
+function renumberClashingVersions(sqlite: Database) {
+  if (sqlite.query(`SELECT 1 FROM sqlite_master WHERE type = 'index' AND name = 'template_versions_number'`).get()) return;
+  const clashes = sqlite
+    .query(`SELECT v.id, v.template_id FROM template_versions v WHERE EXISTS (
+      SELECT 1 FROM template_versions o
+      WHERE o.template_id = v.template_id AND o.version_number = v.version_number AND o.rowid < v.rowid
+    ) ORDER BY v.rowid`)
+    .all() as Array<{ id: string; template_id: string }>;
+  const renumber = sqlite.prepare(`UPDATE template_versions
+    SET version_number = (SELECT MAX(version_number) + 1 FROM template_versions WHERE template_id = ?)
+    WHERE id = ?`);
+  sqlite.transaction(() => {
+    for (const clash of clashes) renumber.run(clash.template_id, clash.id);
+  })();
+}
+
+/** SQLite has no `ADD COLUMN IF NOT EXISTS`, and existing installs already have
+ *  the table, so widen it here rather than in the CREATE above. */
+function addColumnIfMissing(sqlite: Database, table: string, column: string, type: string) {
+  const columns = sqlite.query(`PRAGMA table_info(${table})`).all() as Array<{ name: string }>;
+  if (columns.some((c) => c.name === column)) return;
+  sqlite.run(`ALTER TABLE ${table} ADD COLUMN ${column} ${type}`);
 }
 
 const BASE62 = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
@@ -38,7 +174,7 @@ function simpleShortCode(): string {
   return code;
 }
 
-function backfillShortCodes(sqlite: Database) {
+export function backfillShortCodes(sqlite: Database) {
   const row = sqlite.prepare("SELECT COUNT(*) as count FROM mails WHERE short_code IS NULL").get() as { count: number };
   if (!row?.count) return;
   const rows = sqlite.prepare("SELECT id FROM mails WHERE short_code IS NULL").all() as { id: string }[];
@@ -51,6 +187,13 @@ function backfillShortCodes(sqlite: Database) {
     }
   });
   tx();
+}
+
+/** Closing the last connection folds the write-ahead log back into the
+ *  database file, so a copy of the volume taken afterwards is whole. */
+export function closeDb() {
+  db?.$client.close();
+  db = null;
 }
 
 export const dbPlugin = new Elysia({ name: 'db' })

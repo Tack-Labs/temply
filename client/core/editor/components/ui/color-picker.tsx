@@ -3,8 +3,9 @@
 import { HexColorPicker, HexColorInput } from 'react-colorful';
 import { Popover, PopoverContent, PopoverTrigger } from '../popover';
 import { BaseButton } from '../base-button';
-import { Tooltip, TooltipContent, TooltipTrigger } from './tooltip';
+import { TooltipLabel } from './tooltip';
 import { cn } from '@/editor/utils/classname';
+import { COLOR_PRESETS } from '~/lib/color-presets';
 import { ReactNode } from 'react';
 
 type ColorPickerProps = {
@@ -82,19 +83,17 @@ export function ColorPicker(props: ColorPickerProps) {
       }}
     >
       {tooltip ? (
-        <Tooltip>
-          <TooltipTrigger asChild>{popoverButton}</TooltipTrigger>
-          <TooltipContent sideOffset={8}>{tooltip}</TooltipContent>
-        </Tooltip>
+        <TooltipLabel label={tooltip}>{popoverButton}</TooltipLabel>
       ) : (
         popoverButton
       )}
 
       <PopoverContent
-        className="mly:w-full mly:rounded-none mly:border-0 mly:bg-transparent! mly:p-0! mly:shadow-none mly:drop-shadow-md"
+        aria-label={tooltip || 'Colour'}
+        className="mly:w-max mly:max-w-[calc(100vw-2rem)] mly:rounded-none mly:border-0 mly:bg-transparent! mly:p-0! mly:shadow-none mly:drop-shadow-md"
         sideOffset={8}
       >
-        <div className="mly:min-w-[260px] mly:rounded-xl mly:border mly:border-gray-200 mly:bg-white mly:p-4">
+        <div className="mly:min-w-[260px] mly:rounded-xl mly:border mly:border-gray-200 mly:bg-panel mly:p-4">
           <HexColorPicker
             color={color}
             onChange={handleColorChange}
@@ -104,9 +103,28 @@ export function ColorPicker(props: ColorPickerProps) {
             alpha={true}
             color={color}
             onChange={handleColorChange}
-            className="mly:mt-4 mly:w-full mly:min-w-0 mly:rounded-lg mly:border mly:border-gray-200 mly:bg-white mly:px-2 mly:py-1.5 mly:text-sm mly:uppercase mly:focus-visible:border-gray-400 mly:focus-visible:outline-hidden"
+            className="mly:mt-4 mly:w-full mly:min-w-0 mly:rounded-lg mly:border mly:border-gray-200 mly:bg-panel mly:px-2 mly:py-1.5 mly:text-sm mly:uppercase mly:focus-visible:border-gray-400 "
             prefixed
           />
+
+          <div className="mly:mt-4 mly:flex mly:flex-wrap mly:gap-0.5">
+            {COLOR_PRESETS.map((preset) => (
+              <BaseButton
+                key={preset}
+                variant="ghost"
+                size="sm"
+                className="!mly:size-7 mly:shrink-0"
+                type="button"
+                aria-label={`Use ${preset}`}
+                onClick={() => handleColorChange(preset)}
+              >
+                <div
+                  className="mly:h-4 mly:w-4 mly:shrink-0 mly:rounded mly:border mly:border-gray-200"
+                  style={{ backgroundColor: preset }}
+                />
+              </BaseButton>
+            ))}
+          </div>
 
           {suggestedColors.length > 0 && (
             <div>

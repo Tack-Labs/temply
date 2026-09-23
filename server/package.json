@@ -3,28 +3,31 @@
   "type": "module",
   "scripts": {
     "dev": "bun --watch src/index.ts",
-    "build": "bun build src/index.ts --outdir dist",
+    "build": "bun build src/index.ts --outdir dist --target bun",
     "start": "bun src/index.ts",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "db:backup": "bun run scripts/backup-db.ts"
   },
   "dependencies": {
     "@antfu/utils": "^9.2.0",
     "@clerk/backend": "^3.12.0",
     "@react-email/components": "^0.5.1",
     "@react-email/render": "^1.2.1",
+    "@sentry/bun": "^10.73.0",
     "@temply/shared": "workspace:*",
     "drizzle-orm": "^0.45.2",
     "elysia": "^1.2.0",
+    "imagekit": "^6.0.0",
     "juice": "^11.0.1",
     "node-html-parser": "^7.0.1",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
-    "resend": "^4.1.2",
-    "stripe": "^22.3.2",
-    "zod": "^3.24.2"
+    "resend": "^4.1.2"
   },
   "devDependencies": {
     "@tiptap/core": "^2.11.5",
+    "@types/react": "^19.0.12",
+    "@types/react-dom": "^19.0.4",
     "bun-types": "^1.3.14",
     "typescript": "5.8.2"
   }

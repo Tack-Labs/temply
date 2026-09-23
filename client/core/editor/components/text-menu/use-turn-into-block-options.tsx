@@ -30,108 +30,118 @@ export type TurnIntoOptions = Array<
   TurnIntoBlockOptions | TurnIntoBlockCategory
 >;
 
-export function useTurnIntoBlockOptions(editor: Editor) {
-  return useEditorState({
+/**
+ * Takes a missing editor so the text menu can ask before it knows it has one:
+ * a hook below an early return is a hook React may never see again.
+ */
+export function useTurnIntoBlockOptions(editor: Editor | null): TurnIntoOptions {
+  const options = useEditorState({
     editor,
-    selector: ({ editor }): TurnIntoOptions => [
-      {
-        type: 'category',
-        label: 'Hierarchy',
-        id: 'hierarchy',
-      },
-      {
-        icon: PilcrowIcon,
-        onClick: () =>
-          editor.chain().focus().liftListItem('listItem').setParagraph().run(),
-        id: 'paragraph',
-        disabled: () => !editor.can().setParagraph(),
-        isActive: () =>
-          editor.isActive('paragraph') &&
-          !editor.isActive('orderedList') &&
-          !editor.isActive('bulletList') &&
-          !editor.isActive('taskList'),
-        label: 'Paragraph',
-        type: 'option',
-      },
-      {
-        icon: Heading1Icon,
-        onClick: () =>
-          editor
-            .chain()
-            .focus()
-            .liftListItem('listItem')
-            .setHeading({ level: 1 })
-            .run(),
-        id: 'heading1',
-        disabled: () => !editor.can().setHeading({ level: 1 }),
-        isActive: () => editor.isActive('heading', { level: 1 }),
-        label: 'Heading 1',
-        type: 'option',
-      },
-      {
-        icon: Heading2Icon,
-        onClick: () =>
-          editor
-            .chain()
-            .focus()
-            .liftListItem('listItem')
-            .setHeading({ level: 2 })
-            .run(),
-        id: 'heading2',
-        disabled: () => !editor.can().setHeading({ level: 2 }),
-        isActive: () => editor.isActive('heading', { level: 2 }),
-        label: 'Heading 2',
-        type: 'option',
-      },
-      {
-        icon: Heading3Icon,
-        onClick: () =>
-          editor
-            .chain()
-            .focus()
-            .liftListItem('listItem')
-            .setHeading({ level: 3 })
-            .run(),
-        id: 'heading3',
-        disabled: () => !editor.can().setHeading({ level: 3 }),
-        isActive: () => editor.isActive('heading', { level: 3 }),
-        label: 'Heading 3',
-        type: 'option',
-      },
-      {
-        id: 'footer',
-        type: 'option',
-        label: 'Footer',
-        icon: FootprintsIcon,
-        onClick: () => {
-          editor.chain().focus().liftListItem('listItem').setFooter().run();
-        },
-        disabled: () => !editor.can().setFooter(),
-        isActive: () => editor.isActive('footer'),
-      },
-      {
-        type: 'category',
-        label: 'Lists',
-        id: 'lists',
-      },
-      {
-        icon: ListIcon,
-        onClick: () => editor.chain().focus().toggleBulletList().run(),
-        id: 'bulletList',
-        disabled: () => !editor.can().toggleBulletList(),
-        isActive: () => editor.isActive('bulletList'),
-        label: 'Bullet list',
-        type: 'option',
-      },
-      {
-        icon: ListOrderedIcon,
-        onClick: () => editor.chain().focus().toggleOrderedList().run(),
-        id: 'orderedList',
-        disabled: () => !editor.can().toggleOrderedList(),
-        isActive: () => editor.isActive('orderedList'),
-        label: 'Numbered list',
-        type: 'option',
-      },
-    ],
+    selector: ({ editor }): TurnIntoOptions => (editor ? turnIntoOptions(editor) : []),
   });
+
+  return options ?? [];
+}
+
+function turnIntoOptions(editor: Editor): TurnIntoOptions {
+  return [
+    {
+      type: 'category',
+      label: 'Hierarchy',
+      id: 'hierarchy',
+    },
+    {
+      icon: PilcrowIcon,
+      onClick: () =>
+        editor.chain().focus().liftListItem('listItem').setParagraph().run(),
+      id: 'paragraph',
+      disabled: () => !editor.can().setParagraph(),
+      isActive: () =>
+        editor.isActive('paragraph') &&
+        !editor.isActive('orderedList') &&
+        !editor.isActive('bulletList') &&
+        !editor.isActive('taskList'),
+      label: 'Paragraph',
+      type: 'option',
+    },
+    {
+      icon: Heading1Icon,
+      onClick: () =>
+        editor
+          .chain()
+          .focus()
+          .liftListItem('listItem')
+          .setHeading({ level: 1 })
+          .run(),
+      id: 'heading1',
+      disabled: () => !editor.can().setHeading({ level: 1 }),
+      isActive: () => editor.isActive('heading', { level: 1 }),
+      label: 'Heading 1',
+      type: 'option',
+    },
+    {
+      icon: Heading2Icon,
+      onClick: () =>
+        editor
+          .chain()
+          .focus()
+          .liftListItem('listItem')
+          .setHeading({ level: 2 })
+          .run(),
+      id: 'heading2',
+      disabled: () => !editor.can().setHeading({ level: 2 }),
+      isActive: () => editor.isActive('heading', { level: 2 }),
+      label: 'Heading 2',
+      type: 'option',
+    },
+    {
+      icon: Heading3Icon,
+      onClick: () =>
+        editor
+          .chain()
+          .focus()
+          .liftListItem('listItem')
+          .setHeading({ level: 3 })
+          .run(),
+      id: 'heading3',
+      disabled: () => !editor.can().setHeading({ level: 3 }),
+      isActive: () => editor.isActive('heading', { level: 3 }),
+      label: 'Heading 3',
+      type: 'option',
+    },
+    {
+      id: 'footer',
+      type: 'option',
+      label: 'Footer',
+      icon: FootprintsIcon,
+      onClick: () => {
+        editor.chain().focus().liftListItem('listItem').setFooter().run();
+      },
+      disabled: () => !editor.can().setFooter(),
+      isActive: () => editor.isActive('footer'),
+    },
+    {
+      type: 'category',
+      label: 'Lists',
+      id: 'lists',
+    },
+    {
+      icon: ListIcon,
+      onClick: () => editor.chain().focus().toggleBulletList().run(),
+      id: 'bulletList',
+      disabled: () => !editor.can().toggleBulletList(),
+      isActive: () => editor.isActive('bulletList'),
+      label: 'Bullet list',
+      type: 'option',
+    },
+    {
+      icon: ListOrderedIcon,
+      onClick: () => editor.chain().focus().toggleOrderedList().run(),
+      id: 'orderedList',
+      disabled: () => !editor.can().toggleOrderedList(),
+      isActive: () => editor.isActive('orderedList'),
+      label: 'Numbered list',
+      type: 'option',
+    },
+  ];
 }

@@ -24,7 +24,7 @@ export function ImageView(props: NodeViewProps) {
   const [status, setStatus] = useState<ImageStatus>('idle');
   const [isPlaceholderImage, setIsPlaceholderImage] = useState(false);
 
-  const { onImageUpload, allowedMimeTypes = [] } =
+  const { onImageUpload, onPickImage, allowedMimeTypes = [] } =
     useImageUploadOptions(editor);
 
   const wrapperRef = useRef<HTMLDivElement>(null);
@@ -193,6 +193,13 @@ export function ImageView(props: NodeViewProps) {
     [onImageUpload, updateAttributes]
   );
 
+  const handlePick = useCallback(async () => {
+    if (!onPickImage || !editor.isEditable) return;
+    const url = await onPickImage();
+    // Cancelling the picker leaves the block exactly as it was.
+    if (url) updateAttributes({ src: url, isSrcVariable: false });
+  }, [onPickImage, editor, updateAttributes]);
+
   // load the image using new Image() to avoid layout shift
   // then if the image is loaded, set the status to loaded
   useEffect(() => {
@@ -332,6 +339,7 @@ export function ImageView(props: NodeViewProps) {
           status="idle"
           minHeight={height}
           isDropZone={isDroppable}
+          onPick={onPickImage ? handlePick : undefined}
         />
       )}
 
@@ -362,6 +370,7 @@ export function ImageView(props: NodeViewProps) {
 
       {hasImageSrc && status === 'loaded' && !isSrcVariable && (
         <>
+          {/* biome-ignore lint/a11y/useAltText: alt is the node's own attribute, spread in with the rest */}
           <img
             {...attrs}
             ref={imgRef}
@@ -422,10 +431,12 @@ type ImageStatusLabelProps = {
   status: ImageStatus | 'variable';
   minHeight?: number | string;
   isDropZone?: boolean;
+  onPick?: () => void;
 } & React.HTMLAttributes<HTMLDivElement>;
 
 export function ImageStatusLabel(props: ImageStatusLabelProps) {
-  const { status, minHeight, className, style, isDropZone, ...rest } = props;
+  const { status, minHeight, className, style, isDropZone, onPick, ...rest } =
+    props;
 
   return (
     <div
@@ -433,8 +444,8 @@ export function ImageStatusLabel(props: ImageStatusLabelProps) {
       className={cn(
         'mly:flex mly:items-center mly:justify-center mly:gap-2 mly:rounded-lg mly:bg-soft-gray mly:px-4 mly:py-2 mly:text-sm mly:font-medium',
         {
-          'mly:text-gray-500 mly:hover:bg-soft-gray/60': status === 'loading',
-          'mly:text-red-500 mly:hover:bg-soft-gray/60': status === 'error',
+          'mly:text-gray-500 mly:transition-colors mly:hover:bg-soft-gray/60': status === 'loading',
+          'mly:text-red-500 mly:transition-colors mly:hover:bg-soft-gray/60': status === 'error',
         },
         className
       )}
@@ -449,15 +460,35 @@ export function ImageStatusLabel(props: ImageStatusLabelProps) {
     >
       {status === 'idle' && !isDropZone && (
         <>
+          {/* Signed-out editing has no upload path by design — the Image
+              source control in the toolbar is the one route that works. */}
           <ImageOffIcon className="mly:size-4 mly:stroke-[2.5]" />
-          <span>No image selected</span>
+          <span>Add an image with Image source in the toolbar</span>
         </>
       )}
 
       {status === 'idle' && isDropZone && (
         <>
           <GrabIcon className="mly:size-4 mly:stroke-[2.5]" />
-          <span>Click or Drop image here</span>
+          <span>Drop an image, or Upload</span>
+          {onPick && (
+            <>
+              <span aria-hidden="true" className="mly:text-gray-400">·</span>
+              {/* The transparent file input covers the whole label; this sits
+                  above it so the click reaches the picker, not the file dialog. */}
+              <button
+                type="button"
+                onClick={(event) => {
+                  event.preventDefault();
+                  event.stopPropagation();
+                  onPick();
+                }}
+                className="mly:relative mly:z-10 mly:rounded mly:px-1 mly:underline mly:underline-offset-2 mly:transition-colors mly:hover:bg-soft-gray/60"
+              >
+                Choose from library
+              </button>
+            </>
+          )}
         </>
       )}
 

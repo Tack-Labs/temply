@@ -1,36 +1,22 @@
-import { deleteNode } from '@/editor/utils/delete-node';
 import { isTextSelected } from '@/editor/utils/is-text-selected';
 import { BubbleMenu, findChildren } from '@tiptap/react';
-import { ChevronUp, Trash } from 'lucide-react';
-import { useCallback } from 'react';
-import { sticky } from 'tippy.js';
+import { useCallback, useEffect, useRef } from 'react';
+import { sticky, type Instance } from 'tippy.js';
 import { getRenderContainer } from '../../utils/get-render-container';
-import { AlignmentSwitch } from '../alignment-switch';
-import { BaseButton } from '../base-button';
-import { BubbleMenuButton } from '../bubble-menu-button';
-import { ColumnsBubbleMenuContent } from '../column-menu/columns-bubble-menu-content';
-import { BorderColor } from '../icons/border-color';
-import { MarginIcon } from '../icons/margin-icon';
-import { PaddingIcon } from '../icons/padding-icon';
-import { Popover, PopoverContent, PopoverTrigger } from '../popover';
-import { ShowPopover } from '../show-popover';
 import { EditorBubbleMenuProps } from '../text-menu/text-bubble-menu';
-import { ColorPicker } from '../ui/color-picker';
-import { Divider } from '../ui/divider';
-import { Select } from '../ui/select';
 import { TooltipProvider } from '../ui/tooltip';
-import { useSectionState } from './use-section-state';
+import { MenuToolbar } from '../ui/menu-toolbar';
 import { getClosestNodeByName } from '@/editor/utils/columns';
-import { spacing } from '@/editor/utils/spacing';
+import { SectionMenuContent } from './section-menu-content';
+import { useEditorGesture } from '@/editor/utils/use-editor-gesture';
+import { layerWillTakeEscape } from '@/editor/utils/escape-layer';
+import { PLACED_INSIDE_THE_PANE } from '@/editor/utils/menu-placement';
 
 export function SectionBubbleMenu(props: EditorBubbleMenuProps) {
   const { appendTo, editor } = props;
-  if (!editor) {
-    return null;
-  }
 
   const getReferenceClientRect = useCallback(() => {
-    const renderContainer = getRenderContainer(editor!, 'section');
+    const renderContainer = editor && getRenderContainer(editor, 'section');
     const rect =
       renderContainer?.getBoundingClientRect() ||
       new DOMRect(-1000, -1000, 0, 0);
@@ -38,31 +24,85 @@ export function SectionBubbleMenu(props: EditorBubbleMenuProps) {
     return rect;
   }, [editor]);
 
+  // A Repeat inside the section, with the caret in it, wants the same spot
+  // above the block that this menu does. Hiding this one — the old answer —
+  // left the section with no menu at all once the Repeat was its only
+  // child, since every caret position is then inside the Repeat. The menu
+  // moves to the section's bottom edge instead, and the two share the block.
+  const repeatIsActiveInside = (e: NonNullable<typeof editor>) => {
+    const section = getClosestNodeByName(e, 'section');
+    const repeatChild = section ? findChildren(section.node, (node) => node.type.name === 'repeat')[0] : null;
+    return !!repeatChild && e.isActive('repeat');
+  };
+
+  // A bubble menu is a response to a gesture, and opening the template is not
+  // one. `autofocus="end"` parks the caret inside whatever the document ends
+  // in, so a template finishing in a Section used to open with this menu up
+  // over the block above it before the customer had touched anything. The
+  // caret stays where it is — a Section with text in it is the right place to
+  // land — and the menu waits for the first pointer or key gesture instead.
+  const gestured = useEditorGesture(editor);
+
+  // Placement follows the caret, not the show: the menu is usually already
+  // up when the caret moves into the nested block, so a show-time hook would
+  // be too late. Every transaction re-asks; setProps is a no-op when unchanged.
+  const tippyRef = useRef<Instance | null>(null);
+  // The menu sits over the block above the section, so a customer who wants
+  // to read or click that block needs a way to put the menu down without
+  // first having to click through it. Escape is that way, and it is the
+  // section that was dismissed rather than the menu: moving the caret to
+  // another section, or out of every section and back, is asking again.
+  const dismissedSection = useRef<number | null>(null);
+  useEffect(() => {
+    if (!editor) return;
+    const place = () => {
+      const placement = repeatIsActiveInside(editor) ? 'bottom' : 'top';
+      const instance = tippyRef.current;
+      if (instance && instance.props.placement !== placement) instance.setProps({ placement });
+    };
+    const dismiss = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape' || !tippyRef.current?.state.isVisible) return;
+      // Escape belongs to the innermost thing the customer opened, and only
+      // then to this menu.
+      if (layerWillTakeEscape()) return;
+      dismissedSection.current = getClosestNodeByName(editor, 'section')?.pos ?? null;
+      tippyRef.current.hide();
+    };
+    editor.on('transaction', place);
+    document.addEventListener('keydown', dismiss);
+    return () => {
+      editor.off('transaction', place);
+      document.removeEventListener('keydown', dismiss);
+    };
+  }, [editor]);
+
+  if (!editor) {
+    return null;
+  }
+
   const bubbleMenuProps: EditorBubbleMenuProps = {
     ...props,
-    ...(appendTo ? { appendTo: appendTo.current } : {}),
     shouldShow: ({ editor }) => {
       const activeSectionNode = getClosestNodeByName(editor, 'section');
-      const repeatNodeChildren = activeSectionNode
-        ? findChildren(activeSectionNode?.node, (node) => {
-            return node.type.name === 'repeat';
-          })?.[0]
-        : null;
+      // Read here rather than on the editor's own transaction event, which
+      // fires after this: the caret coming back to a dismissed section would
+      // be judged against the stale answer and the menu would stay down
+      // until something else moved.
+      if (activeSectionNode?.pos !== dismissedSection.current) dismissedSection.current = null;
       const inlineImageNodeChildren = activeSectionNode
         ? findChildren(activeSectionNode?.node, (node) => {
             return node.type.name === 'inlineImage';
           })?.[0]
         : null;
-      const hasActiveRepeatNodeChildren =
-        repeatNodeChildren && editor.isActive('repeat');
       const hasActiveInlineImageNodeChildren =
         inlineImageNodeChildren && editor.isActive('inlineImage');
 
       if (
+        !gestured.current ||
         isTextSelected(editor) ||
-        hasActiveRepeatNodeChildren ||
         hasActiveInlineImageNodeChildren ||
-        !editor.isEditable
+        !editor.isEditable ||
+        (activeSectionNode && activeSectionNode.pos === dismissedSection.current)
       ) {
         return false;
       }
@@ -71,8 +111,11 @@ export function SectionBubbleMenu(props: EditorBubbleMenuProps) {
     },
     tippyOptions: {
       offset: [0, 8],
+      onCreate: (instance: Instance) => {
+        tippyRef.current = instance;
+      },
       popperOptions: {
-        modifiers: [{ name: 'flip', enabled: false }],
+        modifiers: PLACED_INSIDE_THE_PANE,
       },
       getReferenceClientRect,
       appendTo: () => appendTo?.current,
@@ -83,205 +126,16 @@ export function SectionBubbleMenu(props: EditorBubbleMenuProps) {
     pluginKey: 'sectionBubbleMenu',
   };
 
-  const state = useSectionState(editor);
-
-  const borderRadiusOptions = [
-    { value: '0', label: 'Sharp' },
-    { value: '6', label: 'Smooth' },
-    { value: '9999', label: 'Round' },
-  ];
-
   return (
-    <BubbleMenu
-      {...bubbleMenuProps}
-      className="mly:flex mly:items-stretch mly:rounded-lg mly:border mly:border-gray-200 mly:bg-white mly:p-0.5 mly:shadow-md"
-    >
+    <BubbleMenu {...bubbleMenuProps}>
       <TooltipProvider>
-        <AlignmentSwitch
-          alignment={state.currentAlignment}
-          onAlignmentChange={(alignment) => {
-            editor?.commands?.updateSection({
-              align: alignment,
-            });
-          }}
-        />
-
-        <Divider />
-
-        <div className="mly:flex mly:gap-x-0.5">
-          <Select
-            label="Border Radius"
-            value={String(state.currentBorderRadius)}
-            options={borderRadiusOptions}
-            onValueChange={(value) => {
-              editor?.commands?.updateSection({
-                borderRadius: Number(value),
-              });
-            }}
-            tooltip="Border Radius"
-            className="mly:capitalize"
-          />
-
-          <Select
-            label="Border Width"
-            value={String(state.currentBorderWidth)}
-            options={[
-              { value: '0', label: 'None' },
-              { value: '1', label: 'Thin' },
-              { value: '2', label: 'Medium' },
-              { value: '3', label: 'Thick' },
-            ]}
-            onValueChange={(value) => {
-              editor?.commands?.updateSection({
-                borderWidth: Number(value),
-              });
-            }}
-            tooltip="Border Width"
-            className="mly:capitalize"
-          />
-        </div>
-
-        <Divider />
-
-        <Select
-          icon={MarginIcon}
-          iconClassName="mly:stroke-[1.2] mly:size-3.5"
-          label="Margin"
-          value={String(state.currentMarginTop)}
-          options={[
-            { value: '0', label: 'None' },
-            ...spacing.map((space) => ({
-              label: space.name,
-              value: String(space.value),
-            })),
-          ]}
-          onValueChange={(_value) => {
-            const value = Number(_value);
-            editor?.commands?.updateSection({
-              marginTop: value,
-              marginRight: value,
-              marginBottom: value,
-              marginLeft: value,
-            });
-          }}
-          tooltip="Margin"
-          className="mly:capitalize"
-        />
-
-        <Divider />
-
-        <Select
-          icon={PaddingIcon}
-          iconClassName="mly:stroke-[1]"
-          label="Padding"
-          value={String(state.currentPaddingTop)}
-          options={[
-            { value: '0', label: 'None' },
-            ...spacing.map((space) => ({
-              label: space.name,
-              value: String(space.value),
-            })),
-          ]}
-          onValueChange={(_value) => {
-            const value = Number(_value);
-            editor?.commands?.updateSection({
-              paddingTop: value,
-              paddingRight: value,
-              paddingBottom: value,
-              paddingLeft: value,
-            });
-          }}
-          tooltip="Padding"
-          className="mly:capitalize"
-        />
-
-        <Divider />
-
-        <div className="mly:flex mly:gap-x-0.5">
-          <ColorPicker
-            color={state.currentBorderColor}
-            onColorChange={(color) => {
-              editor?.commands?.updateSection({
-                borderColor: color,
-              });
-            }}
-            tooltip="Border Color"
-          >
-            <BaseButton
-              variant="ghost"
-              className="mly:h-7 mly:w-7 mly:shrink-0"
-              size="sm"
-              type="button"
-            >
-              <BorderColor
-                className="mly:size-3 mly:shrink-0"
-                topBarClassName="mly:stroke-midnight-gray"
-                style={{
-                  color: state.currentBorderColor,
-                }}
-              />
-            </BaseButton>
-          </ColorPicker>
-          <ColorPicker
-            color={state.currentBackgroundColor}
-            onColorChange={(color) => {
-              editor?.commands?.updateSection({
-                backgroundColor: color,
-              });
-            }}
-            backgroundColor={state.currentBackgroundColor}
-            tooltip="Background Color"
-            className="mly:rounded-full mly:border-[1.5px] mly:border-white mly:shadow"
-          />
-        </div>
-
-        <Divider />
-
-        <BubbleMenuButton
-          icon={Trash}
-          tooltip="Delete Section"
-          command={() => {
-            deleteNode(editor, 'section');
-          }}
-        />
-
-        <Divider />
-
-        <ShowPopover
-          showIfKey={state.currentShowIfKey}
-          onShowIfKeyValueChange={(value) => {
-            editor.commands.updateSection({
-              showIfKey: value,
-            });
-          }}
+        <MenuToolbar
           editor={editor}
-        />
-
-        {state.isColumnsActive && (
-          <>
-            <Divider />
-            <Popover>
-              <PopoverTrigger className="mly:flex mly:items-center mly:gap-1 mly:rounded-md mly:px-1.5 mly:text-sm mly:data-[state=open]:bg-soft-gray mly:hover:bg-soft-gray">
-                Column
-                <ChevronUp className="mly:h-3 mly:w-3" />
-              </PopoverTrigger>
-              <PopoverContent
-                className="mly:w-max mly:rounded-lg mly:p-0.5!"
-                side="top"
-                sideOffset={8}
-                align="end"
-                onOpenAutoFocus={(e) => {
-                  e.preventDefault();
-                }}
-                onCloseAutoFocus={(e) => {
-                  e.preventDefault();
-                }}
-              >
-                <ColumnsBubbleMenuContent editor={editor} />
-              </PopoverContent>
-            </Popover>
-          </>
-        )}
+          label="Section"
+          className="mly:flex mly:items-stretch mly:rounded-lg mly:border mly:border-gray-200 mly:bg-panel mly:p-0.5 mly:shadow-md"
+        >
+          <SectionMenuContent editor={editor} />
+        </MenuToolbar>
       </TooltipProvider>
     </BubbleMenu>
   );

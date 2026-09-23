@@ -5,9 +5,12 @@ import {
 import { Editor, Extension } from '@tiptap/core';
 import { useMemo } from 'react';
 
-export type ImageUploadOptions = Omit<ImageUploadPluginOptions, 'editor'> & {};
-export type ImageUploadStorage = {
-  placeholderImages: Set<string>;
+export type ImageUploadOptions = Omit<ImageUploadPluginOptions, 'editor'> & {
+  /** Opens the host app's image library; resolves the chosen URL or null. The
+   *  editor core does not know where images live — the app does. */
+  onPickImage?: () => Promise<string | null>;
+  /** Whether a src is one the host app stores, as opposed to a pasted URL. */
+  isLibraryImage?: (src: string) => boolean;
 };
 
 export const ImageUploadExtension = Extension.create<ImageUploadOptions>({
@@ -23,6 +26,8 @@ export const ImageUploadExtension = Extension.create<ImageUploadOptions>({
         'image/svg+xml',
       ],
       onImageUpload: undefined,
+      onPickImage: undefined,
+      isLibraryImage: undefined,
     };
   },
 

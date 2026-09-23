@@ -27,7 +27,7 @@ export const headerLogoWithTextHorizontal: BlockItem = {
               {
                 type: 'image',
                 attrs: {
-                  src: 'https://maily.to/brand/logo.png',
+                  src: '/brand/mark.png',
                   alt: null,
                   title: null,
                   width: '32',
@@ -85,7 +85,7 @@ export const headerLogoWithTextVertical: BlockItem = {
         {
           type: 'image',
           attrs: {
-            src: 'https://maily.to/brand/logo.png',
+            src: '/brand/mark.png',
             alt: null,
             title: null,
             width: '48',
@@ -154,7 +154,7 @@ export const headerLogoWithCoverImage: BlockItem = {
                 {
                   type: 'image',
                   attrs: {
-                    src: 'https://maily.to/brand/logo.png',
+                    src: '/brand/mark.png',
                     alt: null,
                     title: null,
                     width: '48',

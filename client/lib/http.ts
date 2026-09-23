@@ -12,12 +12,29 @@ export class FetchError extends Error {
     this.message = message;
   }
 
-  static isFetchError(error: any): error is FetchError {
+  static isFetchError(error: unknown): error is FetchError {
     return error instanceof FetchError;
   }
 }
 
 type ApiReturn<ResponseType> = ResponseType;
+
+/**
+ * The message of a thrown value when it carries one, '' otherwise — so callers
+ * can `|| fallback` their own wording, exactly like `error?.message ||` did.
+ */
+export function errorMessage(error: unknown): string {
+  if (error instanceof Error) return error.message;
+  if (
+    typeof error === 'object' &&
+    error !== null &&
+    'message' in error &&
+    typeof error.message === 'string'
+  ) {
+    return error.message;
+  }
+  return '';
+}
 
 /**
  * Wrapper around fetch to make it easy to handle errors
@@ -47,12 +64,18 @@ export async function httpCall<ResponseType = AppResponse>(
       headers,
     });
 
-    // @ts-ignore
-    const doesAcceptHtml = options?.headers?.['Accept'] === 'text/html';
+    // Read from the Headers actually sent — case-insensitive, and no reach
+    // back into the loose options shape.
+    const doesAcceptHtml = headers.get('Accept') === 'text/html';
 
     const data = doesAcceptHtml ? await response.text() : await response.json();
 
     if (!response.ok) {
+      // A signed-in user with no organization: every dashboard call answers
+      // this, and the only useful response is the onboarding that makes one.
+      if (response.status === 403 && data?.code === 'no-workspace' && typeof window !== 'undefined') {
+        window.location.assign('/onboarding');
+      }
       if ('errors' in data) {
         throw new FetchError(response.status, data.message);
       } else {
@@ -61,7 +84,7 @@ export async function httpCall<ResponseType = AppResponse>(
     }
 
     return data as ResponseType;
-  } catch (error: any) {
+  } catch (error) {
     throw error;
   }
 }
@@ -87,18 +110,6 @@ export async function httpGet<ResponseType = AppResponse>(
   const queryUrl = searchParams ? `${url}?${searchParams}` : url;
 
   return httpCall<ResponseType>(queryUrl, options);
-}
-
-export async function httpPatch<ResponseType = AppResponse>(
-  url: string,
-  body: Record<string, any>,
-  options?: HttpOptionsType
-): Promise<ApiReturn<ResponseType>> {
-  return httpCall<ResponseType>(url, {
-    ...options,
-    method: 'PATCH',
-    body: JSON.stringify(body),
-  });
 }
 
 export async function httpPut<ResponseType = AppResponse>(

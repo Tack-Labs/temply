@@ -1,58 +1,69 @@
 'use client';
 
-import {
-  CreditCardIcon,
-  FileTextIcon,
-  KeyIcon,
-  LayoutDashboardIcon,
-  SettingsIcon,
-} from 'lucide-react';
+import { OrganizationSwitcher } from '@clerk/nextjs';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { BrandMark } from '~/components/brand-mark';
+import { useTheme } from '~/components/theme-provider';
+import { NavLinks } from './nav-items';
+import { QuotaWidget } from './quota-widget';
 import { UserMenu } from './user-menu';
 
-const navItems = [
-  { href: '/dashboard', label: 'Overview', icon: LayoutDashboardIcon },
-  { href: '/dashboard/templates', label: 'Templates', icon: FileTextIcon },
-  { href: '/dashboard/api-keys', label: 'API Keys', icon: KeyIcon, disabled: false },
-  { href: '/dashboard/billing', label: 'Billing', icon: CreditCardIcon, disabled: false },
-  { href: '/dashboard/settings', label: 'Settings', icon: SettingsIcon },
-];
-
-export function Sidebar() {
-  const pathname = usePathname();
-
+/** Clerk's switcher on the rail. A person can belong to several
+ *  organizations — a client's, say — and the active one is the scope of
+ *  everything below it. Personal accounts are hidden: every account is an
+ *  organization here. */
+export function WorkspaceSwitcher() {
+  const { clerkAppearance } = useTheme();
   return (
-    <aside className="flex h-full flex-col border-r border-gray-200 bg-white dark:border-white/10 dark:bg-black">
-      <div className="flex h-14 items-center px-6 border-b border-gray-200 dark:border-white/10">
-        <Link href="/dashboard" className="text-lg font-bold tracking-tight">
+    <OrganizationSwitcher
+      hidePersonal
+      afterCreateOrganizationUrl="/onboarding/invite"
+      afterSelectOrganizationUrl="/dashboard"
+      afterLeaveOrganizationUrl="/onboarding"
+      organizationProfileMode="navigation"
+      organizationProfileUrl="/dashboard/settings/team"
+      appearance={{
+        ...clerkAppearance,
+        elements: {
+          ...(clerkAppearance.elements as Record<string, string>),
+          rootBox: 'w-full',
+          // Layout only. The trigger's colours and its padding are pinned to
+          // the rail in globals.css, where they can outrank Clerk's own
+          // stylesheet; a padding class here loses to it.
+          organizationSwitcherTrigger:
+            'w-full justify-between rounded-md hover:bg-rail-hover focus-visible:ring-[3px] focus-visible:ring-accent/25',
+        },
+      }}
+    />
+  );
+}
+
+export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
+  return (
+    <aside className="flex h-full flex-col bg-rail-bg text-rail-ink">
+      {/* 20px gutter: the same line the nav icons and the workspace avatar
+          sit on, so the mark, the avatar and the icons share one left edge. */}
+      <div className="flex h-12 items-center gap-2 border-b border-rail-line px-5">
+        <BrandMark className="size-4.5 text-rail-active-ink" />
+        <Link
+          href="/dashboard"
+          onClick={onNavigate}
+          className="font-display text-base font-semibold tracking-tight text-rail-ink"
+        >
           Temply
         </Link>
       </div>
 
-      <nav className="flex-1 space-y-1 px-3 py-4">
-        {navItems.map((item) => {
-          const Icon = item.icon;
-          const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
+      <div className="border-b border-rail-line p-2.5">
+        <WorkspaceSwitcher />
+      </div>
 
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-all ${
-                isActive
-                  ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-400/10 dark:text-emerald-400'
-                  : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-zinc-200'
-              }`}
-            >
-              <Icon className="h-4 w-4" />
-              {item.label}
-            </Link>
-          );
-        })}
-      </nav>
+      <div className="flex-1 overflow-y-auto p-2.5">
+        <NavLinks onNavigate={onNavigate} />
+      </div>
 
-      <div className="border-t border-gray-200 p-3 dark:border-white/10">
+      <div className="space-y-2 border-t border-rail-line p-2.5">
+        <QuotaWidget />
         <UserMenu align="start" />
       </div>
     </aside>

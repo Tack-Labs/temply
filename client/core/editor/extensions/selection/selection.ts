@@ -25,7 +25,10 @@ export const SelectionExtension = Extension.create({
             // when the editor is not focused (e.g. when trigger a popover or something similar)
             return DecorationSet.create(state.doc, [
               Decoration.inline(state.selection.from, state.selection.to, {
-                class: 'selection mly:bg-blue-200 mly:inline mly:py-1',
+                // The accent with white text: the selection reads the same on a white
+                // canvas, a coloured one, and under the dark-mode veil, where a
+                // pale blue on grey text washed out to nothing.
+                class: 'selection mly:bg-accent mly:text-white mly:inline mly:py-1',
               }),
             ]);
           },

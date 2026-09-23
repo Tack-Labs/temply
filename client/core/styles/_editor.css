@@ -126,6 +126,25 @@
       margin-block: 32px;
     }
 
+    /* A divider is a one-pixel line, and a finger cannot land on one pixel.
+       On touch the rule keeps its line but grows a hit area either side of
+       it, taken out of the margin so the rhythm on the canvas does not
+       change. */
+    @media (pointer: coarse) {
+      hr:not(:where([class~='not-prose'], [class~='not-prose'] *)) {
+        height: 1px;
+        border: 0;
+        padding-block: 12px;
+        margin-block: 20px;
+        /* The line the desktop draws with border-top, as a background so it
+           can sit in the middle of the hit area. Literal like the rest of
+           the canvas: the email's grey, not the app's. */
+        background: linear-gradient(#e5e7eb, #e5e7eb) center / 100% 1px no-repeat;
+        background-clip: content-box;
+        box-sizing: content-box;
+      }
+    }
+
     .footer:not(:where([class~='not-prose'], [class~='not-prose'] *)) {
       display: block;
       font-size: 13px;
@@ -191,6 +210,28 @@
   pointer-events: none;
   border-radius: 6px;
   background: rgba(35, 131, 226, 0.14);
+}
+
+/* `.mly-editable` only exists when `editor.isEditable` — the phone's canvas
+   never carries it, so this rule fires only for a coarse pointer on the
+   desktop editable layout: a touchscreen laptop, or a tablet, with a mouse
+   still the primary expectation. There the selected block wears an outline
+   instead of the wash a mouse gets from the hover-revealed drag handle. One
+   treatment at a time — a blue fill inside an indigo ring is the state
+   every single tap would draw — so the wash goes here, and there is no
+   radius of its own: an outline follows the element's, and a 4px one
+   reshaped sections and buttons while they were selected. `--ds-accent` is
+   the one app token this canvas reads; it is the same value in both app
+   themes, so no dark-mode bleed reaches the email. */
+@media (pointer: coarse) {
+  .mly-editable .ProseMirror-selectednode::after {
+    content: none;
+  }
+
+  .mly-editor .ProseMirror-selectednode {
+    outline: 2px solid var(--ds-accent);
+    outline-offset: 4px;
+  }
 }
 
 #mly-editor .ProseMirror {
@@ -322,14 +363,15 @@
   }
 
   [data-type='repeat'] {
-    [data-node-view-content] > div {
-      & > *:first-child {
-        margin-top: 0;
-      }
+    [data-node-view-content] > div > *:first-child {
+      margin-top: 0;
+    }
 
-      & > *:last-child {
-        margin-bottom: 0;
-      }
+    /* The block trims its own edges, not each item's — the renderer's rule.
+       With preview copies under it the live row is not the last item, so its
+       last block keeps the gap the next row follows at. */
+    &:not(:has(.mly-repeat-copy)) [data-node-view-content] > div > *:last-child {
+      margin-bottom: 0;
     }
   }
 
@@ -337,15 +379,33 @@
     opacity: 1;
   }
 
-  [data-type='show'] {
-    [data-node-view-content] > div {
-      & > *:first-child {
-        margin-top: 0;
-      }
+  /* The rows a Repeat's list would add, under the row being edited. Faded
+     and inert: they are the shape of repetition, not more places to type. A
+     pill inside is static HTML here (the node view only draws the live
+     row), so it is dressed to match the live one. */
+  .mly-repeat-copy {
+    opacity: 0.45;
+    user-select: none;
+    cursor: default;
 
-      & > *:last-child {
-        margin-bottom: 0;
-      }
+    & > *:first-child {
+      margin-top: 0;
+    }
+
+    /* Only the last copy is the block's last item. */
+    &:not(:has(~ .mly-repeat-copy)) > *:last-child {
+      margin-bottom: 0;
+    }
+
+    [data-type='variable'] {
+      display: inline-block;
+      border-radius: 9999px;
+      padding: 0 0.375rem;
+      font-family: ui-monospace, monospace;
+      font-size: 0.75rem;
+      line-height: 1.25rem;
+      color: var(--color-accent-ink);
+      background-color: var(--color-accent-wash);
     }
   }
 
@@ -441,5 +501,28 @@
     .hljs-attr {
       color: var(--color-attribute);
     }
+  }
+}
+
+/* Hovering a "Show if" suggestion outlines every block that reads the same
+   key, so a condition's reach is visible without hunting for it. */
+.mly-show-if-highlight {
+  outline: 2px solid var(--ds-accent);
+  outline-offset: 3px;
+  border-radius: 4px;
+}
+
+/* A finger gets something it can hit. The bubble menus are built from 28px
+   icon buttons — right under a mouse, and under the 44px a touch device is
+   designed to — and a tablet meets them with no hover to fall back on, so the
+   tooltip that names each icon never opens for it either. Stated as minimums
+   rather than sizes: the buttons set their own width and height with
+   `!important`, and a minimum outranks both without fighting them. Only the
+   toolbar's own controls grow; what a menu opens is portalled out of here. */
+@media (pointer: coarse) {
+  [role='toolbar'] button,
+  [role='toolbar'] [role='button'] {
+    min-block-size: 44px;
+    min-inline-size: 44px;
   }
 }

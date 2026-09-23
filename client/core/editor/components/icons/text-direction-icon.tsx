@@ -2,7 +2,7 @@ import { SVGProps } from 'react';
 
 export function LtrIcon(props: SVGProps<SVGSVGElement>) {
   return (
-    <svg
+    <svg aria-hidden="true"
       xmlns="http://www.w3.org/2000/svg"
       width="16"
       height="16"
@@ -25,7 +25,7 @@ export function LtrIcon(props: SVGProps<SVGSVGElement>) {
 
 export function RtlIcon(props: SVGProps<SVGSVGElement>) {
   return (
-    <svg
+    <svg aria-hidden="true"
       xmlns="http://www.w3.org/2000/svg"
       width="16"
       height="16"

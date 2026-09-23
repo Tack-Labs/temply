@@ -14,12 +14,15 @@ import { TooltipProvider } from '@/editor/components/ui/tooltip';
 import { cn } from '@/editor/utils/classname';
 import { useVariableOptions } from '@/editor/utils/node-options';
 import { NodeViewProps, NodeViewWrapper } from '@tiptap/react';
-import { CSSProperties, useMemo } from 'react';
+import { CSSProperties } from 'react';
 import {
   allowedButtonBorderRadius,
   AllowedButtonVariant,
   allowedButtonVariant,
+  BUTTON_SIZES,
   ButtonAttributes,
+  buttonSizeOf,
+  type ButtonSize,
 } from './button';
 import { ButtonLabelInput } from './button-label-input';
 
@@ -45,30 +48,7 @@ export function ButtonView(props: NodeViewProps) {
   const opts = useVariableOptions(editor);
   const renderVariable = opts?.renderVariable;
 
-  const sizes = useMemo(
-    () => ({
-      small: {
-        paddingX: 24,
-        paddingY: 6,
-      },
-      medium: {
-        paddingX: 32,
-        paddingY: 10,
-      },
-      large: {
-        paddingX: 40,
-        paddingY: 14,
-      },
-    }),
-    []
-  );
-
-  const size = useMemo(() => {
-    return Object.entries(sizes).find(
-      ([, { paddingX, paddingY }]) =>
-        paddingRight === paddingX && paddingTop === paddingY
-    )?.[0] as 'small' | 'medium' | 'large';
-  }, [paddingRight, paddingTop, sizes]);
+  const size = buttonSizeOf({ paddingTop, paddingRight });
 
   return (
     <NodeViewWrapper
@@ -83,18 +63,24 @@ export function ButtonView(props: NodeViewProps) {
         <PopoverTrigger asChild>
           <div>
             <button
+              type="button"
               className={cn(
                 'mly:inline-flex mly:items-center mly:justify-center mly:rounded-md mly:text-sm mly:font-medium mly:ring-offset-white mly:transition-colors mly:disabled:pointer-events-none mly:disabled:opacity-50',
                 'mly:font-semibold mly:no-underline',
                 {
                   'mly:rounded-full!': _radius === 'round',
-                  'mly:rounded-md!': _radius === 'smooth',
                   'mly:rounded-none!': _radius === 'sharp',
                 }
               )}
               tabIndex={-1}
               style={
                 {
+                  // "smooth" follows the brand: the theme's button radius,
+                  // falling back to the classic 6px. Round and sharp stay
+                  // absolute, mirroring the render engine.
+                  ...(_radius === 'smooth'
+                    ? { borderRadius: 'var(--mly-button-border-radius, 6px)' }
+                    : {}),
                   backgroundColor:
                     variant === 'filled'
                       ? buttonColor || 'var(--mly-button-background-color)'
@@ -141,6 +127,7 @@ export function ButtonView(props: NodeViewProps) {
           </div>
         </PopoverTrigger>
         <PopoverContent
+          aria-label="Button"
           align="end"
           side="top"
           className="mly:w-max mly:rounded-lg mly:p-0.5!"
@@ -166,7 +153,7 @@ export function ButtonView(props: NodeViewProps) {
 
               <div className="mly:flex mly:gap-x-0.5">
                 <Select
-                  label="Border Radius"
+                  label="Border radius"
                   value={_radius}
                   options={allowedButtonBorderRadius.map((value) => ({
                     value,
@@ -177,7 +164,7 @@ export function ButtonView(props: NodeViewProps) {
                       borderRadius: value,
                     });
                   }}
-                  tooltip="Border Radius"
+                  tooltip="Border radius"
                   className="mly:capitalize"
                 />
 
@@ -199,15 +186,14 @@ export function ButtonView(props: NodeViewProps) {
 
                 <Select
                   label="Size"
-                  value={size}
+                  value={size ?? ''}
                   options={[
                     { value: 'small', label: 'Small' },
                     { value: 'medium', label: 'Medium' },
                     { value: 'large', label: 'Large' },
                   ]}
                   onValueChange={(value) => {
-                    const { paddingX, paddingY } =
-                      sizes[value as 'small' | 'medium' | 'large'];
+                    const { paddingX, paddingY } = BUTTON_SIZES[value as ButtonSize];
 
                     updateAttributes({
                       paddingTop: paddingY,
@@ -241,7 +227,7 @@ export function ButtonView(props: NodeViewProps) {
                       isUrlVariable: isVariable ?? false,
                     });
                   }}
-                  tooltip="Update External Link"
+                  tooltip="Link address"
                   editor={editor}
                   isVariable={isUrlVariable}
                 />
@@ -295,14 +281,14 @@ type ColorPickerProps = {
   onChange: (color: string) => void;
 };
 
-function BackgroundColorPickerPopup(props: ColorPickerProps) {
+export function BackgroundColorPickerPopup(props: ColorPickerProps) {
   const { color, onChange, variant } = props;
 
   return (
     <ColorPicker
       color={color}
       onColorChange={onChange}
-      tooltip="Background Color"
+      tooltip="Background colour"
     >
       <BaseButton
         variant="ghost"
@@ -324,11 +310,11 @@ function BackgroundColorPickerPopup(props: ColorPickerProps) {
   );
 }
 
-function TextColorPickerPopup(props: ColorPickerProps) {
+export function TextColorPickerPopup(props: ColorPickerProps) {
   const { color, onChange } = props;
 
   return (
-    <ColorPicker color={color} onColorChange={onChange} tooltip="Text Color">
+    <ColorPicker color={color} onColorChange={onChange} tooltip="Text colour">
       <BaseButton
         variant="ghost"
         size="sm"

@@ -13,9 +13,91 @@
 @import 'tailwindcss/utilities.css' layer(utilities) prefix(mly);
 @import './_editor.css';
 
-@theme {
-  --color-soft-gray: #f4f5f6;
-  --color-midnight-gray: #333333;
+/* ---------------------------------------------------------------------------
+   Token bridge for the vendored editor.
+
+   The editor's chrome (toolbars, bubble menus, the properties panel) is styled
+   with `mly:`-prefixed utilities, which compile to --mly-color-*. Pointing that
+   scale at the app tokens gets ~70 editor components onto the design system
+   without editing any of them.
+
+   Two things are deliberately NOT remapped:
+   - `white` / `black`, because some chrome sits directly on the email canvas
+     and must stay canvas-coloured rather than follow the app theme;
+   - the 33 --mly-* variables in _editor.css, which describe the email being
+     authored (container width, body colour, link colour). Those belong to the
+     user's template, not to our UI.
+--------------------------------------------------------------------------- */
+@theme inline {
+  /* The surface every floating panel sits on. Deliberately not a remap of
+     `white`: white is used as a foreground too — a label on a filled button —
+     and remapping it would turn that label dark in dark mode. Panels say
+     `mly:bg-panel`, labels keep saying `mly:text-white`. */
+  --color-panel: var(--ds-raised);
+
+  --color-soft-gray: var(--mly-chrome-hover);
+  --color-midnight-gray: var(--ds-ink);
+
+  /* For chrome that marks a configured state — a block with a condition on it
+     — rather than a problem. */
+  --color-accent: var(--ds-accent);
+  --color-accent-wash: var(--ds-accent-wash);
+  --color-accent-ink: var(--ds-accent-ink);
+
+  --color-gray-50: var(--ds-surface);
+  --color-gray-100: var(--mly-chrome-hover);
+  --color-gray-200: var(--mly-chrome-line);
+  --color-gray-300: var(--ds-line-strong);
+  /* `faint` is the borders-and-decoration tier and does not clear 3:1 on a
+     tinted surface. Editor icons are not decoration — you have to see them to
+     use the toolbar — so the 400s resolve to `muted`. */
+  --color-gray-400: var(--ds-muted);
+  --color-gray-500: var(--ds-muted);
+  --color-gray-600: var(--ds-muted);
+  --color-gray-700: var(--ds-ink);
+  --color-gray-800: var(--ds-ink);
+  --color-gray-900: var(--ds-ink);
+  /* The popover base sets its text (and every icon inheriting currentColor)
+     to 950; unmapped it stays near-black and vanishes on the dark panel. */
+  --color-gray-950: var(--ds-ink);
+
+  --color-slate-200: var(--mly-chrome-line);
+  --color-slate-400: var(--ds-muted);
+  --color-slate-500: var(--ds-muted);
+  --color-slate-600: var(--ds-muted);
+  --color-slate-700: var(--ds-ink);
+
+  --color-rose-50: var(--ds-danger-wash);
+  --color-rose-100: var(--ds-danger-wash);
+  --color-rose-400: var(--ds-danger);
+  --color-rose-500: var(--ds-danger);
+  --color-rose-600: var(--ds-danger-ink);
+  --color-rose-800: var(--ds-danger-ink);
+
+  --color-red-100: var(--ds-danger-wash);
+  --color-red-200: var(--ds-danger-wash);
+  --color-red-500: var(--ds-danger);
+  --color-red-600: var(--ds-danger-ink);
+
+  /* Radii, so a panel corner in the editor matches a card corner in the shell. */
+  --radius-xs: 4px;
+  --radius-sm: 6px;
+  --radius-md: 6px;
+  --radius-lg: 10px;
+  --radius-xl: 14px;
+}
+
+/* The app's hover and line tokens are tuned for its own surfaces; on the
+   editor's floating dark panels they land within a step of the background
+   and disappear. Editor chrome gets its own pair: the app values in light
+   mode, brightened in dark so a hover or divider actually reads. */
+:root {
+  --mly-chrome-hover: var(--ds-hover);
+  --mly-chrome-line: var(--ds-line);
+}
+.dark {
+  --mly-chrome-hover: #34363c;
+  --mly-chrome-line: #36373d;
 }
 
 /*

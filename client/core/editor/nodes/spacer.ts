@@ -20,6 +20,21 @@ declare module '@tiptap/core' {
 
 export const DEFAULT_SPACER_HEIGHT = 8;
 
+/** The toolbar's size names, for documents saved when the slash command
+ *  inserted a name instead of a pixel count. `height: smpx` is not a length,
+ *  so those spacers collapsed on the canvas as well as in the email. */
+const SPACER_SIZES: Record<string, number> = { xs: 4, sm: 8, md: 16, lg: 32, xl: 64 };
+
+export function spacerHeight(height: unknown): number {
+  if (typeof height === 'number' && Number.isFinite(height)) return height;
+  if (typeof height === 'string') {
+    if (SPACER_SIZES[height] !== undefined) return SPACER_SIZES[height];
+    const parsed = Number.parseInt(height, 10);
+    if (Number.isFinite(parsed)) return parsed;
+  }
+  return DEFAULT_SPACER_HEIGHT;
+}
+
 export const Spacer = Node.create<SpacerOptions>({
   name: 'spacer',
   priority: 1000,
@@ -91,7 +106,7 @@ export const Spacer = Node.create<SpacerOptions>({
     };
   },
   renderHTML({ HTMLAttributes, node }) {
-    const { height } = node.attrs as SpacerOptions;
+    const height = spacerHeight((node.attrs as SpacerOptions).height);
 
     return [
       'div',

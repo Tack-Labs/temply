@@ -1,21 +1,12 @@
 'use client';
 
 import { useClerk, useUser } from '@clerk/nextjs';
-import {
-  CreditCardIcon,
-  KeyIcon,
-  LayoutDashboardIcon,
-  LogOutIcon,
-  SettingsIcon,
-  FileTextIcon,
-  UserIcon,
-} from 'lucide-react';
+import { LogOutIcon, ScrollTextIcon, SettingsIcon, ShieldIcon } from 'lucide-react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { pressable } from '~/components/ui/button';
 import {
   DropdownMenu,
   DropdownMenuContent,
-  DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
@@ -25,12 +16,16 @@ import {
 type UserMenuProps = {
   align?: 'start' | 'end' | 'center';
   showLabel?: boolean;
+  /** Which background the trigger sits on. The dashboard rail is graphite in
+   *  both themes, so it needs the rail palette; the marketing header sits on
+   *  the page surface and must follow the theme instead — rail colours there
+   *  meant a dark hover blotch in light mode. */
+  surface?: 'rail' | 'page';
 };
 
-export function UserMenu({ align = 'end', showLabel = true }: UserMenuProps) {
+export function UserMenu({ align = 'end', showLabel = true, surface = 'rail' }: UserMenuProps) {
   const { user, isSignedIn, isLoaded } = useUser();
-  const { signOut, openUserProfile } = useClerk();
-  const router = useRouter();
+  const { signOut } = useClerk();
 
   if (!isLoaded) return null;
   if (!isSignedIn) return null;
@@ -40,66 +35,72 @@ export function UserMenu({ align = 'end', showLabel = true }: UserMenuProps) {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <button className="flex items-center gap-2 rounded-lg p-1.5 text-sm text-gray-700 transition-all hover:bg-gray-100 dark:text-zinc-300 dark:hover:bg-zinc-800">
-          <div className="flex h-7 w-7 items-center justify-center rounded-full bg-gradient-to-br from-emerald-400 to-cyan-400 text-xs font-bold text-white">
+        {/* With the label the trigger is a rail row: the avatar sits on the
+            same 20px line as the nav icons and the workspace avatar above.
+            Without it the trigger is a plain icon button. Either way it is
+            named for what it opens, and with the label also for whom: the
+            visible name has to be in the accessible name (WCAG 2.5.3), and
+            a reader of the rail learns who is signed in without opening
+            the menu. An initial alone is no name; the address stays out of
+            the name in both, which the menu repeats. */}
+        <button
+          type="button"
+          aria-label={showLabel ? `Account: ${user?.fullName ?? 'User'}` : 'Account'}
+          className={`flex w-full items-center gap-2 rounded-md text-sm ${showLabel ? 'px-2.5 py-1.5' : 'p-1.5'} ${pressable} ${
+            surface === 'rail'
+              ? 'text-rail-ink hover:bg-rail-hover'
+              : 'text-ink hover:bg-hover'
+          }`}
+        >
+          <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-accent text-xs font-semibold text-white">
             {initials}
-          </div>
+          </span>
           {showLabel && (
-            <div className="hidden flex-col items-start text-left sm:flex">
-              <span className="text-sm font-medium leading-tight">{user?.fullName ?? 'User'}</span>
-              <span className="text-xs text-gray-500 dark:text-zinc-500">
+            <span className="flex min-w-0 flex-col items-start text-left">
+              <span className="w-full truncate text-sm leading-tight font-medium">
+                {user?.fullName ?? 'User'}
+              </span>
+              <span
+                className={`w-full truncate text-xs ${surface === 'rail' ? 'text-rail-muted' : 'text-muted'}`}
+              >
                 {user?.emailAddresses?.[0]?.emailAddress ?? ''}
               </span>
-            </div>
+            </span>
           )}
         </button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align={align} className="w-56">
         <DropdownMenuLabel>
           <div className="flex flex-col">
-            <span className="font-medium">{user?.fullName ?? 'User'}</span>
-            <span className="text-xs font-normal text-gray-500 dark:text-zinc-500">
+            <span className="font-medium text-ink">{user?.fullName ?? 'User'}</span>
+            <span className="text-xs font-normal text-muted">
               {user?.emailAddresses?.[0]?.emailAddress ?? ''}
             </span>
           </div>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
-        <DropdownMenuGroup>
-          <DropdownMenuItem asChild>
-            <Link href="/dashboard" className="flex cursor-pointer items-center gap-2">
-              <LayoutDashboardIcon className="h-4 w-4" />
-              Dashboard
-            </Link>
-          </DropdownMenuItem>
-          <DropdownMenuItem asChild>
-            <Link href="/dashboard/templates" className="flex cursor-pointer items-center gap-2">
-              <FileTextIcon className="h-4 w-4" />
-              Templates
-            </Link>
-          </DropdownMenuItem>
-          <DropdownMenuItem asChild>
-            <Link href="/dashboard/api-keys" className="flex cursor-pointer items-center gap-2">
-              <KeyIcon className="h-4 w-4" />
-              API Keys
-            </Link>
-          </DropdownMenuItem>
-          <DropdownMenuItem asChild>
-            <Link href="/dashboard/billing" className="flex cursor-pointer items-center gap-2">
-              <CreditCardIcon className="h-4 w-4" />
-              Billing
-            </Link>
-          </DropdownMenuItem>
-        </DropdownMenuGroup>
-        <DropdownMenuSeparator />
+        {/* Navigation lives in the sidebar; this menu is about the account. */}
         <DropdownMenuItem asChild>
           <Link href="/dashboard/settings" className="flex cursor-pointer items-center gap-2">
             <SettingsIcon className="h-4 w-4" />
             Settings
           </Link>
         </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => openUserProfile()}>
-          <UserIcon className="h-4 w-4" />
-          Manage Account
+        {/* The one place inside the app the legal pages are reachable from:
+            two quiet items, not a footer on every page. Consent itself is
+            taken at sign-up; these are for reading it again, in a new tab so
+            the work on screen stays where it is. */}
+        <DropdownMenuItem asChild>
+          <Link href="/terms" target="_blank" rel="noreferrer" className="flex cursor-pointer items-center gap-2 text-muted">
+            <ScrollTextIcon className="h-4 w-4" />
+            Terms
+          </Link>
+        </DropdownMenuItem>
+        <DropdownMenuItem asChild>
+          <Link href="/privacy" target="_blank" rel="noreferrer" className="flex cursor-pointer items-center gap-2 text-muted">
+            <ShieldIcon className="h-4 w-4" />
+            Privacy
+          </Link>
         </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={() => signOut({ redirectUrl: '/' })}>

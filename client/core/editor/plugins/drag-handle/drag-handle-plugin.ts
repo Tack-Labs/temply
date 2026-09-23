@@ -15,7 +15,7 @@ import {
   Plugin,
   EditorState,
 } from '@tiptap/pm/state';
-import tippy, { Instance, Tippy } from 'tippy.js';
+import tippy, { Instance } from 'tippy.js';
 import {
   ySyncPluginKey,
   absolutePositionToRelativePosition,
@@ -141,7 +141,7 @@ class NodeRangeSelection extends Selection {
     const o = t.resolve(Math.min(t.content.size, e.$to.pos + 1));
     return new NodeRangeSelection(this.$anchor, o, this.depth);
   }
-  static fromJSON(doc: TNode, json: any) {
+  static fromJSON(doc: TNode, json: { anchor: number; head: number }) {
     return new NodeRangeSelection(
       doc.resolve(json.anchor),
       doc.resolve(json.head)
@@ -194,7 +194,10 @@ function cloneElement(node: HTMLElement) {
   return clonedNode;
 }
 
-function getComputedStyles(node: Element, property: any) {
+function getComputedStyles<K extends keyof CSSStyleDeclaration>(
+  node: Element,
+  property: K
+) {
   return window.getComputedStyle(node)[property];
 }
 function minMax(value = 0, min = 0, max = 0) {
@@ -400,7 +403,7 @@ export function DragHandlePlugin(
       },
     },
     view: (e) => {
-      var t;
+      var t: HTMLElement | null;
       return (
         (element.draggable = true),
         (element.style.pointerEvents = 'auto'),

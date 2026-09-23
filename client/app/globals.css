@@ -2,9 +2,268 @@
 
 @custom-variant dark (&:where(.dark, .dark *));
 
+/* ---------------------------------------------------------------------------
+   Design tokens — "workbench and artifact"
+
+   The email canvas must render white, because that is how a mail client will
+   show it. So the canvas is the artifact and every other surface is the bench
+   it sits on. `canvas` is therefore the one value that does NOT change between
+   themes.
+
+   Contrast ratios in the comments are measured, not estimated. `faint` sits
+   below 4.5:1 in both themes by design: it is for borders and icons and must
+   never carry text. Anything meant to be read uses `ink` or `muted`.
+--------------------------------------------------------------------------- */
+
+:root {
+  --ds-surface: #f7f7f4;
+  --ds-raised: #ffffff;
+  --ds-sunken: #f0efe9;
+  --ds-canvas: #ffffff;
+  /* The canvas never changes with the theme, so neither can its foreground.
+     Chrome drawn on top of the canvas uses this, not `ink`. */
+  --ds-canvas-ink: #12141a;   /* 18.4:1 on canvas, in both themes */
+
+  --ds-ink: #191a1e;
+  --ds-muted: #595c66;
+  --ds-faint: #9096a0;        /* never text */
+
+  --ds-line: #e7e6e0;
+  --ds-line-strong: #d6d5cd;
+  --ds-hover: #f0efea;
+  --ds-active: #e6e5de;
+
+  --ds-accent: #4f46e5;       /* fill; white text on it */
+  --ds-accent-ink: #4338ca;   /* accent as text on surface/raised */
+  --ds-accent-hover: #4338ca;
+  --ds-accent-wash: #eef0fe;
+
+  --ds-danger: #c0304a;       /* white on it = 5.6:1 */
+  --ds-danger-ink: #b4293f;   /* 5.9:1 on surface */
+  --ds-danger-wash: #fdeef1;
+
+  --ds-warn: #d97706;         /* fill only — never carries text */
+  --ds-warn-ink: #a64d07;     /* 5.3:1 on surface */
+  --ds-warn-wash: #fdf3e1;
+
+  --ds-success-ink: #166b47;  /* 6.1:1 on surface */
+  --ds-success-wash: #e8f5ee;
+
+  /* Graphite sidebar rail — theme-independent, declared only here. */
+  --ds-rail-bg: #17181c;
+  --ds-rail-raised: #202127;
+  --ds-rail-line: #292a30;
+  --ds-rail-ink: #ededee;
+  --ds-rail-muted: #9a9ba4;
+  --ds-rail-faint: #6a6b74;
+  --ds-rail-hover: #212228;
+  --ds-rail-active-bg: #262a45;
+  --ds-rail-active-ink: #c7cbff;
+
+  --ds-shadow-xs: 0 1px 2px rgb(18 20 26 / 0.05);
+  --ds-shadow-sm: 0 1px 2px rgb(18 20 26 / 0.06), 0 1px 3px rgb(18 20 26 / 0.08);
+  --ds-shadow-md: 0 4px 12px rgb(18 20 26 / 0.08), 0 2px 4px rgb(18 20 26 / 0.05);
+  --ds-shadow-lg: 0 12px 32px rgb(18 20 26 / 0.12), 0 4px 8px rgb(18 20 26 / 0.06);
+  --ds-shadow-xl: 0 24px 48px rgb(18 20 26 / 0.16), 0 8px 16px rgb(18 20 26 / 0.08);
+
+  --ds-shadow-canvas: 0 1px 2px rgb(18 20 26 / 0.04), 0 8px 24px rgb(18 20 26 / 0.06);
+
+  /* Motion. Three durations and three curves are the whole vocabulary — fast
+     for a colour flipping under the pointer, base for anything that shows,
+     hides, lifts or reveals, slow for a long travel like the drawer; out to
+     settle an entrance or a move, in to leave, spring where a surface should
+     pop (dialogs, anchored panels). Theme-independent, so declared once.
+     Components reach them as duration-fast/base/slow and ease-out/in/spring;
+     the keyframes below read the variables directly. */
+  --ds-motion-fast: 150ms;
+  --ds-motion-base: 200ms;
+  --ds-motion-slow: 300ms;
+  --ds-ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --ds-ease-in: cubic-bezier(0.4, 0, 1, 1);
+  --ds-ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  color-scheme: light;
+}
+
+.dark {
+  --ds-surface: #161719;
+  --ds-raised: #1d1e21;
+  --ds-sunken: #121315;
+  --ds-canvas: #ffffff;       /* unchanged on purpose — see note above */
+  --ds-canvas-ink: #12141a;   /* likewise unchanged */
+
+  --ds-ink: #f3f3f2;
+  --ds-muted: #a3a4ad;
+  --ds-faint: #6f707a;        /* never text */
+
+  --ds-line: #2b2c30;
+  --ds-line-strong: #3a3b41;
+  --ds-hover: #26272b;
+  --ds-active: #2f3035;
+
+  --ds-accent: #4f46e5;       /* fill; white text on it */
+  --ds-accent-ink: #a5b4fc;   /* accent as text on surface/raised */
+  --ds-accent-hover: #6366f1;
+  --ds-accent-wash: #1e1f3a;
+
+  /* The fill stays dark enough to carry a white label in either theme; only the
+     text-coloured variant lightens. */
+  --ds-danger: #c0304a;       /* white on it = 5.6:1 */
+  --ds-danger-ink: #ff7a8a;   /* 7.1:1 on surface */
+  --ds-danger-wash: #2a1c20;
+
+  --ds-warn: #d97706;         /* fill only — never carries text */
+  --ds-warn-ink: #f0b13d;     /* 9.5:1 on surface */
+  --ds-warn-wash: #2d2416;
+
+  --ds-success-ink: #5fd3a0;  /* 9.6:1 on surface */
+  --ds-success-wash: #16241e;
+
+  /* Rail is theme-independent — declared only in :root, not redeclared here. */
+
+  --ds-shadow-xs: 0 1px 2px rgb(0 0 0 / 0.4);
+  --ds-shadow-sm: 0 1px 2px rgb(0 0 0 / 0.4), 0 1px 3px rgb(0 0 0 / 0.5);
+  --ds-shadow-md: 0 4px 12px rgb(0 0 0 / 0.5), 0 2px 4px rgb(0 0 0 / 0.4);
+  --ds-shadow-lg: 0 12px 32px rgb(0 0 0 / 0.6), 0 4px 8px rgb(0 0 0 / 0.45);
+  --ds-shadow-xl: 0 24px 48px rgb(0 0 0 / 0.7), 0 8px 16px rgb(0 0 0 / 0.5);
+
+  --ds-shadow-canvas: 0 1px 2px rgb(0 0 0 / 0.4), 0 8px 32px rgb(0 0 0 / 0.45);
+  color-scheme: dark;
+}
+
+/* `inline` keeps utilities pointing at the variable instead of copying its
+   value, which is what lets them react to the theme class at runtime. */
+@theme inline {
+  --color-surface: var(--ds-surface);
+  --color-raised: var(--ds-raised);
+  --color-sunken: var(--ds-sunken);
+  --color-canvas: var(--ds-canvas);
+  --color-canvas-ink: var(--ds-canvas-ink);
+
+  --color-ink: var(--ds-ink);
+  --color-muted: var(--ds-muted);
+  --color-faint: var(--ds-faint);
+
+  --color-line: var(--ds-line);
+  --color-line-strong: var(--ds-line-strong);
+  --color-hover: var(--ds-hover);
+  --color-active: var(--ds-active);
+
+  --color-accent: var(--ds-accent);
+  --color-accent-ink: var(--ds-accent-ink);
+  --color-accent-hover: var(--ds-accent-hover);
+  --color-accent-wash: var(--ds-accent-wash);
+
+  --color-danger: var(--ds-danger);
+  --color-danger-ink: var(--ds-danger-ink);
+  --color-danger-wash: var(--ds-danger-wash);
+
+  --color-warn: var(--ds-warn);
+  --color-warn-ink: var(--ds-warn-ink);
+  --color-warn-wash: var(--ds-warn-wash);
+
+  --color-success-ink: var(--ds-success-ink);
+  --color-success-wash: var(--ds-success-wash);
+
+  --color-rail-bg: var(--ds-rail-bg);
+  --color-rail-raised: var(--ds-rail-raised);
+  --color-rail-line: var(--ds-rail-line);
+  --color-rail-ink: var(--ds-rail-ink);
+  --color-rail-muted: var(--ds-rail-muted);
+  --color-rail-faint: var(--ds-rail-faint);
+  --color-rail-hover: var(--ds-rail-hover);
+  --color-rail-active-bg: var(--ds-rail-active-bg);
+  --color-rail-active-ink: var(--ds-rail-active-ink);
+
+  /* The shadow ladder, by what sits at each rung: xs a secondary button,
+     sm a card at rest, md a lifted card or an anchored panel (popover,
+     tooltip), lg a menu, xl a surface over a scrim (dialog, drawer). */
+  --shadow-xs: var(--ds-shadow-xs);
+  --shadow-sm: var(--ds-shadow-sm);
+  --shadow-md: var(--ds-shadow-md);
+  --shadow-lg: var(--ds-shadow-lg);
+  --shadow-xl: var(--ds-shadow-xl);
+
+  /* Tailwind's own ease-out / ease-in are replaced, not extended, so every
+     existing `ease-out` class already moves on the token; a bare
+     `transition-*` with no duration or curve lands on fast + out. */
+  --ease-out: var(--ds-ease-out);
+  --ease-in: var(--ds-ease-in);
+  --ease-spring: var(--ds-ease-spring);
+  --default-transition-duration: var(--ds-motion-fast);
+  --default-transition-timing-function: var(--ds-ease-out);
+
+  --font-sans: var(--font-geist), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, SFMono-Regular, monospace;
+  --font-display: var(--font-space-grotesk), var(--font-geist), ui-sans-serif, sans-serif;
+
+  --shadow-canvas: var(--ds-shadow-canvas);
+}
+
+/* `animate-in fade-in` isn't wired up (tw-animate-css is installed but never
+   imported), so a mounted card fades in via @starting-style instead. */
+@utility fade-in-mount {
+  transition: opacity var(--ds-motion-base) var(--ds-ease-out);
+  @starting-style {
+    opacity: 0;
+  }
+}
+
+/* The three durations as utilities, so a class list reads
+   `transition-transform duration-base ease-out` and never carries a number. */
+@utility duration-fast {
+  transition-duration: var(--ds-motion-fast);
+}
+@utility duration-base {
+  transition-duration: var(--ds-motion-base);
+}
+@utility duration-slow {
+  transition-duration: var(--ds-motion-slow);
+}
+
+/* Tiles and rows (ui/item.tsx) share one motion vocabulary: a tile lifts a
+   hair and its shadow deepens, a row tints, both fade in on mount. The
+   property list is spelled out so the mount fade and the hover lift never
+   fight over the `transition` shorthand. Tailwind's translate-* and scale-*
+   set the `translate` and `scale` properties, not `transform`, so both are
+   listed — without them the lift jumps while the shadow eases. */
+@utility item-motion {
+  transition-property: opacity, transform, translate, scale, box-shadow, border-color, background-color;
+  transition-duration: var(--ds-motion-base);
+  transition-timing-function: var(--ds-ease-out);
+  @starting-style {
+    opacity: 0;
+  }
+}
+
+/* Dense chrome. Generosity is spent on the canvas and the marketing surface,
+   not on the tool: fewer scrolls beats more whitespace when you work here daily. */
 @theme {
-  --color-soft-gray: #f4f5f6;
-  --color-midnight-gray: #333333;
+  --text-2xs: 0.6875rem;   /* 11px — table meta, badges */
+  --text-2xs--line-height: 1rem;
+  --text-xs: 0.75rem;      /* 12px */
+  --text-xs--line-height: 1.125rem;
+  --text-sm: 0.8125rem;    /* 13px — default UI text */
+  --text-sm--line-height: 1.25rem;
+  --text-base: 0.875rem;   /* 14px — body */
+  --text-base--line-height: 1.375rem;
+  --text-lg: 1rem;         /* 16px */
+  --text-lg--line-height: 1.5rem;
+  --text-xl: 1.25rem;      /* 20px — page titles */
+  --text-xl--line-height: 1.75rem;
+  --text-2xl: 1.5rem;      /* 24px */
+  --text-2xl--line-height: 2rem;
+  --text-3xl: 2rem;        /* 32px — marketing only */
+  --text-3xl--line-height: 2.375rem;
+  --text-4xl: 2.75rem;     /* 44px — marketing hero */
+  --text-4xl--line-height: 3rem;
+  --text-5xl: 3.25rem;     /* 52px — marketing hero on lg */
+  --text-5xl--line-height: 3.5rem;
+
+  --radius-xs: 4px;
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
 }
 
 @layer base {
@@ -13,7 +272,7 @@
   ::before,
   ::backdrop,
   ::file-selector-button {
-    border-color: var(--color-gray-200, currentcolor);
+    border-color: var(--ds-line);
   }
 
   button:not(:disabled),
@@ -22,6 +281,452 @@
   }
 
   body {
-    @apply bg-white text-black dark:bg-black dark:text-white;
+    /* next/font puts --font-geist-* on <body>, so the token has to be resolved
+       here too. Declared at :root it would evaluate against an <html> where
+       those variables do not exist, and inherit down as an empty value. */
+    --font-sans: var(--font-geist), ui-sans-serif, system-ui, sans-serif;
+    --font-mono: var(--font-geist-mono), ui-monospace, SFMono-Regular, monospace;
+
+    background-color: var(--ds-surface);
+    color: var(--ds-ink);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* One focus treatment, defined once, inherited everywhere. The previous UI
+     defined focus styles in 24% of files and left the rest on the browser
+     default.
+
+     Focusable elements carry the outline at rest, transparent, and focus only
+     recolours it — outline-style cannot animate, outline-color can, so the
+     ring fades in on the same beat as a hover tint instead of switching on.
+     Tailwind's transition-colors lists outline-color too, so a control that
+     already eases its hover keeps this fade. */
+  a,
+  button,
+  summary,
+  [tabindex]:not([tabindex='-1']) {
+    outline: 2px solid transparent;
+    outline-offset: 2px;
+    transition: outline-color var(--ds-motion-fast) var(--ds-ease-out);
+  }
+  :focus-visible {
+    outline: 2px solid var(--ds-accent-ink);
+    outline-offset: 2px;
+    border-radius: var(--radius-xs);
+  }
+
+  /* Text fields trade the hard outline for a soft ring that fades in, so
+     focus reads as a state change rather than a flash while typing. Range
+     inputs keep the outline — a ring around the whole track looks broken. */
+  input:not([type='range']),
+  textarea,
+  select {
+    transition:
+      border-color var(--ds-motion-fast) var(--ds-ease-out),
+      box-shadow var(--ds-motion-fast) var(--ds-ease-out);
+  }
+  input:not([type='range']):focus-visible,
+  textarea:focus-visible,
+  select:focus-visible {
+    outline: none;
+    border-color: var(--ds-accent);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--ds-accent) 25%, transparent);
+  }
+  @media (prefers-reduced-motion: reduce) {
+    input:not([type='range']),
+    textarea,
+    select {
+      transition: none;
+    }
   }
 }
+
+/* ---------------------------------------------------------------------------
+   Overlay motion
+
+   One set of enter/exit animations for every floating surface — dialog,
+   popover, dropdown, tooltip — driven by the data-state and data-side Radix
+   already puts on the element. A quick fade with a small settle: enough to
+   read as intentional, short enough to stay out of the way of someone working.
+   prefers-reduced-motion below turns all of it off.
+--------------------------------------------------------------------------- */
+@keyframes overlay-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes overlay-out {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+
+/* Panels pop: they start small and slightly low, then overshoot past full size
+   before settling. The back-eased cubic-bezier is what gives the little bounce.
+   A clear scale (0.9) and travel (8px) so it reads as a spring, not a fade. */
+@keyframes panel-in {
+  0% { opacity: 0; transform: translateY(8px) scale(0.9); }
+  60% { opacity: 1; transform: translateY(-1px) scale(1.01); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes panel-out {
+  from { opacity: 1; transform: translateY(0) scale(1); }
+  to { opacity: 0; transform: translateY(4px) scale(0.96); }
+}
+
+/* The dialog is centred with translate(-50%, -50%), so its keyframe has to
+   carry that offset — otherwise the scale throws it off centre. It pops from
+   94% with the same overshoot as the panels. */
+@keyframes dialog-pop {
+  0% { opacity: 0; transform: translate(-50%, -50%) scale(0.94); }
+  60% { opacity: 1; transform: translate(-50%, -50%) scale(1.008); }
+  100% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+}
+@keyframes dialog-pop-out {
+  from { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+  to { opacity: 0; transform: translate(-50%, -50%) scale(0.96); }
+}
+
+/* The dimmed backdrop just fades. */
+.overlay-fade[data-state='open'] {
+  animation: overlay-in var(--ds-motion-base) var(--ds-ease-out);
+}
+.overlay-fade[data-state='closed'] {
+  animation: overlay-out var(--ds-motion-fast) var(--ds-ease-in);
+}
+
+/* The dialog surface pops. It positions itself via the keyframe, so it must
+   not also carry Tailwind translate utilities. */
+.dialog-pop {
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+.dialog-pop[data-state='open'] {
+  animation: dialog-pop var(--ds-motion-base) var(--ds-ease-spring);
+}
+.dialog-pop[data-state='closed'] {
+  animation: dialog-pop-out var(--ds-motion-fast) var(--ds-ease-in);
+}
+
+/* The mobile nav drawer slides in from the left edge; its backdrop uses the
+   shared overlay fade. Radix keeps the element mounted until the exit
+   animation finishes, so the slide plays both ways. */
+@keyframes drawer-in {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(0); }
+}
+@keyframes drawer-out {
+  from { transform: translateX(0); }
+  to { transform: translateX(-100%); }
+}
+.drawer-left[data-state='open'] {
+  animation: drawer-in var(--ds-motion-slow) var(--ds-ease-out);
+}
+.drawer-left[data-state='closed'] {
+  animation: drawer-out var(--ds-motion-base) var(--ds-ease-in);
+}
+
+/* Sheets rise from the bottom edge and settle; leaving is quicker than
+   arriving, like the drawer. */
+@keyframes sheet-in {
+  from { transform: translateY(100%); }
+  to { transform: none; }
+}
+@keyframes sheet-out {
+  from { transform: none; }
+  to { transform: translateY(100%); }
+}
+.sheet-up[data-state='open'] {
+  animation: sheet-in var(--ds-motion-slow) var(--ds-ease-out);
+}
+.sheet-up[data-state='closed'] {
+  animation: sheet-out var(--ds-motion-base) var(--ds-ease-in);
+}
+
+/* Panels anchored to a trigger pop in from the side they open toward. */
+.overlay-panel[data-state='open'] {
+  animation: panel-in var(--ds-motion-base) var(--ds-ease-spring);
+}
+.overlay-panel[data-state='closed'] {
+  animation: panel-out var(--ds-motion-fast) var(--ds-ease-in);
+}
+.overlay-panel[data-side='top'] { transform-origin: bottom; }
+.overlay-panel[data-side='bottom'] { transform-origin: top; }
+.overlay-panel[data-side='left'] { transform-origin: right; }
+.overlay-panel[data-side='right'] { transform-origin: left; }
+
+/* Edit ↔ preview in the Content section. The editor is only hidden, never
+   unmounted, so a CSS transition would have nothing to run on when it comes
+   back — the class is applied on the switch and removed once it has played. */
+@keyframes content-pane-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.content-pane-in {
+  animation: content-pane-in var(--ds-motion-base) var(--ds-ease-out);
+}
+
+/* Page loading — the Temply mark with its three bars breathing in turn, top
+   to bottom. The mark itself fades in so it never pops. Both keyframes rest
+   at the complete, fully visible state, so when the reduced-motion rule below
+   collapses every animation to a single instant frame what is left is a
+   still logo, not a half-faded one. */
+@keyframes page-loading-in {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes page-loading-bar {
+  0%, 100% { opacity: 1; transform: translateY(0); }
+  50% { opacity: 0.4; transform: translateY(-3px); }
+}
+.page-loading {
+  animation: page-loading-in var(--ds-motion-base) var(--ds-ease-out) both;
+}
+.page-loading-bar {
+  transform-box: fill-box;
+  animation: page-loading-bar 1.2s ease-in-out infinite;
+}
+.page-loading-bar:nth-child(2) { animation-delay: 150ms; }
+.page-loading-bar:nth-child(3) { animation-delay: 300ms; }
+
+/* Skip link. Plain rules rather than utilities: Tailwind v4 ships no
+   `not-sr-only`, and a custom selector inside `@layer base` gets shuffled under
+   the utilities layer. Top-level keeps the reveal reliable. */
+.skip-link {
+  position: absolute;
+  left: -9999px;
+  top: 0;
+  z-index: 100;
+}
+.skip-link:focus {
+  left: 0.75rem;
+  top: 0.75rem;
+  border-radius: 6px;
+  background-color: var(--ds-accent);
+  padding: 0.5rem 0.75rem;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: #fff;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  ::before,
+  ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Scroll reveal — elements start low and faded, settle when marked revealed.
+   data-revealed toggles both ways, so these replay on every pass. */
+[data-reveal] {
+  opacity: 0;
+  transform: translateY(16px);
+  transition: opacity 600ms ease-out, transform 600ms var(--ds-ease-out);
+}
+[data-reveal][data-revealed='true'] {
+  opacity: 1;
+  transform: none;
+}
+
+/* Showcase rows stage their entrance: the visual slides in from its own side
+   of the layout and settles to full scale, the copy follows a beat later.
+   --reveal-from is set inline per row (negative for left panels, positive for
+   flipped ones). */
+[data-reveal] .reveal-visual {
+  opacity: 0;
+  transform: translateX(var(--reveal-from, -28px)) scale(0.97);
+  transition: opacity 700ms ease-out, transform 700ms var(--ds-ease-out);
+}
+[data-reveal][data-revealed='true'] .reveal-visual {
+  opacity: 1;
+  transform: translateX(0) scale(1);
+}
+[data-reveal] .reveal-copy {
+  opacity: 0;
+  transform: translateY(14px);
+  transition: opacity 600ms ease-out 140ms, transform 600ms var(--ds-ease-out) 140ms;
+}
+[data-reveal][data-revealed='true'] .reveal-copy {
+  opacity: 1;
+  transform: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-reveal],
+  [data-reveal] .reveal-visual,
+  [data-reveal] .reveal-copy { opacity: 1; transform: none; transition: none; }
+}
+
+/* Micro-details on the showcase mocks — signs of life, not animations.
+   The terminal's prompt caret blinks the way a real one does, and the two
+   preview renderings trade a slow emphasis so the eye compares them. */
+.mk-caret {
+  display: inline-block;
+  width: 7px;
+  height: 13px;
+  vertical-align: -2px;
+  background-color: var(--ds-rail-ink);
+  animation: mk-caret 1.1s steps(1) infinite;
+}
+@keyframes mk-caret {
+  50%, 100% { opacity: 0; }
+}
+
+.mk-alt { animation: mk-alt 9s ease-in-out infinite; }
+.mk-alt-late { animation-delay: -4.5s; }
+@keyframes mk-alt {
+  0%, 40% { opacity: 1; transform: scale(1.012); }
+  50%, 90% { opacity: 0.72; transform: scale(1); }
+  100% { opacity: 1; transform: scale(1.012); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mk-caret { animation: none; opacity: 1; }
+  .mk-alt { animation: none; opacity: 1; transform: none; }
+}
+
+/* ---------------------------------------------------------------------------
+   Marketing page motion and anchoring
+
+   Three things the landing page needs that the app chrome does not: an
+   orchestrated first-paint entrance, smooth in-page anchor scrolling, and
+   headings that clear the sticky header when you jump to them.
+--------------------------------------------------------------------------- */
+
+/* Hero entrance. Each element carries its own `--enter-delay`, so the stagger
+   lives in the markup next to the content it sequences rather than in a pile
+   of numbered classes here. `both` holds the from-state through the delay,
+   which is what keeps the elements from flashing before their turn. */
+@keyframes hero-enter {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 14px, 0);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.hero-enter {
+  opacity: 0;
+  animation: hero-enter 640ms var(--ds-ease-out) both;
+  animation-delay: var(--enter-delay, 0ms);
+}
+
+/* Anchors sit under a sticky h-12 header, so give them room to clear it. */
+[data-anchor] {
+  scroll-margin-top: 5rem;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  /* Without this the element would keep the animation's 0% opacity: the global
+     reduce block only shortens durations, it does not clear the fill. */
+  .hero-enter {
+    opacity: 1;
+    transform: none;
+    animation: none;
+  }
+}
+
+/* Clerk's embedded profile card (the Settings page): the root box sizes
+   itself to Clerk's fixed 55rem card and its internals carry widths of their
+   own, which overflows the dashboard column on tablets and phones. Cap the
+   root AND the internals at the container. Scoped to the embedded profile so
+   sign-in and modals keep Clerk's own sizing. */
+.cl-userProfile-root,
+.cl-userProfile-root :is(.cl-cardBox, .cl-pageScrollBox, .cl-profilePage,
+  .cl-profileSection, .cl-navbarMobileMenuRow) {
+  max-width: 100%;
+  min-width: 0;
+}
+
+/* The workspace switcher's trigger sits on the graphite rail, which does not
+   follow the theme, but Clerk colours its text from the appearance palette,
+   which does — and Clerk's own stylesheet outranks the utility classes handed
+   to its elements, so in light mode the name went ink-on-graphite. Pin the
+   trigger to the rail palette. The menu it opens is portalled outside the
+   trigger and keeps the theme. */
+.cl-organizationSwitcherTrigger,
+.cl-organizationSwitcherTrigger .cl-organizationPreviewMainIdentifier {
+  color: var(--ds-rail-ink);
+}
+.cl-organizationSwitcherTrigger .cl-organizationPreviewSecondaryIdentifier,
+.cl-organizationSwitcherTrigger .cl-organizationSwitcherTriggerIcon {
+  color: var(--ds-rail-muted);
+}
+/* Clerk pads the trigger 4px; with the rail's 10px inset that put the avatar
+   6px left of the nav icons. Matching the nav link padding lines them up. */
+.cl-organizationSwitcherTrigger {
+  padding-inline: calc(var(--spacing) * 2.5);
+}
+/* The 20px avatar plus Clerk's 12px gap put the workspace name 6px right
+   of the nav labels under it; a 6px gap lands it on the same column. */
+.cl-organizationSwitcherTrigger .cl-organizationPreview {
+  gap: calc(var(--spacing) * 1.5);
+}
+
+/* ---------------------------------------------------------------------------
+   Toasts
+
+   Sonner paints a toast from its own variables through paired attribute
+   selectors, which outrank any utility class handed to it — so the surface is
+   themed here, by pointing those variables at our tokens. `html` in front
+   lifts each rule just above Sonner's own so it wins regardless of import
+   order. The `data-sonner-theme` attribute is matched but never read: both
+   themes come from the tokens, which already follow `.dark`.
+--------------------------------------------------------------------------- */
+html [data-sonner-toaster][data-sonner-theme] {
+  --normal-bg: var(--ds-raised);
+  --normal-bg-hover: var(--ds-hover);
+  --normal-border: var(--ds-line);
+  --normal-border-hover: var(--ds-line-strong);
+  --normal-text: var(--ds-ink);
+  --border-radius: 8px;
+}
+html [data-sonner-toast][data-styled] {
+  /* A menu's rung: it floats over the page without a scrim. */
+  box-shadow: var(--ds-shadow-lg);
+}
+html [data-sonner-toast][data-styled] [data-description] {
+  color: var(--ds-muted);
+}
+html [data-sonner-toast][data-styled] [data-close-button] {
+  color: var(--ds-ink);
+  background: var(--ds-raised);
+  border-color: var(--ds-line);
+}
+html [data-sonner-toast][data-styled]:hover [data-close-button]:hover {
+  background: var(--ds-hover);
+  border-color: var(--ds-line-strong);
+}
+/* Sonner leaves its icons in the text colour unless richColors is on, which
+   would also recolour the whole toast. The icon alone carries the severity. */
+html [data-sonner-toast][data-type='success'] [data-icon] {
+  color: var(--ds-success-ink);
+}
+html [data-sonner-toast][data-type='error'] [data-icon] {
+  color: var(--ds-danger-ink);
+}
+html [data-sonner-toast][data-type='warning'] [data-icon] {
+  color: var(--ds-warn-ink);
+}
+

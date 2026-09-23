@@ -11,10 +11,10 @@ export function LogoView(props: NodeViewProps) {
   const { node, editor, updateAttributes } = props;
 
   const [status, setStatus] = useState<ImageStatus>('idle');
-  const [isPlaceholderImage, setIsPlaceholderImage] = useState(false);
+  const [, setIsPlaceholderImage] = useState(false);
   const [isDraggingOver, setIsDraggingOver] = useState(false);
 
-  const { onImageUpload, allowedMimeTypes = [] } =
+  const { onImageUpload, onPickImage, allowedMimeTypes = [] } =
     useImageUploadOptions(editor);
 
   let {
@@ -56,6 +56,13 @@ export function LogoView(props: NodeViewProps) {
     },
     [onImageUpload, updateAttributes]
   );
+
+  const handlePick = useCallback(async () => {
+    if (!onPickImage || !editor.isEditable) return;
+    const url = await onPickImage();
+    // Cancelling the picker leaves the block exactly as it was.
+    if (url) updateAttributes({ src: url, isSrcVariable: false });
+  }, [onPickImage, editor, updateAttributes]);
 
   const handleDragOver = useCallback(
     (e: React.DragEvent) => {
@@ -163,6 +170,7 @@ export function LogoView(props: NodeViewProps) {
           status="idle"
           minHeight={logoSize}
           isDropZone={isDroppable}
+          onPick={onPickImage ? handlePick : undefined}
         />
       )}
 

@@ -1,308 +1,168 @@
 'use client';
 
-import { useMutation, useQuery } from '@tanstack/react-query';
-import type { Editor, FocusPosition } from '@tiptap/core';
 import {
   CheckIcon,
   CopyIcon,
-  Loader2Icon,
-  SaveIcon,
-  SendIcon,
+  DownloadIcon,
 } from 'lucide-react';
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRef, useSyncExternalStore } from 'react';
 import { toast } from 'sonner';
-import { httpDelete, httpPost } from '~/lib/http';
-import type { Mail } from '~/db/schema';
-import { CopyEmailHtml } from './copy-email-html';
-import { DeleteEmailDialog } from './delete-email-dialog';
-import { EmailEditor } from './email-editor';
-import { PreviewEmailDialog } from './preview-email-dialog';
-import { Input } from './ui/input';
-import { Label } from './ui/label';
-import defaultEmailJSON from '~/lib/default-editor-json.json';
-import {
-  ApiKeyConfigDialog,
-  apiKeyQueryOptions,
-} from './api-key-config-dialog';
-import { VersionHistoryDialog } from './version-history-dialog';
-const pillBtn =
-  'inline-flex items-center gap-1.5 rounded-full border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-600 transition-all hover:border-gray-300 hover:bg-gray-50 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:border-zinc-600 dark:hover:bg-zinc-700';
+import type { AutosaveStatus } from '~/lib/autosave';
+import { useCopyToClipboard } from '~/hooks/use-copy-to-clipboard';
+import { cn } from '~/lib/classname';
+import { Button } from './ui/button';
+import { PageLoading } from './ui/page-loading';
+import { useMediaQuery } from '~/hooks/use-media-query';
+import { DesktopEditorLayout } from './editor/desktop-layout';
+import { MobileEditorLayout } from './editor/mobile-layout';
+import { useTemplateEditor, type EmailEditorSandboxProps } from './editor/use-template-editor';
 
-const primaryBtn =
-  'inline-flex items-center gap-1.5 rounded-full bg-gray-900 px-4 py-2 text-sm font-medium text-white transition-all hover:bg-gray-800 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-50 dark:bg-white dark:text-black dark:hover:bg-zinc-200';
+export type { EmailEditorSandboxProps };
 
-const inputClass =
-  'w-full rounded-xl border border-gray-200 bg-white/80 px-4 py-2.5 text-sm text-gray-900 placeholder:text-gray-400 focus:border-gray-900 focus:ring-1 focus:ring-gray-900/10 focus:outline-none transition-all dark:border-zinc-700 dark:bg-zinc-800/80 dark:text-zinc-100 dark:placeholder:text-zinc-500 dark:focus:border-zinc-500 dark:focus:ring-zinc-500/20';
+/**
+ * The autosave's one word. Idle and dirty say nothing — the pause is short
+ * and a flicker of "unsaved" on every keystroke is noise; the word appears
+ * once a save is under way and stays as "Saved". A failure is the only state
+ * that asks for anything, and it asks with a button.
+ */
+/**
+ * What the autosave has to say, and nothing when it has nothing.
+ *
+ * The word and the announcement are two elements on purpose. A live region is
+ * read whatever its opacity, so the one that used to carry both said "Saved"
+ * on a template nobody had touched — `idle` fell through to the same branch
+ * as `saved` and was merely faded out. The visible word stays through the
+ * fade, so the strip leaves rather than blinking out, and is `aria-hidden`
+ * because the live region beside it is the half a reader hears; Retry sits
+ * outside both, being a control rather than a status.
+ */
+export function SaveStatus({ status, onRetry }: { status: AutosaveStatus; onRetry: () => void }) {
+  const visible = status === 'saving' || status === 'saved' || status === 'error';
+  const word = status === 'error' ? 'Not saved' : status === 'saving' ? 'Saving…' : 'Saved';
+  return (
+    <span className="flex items-center gap-1 text-xs">
+      <span
+        aria-hidden
+        className={cn(
+          'transition-opacity duration-base ease-out motion-reduce:transition-none',
+          visible ? 'opacity-100' : 'opacity-0',
+          status === 'error' ? 'text-danger-ink' : 'text-muted',
+        )}
+      >
+        {word}
+      </span>
+      {status === 'error' ? (
+        <Button variant="link" size="sm" className="h-auto px-1 text-xs" onClick={onRetry}>
+          Retry
+        </Button>
+      ) : null}
+      <span className="sr-only" role="status">
+        {visible ? word : ''}
+      </span>
+    </span>
+  );
+}
 
-const labelClass = 'text-sm font-medium text-gray-700 dark:text-zinc-300';
+/** A file name from the subject line: "Welcome to Temply" → welcome-to-temply. */
+export function fileSlug(title: string): string {
+  const slug = title
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+  return slug || 'email';
+}
 
-type UpdateTemplateData = {
-  title: string;
-  previewText: string;
-  content: string;
-};
-
-type SaveTemplateResponse = {
-  template: Mail;
-};
-
-type EmailEditorSandboxProps = {
-  template?: Mail;
-  showSaveButton?: boolean;
-  autofocus?: FocusPosition;
-};
-
-export function EmailEditorSandbox(props: EmailEditorSandboxProps) {
-  const { template, showSaveButton = true, autofocus } = props;
-
-  const router = useRouter();
-  const { data: apiKeyConfig } = useQuery(apiKeyQueryOptions());
-
-  const [subject, setSubject] = useState(template?.title || '');
-  const [previewText, setPreviewText] = useState(template?.preview_text || '');
-  const [from, setFrom] = useState('');
-  const [to, setTo] = useState('');
-
-  const [showReplyTo, setShowReplyTo] = useState(false);
-  const [replyTo, setReplyTo] = useState('');
-  const [editor, setEditor] = useState<Editor | null>(null);
-
-  const { mutateAsync: updateTemplate, isPending: isUpdateTemplatePending } =
-    useMutation({
-      mutationFn: (data: UpdateTemplateData) => {
-        return httpPost(`/api/v1/templates/${template?.id}`, data) as Promise<SaveTemplateResponse>;
-      },
-      onSuccess: () => {
-        toast.success('Template saved successfully.');
-        router.refresh();
-      },
-      onError: (error: any) => {
-        toast.error(error.message || 'Failed to save template.');
-      },
-    });
-
-  const { mutateAsync: createTemplate, isPending: isCreateTemplatePending } =
-    useMutation({
-      mutationFn: (data: UpdateTemplateData) => {
-        return httpPost('/api/v1/templates', data) as Promise<SaveTemplateResponse>;
-      },
-      onSuccess: (data: SaveTemplateResponse) => {
-        toast.success('Template created successfully.');
-        router.push(`/templates/${data.template.id}`);
-      },
-      onError: (error: any) => {
-        toast.error(error.message || 'Failed to create template.');
-      },
-    });
-
-  const { mutateAsync: deleteTemplate, isPending: isDeletePending } =
-    useMutation({
-      mutationFn: () => {
-        return httpDelete(`/api/v1/templates/${template?.id}`);
-      },
-      onSuccess: () => {
-        toast.success('Template deleted successfully.');
-        router.push('/dashboard/templates');
-      },
-      onError: (error: any) => {
-        toast.error(error.message || 'Failed to delete template.');
-      },
-    });
-
-  const [editorContent, setEditorContent] = useState(() => {
-    if (template?.content) {
-      return typeof template.content === 'string'
-        ? JSON.parse(template.content)
-        : template.content;
-    }
-    return defaultEmailJSON;
-  });
-
-  const handleSave = async () => {
-    const content = JSON.stringify(editor?.getJSON());
-    if (template?.id) {
-      await updateTemplate({ title: subject, previewText, content });
-    } else {
-      await createTemplate({ title: subject, previewText, content });
-    }
+/**
+ * Saves what the view shows as a file. The escape hatch that makes the
+ * product safe to try: the HTML is yours, with or without an account.
+ * Nothing is rendered again — it is the same source the pane is showing.
+ */
+export function DownloadButton({ content, filename, mimeType, label }: { content: string; filename: string; mimeType: string; label: string }) {
+  const download = () => {
+    const url = URL.createObjectURL(new Blob([content], { type: mimeType }));
+    const anchor = document.createElement('a');
+    anchor.href = url;
+    anchor.download = filename;
+    anchor.click();
+    // The browser has the blob by now; the URL only needs to outlive the click.
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
   };
+  return (
+    <Button variant="ghost" size="icon-sm" aria-label={label} title={label} onClick={download} disabled={!content}>
+      <DownloadIcon />
+    </Button>
+  );
+}
 
-  const handleSend = async () => {
-    if (!from || !to) {
-      toast.error('Please fill in the required fields.');
-      return;
-    }
-    const content = JSON.stringify(editor?.getJSON());
-    try {
-      await httpPost('/api/v1/emails/send', {
-        previewText, subject, from, replyTo, to, content,
-      });
-      toast.success('Email sent successfully.');
-    } catch (error: any) {
-      toast.error(error?.message || 'Failed to send email.');
-    }
-  };
-
-  const saveBtnPending = isUpdateTemplatePending || isCreateTemplatePending;
-  const [shortCodeCopied, setShortCodeCopied] = useState(false);
-
-  const copyShortCode = async () => {
-    if (!template?.short_code) return;
-    await navigator.clipboard.writeText(template.short_code);
-    setShortCodeCopied(true);
-    setTimeout(() => setShortCodeCopied(false), 2000);
-  };
+/** Copies the source already on screen — no second render to fetch it. The
+ *  label names what is being copied: the same pane serves HTML and text. */
+export function CopyHtmlButton({ html, label = 'Copy HTML' }: { html: string; label?: string }) {
+  // Through the hook, not navigator.clipboard directly: the phone is opened
+  // over plain http on the LAN, where the API is undefined and a bare call
+  // rejects into nothing. A copy that cannot happen has to say so.
+  const [copiedText, copy] = useCopyToClipboard();
+  const copied = copiedText === html;
 
   return (
-    <div className="space-y-6">
-      {/* Toolbar */}
-      <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-gray-200 bg-white p-3 dark:border-white/10 dark:bg-white/[0.03]">
-        <div className="flex flex-wrap items-center gap-2">
-          {showSaveButton && (
-            <button
-              className={primaryBtn}
-              disabled={saveBtnPending}
-              onClick={handleSave}
-            >
-              {saveBtnPending ? (
-                <Loader2Icon className="size-4 animate-spin" />
-              ) : (
-                <SaveIcon className="size-4" />
-              )}
-              {template?.id ? 'Save' : 'Save New'}
-            </button>
-          )}
+    <Button
+      variant="ghost"
+      size="icon-sm"
+      aria-label={copied ? 'Copied' : label}
+      title={copied ? 'Copied' : label}
+      onClick={async () => {
+        if (!(await copy(html))) toast.error('Could not copy — this browser blocks the clipboard here.');
+      }}
+      className={cn(copied && 'text-accent-ink hover:text-accent-ink')}
+    >
+      {copied ? <CheckIcon /> : <CopyIcon />}
+    </Button>
+  );
+}
 
-          <PreviewEmailDialog editor={editor} previewText={previewText} />
-          <VersionHistoryDialog templateId={template?.id} />
-          <ApiKeyConfigDialog />
-        </div>
+/** False on the server and during hydration, true from the first client
+ *  render after it. */
+function useHydrated(): boolean {
+  return useSyncExternalStore(() => () => {}, () => true, () => false);
+}
 
-        <div className="flex items-center gap-2">
-          <CopyEmailHtml editor={editor} />
-          <DeleteEmailDialog templateId={template?.id} />
-
-          <button className={pillBtn} onClick={handleSend}>
-            <SendIcon className="size-4" />
-            <span className="hidden sm:inline">Send</span>
-          </button>
-        </div>
+export function EmailEditorSandbox(props: EmailEditorSandboxProps) {
+  const { imageUploads = true, autofocus } = props;
+  const model = useTemplateEditor(props);
+  // Width chooses the shell. The server and the first client render pick
+  // desktop, so the markup agrees during hydration; a phone switches on its
+  // first effect, before the editor has mounted.
+  const phone = useMediaQuery('(max-width: 639px)');
+  const hydrated = useHydrated();
+  // The two shells are different trees, so crossing 640px unmounts one editor
+  // and mounts another from `model.editorContent` — which the autosave only
+  // refreshes on a 1000 ms debounce. Rotating a phone within a second of the
+  // last keystroke would drop that run of typing with no history to undo it
+  // back, so the live document is taken here, during render, before the new
+  // shell mounts. A layout effect runs after the new editor already has the
+  // stale content and is too late.
+  const lastShell = useRef(phone);
+  if (lastShell.current !== phone) {
+    lastShell.current = phone;
+    model.flushContent();
+  }
+  if (phone) {
+    return <MobileEditorLayout model={model} autofocus={autofocus} imageUploads={imageUploads} />;
+  }
+  // Until the client has hydrated, only CSS knows the width: the server's
+  // desktop markup is hidden below `sm` and the page's wait state shows in
+  // its place, so a phone never paints the desktop page while its JavaScript
+  // is still on the way. The wrapper stays after hydration, as `contents`,
+  // so lifting the class does not remount the desktop shell.
+  return (
+    <>
+      <div className={hydrated ? 'contents' : 'contents max-sm:hidden'}>
+        <DesktopEditorLayout model={model} autofocus={autofocus} imageUploads={imageUploads} />
       </div>
-
-      {/* Short code */}
-      {template?.short_code && (
-        <div className="flex items-center gap-3 rounded-xl border border-gray-200 bg-white p-3 dark:border-white/10 dark:bg-white/[0.03]">
-          <div className="flex items-center gap-1.5">
-            <span className="text-xs font-medium text-gray-400 dark:text-zinc-500">Short Code</span>
-            <code className="rounded-md bg-gray-100 px-2 py-1 text-sm font-mono text-gray-800 dark:bg-zinc-800 dark:text-zinc-200">
-              {template.short_code}
-            </code>
-          </div>
-          <button
-            onClick={copyShortCode}
-            className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-700 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-zinc-300"
-          >
-            {shortCodeCopied ? (
-              <><CheckIcon className="h-3.5 w-3.5" /> Copied</>
-            ) : (
-              <><CopyIcon className="h-3.5 w-3.5" /> Copy</>
-            )}
-          </button>
-          <a
-            href={`/api/public/v1/templates/${template.short_code}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="ml-auto text-xs text-gray-400 underline-offset-2 hover:text-gray-600 hover:underline dark:text-zinc-500 dark:hover:text-zinc-300"
-          >
-            API URL
-          </a>
+      {hydrated ? null : (
+        <div className="sm:hidden">
+          <PageLoading label="Loading the editor…" />
         </div>
       )}
-
-      {/* Email fields card */}
-      <div className="rounded-xl border border-gray-200 bg-white p-5 sm:p-6 dark:border-white/10 dark:bg-white/[0.03]">
-        <h2 className="mb-4 text-sm font-semibold uppercase tracking-wider text-gray-400 dark:text-zinc-500">
-          Email Details
-        </h2>
-        <div className="grid gap-4 sm:grid-cols-2">
-          <div className="flex flex-col gap-1.5">
-            <Label className={labelClass} htmlFor="subject">Subject</Label>
-            <input
-              className={inputClass}
-              id="subject"
-              onChange={(e) => setSubject(e.target.value)}
-              placeholder="Your email subject"
-              value={subject}
-            />
-          </div>
-
-          <div className="flex flex-col gap-1.5">
-            <Label className={labelClass} htmlFor="from">From</Label>
-            <input
-              className={inputClass}
-              id="from"
-              onChange={(e) => setFrom(e.target.value)}
-              placeholder="from@example.com"
-              type="email"
-              value={from}
-            />
-          </div>
-
-          <div className="flex flex-col gap-1.5">
-            <Label className={labelClass} htmlFor="to">To</Label>
-            <input
-              className={inputClass}
-              id="to"
-              onChange={(e) => setTo(e.target.value)}
-              placeholder="to@example.com"
-              type="email"
-              value={to}
-            />
-          </div>
-
-          <div className="flex flex-col gap-1.5">
-            <div className="flex items-center justify-between">
-              <Label className={labelClass} htmlFor="replyTo">Reply To</Label>
-              <button
-                className="text-xs font-medium text-gray-400 transition-colors hover:text-gray-600 dark:text-zinc-500 dark:hover:text-zinc-300"
-                onClick={() => setShowReplyTo(!showReplyTo)}
-              >
-                {showReplyTo ? '— Remove' : '+ Add'}
-              </button>
-            </div>
-            {showReplyTo && (
-              <input
-                className={inputClass}
-                id="replyTo"
-                onChange={(e) => setReplyTo(e.target.value)}
-                placeholder="replyto@example.com"
-                type="email"
-                value={replyTo}
-              />
-            )}
-          </div>
-        </div>
-
-        <div className="mt-4">
-          <label className={`mb-1.5 block ${labelClass}`}>Preview Text</label>
-          <input
-            className={inputClass}
-            onChange={(e) => setPreviewText(e.target.value)}
-            placeholder="Preview text shown in inbox..."
-            value={previewText}
-          />
-        </div>
-      </div>
-
-      {/* Editor */}
-      <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm dark:border-white/10 dark:bg-white/[0.03]">
-        <EmailEditor
-          autofocus={autofocus}
-          defaultContent={editorContent}
-          setEditor={setEditor}
-        />
-      </div>
-    </div>
+    </>
   );
 }

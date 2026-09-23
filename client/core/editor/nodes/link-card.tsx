@@ -17,12 +17,18 @@ export function LinkCardComponent(props: NodeViewProps) {
       draggable={editor.isEditable}
       data-drag-handle={editor.isEditable}
     >
-      <Popover open={props.selected}>
+      <Popover open={props.selected && editor.isEditable}>
         <PopoverTrigger asChild>
+          {/* biome-ignore lint/a11y/noStaticElementInteractions: a node view; the block is selected from the keyboard through ProseMirror */}
+          {/* biome-ignore lint/a11y/useKeyWithClickEvents: as above */}
           <div
             tabIndex={-1}
             onClick={(e) => {
               e.preventDefault();
+              if (!editor.isEditable) {
+                return;
+              }
+
               const pos = getPos();
               editor.commands.setNodeSelection(pos);
             }}
@@ -69,6 +75,7 @@ export function LinkCardComponent(props: NodeViewProps) {
           </div>
         </PopoverTrigger>
         <PopoverContent
+          aria-label="Link Card"
           align="end"
           className="mly:flex mly:w-96 mly:flex-col mly:gap-2"
           sideOffset={10}

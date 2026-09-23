@@ -1,29 +1,22 @@
 'use client';
 
 import { MoonIcon, SunIcon } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useTheme } from '~/components/theme-provider';
+import { Button } from '~/components/ui/button';
 
 export function ThemeToggle() {
-  const [dark, setDark] = useState(false);
-
-  useEffect(() => {
-    setDark(document.documentElement.classList.contains('dark'));
-  }, []);
-
-  const toggle = () => {
-    const next = !dark;
-    setDark(next);
-    document.documentElement.classList.toggle('dark', next);
-    localStorage.setItem('theme', next ? 'dark' : 'light');
-  };
+  const { theme, toggle } = useTheme();
+  const isDark = theme === 'dark';
 
   return (
-    <button
+    <Button
+      variant="secondary"
+      size="icon"
       onClick={toggle}
-      className="rounded-lg border border-gray-300 p-2 text-gray-500 transition-colors hover:border-gray-400 hover:text-gray-700 dark:border-zinc-700 dark:text-zinc-500 dark:hover:border-zinc-500 dark:hover:text-zinc-300"
-      aria-label="Toggle theme"
+      aria-label={isDark ? 'Switch to light theme' : 'Switch to dark theme'}
+      aria-pressed={isDark}
     >
-      {dark ? <SunIcon className="h-4 w-4" /> : <MoonIcon className="h-4 w-4" />}
-    </button>
+      {isDark ? <SunIcon /> : <MoonIcon />}
+    </Button>
   );
 }

@@ -13,6 +13,8 @@ type InputAutocompleteProps = HTMLAttributes<HTMLInputElement> & {
 
   autoCompleteOptions?: string[];
   onSelectOption?: (option: string) => void;
+  /** The hovered suggestion, or null once the pointer leaves it. */
+  onHoverOption?: (option: string | null) => void;
 
   onOutsideClick?: () => void;
   triggerChar?: string;
@@ -31,6 +33,7 @@ export const InputAutocomplete = forwardRef<
     className,
     onOutsideClick,
     onSelectOption,
+    onHoverOption,
     autoCompleteOptions = [],
     triggerChar = '',
     editor,
@@ -42,11 +45,15 @@ export const InputAutocomplete = forwardRef<
   const VariableSuggestionPopoverComponent =
     useVariableOptions(editor)?.variableSuggestionsPopover;
 
-  useOutsideClick(containerRef as any, () => {
+  useOutsideClick(containerRef, () => {
     onOutsideClick?.();
   });
 
-  const isTriggeringVariable = value.startsWith(triggerChar);
+  // `startsWith('')` is true of every string, so with the default trigger char
+  // the suggestion list mounted permanently — an empty box that also swallowed
+  // Enter and the arrow keys. There is nothing to suggest without options.
+  const isTriggeringVariable =
+    autoCompleteOptions.length > 0 && value.startsWith(triggerChar);
 
   return (
     <div className={cn('mly:relative')} ref={containerRef}>
@@ -62,7 +69,7 @@ export const InputAutocomplete = forwardRef<
             onValueChange(e.target.value);
           }}
           className={cn(
-            'mly:h-7 mly:w-40 mly:rounded-md mly:bg-white mly:px-2 mly:pr-6 mly:text-sm mly:text-midnight-gray mly:hover:bg-soft-gray mly:focus:bg-soft-gray mly:focus:outline-hidden',
+            'mly:h-7 mly:w-40 mly:rounded-md mly:bg-panel mly:px-2 mly:pr-6 mly:text-sm mly:text-midnight-gray mly:transition-colors mly:hover:bg-soft-gray mly:focus:bg-soft-gray ',
             className
           )}
           onKeyDown={(e) => {
@@ -100,6 +107,7 @@ export const InputAutocomplete = forwardRef<
             onSelectItem={(item) => {
               onSelectOption?.(item.name);
             }}
+            onHoverItem={(item) => onHoverOption?.(item?.name ?? null)}
             ref={popoverRef}
           />
         </div>

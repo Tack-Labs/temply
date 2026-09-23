@@ -1,8 +1,7 @@
-import { useId } from 'react';
 import { Tooltip, TooltipContent, TooltipTrigger } from './tooltip';
-import { cn } from '@/editor/utils/classname';
-import { ChevronDownIcon, LucideIcon } from 'lucide-react';
-import { SVGIcon } from '../icons/grid-lines';
+import { LucideIcon } from 'lucide-react';
+import { SVGIcon } from '../icons/svg-icon';
+import { DropdownSelect } from '~/components/ui/dropdown-select';
 
 type SelectProps = {
   label: string;
@@ -23,6 +22,13 @@ type SelectProps = {
   placeholder?: string;
 };
 
+/**
+ * The editor's dropdowns, on the app's custom control.
+ *
+ * These used to be native <select>s, which paint their popup with OS chrome:
+ * on a dark bubble menu the list opened as a white OS panel. The API is
+ * unchanged so all twelve call sites keep working.
+ */
 export function Select(props: SelectProps) {
   const {
     label,
@@ -31,66 +37,38 @@ export function Select(props: SelectProps) {
     onValueChange,
     tooltip,
     className,
-    icon: Icon,
+    icon,
     iconClassName,
     placeholder,
   } = props;
 
-  const selectId = `mly${useId()}`;
-
   const content = (
-    <div className="mly:relative">
-      <label htmlFor={selectId} className="mly:sr-only">
-        {label}
-      </label>
-
-      {Icon && (
-        <div className="mly:pointer-events-none mly:absolute mly:inset-y-0 mly:left-2 mly:z-20 mly:flex mly:items-center">
-          <Icon className={cn('mly:size-3', iconClassName)} />
-        </div>
-      )}
-
-      <select
-        id={selectId}
-        className={cn(
-          'mly:flex mly:min-h-7 mly:max-w-max mly:appearance-none mly:items-center mly:rounded-md mly:bg-white mly:px-1.5 mly:py-0.5 mly:pr-7 mly:text-sm mly:text-midnight-gray mly:ring-offset-white mly:transition-colors mly:hover:bg-soft-gray mly:focus-visible:relative mly:focus-visible:z-10 mly:focus-visible:outline-hidden mly:focus-visible:ring-2 mly:focus-visible:ring-gray-400 mly:focus-visible:ring-offset-2 mly:active:bg-soft-gray',
-          !!Icon && 'mly:pl-7',
-          className
-        )}
-        value={value || ''}
-        onChange={(event) => onValueChange(event.target.value)}
-      >
-        {placeholder && (
-          <option value="" disabled hidden>
-            {placeholder}
-          </option>
-        )}
-
-        {options.map((option) => (
-          <option key={option.value} value={option.value}>
-            {option.label}
-          </option>
-        ))}
-      </select>
-
-      <span className="mly:pointer-events-none mly:absolute mly:inset-y-0 mly:right-0 mly:z-10 mly:flex mly:h-full mly:w-7 mly:items-center mly:justify-center mly:text-gray-600 mly:peer-disabled:opacity-50">
-        <ChevronDownIcon
-          size={16}
-          strokeWidth={2}
-          aria-hidden="true"
-          role="img"
-        />
-      </span>
-    </div>
+    <DropdownSelect
+      label={label}
+      options={options}
+      value={value}
+      onValueChange={onValueChange}
+      size="sm"
+      variant="plain"
+      placeholder={placeholder}
+      icon={icon as LucideIcon | undefined}
+      iconClassName={iconClassName}
+      className={className}
+      keepFocus
+    />
   );
 
   if (!tooltip) {
     return content;
   }
 
+  // The trigger is a Radix Root, not a DOM node, so the tooltip needs a real
+  // element of its own to anchor to.
   return (
     <Tooltip>
-      <TooltipTrigger asChild>{content}</TooltipTrigger>
+      <TooltipTrigger asChild>
+        <span className="mly:inline-flex">{content}</span>
+      </TooltipTrigger>
       <TooltipContent sideOffset={8}>{tooltip}</TooltipContent>
     </Tooltip>
   );

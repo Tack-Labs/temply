@@ -19,7 +19,7 @@ const DropdownMenuContent = React.forwardRef<
       ref={ref}
       sideOffset={sideOffset}
       className={cn(
-        'z-50 min-w-[12rem] overflow-hidden rounded-xl border border-gray-200 bg-white p-1.5 shadow-lg animate-in data-[side=bottom]:slide-in-from-top-2 data-[side=top]:slide-in-from-bottom-2 dark:border-zinc-700 dark:bg-zinc-900',
+        'overlay-panel z-50 min-w-[12rem] overflow-hidden rounded-md border border-line bg-raised p-1 shadow-lg',
         className
       )}
       {...props}
@@ -35,7 +35,7 @@ const DropdownMenuItem = React.forwardRef<
   <DropdownMenuPrimitive.Item
     ref={ref}
     className={cn(
-      'flex cursor-pointer items-center gap-2 rounded-lg px-2.5 py-2 text-sm font-medium text-gray-700 outline-none transition-colors hover:bg-gray-100 focus:bg-gray-100 data-[disabled]:pointer-events-none data-[disabled]:opacity-50 dark:text-zinc-300 dark:hover:bg-zinc-800 dark:focus:bg-zinc-800',
+      'flex h-8 cursor-pointer items-center gap-2 rounded-sm px-2 text-sm text-ink outline-none transition-colors hover:bg-hover focus:bg-hover data-[disabled]:pointer-events-none data-[disabled]:opacity-45 [&_svg]:size-4 [&_svg]:shrink-0 [&_svg]:text-faint',
       className
     )}
     {...props}
@@ -49,7 +49,7 @@ const DropdownMenuLabel = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <DropdownMenuPrimitive.Label
     ref={ref}
-    className={cn('px-2.5 py-1.5 text-xs text-gray-500 dark:text-zinc-500', className)}
+    className={cn('px-2 py-1.5 text-xs text-muted', className)}
     {...props}
   />
 ));
@@ -61,7 +61,7 @@ const DropdownMenuSeparator = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <DropdownMenuPrimitive.Separator
     ref={ref}
-    className={cn('-mx-1.5 my-1.5 h-px bg-gray-200 dark:bg-zinc-700', className)}
+    className={cn('-mx-1 my-1 h-px bg-line', className)}
     {...props}
   />
 ));

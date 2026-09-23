@@ -1,0 +1,84 @@
+{
+  "$schema": "./node_modules/@biomejs/biome/configuration_schema.json",
+  "files": {
+    "includes": [
+      "client/**",
+      "server/**",
+      "shared/**",
+      "e2e/**",
+      "scripts/**",
+      "deploy/**",
+      "!**/node_modules",
+      "!**/.next",
+      "!**/.next-e2e",
+      "!**/dist",
+      "!**/test-results",
+      "!**/playwright-report",
+      "!**/.tmp",
+      "!**/*.css",
+      "!client/public"
+    ]
+  },
+  "linter": {
+    "enabled": true,
+    "rules": {
+      "recommended": true,
+      "style": {
+        "useImportType": "off",
+        "noNonNullAssertion": "off",
+        "useTemplate": "off",
+        "useConst": "off",
+        "useExponentiationOperator": "off",
+        "useNodejsImportProtocol": "off",
+        "noDescendingSpecificity": "off"
+      },
+      "suspicious": {
+        "noExplicitAny": "off",
+        "noTsIgnore": "off",
+        "noArrayIndexKey": "off",
+        "noAssignInExpressions": "off",
+        "noGlobalIsFinite": "off"
+      },
+      "complexity": {
+        "noBannedTypes": "off",
+        "noUselessFragments": "off",
+        "noCommaOperator": "off",
+        "useOptionalChain": "off",
+        "useLiteralKeys": "off",
+        "useArrowFunction": "off",
+        "noImportantStyles": "off",
+        "noUselessCatch": "off"
+      },
+      "correctness": {
+        "useExhaustiveDependencies": "off",
+        "useParseIntRadix": "off",
+        "noUnusedFunctionParameters": "off"
+      },
+      "performance": {
+        "noImgElement": "off"
+      },
+      "security": {
+        "noDangerouslySetInnerHtml": "off"
+      },
+      "a11y": {
+        "useSemanticElements": "off",
+        "noLabelWithoutControl": {
+          "level": "error",
+          "options": {
+            "inputComponents": [
+              "Input",
+              "BaseInput",
+              "Textarea"
+            ]
+          }
+        }
+      }
+    }
+  },
+  "formatter": {
+    "enabled": false
+  },
+  "assist": {
+    "enabled": false
+  }
+}

@@ -25,6 +25,10 @@ export const useImageState = (editor: Editor) => {
           editor.getAttributes('image')?.isSrcVariable ??
           editor.getAttributes('logo')?.isSrcVariable ??
           false,
+        imageAlt:
+          editor.getAttributes('image')?.alt ||
+          editor.getAttributes('logo')?.alt ||
+          '',
         imageExternalLink: editor.getAttributes('image')?.externalLink || '',
         isExternalLinkVariable:
           editor.getAttributes('image')?.isExternalLinkVariable,

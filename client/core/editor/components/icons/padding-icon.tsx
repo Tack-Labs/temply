@@ -2,7 +2,7 @@ import { SVGProps } from 'react';
 
 export function PaddingIcon(props: SVGProps<SVGSVGElement>) {
   return (
-    <svg
+    <svg aria-hidden="true"
       width={10}
       height={10}
       viewBox="0 0 10 10"

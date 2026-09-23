@@ -28,12 +28,12 @@ const BaseButton = React.forwardRef<HTMLButtonElement, ButtonProps>(
   ) => {
     const Comp = asChild ? Slot : 'button';
     const baseClass =
-      'mly:inline-flex mly:items-center mly:justify-center mly:rounded-md mly:text-sm mly:font-medium mly:ring-offset-white mly:transition-colors mly:focus-visible:outline-hidden mly:focus-visible:ring-2 mly:focus-visible:ring-gray-400 mly:focus-visible:ring-offset-2 mly:focus-visible:relative mly:focus-visible:z-10 mly:disabled:opacity-50 ';
+      'mly:inline-flex mly:items-center mly:justify-center mly:rounded-md mly:text-sm mly:font-medium mly:transition-colors mly:focus-visible:relative mly:focus-visible:z-10 mly:disabled:opacity-50 ';
     const variantClasses = {
       default: 'mly:bg-gray-900 mly:text-gray-50 mly:hover:bg-soft-gray',
       destructive: 'mly:bg-red-500 mly:text-gray-50 mly:hover:bg-red-500/90',
       outline:
-        'mly:border mly:border-gray-200 mly:bg-white mly:hover:bg-gray-100 mly:hover:text-gray-900',
+        'mly:border mly:border-gray-200 mly:bg-panel mly:hover:bg-gray-100 mly:hover:text-gray-900',
       secondary: 'mly:bg-gray-100 mly:text-gray-900 mly:hover:bg-gray-100/80',
       ghost:
         'mly:hover:bg-soft-gray bg-transparent mly:hover:text-gray-900 mly:data-[state=true]:bg-soft-gray mly:data-[state=true]:text-gray-900',

@@ -16,6 +16,8 @@ import { Popover, PopoverContent, PopoverTrigger } from './popover';
 import { Divider } from './ui/divider';
 import { DragHandle } from '../plugins/drag-handle/drag-handle';
 import { cn } from '../utils/classname';
+import { ariaKeys, formatKeys } from '~/lib/editor-shortcuts';
+import { useIsApple } from '~/lib/use-platform';
 
 export type ContentMenuProps = {
   editor: Editor;
@@ -25,6 +27,13 @@ export function ContentMenu(props: ContentMenuProps) {
   const { editor } = props;
 
   const [menuOpen, setMenuOpen] = useState(false);
+  // What actually selects the block. This advertised ⌘⇧L for as long as that
+  // binding existed and for a while after it did not — TextAlign claims
+  // Mod-Shift-L and answers first, which is why the editor moved to Space.
+  // Rendered the way every other shortcut in the product is rendered, and on
+  // the same guess about the keyboard until the browser can say.
+  const isApple = useIsApple() ?? true;
+  const selectBlock = 'Mod+Shift+Space';
   const [currentNode, setCurrentNode] = useState<Node | null>(null);
   const [currentNodePos, setCurrentNodePos] = useState<number>(-1);
 
@@ -135,11 +144,12 @@ export function ContentMenu(props: ContentMenuProps) {
                 className="mly:size-5! mly:cursor-grab mly:text-gray-500 mly:hover:text-black"
                 onClick={handleAddNewNode}
                 type="button"
+                aria-label="Add a block below"
               >
                 <Plus className="mly:size-3.5 mly:shrink-0" />
               </BaseButton>
             </TooltipTrigger>
-            <TooltipContent sideOffset={8}>Add new node</TooltipContent>
+            <TooltipContent sideOffset={8}>Add a block below — or press /</TooltipContent>
           </Tooltip>
           <Popover open={menuOpen} onOpenChange={setMenuOpen}>
             <div className="mly:relative mly:flex mly:flex-col">
@@ -155,16 +165,21 @@ export function ContentMenu(props: ContentMenuProps) {
                       editor.commands.setNodeSelection(currentNodePos);
                     }}
                     type="button"
+                    aria-label="Block actions"
+                    aria-keyshortcuts={ariaKeys(selectBlock, isApple)}
                   >
                     <GripVertical className="mly:size-3.5 mly:shrink-0" />
                   </BaseButton>
                 </TooltipTrigger>
-                <TooltipContent sideOffset={8}>Node actions</TooltipContent>
+                <TooltipContent sideOffset={8}>
+                  Block actions — or press {formatKeys(selectBlock, isApple)}
+                </TooltipContent>
               </Tooltip>
               <PopoverTrigger className="mly:absolute mly:left-0 mly:top-0 mly:z-0 mly:h-5 mly:w-5" />
             </div>
 
             <PopoverContent
+              aria-label="Block actions"
               align="start"
               side="bottom"
               sideOffset={8}
@@ -181,7 +196,7 @@ export function ContentMenu(props: ContentMenuProps) {
               <Divider type="horizontal" />
               <BaseButton
                 onClick={deleteCurrentNode}
-                className="mly:h-auto mly:justify-start mly:gap-2 mly:rounded! mly:bg-red-100 mly:px-2 mly:py-1 mly:text-sm mly:font-normal mly:text-red-600 mly:hover:bg-red-200 mly:focus:bg-red-200"
+                className="mly:h-auto mly:justify-start mly:gap-2 mly:rounded! mly:bg-red-100 mly:px-2 mly:py-1 mly:text-sm mly:font-normal mly:text-red-600 mly:transition-colors mly:hover:bg-red-200 mly:focus:bg-red-200"
               >
                 <Trash2 className="mly:size-[15px] mly:shrink-0" />
                 Delete

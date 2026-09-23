@@ -1,6 +1,7 @@
 import * as React from 'react';
 import * as DialogPrimitive from '@radix-ui/react-dialog';
 import { X } from 'lucide-react';
+import { Button } from '~/components/ui/button';
 import { cn } from '~/lib/classname';
 
 const Dialog = DialogPrimitive.Root;
@@ -17,7 +18,7 @@ const DialogOverlay = React.forwardRef<
   React.ComponentPropsWithoutRef<typeof DialogPrimitive.Overlay>
 >(({ className, ...props }, ref) => (
   <DialogPrimitive.Overlay
-    className={cn('fixed inset-0 z-50 bg-white/70 backdrop-blur-sm dark:bg-black/70', className)}
+    className={cn('overlay-fade fixed inset-0 z-50 bg-black/40 backdrop-blur-[2px]', className)}
     ref={ref}
     {...props}
   />
@@ -32,16 +33,23 @@ const DialogContent = React.forwardRef<
     <DialogOverlay />
     <DialogPrimitive.Content
       className={cn(
-        'fixed left-[50%] top-[50%] z-50 grid w-full max-w-lg translate-x-[-50%] translate-y-[-50%] gap-4 border border-gray-200 bg-white p-6 shadow-lg duration-200 sm:rounded-lg md:w-full dark:border-zinc-700 dark:bg-zinc-900',
+        // Positioning lives in the .dialog-pop rule so the pop keyframe can
+        // carry the centring translate; no Tailwind translate utilities here.
+        // A phone gets 1rem of margin on every side: the dialog is centred from
+        // its own middle, so the calc width and height leave that much around
+        // it, and a body taller than the viewport scrolls inside.
+        'dialog-pop fixed z-50 grid max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] max-w-md gap-4 overflow-y-auto rounded-lg border border-line bg-raised p-5 shadow-xl',
         className
       )}
       ref={ref}
       {...props}
     >
       {children}
-      <DialogPrimitive.Close className="absolute right-4 top-4 rounded-sm bg-transparent opacity-70 ring-offset-white transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 disabled:pointer-events-none dark:ring-offset-black">
-        <X className="h-4 w-4" />
-        <span className="sr-only">Close</span>
+      <DialogPrimitive.Close asChild>
+        <Button variant="ghost" size="icon-sm" className="absolute top-4 right-4">
+          <X />
+          <span className="sr-only">Close</span>
+        </Button>
       </DialogPrimitive.Close>
     </DialogPrimitive.Content>
   </DialogPortal>
@@ -55,7 +63,7 @@ function DialogHeader({
   return (
     <div
       className={cn(
-        'flex flex-col space-y-1.5 text-center sm:text-left',
+        'flex flex-col gap-1 pr-8',
         className
       )}
       {...props}
@@ -71,7 +79,7 @@ function DialogFooter({
   return (
     <div
       className={cn(
-        'flex flex-col-reverse sm:flex-row sm:justify-end sm:space-x-2',
+        'flex flex-col-reverse gap-2 sm:flex-row sm:justify-end',
         className
       )}
       {...props}
@@ -86,7 +94,7 @@ const DialogTitle = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <DialogPrimitive.Title
     className={cn(
-      'text-lg font-semibold leading-none tracking-tight',
+      'text-base leading-none font-semibold tracking-tight text-ink',
       className
     )}
     ref={ref}
@@ -100,7 +108,7 @@ const DialogDescription = React.forwardRef<
   React.ComponentPropsWithoutRef<typeof DialogPrimitive.Description>
 >(({ className, ...props }, ref) => (
   <DialogPrimitive.Description
-    className={cn('text-sm text-gray-500 dark:text-gray-400', className)}
+    className={cn('text-sm text-muted', className)}
     ref={ref}
     {...props}
   />

@@ -5,9 +5,10 @@ import { isCustomNodeSelected } from '@/editor/utils/is-custom-node-selected';
 import { isTextSelected } from '@/editor/utils/is-text-selected';
 import { BubbleMenu, BubbleMenuProps } from '@tiptap/react';
 import { LucideIcon } from 'lucide-react';
-import { SVGIcon } from '../icons/grid-lines';
+import { SVGIcon } from '../icons/svg-icon';
 import { Divider } from '../ui/divider';
 import { TooltipProvider } from '../ui/tooltip';
+import { MenuToolbar } from '../ui/menu-toolbar';
 import { TextBubbleContent } from './text-bubble-content';
 import { RepeatExtension } from '@/editor/nodes/repeat/repeat';
 import { TurnIntoBlock } from './turn-into-block';
@@ -28,19 +29,31 @@ export interface BubbleMenuItem {
 }
 
 export type EditorBubbleMenuProps = Omit<BubbleMenuProps, 'children'> & {
+  // Vendor plumbing (maily): the same field carries the ref callers hand in
+  // AND the unwrapped `.current` element spread back in below — only `any`
+  // satisfies both shapes without restructuring the pass-through.
   appendTo?: React.RefObject<any>;
 };
 
-export function TextBubbleMenu(props: EditorBubbleMenuProps) {
-  const { editor, appendTo } = props;
+/**
+ * This menu takes no `appendTo`: it hangs off `document.body` and nothing
+ * else, for the reason given at the option below. A ref passed here would ride
+ * through the spread to `<BubbleMenu>`, where nothing reads it — the silent
+ * no-op that clipped Turn into in the first place.
+ */
+type TextBubbleMenuProps = Omit<EditorBubbleMenuProps, 'appendTo'>;
+
+export function TextBubbleMenu(props: TextBubbleMenuProps) {
+  const { editor } = props;
+
+  const turnIntoBlockOptions = useTurnIntoBlockOptions(editor);
 
   if (!editor) {
     return null;
   }
 
-  const bubbleMenuProps: EditorBubbleMenuProps = {
+  const bubbleMenuProps: TextBubbleMenuProps = {
     ...props,
-    ...(appendTo ? { appendTo: appendTo.current } : {}),
     pluginKey: 'text-menu',
     shouldShow: ({ editor, from, view }) => {
       if (!view || editor.view.dragging) {
@@ -68,6 +81,16 @@ export function TextBubbleMenu(props: EditorBubbleMenuProps) {
       return isTextSelected(editor) && !isNestedNodeSelected;
     },
     tippyOptions: {
+      // This menu hangs off the page rather than off the editor's pane, and
+      // it is the only one that has to: the popovers it opens are taller
+      // than it is, and the Content card clips what leaves it — starting
+      // well above the canvas, behind the header and the preflight panel.
+      // A Turn into opened on the one-line document every new template
+      // starts from flips upwards for want of room below, and inside the
+      // pane its first rows were cut off where no click could reach them.
+      // The popovers stay inside this menu, so they still take their type
+      // from it rather than from the heading the caret is in.
+      appendTo: () => document.body,
       popperOptions: {
         placement: 'top-start',
         modifiers: [
@@ -90,19 +113,20 @@ export function TextBubbleMenu(props: EditorBubbleMenuProps) {
     },
   };
 
-  const turnIntoBlockOptions = useTurnIntoBlockOptions(editor);
-
   return (
-    <BubbleMenu
-      {...bubbleMenuProps}
-      className="mly:flex mly:gap-0.5 mly:rounded-lg mly:border mly:border-gray-200 mly:bg-white mly:p-0.5 mly:shadow-md"
-    >
+    <BubbleMenu {...bubbleMenuProps}>
       <TooltipProvider>
-        <TurnIntoBlock options={turnIntoBlockOptions} />
+        <MenuToolbar
+          editor={editor}
+          label="Text formatting"
+          className="mly:flex mly:gap-0.5 mly:rounded-lg mly:border mly:border-gray-200 mly:bg-panel mly:p-0.5 mly:shadow-md"
+        >
+          <TurnIntoBlock options={turnIntoBlockOptions} />
 
-        <Divider className="mly:mx-0" />
+          <Divider className="mly:mx-0" />
 
-        <TextBubbleContent editor={editor} />
+          <TextBubbleContent editor={editor} />
+        </MenuToolbar>
       </TooltipProvider>
     </BubbleMenu>
   );

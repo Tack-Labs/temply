@@ -8,7 +8,7 @@ export default function MarketingLayout({
   return (
     <>
       <Header />
-      {children}
+      <main id="main-content">{children}</main>
     </>
   );
 }

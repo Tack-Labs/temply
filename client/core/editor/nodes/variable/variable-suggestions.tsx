@@ -4,9 +4,9 @@ import {
 } from '@/editor/utils/node-options';
 import { processVariables } from '@/editor/utils/variable';
 import { ReactRenderer } from '@tiptap/react';
-import { SuggestionOptions } from '@tiptap/suggestion';
+import { SuggestionKeyDownProps, SuggestionOptions } from '@tiptap/suggestion';
 import { forwardRef, useImperativeHandle, useRef } from 'react';
-import tippy, { GetReferenceClientRect } from 'tippy.js';
+import tippy, { GetReferenceClientRect, Instance } from 'tippy.js';
 import {
   DEFAULT_VARIABLE_TRIGGER_CHAR,
   Variable as VariableType,
@@ -23,7 +23,7 @@ export type VariableListProps = {
   items: VariableType[];
 } & SuggestionOptions;
 
-export const VariableList = forwardRef((props: VariableListProps, ref) => {
+export const VariableList = forwardRef<SuggestionListRef, VariableListProps>((props, ref) => {
   const { items = [], editor } = props;
 
   const popoverRef = useRef<VariableSuggestionsPopoverRef>(null);
@@ -76,11 +76,18 @@ export const VariableList = forwardRef((props: VariableListProps, ref) => {
 
 VariableList.displayName = 'VariableList';
 
+/** What the list component exposes through its imperative handle — the one
+ *  method the suggestion plumbing below actually calls. */
+type SuggestionListRef = {
+  onKeyDown: (props: SuggestionKeyDownProps) => boolean | undefined;
+};
+
 export function getVariableSuggestions(
   char: string = DEFAULT_VARIABLE_TRIGGER_CHAR
 ): Omit<SuggestionOptions, 'editor'> {
   return {
     char,
+
     items: ({ query, editor }) => {
       const variables = getVariableOptions(editor)?.variables;
 
@@ -92,8 +99,8 @@ export function getVariableSuggestions(
     },
 
     render: () => {
-      let component: ReactRenderer<any>;
-      let popup: InstanceType<any> | null = null;
+      let component: ReactRenderer<SuggestionListRef>;
+      let popup: Instance[] | null = null;
 
       return {
         onStart: (props) => {
@@ -135,7 +142,7 @@ export function getVariableSuggestions(
             return true;
           }
 
-          return component.ref?.onKeyDown(props);
+          return component.ref?.onKeyDown(props) ?? false;
         },
 
         onExit() {

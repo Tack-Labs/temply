@@ -1,172 +1,53 @@
 import { Editor } from '@tiptap/react';
 import { Fragment, Node } from '@tiptap/pm/model';
-import { TextSelection } from '@tiptap/pm/state';
+import { EditorState, NodeSelection, Selection, TextSelection, Transaction } from '@tiptap/pm/state';
 import { v4 as uuidv4 } from 'uuid';
 import { findParentNode } from '@tiptap/core';
 import { DEFAULT_COLUMN_WIDTH } from '../nodes/columns/column';
+import { selectedNodeOfType } from './selected-node';
 
 export function getColumnCount(editor: Editor) {
   return getClosestNodeByName(editor, 'columns')?.node?.childCount || 0;
 }
 
+/** The `columns` wrapper as the selection itself — the shape a tap leaves. */
+export function isColumnsSelected(editor: Editor): boolean {
+  return !!selectedNodeOfType(editor.state, 'columns');
+}
+
+/**
+ * The nearest `name` the selection belongs to: ancestors, as a caret's
+ * containers, plus the selected node itself.
+ */
 export function getClosestNodeByName(editor: Editor, name: string) {
   const { state } = editor.view;
-  return findParentNode((node) => node.type.name === name)(state.selection);
+  const { selection } = state;
+  const selected = selectedNodeOfType(state, name);
+  if (selected) {
+    const $pos = state.doc.resolve(selection.from);
+    return { pos: selection.from, start: selection.from + 1, depth: $pos.depth, node: selected };
+  }
+  return findParentNode((node) => node.type.name === name)(selection);
 }
 
-export function addColumn(editor: Editor) {
-  const { node: columnsNode, pos: columnsNodePos = 0 } =
-    getClosestNodeByName(editor, 'columns') || {};
-  if (!columnsNode) {
-    return;
+/**
+ * What to select after one of the commands below has rewritten the whole
+ * `columns` node. A caret goes back where the command means it to go; a
+ * wrapper that was node-selected stays node-selected, because the phone's
+ * Style sheet is about whatever is selected — dropping a caret into a column
+ * would turn the Columns sheet into the Text sheet half-way through setting
+ * the widths.
+ */
+function selectionAfterRewrite(
+  before: EditorState,
+  tr: Transaction,
+  columnsNodePos: number,
+  caret: () => Selection
+): Selection {
+  if (selectedNodeOfType(before, 'columns') && before.selection.from === columnsNodePos) {
+    return NodeSelection.create(tr.doc, columnsNodePos);
   }
-
-  const { node: activeColumnNode, pos: activeColumnNodePos = 0 } =
-    getClosestNodeByName(editor, 'column') || {};
-  if (!activeColumnNode) {
-    return;
-  }
-
-  const { state, dispatch } = editor.view;
-  const { tr } = state;
-  // Get the current columns node position and add the columns size
-  // to the end of the columns node
-  const calculatedWidth = +Number(100 / (columnsNode.childCount + 1)).toFixed(
-    2
-  );
-  const newColumn = state.schema.nodes.column.create(
-    {
-      width: calculatedWidth,
-      columnId: uuidv4(),
-    },
-    state.schema.nodes.paragraph.create(null)
-  );
-
-  let updatedContent: Node[] = [];
-  let activeColumnIndex = 0;
-  columnsNode.content.forEach((child, _, index) => {
-    if (
-      child.eq(activeColumnNode) &&
-      child?.attrs?.columnId === activeColumnNode?.attrs?.columnId
-    ) {
-      activeColumnIndex = index;
-    }
-
-    updatedContent.push(
-      child.type.create(
-        {
-          ...child?.attrs,
-          width: calculatedWidth,
-        },
-        child.content
-      )
-    );
-  });
-
-  updatedContent.splice(activeColumnIndex + 1, 0, newColumn);
-  const newColumnPos =
-    columnsNodePos +
-    updatedContent
-      .slice(0, activeColumnIndex + 1)
-      .reduce((acc, node) => acc + node.nodeSize, 0);
-
-  const updatedColumnsNode = columnsNode.copy(Fragment.from(updatedContent));
-
-  const transaction = tr.replaceWith(
-    columnsNodePos,
-    columnsNodePos + columnsNode.nodeSize,
-    updatedColumnsNode
-  );
-
-  // Calculate the position of the new column by adding the new column's position
-  const textSelection = TextSelection.near(
-    transaction.doc.resolve(newColumnPos)
-  );
-  transaction.setSelection(textSelection);
-
-  dispatch(transaction);
-  editor.view.focus();
-}
-
-export function removeColumn(editor: Editor) {
-  const { node: columnsNode, pos: columnsNodePos = 0 } =
-    getClosestNodeByName(editor, 'columns') || {};
-  if (!columnsNode) {
-    return;
-  }
-
-  const { node: activeColumnNode, pos: activeColumnNodePos = 0 } =
-    getClosestNodeByName(editor, 'column') || {};
-  if (!activeColumnNode) {
-    return;
-  }
-
-  const { state, dispatch } = editor.view;
-  const { tr } = state;
-
-  // If there is only one column, remove the entire columns node
-  if (columnsNode.childCount === 1) {
-    const transaction = tr.delete(
-      columnsNodePos,
-      columnsNodePos + columnsNode.nodeSize
-    );
-    dispatch(transaction);
-    editor.view.focus();
-    return;
-  }
-
-  const calculatedWidth = +Number(100 / (columnsNode.childCount - 1)).toFixed(
-    2
-  );
-
-  let updatedContent: Node[] = [];
-  let activeColumnIndex = 0;
-  let isRemoved = false;
-  columnsNode.content.forEach((child, _, index) => {
-    const isActiveColumn =
-      child.eq(activeColumnNode) &&
-      child?.attrs?.columnId === activeColumnNode?.attrs?.columnId;
-    if (isActiveColumn && !isRemoved) {
-      activeColumnIndex = index;
-      isRemoved = true;
-      return;
-    }
-
-    updatedContent.push(
-      child.type.create(
-        {
-          ...child?.attrs,
-          width: calculatedWidth,
-        },
-        child.content
-      )
-    );
-  });
-
-  const isLastColumn = activeColumnIndex === columnsNode.childCount - 1;
-
-  const newColumnPos =
-    columnsNodePos +
-    updatedContent
-      .slice(0, isLastColumn ? activeColumnIndex - 1 : activeColumnIndex)
-      .reduce((acc, node) => acc + node.nodeSize, 0);
-
-  const updatedColumnsNode = columnsNode.copy(Fragment.from(updatedContent));
-
-  const transaction = tr.replaceWith(
-    columnsNodePos,
-    columnsNodePos + columnsNode.nodeSize,
-    updatedColumnsNode
-  );
-
-  // Calculate the position of the new column by adding the new column's position
-  const textSelection = TextSelection.near(
-    transaction.doc.resolve(newColumnPos)
-  );
-  transaction.setSelection(textSelection);
-
-  dispatch(transaction);
-  editor.view.focus();
+  return caret();
 }
 
 export function goToColumn(editor: Editor, type: 'next' | 'previous') {
@@ -212,6 +93,13 @@ export function goToColumn(editor: Editor, type: 'next' | 'previous') {
   return true;
 }
 
+/**
+ * One attribute on one column, rather than a rebuilt `columns` node. A width
+ * is typed a digit at a time and each digit is a transaction, and replacing
+ * the whole node reads as "the block this was opened on is gone" to anything
+ * following it — which closed the phone's Style sheet on the first keystroke.
+ * Nothing else moves either: no selection to restore, no content recreated.
+ */
 export function updateColumnWidth(
   editor: Editor,
   index: number,
@@ -219,47 +107,17 @@ export function updateColumnWidth(
 ) {
   const { node: columnsNode, pos: columnsNodePos = 0 } =
     getClosestNodeByName(editor, 'columns') || {};
-  if (!columnsNode) {
+  if (!columnsNode || index < 0 || index >= columnsNode.childCount) {
     return false;
   }
 
+  let columnPos = columnsNodePos + 1;
+  for (let i = 0; i < index; i++) {
+    columnPos += columnsNode.child(i).nodeSize;
+  }
+
   const { state, dispatch } = editor.view;
-  const { tr } = state;
-  const { selection } = state;
-
-  const beforeNodeEnd = columnsNodePos + columnsNode.nodeSize;
-  const selectionRelative = {
-    from: selection.from - columnsNodePos,
-    to: selection.to - columnsNodePos,
-  };
-
-  const updatedContent: Node[] = [];
-  columnsNode.content.forEach((child, _, i) => {
-    updatedContent.push(
-      child.type.create(
-        {
-          ...child?.attrs,
-          width: i === index ? width : child?.attrs?.width,
-        },
-        child.content
-      )
-    );
-  });
-
-  const updatedColumnsNode = columnsNode.copy(Fragment.from(updatedContent));
-  const transaction = tr.replaceWith(
-    columnsNodePos,
-    beforeNodeEnd,
-    updatedColumnsNode
-  );
-
-  const newSelection = TextSelection.create(
-    transaction.doc,
-    columnsNodePos + selectionRelative.from,
-    columnsNodePos + selectionRelative.to
-  );
-
-  dispatch(transaction.setSelection(newSelection));
+  dispatch(state.tr.setNodeAttribute(columnPos, 'width', width));
   return true;
 }
 
@@ -314,10 +172,11 @@ export function addColumnByIndex(editor: Editor, index: number = -1) {
       .slice(0, columnIndex)
       .reduce((acc, node) => acc + node.nodeSize, 0);
 
-  const textSelection = TextSelection.near(
-    transaction.doc.resolve(newColumnPos)
+  transaction.setSelection(
+    selectionAfterRewrite(state, transaction, columnsNodePos, () =>
+      TextSelection.near(transaction.doc.resolve(newColumnPos))
+    )
   );
-  transaction.setSelection(textSelection);
 
   editor.view.dispatch(transaction);
   return true;
@@ -362,10 +221,11 @@ export function removeColumnByIndex(editor: Editor, index: number = -1) {
       .slice(0, nextColumnIndex)
       .reduce((acc, node) => acc + node.nodeSize, 0);
 
-  const textSelection = TextSelection.near(
-    transaction.doc.resolve(nextColumnPos)
+  transaction.setSelection(
+    selectionAfterRewrite(state, transaction, columnsNodePos, () =>
+      TextSelection.near(transaction.doc.resolve(nextColumnPos))
+    )
   );
-  transaction.setSelection(textSelection);
 
   dispatch(transaction);
   return true;
@@ -375,7 +235,7 @@ export function getColumnWidths(editor: Editor): {
   id: string;
   width: string;
 }[] {
-  const { node: columnsNode, pos: columnsNodePos = 0 } =
+  const { node: columnsNode } =
     getClosestNodeByName(editor, 'columns') || {};
   if (!columnsNode) {
     return [];

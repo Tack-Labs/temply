@@ -9,6 +9,10 @@ export const DEFAULT_PLACEHOLDER_URL = 'https://example.com/';
 export type MailyContextType = {
   placeholderUrl?: string;
   blocks?: BlockGroupItem[];
+  onImageUpload?: (file: Blob) => Promise<string>;
+  allowedMimeTypes?: string[];
+  onPickImage?: () => Promise<string | null>;
+  isLibraryImage?: (src: string) => boolean;
 };
 
 export const MailyContext = createContext<MailyContextType>({

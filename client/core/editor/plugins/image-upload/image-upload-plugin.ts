@@ -107,7 +107,7 @@ export function ImageUploadPlugin(options: ImageUploadPluginOptions) {
         event.preventDefault();
         event.stopPropagation();
 
-        images.forEach((file) => handleImageUpload(view, file, pos.pos));
+        for (const file of images) handleImageUpload(view, file, pos.pos);
         return true;
       },
       handlePaste: (view, event) => {
@@ -125,7 +125,7 @@ export function ImageUploadPlugin(options: ImageUploadPluginOptions) {
         event.preventDefault();
         event.stopPropagation();
 
-        images.forEach((file) => handleImageUpload(view, file));
+        for (const file of images) handleImageUpload(view, file);
         return true;
       },
     },

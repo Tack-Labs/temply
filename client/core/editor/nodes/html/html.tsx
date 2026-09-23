@@ -2,17 +2,17 @@ import { updateAttributes } from '@/editor/utils/update-attribute';
 import CodeBlockLowlight from '@tiptap/extension-code-block-lowlight';
 import { TextSelection } from '@tiptap/pm/state';
 import {
-  NodeViewContent,
-  NodeViewProps,
-  NodeViewWrapper,
   ReactNodeViewRenderer,
 } from '@tiptap/react';
 import html from 'highlight.js/lib/languages/xml';
-import { createLowlight, common } from 'lowlight';
+import { createLowlight } from 'lowlight';
 import { HTMLCodeBlockView } from './html-view';
 import { DEFAULT_SECTION_SHOW_IF_KEY } from '@/extensions';
 
-const lowlight = createLowlight(common);
+// One grammar. This block holds HTML and nothing else, and lowlight's
+// `common` set — thirty-odd languages nobody could pick — was the heaviest
+// single import the editor route carried.
+const lowlight = createLowlight();
 lowlight.register('html', html);
 
 export type HtmlCodeBlockAttributes = {
@@ -27,13 +27,13 @@ declare module '@tiptap/core' {
       /**
        * Set a code block
        * @param attributes Code block attributes
-       * @example editor.commands.setCodeBlock({ language: 'javascript' })
+       * @example editor.commands.setHtmlCodeBlock({ language: 'html' })
        */
       setHtmlCodeBlock: (attributes?: { language: string }) => ReturnType;
       /**
        * Toggle a code block
        * @param attributes Code block attributes
-       * @example editor.commands.toggleCodeBlock({ language: 'javascript' })
+       * @example editor.commands.toggleHtmlCodeBlock({ language: 'html' })
        */
       toggleHtmlCodeBlock: (attributes?: { language: string }) => ReturnType;
       updateHtmlCodeBlock: (
@@ -100,6 +100,11 @@ export const HTMLCodeBlockExtension = CodeBlockLowlight.extend({
   addKeyboardShortcuts() {
     return {
       ...this.parent?.(),
+      // The inherited binding reaches for `toggleCodeBlock`, which belongs to
+      // StarterKit's code block — a node the kit no longer registers, because
+      // the renderer has no case for it. Aimed at the block Temply actually
+      // has, the keystroke builds something that can be sent.
+      'Mod-Alt-c': () => this.editor.commands.toggleHtmlCodeBlock(),
       'Mod-a': ({ editor }) => {
         const { selection } = editor.state;
         const $pos = selection.$anchor;

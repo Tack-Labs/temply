@@ -20,6 +20,21 @@ export const allowedButtonVariant = ['filled', 'outline'] as const;
 export type AllowedButtonVariant = (typeof allowedButtonVariant)[number];
 
 export const allowedButtonBorderRadius = ['sharp', 'smooth', 'round'] as const;
+
+/** The three sizes are padding presets; a button whose padding matches none
+ *  of them (an imported template, say) has no size until one is picked. */
+export const BUTTON_SIZES = {
+  small: { paddingX: 24, paddingY: 6 },
+  medium: { paddingX: 32, paddingY: 10 },
+  large: { paddingX: 40, paddingY: 14 },
+} as const;
+export type ButtonSize = keyof typeof BUTTON_SIZES;
+
+export function buttonSizeOf(attrs: { paddingTop: number | null; paddingRight: number | null }): ButtonSize | undefined {
+  return (Object.keys(BUTTON_SIZES) as ButtonSize[]).find(
+    (size) => attrs.paddingRight === BUTTON_SIZES[size].paddingX && attrs.paddingTop === BUTTON_SIZES[size].paddingY
+  );
+}
 export type AllowedButtonBorderRadius =
   (typeof allowedButtonBorderRadius)[number];
 

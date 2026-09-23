@@ -6,7 +6,7 @@ export function BorderColor(
   const { topBarClassName, ...rest } = props;
 
   return (
-    <svg
+    <svg aria-hidden="true"
       width={11}
       height={12}
       viewBox="0 0 11 12"

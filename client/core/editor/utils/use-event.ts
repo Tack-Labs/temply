@@ -1,5 +1,7 @@
 import { useCallback, useLayoutEffect, useRef } from 'react';
 
+// `any[]` in the constraint is what Parameters<T>/ReturnType<T> require;
+// `unknown[]` would reject every concretely-typed handler.
 export const useEvent = <T extends (...args: any[]) => any>(handler: T): T => {
   const handlerRef = useRef<T | null>(null);
 

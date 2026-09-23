@@ -1,191 +1,316 @@
-import { ArrowRightIcon, BoxIcon, EyeIcon, PaintbrushIcon, PanelRightOpenIcon, PuzzleIcon, ZapIcon } from 'lucide-react';
-import Link from 'next/link';
+'use client';
 
-const features = [
+import type { CSSProperties } from 'react';
+import { ArrowRightIcon } from 'lucide-react';
+import Link from 'next/link';
+import { BlockPalette } from '~/components/marketing/block-palette';
+import { ContactForm } from '~/components/marketing/contact-form';
+import { HeroBackground } from '~/components/marketing/hero-background';
+import { HeroShowreel } from '~/components/marketing/hero-showreel';
+import { ScrollToTop } from '~/components/marketing/scroll-to-top';
+import { ShowcaseRow } from '~/components/marketing/showcase-row';
+import {
+  ApiMock,
+  EditorMock,
+  PreviewMock,
+  VariablesMock,
+} from '~/components/marketing/showcase-visuals';
+import { Button } from '~/components/ui/button';
+import { useParallax } from '~/hooks/use-parallax';
+import { useReveal } from '~/hooks/use-reveal';
+import { SITE_URL } from '~/lib/site';
+
+// What a search engine is told this page is, in its own vocabulary: the
+// company and the product, with the plan that costs nothing named as such.
+// A client component still renders on the server, so the script is in the
+// HTML a crawler reads.
+const structuredData = {
+  '@context': 'https://schema.org',
+  '@graph': [
+    { '@type': 'Organization', name: 'Temply', url: SITE_URL, logo: `${SITE_URL}/brand/logo.png` },
+    {
+      '@type': 'SoftwareApplication',
+      name: 'Temply',
+      url: SITE_URL,
+      applicationCategory: 'BusinessApplication',
+      operatingSystem: 'Web',
+      description: 'A block editor for transactional email. Build it without code, send it from your own app.',
+      offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
+    },
+  ],
+};
+
+/** Position in the hero's entrance sequence. The stagger is declared beside the
+ *  element it belongs to rather than in a stack of numbered CSS classes. */
+const enterAt = (ms: number) => ({ '--enter-delay': `${ms}ms` }) as CSSProperties;
+
+// Four rows, in the order the work actually happens: build it, check it, ship
+// it, reuse it. That sequence is why the rows carry stage labels instead of
+// decorative numbering.
+const showcase = [
   {
-    icon: PuzzleIcon,
-    title: 'Block-Based Editor',
-    desc: 'Drag, drop, and arrange content blocks — no HTML, no frustration. Just point-and-click email building.',
+    stage: 'Build',
+    title: 'A block editor, not an HTML file',
+    description:
+      'Point and click your way down the canvas — logo, heading, copy, button, divider. Temply writes the table-based HTML underneath, so you never open it.',
+    visual: <EditorMock />,
   },
   {
-    icon: EyeIcon,
-    title: 'Live Preview',
-    desc: 'See exactly how your email renders across clients before hitting send. What you build is what they get.',
+    stage: 'Check',
+    title: 'See it the way the inbox will',
+    description:
+      'Preview a template as it renders across clients — including the ones that force dark mode on you — before you ship it.',
+    visual: <PreviewMock />,
   },
   {
-    icon: PaintbrushIcon,
-    title: 'Dark Mode Support',
-    desc: 'Templates that respect reader preferences. Built-in dark mode handling out of the box.',
+    stage: 'Ship',
+    title: 'Pull it into your app with one request',
+    description:
+      'Every template sits behind a clean API. Authenticate with a key, fetch the HTML by template id, and render it wherever your product needs it.',
+    visual: <ApiMock />,
   },
   {
-    icon: BoxIcon,
-    title: 'Pre-Built Components',
-    desc: 'Headers, footers, buttons, spacers, columns — grab a component and customise it in seconds.',
-  },
-  {
-    icon: ZapIcon,
-    title: 'Variable Injections',
-    desc: 'Drop dynamic placeholders anywhere. Names, links, unsubscribe URLs — fill them at send time.',
-  },
-  {
-    icon: PanelRightOpenIcon,
-    title: 'Resend Integration',
-    desc: 'Connect your Resend API key and send straight from the editor. No extra plumbing needed.',
+    stage: 'Reuse',
+    title: 'Placeholders in, brand on top',
+    description:
+      'Drop dynamic placeholders anywhere and fill them at request time. Save a brand once and reuse the same look across every template you build.',
+    visual: <VariablesMock />,
   },
 ];
 
+// Only components that exist. "Social Links" used to be listed here; the block
+// it referred to shipped a stranger's personal profiles into users' mail and
+// has been removed, so the claim went with it.
 const components = [
-  'Logo', 'Buttons', 'Variables', 'Text Formatting', 'Images',
-  'Alignment', 'Dividers', 'Spacers', 'Headers & Footers',
-  'Lists', 'Quotes', 'Code Blocks', 'Sections', 'Columns',
-  'Repeat Blocks', 'Visibility Rules', 'Social Links',
+  'Logo', 'Buttons', 'Variables', 'Text formatting', 'Images',
+  'Alignment', 'Dividers', 'Spacers', 'Headers & footers',
+  'Lists', 'Quotes', 'Custom HTML', 'Sections', 'Columns',
+  'Repeat blocks', 'Show-if conditions',
 ];
 
 export default function Home() {
+  const artifactRef = useParallax(0.12, 36);
+  const featuresRef = useReveal();
+  const blocksRef = useReveal();
+  const contactRef = useReveal();
+  // Two speeds in the Blocks section so the palette and the chip column drift
+  // relative to each other — one shared speed would just move the whole band.
+  const paletteRef = useParallax(0.05, 16, { relative: true });
+  const chipsRef = useParallax(0.09, 26, { relative: true });
+
   return (
-    <div className="min-h-screen bg-white text-black dark:bg-black dark:text-white">
-      {/* Hero */}
-      <section className="relative overflow-hidden border-b border-gray-200 dark:border-white/10">
-        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-emerald-100/40 via-transparent to-transparent dark:from-zinc-800/40" />
-        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_bottom_left,_var(--tw-gradient-stops))] from-emerald-100/20 via-transparent to-transparent dark:from-zinc-800/20" />
-
-        <div className="relative mx-auto max-w-6xl px-6 pb-32 pt-24 sm:px-10 sm:pt-32 lg:pt-40">
-          <div className="mx-auto max-w-3xl text-center">
-            <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-gray-200 bg-gray-50 px-4 py-1.5 text-sm text-gray-500 dark:border-white/10 dark:bg-white/5 dark:text-zinc-400">
-              <span className="h-2 w-2 rounded-full bg-emerald-400" />
-              Open-source email builder
-            </div>
-
-            <h1 className="text-5xl font-bold leading-tight tracking-tight sm:text-6xl lg:text-7xl">
-              Email templates,{' '}
-              <span className="bg-gradient-to-r from-emerald-500 to-cyan-500 bg-clip-text text-transparent dark:from-emerald-400 dark:to-cyan-400">
-                built with blocks
-              </span>
-              .
+    // No background class here on purpose: the body already paints bg-surface,
+    // and an opaque wrapper would hide the fixed dot field below it.
+    // overflow-x-clip: the showcase washes intentionally bleed past their
+    // panels; clip keeps that bleed from becoming a horizontal scrollbar on
+    // phones (clip, unlike hidden, creates no scroll container).
+    <div className="overflow-x-clip">
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }} />
+      {/* One dot field for the whole page, fixed so the content scrolls over
+          it like a workbench — this is what keeps the mid-page from going
+          flat. Sections with their own opaque band (Blocks) carry their own
+          texture instead. */}
+      <div
+        aria-hidden
+        className="pointer-events-none fixed inset-0 -z-10"
+        style={{
+          backgroundImage:
+            'radial-gradient(color-mix(in oklab, var(--ds-ink) 6%, transparent) 1px, transparent 1px)',
+          backgroundSize: '22px 22px',
+        }}
+      />
+      <section className="relative overflow-hidden">
+        <HeroBackground />
+        <div className="relative z-10 mx-auto max-w-5xl px-5 pt-24 pb-28 sm:pt-32">
+          <div className="mx-auto max-w-2xl text-center">
+            <h1
+              className="hero-enter font-display text-4xl font-semibold tracking-tight text-balance text-ink lg:text-5xl"
+              style={enterAt(0)}
+            >
+              Write the email. We handle the HTML.
             </h1>
-
-            <p className="mt-6 text-lg leading-relaxed text-gray-500 dark:text-zinc-400 sm:text-xl">
-              Temply is a drag-and-drop email editor that lets you build responsive,
-              beautiful templates without touching code. Open-source, privacy-first,
-              and ready in minutes.
+            <p
+              className="hero-enter mx-auto mt-5 max-w-xl text-lg text-pretty text-muted"
+              style={enterAt(100)}
+            >
+              Drag blocks into place and Temply turns them into email that holds
+              together in any inbox — then pull it into your app with a clean API.
             </p>
+            <div
+              className="hero-enter mt-8 flex flex-wrap items-center justify-center gap-3"
+              style={enterAt(200)}
+            >
+              <Button asChild variant="primary" size="lg">
+                <Link href="/playground">Try the editor<ArrowRightIcon /></Link>
+              </Button>
+              <Button asChild variant="secondary" size="lg">
+                <Link href="/docs">Documentation</Link>
+              </Button>
+            </div>
+            <p className="hero-enter mt-3 text-sm text-muted" style={enterAt(280)}>
+              No account needed to try it. Create one when you want to keep your work.
+            </p>
+          </div>
 
-            <div className="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row">
-              <Link
-                href="/playground"
-                className="inline-flex h-12 items-center gap-2 rounded-xl bg-black px-6 text-sm font-semibold text-white transition-all hover:bg-gray-800 active:scale-[0.97] dark:bg-white dark:text-black dark:hover:bg-zinc-200"
-              >
-                Try the Editor
-                <ArrowRightIcon className="h-4 w-4" />
-              </Link>
-
-              <Link
-                href="/login"
-                className="inline-flex h-12 items-center gap-2 rounded-xl border border-gray-300 bg-white px-6 text-sm font-medium text-gray-700 transition-all hover:bg-gray-50 active:scale-[0.97] dark:border-white/10 dark:bg-white/5 dark:text-zinc-300 dark:hover:bg-white/10"
-              >
-                Sign in to Save
-              </Link>
+          {/* The entrance and the parallax both write `transform`, so they get
+              one element each instead of fighting over the same one. */}
+          <div className="hero-enter mt-16" style={enterAt(380)}>
+            <div
+              ref={artifactRef}
+              className="will-change-transform"
+              style={{ transform: 'translate3d(0, var(--parallax-y, 0), 0)' }}
+            >
+              <HeroShowreel />
             </div>
           </div>
         </div>
       </section>
 
-      {/* Features */}
-      <section className="border-b border-gray-200 py-24 dark:border-white/10">
-        <div className="mx-auto max-w-6xl px-6 sm:px-10">
-          <div className="mx-auto mb-16 max-w-2xl text-center">
-            <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">
+      <section id="features" data-anchor className="border-t border-line">
+        <div className="mx-auto max-w-5xl px-5 py-24 sm:py-32">
+          <div ref={featuresRef} data-reveal className="max-w-2xl">
+            <p className="font-mono text-2xs tracking-[0.16em] text-accent-ink uppercase">
+              The workflow
+            </p>
+            <h2 className="mt-4 font-display text-3xl font-semibold tracking-tight text-balance text-ink">
               Everything you need to build emails
             </h2>
-            <p className="mt-4 text-gray-500 dark:text-zinc-400">
-              No coding. No templates that break in Outlook. Just a clean block editor
-              that produces rock-solid HTML.
+            <p className="mt-4 max-w-xl text-lg text-pretty text-muted">
+              A block editor that outputs table-based HTML, and an API that hands it
+              to your app exactly as you built it.
             </p>
           </div>
 
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {features.map((feature) => {
-              const Icon = feature.icon;
-              return (
-                <div
-                  key={feature.title}
-                  className="group rounded-xl border border-gray-200 bg-white p-6 transition-all hover:border-gray-300 hover:bg-gray-50 dark:border-white/10 dark:bg-white/[0.03] dark:hover:border-white/20 dark:hover:bg-white/[0.06]"
-                >
-                  <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-100 text-emerald-600 dark:bg-emerald-400/10 dark:text-emerald-400">
-                    <Icon className="h-5 w-5" />
-                  </div>
-                  <h3 className="font-semibold">{feature.title}</h3>
-                  <p className="mt-2 text-sm leading-relaxed text-gray-500 dark:text-zinc-400">
-                    {feature.desc}
-                  </p>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      </section>
-
-      {/* Components */}
-      <section className="border-b border-gray-200 py-24 dark:border-white/10">
-        <div className="mx-auto max-w-6xl px-6 sm:px-10">
-          <div className="mx-auto mb-16 max-w-2xl text-center">
-            <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">
-              Pre-Built Components
-            </h2>
-            <p className="mt-4 text-gray-500 dark:text-zinc-400">
-              A growing library of components you can mix, match, and customise.
-            </p>
-          </div>
-
-          <div className="flex flex-wrap justify-center gap-3">
-            {components.map((component) => (
-              <span
-                key={component}
-                className="rounded-lg border border-gray-200 bg-gray-50 px-4 py-2 text-sm text-gray-600 transition-colors hover:border-emerald-300 hover:text-emerald-600 dark:border-white/10 dark:bg-white/[0.03] dark:text-zinc-300 dark:hover:border-emerald-400/30 dark:hover:text-emerald-300"
-              >
-                {component}
-              </span>
+          <div className="mt-20 flex flex-col gap-24 sm:gap-32">
+            {showcase.map((row, index) => (
+              <ShowcaseRow
+                key={row.stage}
+                stage={row.stage}
+                title={row.title}
+                description={row.description}
+                visual={row.visual}
+                flipped={index % 2 === 1}
+              />
             ))}
           </div>
         </div>
       </section>
 
-      {/* CTA */}
-      <section className="py-24">
-        <div className="mx-auto max-w-6xl px-6 text-center sm:px-10">
-          <div className="mx-auto max-w-xl">
-            <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">
-              Start building, instantly
-            </h2>
-            <p className="mt-4 text-gray-500 dark:text-zinc-400">
-              No sign-up required to try the editor. Create an account only when you
-              want to save and send.
+      <section id="blocks" data-anchor className="relative overflow-hidden border-t border-line bg-sunken">
+        {/* The hero's dot texture, quieter, so the sunken band reads as part of
+            the same room rather than a flat cut. */}
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-0"
+          style={{
+            backgroundImage:
+              'radial-gradient(color-mix(in oklab, var(--ds-ink) 7%, transparent) 1px, transparent 1px)',
+            backgroundSize: '22px 22px',
+            maskImage: 'linear-gradient(to bottom, transparent, black 20%, black 80%, transparent)',
+            WebkitMaskImage:
+              'linear-gradient(to bottom, transparent, black 20%, black 80%, transparent)',
+          }}
+        />
+        <div ref={blocksRef} data-reveal className="relative mx-auto max-w-5xl px-5 py-24 sm:py-32">
+          <div className="max-w-2xl">
+            <p className="font-mono text-2xs tracking-[0.16em] text-accent-ink uppercase">
+              The slash menu
             </p>
-            <Link
-              href="/playground"
-              className="mt-8 inline-flex h-12 items-center gap-2 rounded-xl bg-black px-6 text-sm font-semibold text-white transition-all hover:bg-gray-800 active:scale-[0.97] dark:bg-white dark:text-black dark:hover:bg-zinc-200"
+            <h2 className="mt-4 font-display text-3xl font-semibold tracking-tight text-balance text-ink">
+              Blocks in the box
+            </h2>
+            <p className="mt-4 max-w-xl text-lg text-pretty text-muted">
+              Press{' '}
+              <kbd className="rounded-xs border border-line bg-raised px-1.5 py-0.5 font-mono text-sm">
+                /
+              </kbd>{' '}
+              anywhere on the canvas and the whole set is one keystroke away.
+            </p>
+          </div>
+
+          <div className="mt-14 grid gap-10 lg:grid-cols-[minmax(0,25rem)_1fr] lg:items-start lg:gap-16">
+            <div
+              ref={paletteRef}
+              className="will-change-transform"
+              style={{ transform: 'translate3d(0, var(--parallax-y, 0), 0)' }}
             >
-              Open the Editor
-              <ArrowRightIcon className="h-4 w-4" />
-            </Link>
+              <BlockPalette />
+            </div>
+
+            <div
+              ref={chipsRef}
+              className="will-change-transform"
+              style={{ transform: 'translate3d(0, var(--parallax-y, 0), 0)' }}
+            >
+              <p className="font-mono text-2xs tracking-wide text-faint uppercase">
+                All sixteen blocks
+              </p>
+              <ul className="mt-4 flex flex-wrap gap-1.5">
+                {components.map((component) => (
+                  <li
+                    key={component}
+                    className="rounded-sm border border-line bg-raised px-2.5 py-1 text-sm text-muted"
+                  >
+                    {component}
+                  </li>
+                ))}
+              </ul>
+              <p className="mt-6 max-w-sm text-base leading-relaxed text-muted">
+                Nest sections and columns, repeat a block over a list, or show one
+                only when a condition holds.
+              </p>
+            </div>
           </div>
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="border-t border-gray-200 py-8 dark:border-white/10">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-6 text-sm text-gray-500 sm:px-10 dark:text-zinc-500">
-          <p>&copy; {new Date().getFullYear()} Temply. All rights reserved.</p>
-          <a
-            href="https://github.com"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="transition-colors hover:text-gray-700 dark:hover:text-zinc-300"
-          >
-            GitHub
-          </a>
+      <section id="contact" data-anchor className="relative overflow-hidden border-t border-line">
+        {/* The page closes the way it opened: a soft indigo wash behind the
+            final ask. The dot texture is the page-wide fixed field. */}
+        <div aria-hidden className="pointer-events-none absolute inset-0">
+          <div
+            className="absolute left-1/2 top-[-30%] h-95 w-190 -translate-x-1/2 rounded-full opacity-50 blur-3xl"
+            style={{
+              background:
+                'radial-gradient(ellipse at center, color-mix(in oklab, var(--ds-accent) 32%, transparent), transparent 70%)',
+            }}
+          />
+        </div>
+        <div
+          ref={contactRef}
+          data-reveal
+          className="relative mx-auto max-w-5xl px-5 py-24 text-center sm:py-32"
+        >
+          <h2 className="font-display text-3xl font-semibold tracking-tight text-balance text-ink lg:text-4xl">
+            Let&apos;s build something
+          </h2>
+          <p className="mx-auto mt-4 max-w-md text-lg text-pretty text-muted">
+            Questions, enterprise plans, or feedback — we&apos;d love to hear from you.
+          </p>
+          <div className="mt-10">
+            <ContactForm />
+          </div>
+        </div>
+      </section>
+
+      <footer className="border-t border-line">
+        <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-3 px-5 py-6 text-sm text-muted">
+          <p>&copy; {new Date().getFullYear()} Temply</p>
+          <nav aria-label="Legal" className="flex items-center gap-5">
+            <Link href="/terms" className="underline-offset-4 hover:text-ink hover:underline">
+              Terms
+            </Link>
+            <Link href="/privacy" className="underline-offset-4 hover:text-ink hover:underline">
+              Privacy
+            </Link>
+            <Link href="/playground" className="text-accent-ink underline-offset-4 hover:underline">
+              Try the editor
+            </Link>
+          </nav>
         </div>
       </footer>
+
+      <ScrollToTop />
     </div>
   );
 }
