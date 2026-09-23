@@ -7,14 +7,14 @@ the markup.
 
 ## Tech stack
 
-Bun 1.3 is the package manager, the test runner and the API runtime.
+Bun 1.4.2 is the package manager, the test runner and the API runtime.
 Never npm, yarn or pnpm.
 
 **Client** (`client/`)
 
 | | |
 |---|---|
-| Framework | Next.js 15.3 (App Router, Turbopack dev), React 19, TypeScript 5.8 |
+| Framework | Next.js 15.5 (App Router, Turbopack dev), React 19, TypeScript 5.8 |
 | Styling | Tailwind CSS 4 with the design tokens in `app/globals.css` (`--ds-*`), `tailwind-merge`, `class-variance-authority` |
 | UI primitives | Radix UI (dialog, dropdown, popover, tooltip), lucide-react icons, sonner toasts |
 | Editor | tiptap 2 (ProseMirror) in `core/editor`, with custom nodes for the email blocks |
@@ -82,7 +82,7 @@ each file.
 | `CLERK_WEBHOOK_SIGNING_SECRET` | server | for purges | Verifies `organization.deleted` / `user.deleted` webhooks. Without it the endpoint answers 503 and deleted workspaces are never purged. |
 | `INTERNAL_API_SECRET` | both | yes | Random string proving a request came from the Next.js proxy. Without it the API ignores forwarded identities and every dashboard call is signed out. |
 | `NEXT_PUBLIC_APP_URL` | both | yes | The site's own address. Client: metadata, sitemap, docs snippets, legal pages, dev-origin allow-list. Server: absolute image URLs in rendered email, Stripe return URLs. `bun run dev:public` writes it. |
-| `API_URL` | client | production only | Where Next.js reaches the API. Unset in development (defaults to `http://127.0.0.1:3001`). |
+| `API_URL` | client | no | Where Next.js reaches the API. Defaults to `http://127.0.0.1:3001`; the Railway container sets this automatically. |
 | `SQLITE_DB_PATH` | server | no | Database file, default `maily.db` in `server/`. Created on first run. |
 | `STRIPE_SECRET_KEY` | server | for billing | Checkout, portal and webhook verification. |
 | `STRIPE_PRICE_PRO` | server | for billing | The Pro plan's recurring price id — the only thing Checkout sells. |
@@ -156,7 +156,7 @@ Set both webhooks up once:
 
 Test cards: `4242 4242 4242 4242` with any future expiry and any CVC.
 
-Once something else is receiving the webhooks (the VM in *Production*), a
+Once the production Railway service is receiving the webhooks, a
 tunnel that only exists to look at the work from a phone should not move
 them: `bun run dev:public --keep-webhooks` writes the envs and starts the
 dev servers but leaves Stripe and Clerk where they point.
@@ -179,7 +179,8 @@ bun run check:motion         # every transition and shadow sits on a token
 
 The spec is the test for UI: a change to something a customer sees ships
 with its case in `e2e/specs`. CI (`.github/workflows/ci.yml`) runs the same
-list plus both production builds, with the browser suite as its own job.
+list, with browser tests and a production-container build/smoke test as separate jobs.
+All three must pass before a push to `main` deploys to Railway.
 
 ## Building
 
@@ -191,53 +192,135 @@ cd server && bun run build   # bundles src/index.ts → dist/
 `next build` writes to the same `.next` the dev server uses and will
 knock a running `next dev` over; restart it afterwards.
 
-## Production
+## Production on Railway
 
-The API is a single Bun process with a SQLite file, so it runs on one
-machine (a VPS, Fly, Railway — not serverless). Two ways to arrange it:
+One Railway service runs Next.js on `0.0.0.0:$PORT` and the Bun API on
+loopback `:3001`. Railway provides HTTPS; Next proxies `/api/*`, including
+both webhooks. `Dockerfile` builds the Next standalone runtime and the API;
+`deploy/railway/start.sh` supervises both processes and stops the container
+if either exits. `railway.json` sets one replica, restart policy and the
+`/api/health` deployment check, which exercises Next, the API and SQLite.
 
-1. **One host.** Next.js and the API on the same machine; the API stays on
-   loopback and Next proxies to it. One domain serves everything, and both
-   webhooks point at `https://<domain>/api/webhooks/...`.
-2. **Split.** Next.js on Vercel with `API_URL` pointing at the API's own
-   host. The API must then bind to a reachable address; the proxy's
-   `x-internal-token` is what keeps forwarded identities trustworthy.
+The database lives at `/data/maily.db` on a Railway volume. Startup refuses
+to run on Railway without a volume mounted at `/data`. Migrations run on
+the first database request after the volume is mounted, including the
+health check; do not move them to a pre-deploy command, where Railway
+volumes are unavailable. Keep one replica: SQLite is a single writer here.
+A volume-backed service has a short interruption during replacement, so
+this setup does not promise zero-downtime releases.
 
-Either way:
+### One-time setup
 
-- Set every value in `.env.example` for production: live Clerk instance,
-  live Stripe keys and price, `NEXT_PUBLIC_APP_URL=https://<domain>`,
-  Resend with a verified domain, the Sentry DSNs.
-- Point a health check at `GET /api/health` — 200 when the database is
-  reachable, 503 when it is not.
-- Back the database up. `bun run db:backup` (in `server/`) takes an
-  online-safe snapshot and prunes old ones; run it from cron and ship the
-  directory off the machine. `server/litestream.yml` is the continuous
-  alternative.
-- Confirm the facts in `client/lib/legal.ts` (operator, contact address,
-  governing law) before the terms and privacy pages go live.
+1. Create an empty Railway project and a service named `temply` in its
+   `production` environment. Deploy from the **repository root**, with
+   `/railway.json` as the config path and no custom build/start command.
+   Leave GitHub autodeploys disconnected: GitHub Actions owns deployment
+   and must finish its gates first.
+2. Attach a persistent volume to that service at **`/data`**. Enable daily,
+   weekly and monthly volume backups in the service's **Backups** tab.
+   Railway backs up the SQLite file and its WAL together. These settings
+   are managed in Railway, not by `railway.json`.
+3. Generate a Railway domain or attach your domain, targeting port **8080**.
+   Set service variables from `.env.example`, combining the two blocks into
+   one set with matching values. At minimum, set:
 
-### On a single VM (Oracle Cloud Always Free, or any Ubuntu host)
+   ```dotenv
+   NEXT_PUBLIC_APP_URL=https://your-domain.example
+   NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_live_...
+   CLERK_SECRET_KEY=sk_live_...
+   INTERNAL_API_SECRET=<a-random-64-character-hex-string>
+   ```
 
-`deploy/oracle/` is the one-host arrangement, scripted. On a fresh Ubuntu
-24.04 machine with ports 80 and 443 open in the cloud firewall:
+   `PORT=8080`, `SQLITE_DB_PATH=/data/maily.db` and
+   `BACKUP_DIR=/data/backups` are image defaults. Leave `API_URL` unset;
+   startup supplies the loopback URL. Add Clerk/Stripe webhook secrets,
+   Stripe price and key, Resend and ImageKit values for the features you
+   use. Runtime secrets belong in Railway, not the Dockerfile or GitHub
+   build arguments. `NEXT_PUBLIC_*` values are compiled into the client,
+   so changing one requires a new build. The Docker build deliberately
+   uses no real Clerk secret. Runtime Sentry reporting is supported;
+   this container build does not upload Sentry source maps.
+4. Create a Railway **project token scoped to the production environment**.
+   In the GitHub repository, create an Actions environment named
+   **`production`**, restricted to the `main` branch. Add its secret and
+   variables (repository-level values also work):
+
+   | Kind | Name | Value |
+   |---|---|---|
+   | Secret | `RAILWAY_TOKEN` | The environment-scoped Railway project token |
+   | Variable | `RAILWAY_SERVICE_ID` | The `temply` service ID from Railway settings |
+   | Variable | `RAILWAY_PUBLIC_URL` | The same HTTPS URL as `NEXT_PUBLIC_APP_URL` |
+
+   Keep the six existing `E2E_*` repository secrets described in
+   [e2e/README.md](e2e/README.md). They use the Clerk **development**
+   instance, independently of the live service keys.
+5. Push to `main`, or run **CI / CD → Run workflow** on `main` for the first
+   deployment. The pipeline runs typechecking, lint, the dependency audit,
+   unit tests, design gates, browser tests and container smoke checks.
+   Only after all pass does it upload that checkout to Railway. It waits
+   for the **specific deployment ID** to reach `SUCCESS`, then checks the
+   public `/api/health`. Failed builds, startup, database health or smoke
+   checks fail the workflow. Production runs are serialized and are not
+   cancelled halfway through a release.
+6. Set Clerk's allowed production domain and register the webhooks at
+   `https://<domain>/api/webhooks/clerk` and
+   `https://<domain>/api/webhooks/stripe`, using the events in *Setup*.
+   Confirm the operator/contact details in `client/lib/legal.ts`.
+
+Use branch protection on `main` to require the three validation jobs:
+**Typecheck, test, design gates**, **Browser tests**, and
+**Production container**. Pull requests and `feature/**` pushes validate
+without deploying; production deploys only from `main`. Missing deployment
+credentials fail explicitly instead of silently skipping a release.
+
+This configuration follows Railway's [Dockerfile variable handling](https://docs.railway.com/builds/dockerfiles),
+[volume lifecycle](https://docs.railway.com/volumes) and
+[volume backups](https://docs.railway.com/volumes/backups).
+
+### Local container check and operations
 
 ```bash
-git clone <this repository> temply && cd temply
-REPO_URL=<this repository> TEMPLY_HOST=<hostname> bash deploy/oracle/setup.sh
+docker build -t temply:ci \
+  --build-arg NEXT_PUBLIC_APP_URL=http://localhost:8080 \
+  --build-arg NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_ZXhhbXBsZS5jbGVyay5hY2NvdW50cy5kZXYk .
+bash deploy/railway/smoke.sh temply:ci
 ```
 
-`setup.sh` installs Bun and Caddy, opens 80/443 in the VM's own firewall,
-clones the repository to `/opt/temply`, installs two systemd services
-(`temply-server` on loopback :3001, `temply-client` on :9000), a Caddy site
-that terminates HTTPS for `TEMPLY_HOST` and proxies to :9000, and an hourly
-`db:backup` cron. With no domain yet, leave `TEMPLY_HOST` unset and it uses
-`<public-ip>.sslip.io`, a free DNS name that resolves to the IP.
+The smoke test uses disposable storage to verify the home page, static
+assets, proxy authentication, database health, persistence across container
+replacement, database snapshots and process shutdown. It requires Docker,
+Bash, curl and jq. No live credentials or database are used.
 
-Then fill in `client/.env` and `server/.env` under `/opt/temply` and run
-`bash deploy/oracle/update.sh`, which pulls, installs, builds the client and
-restarts both services — the same command deploys every later commit. Logs:
-`journalctl -u temply-server -u temply-client -f`.
+For manual operations, install the pinned CLI with
+`bun add --global @railway/cli@5.30.1`, export the three `RAILWAY_*` values
+above, then use `make deploy` or `make logs`. `make deploy` uploads your
+current checkout; CI is the normal release path.
+
+For an additional consistent snapshot, run the existing backup script
+**inside the deployed container**, through `railway ssh`:
+`cd /app/server && bun scripts/backup-db.ts`. Do not use `railway run` for
+this: it runs locally and cannot access the mounted volume. Export useful
+snapshots off the volume and enable scheduled Railway volume backups.
+`server/litestream.yml` remains an optional replication
+example and is not launched by this image.
+
+### Restoring data and rollback
+
+To seed a new Railway volume from a consistent SQLite snapshot, keep a
+separate copy of the snapshot. With the service stopped and the new volume
+attached, link the Railway CLI to the project/service/environment and use
+`railway volume files upload ./snapshot.db /maily.db` to seed the volume
+before its first application start. Do not overwrite a running SQLite
+file or mix it with another database's `-wal`/`-shm` files.
+
+Deploy, check `/api/health`, sign in and verify templates, brands, API keys
+and billing before opening the service to users.
+
+For a bad application release, redeploy the last working deployment in
+Railway. This preserves the current volume; a code rollback does not undo
+schema/data changes. Take a volume backup before a future schema change
+and check compatibility before rolling back code. Restore a volume backup
+only when a database rollback is intended.
 
 ## Layout worth knowing
 

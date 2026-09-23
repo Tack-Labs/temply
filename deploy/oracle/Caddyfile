@@ -1,7 +1,0 @@
-# Everything on one hostname: Caddy terminates HTTPS and hands the request to
-# Next.js, which serves the site and proxies /api/* to the API on loopback.
-# TEMPLY_HOST comes from /etc/caddy/temply.env (written by setup.sh).
-{$TEMPLY_HOST} {
-	encode gzip zstd
-	reverse_proxy 127.0.0.1:9000
-}

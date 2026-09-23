@@ -15,7 +15,7 @@
  * re-reads .env while running. Ctrl+C stops everything.
  *
  * --keep-webhooks is for a tunnel that only exists to look at the work from
- * a phone while the webhooks belong to another deployment (the VM): the
+ * a phone while the webhooks belong to the Railway deployment: the
  * envs still follow the tunnel, but Stripe is not touched and nothing asks
  * for the Clerk endpoint to move.
  */

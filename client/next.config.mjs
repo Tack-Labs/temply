@@ -1,4 +1,5 @@
 import { withSentryConfig } from '@sentry/nextjs/config';
+import { fileURLToPath } from 'node:url';
 
 /** The host of NEXT_PUBLIC_APP_URL when it is not localhost, else nothing. */
 function devOriginFromEnv() {
@@ -80,6 +81,10 @@ function contentSecurityPolicy() {
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // Containers carry just the traced runtime. Local and Playwright builds
+  // still use `next start`; tracing includes our shared workspace in both.
+  output: process.env.NEXT_OUTPUT === 'standalone' ? 'standalone' : undefined,
+  outputFileTracingRoot: fileURLToPath(new URL('..', import.meta.url)),
   // The e2e stack builds and serves the client while `next dev` is running
   // from `.next` on 9000; a build into the same directory knocks that dev
   // server over. Both `next build` and `next start` read this config, so

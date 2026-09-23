@@ -1,12 +1,13 @@
-.PHONY: deploy-dev dev-log run-local
+.PHONY: deploy logs run-local
 
-# Pull, build and restart the app on the Oracle VM (the `temply` ssh alias).
-deploy-dev:
-	ssh temply 'bash ~/temply-deploy/update.sh'
+# Normally GitHub Actions deploys main after the gates pass. For a manual
+# release, export the Railway token, service ID and public URL first.
+deploy:
+	bash deploy/railway/deploy.sh
 
-# The last 100 lines from both services on the VM.
-dev-log:
-	ssh temply 'journalctl -u temply-server -u temply-client -n 100 --no-pager'
+# Both processes write to the Railway service's log stream.
+logs:
+	railway logs --service "$${RAILWAY_SERVICE_ID:?Set RAILWAY_SERVICE_ID}" --lines 100
 
 run-local:
 	bun run dev:public --keep-webhooks

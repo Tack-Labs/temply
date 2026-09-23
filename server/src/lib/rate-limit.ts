@@ -58,7 +58,7 @@ export const CONTACT_MESSAGES_PER_MINUTE = 5;
  * The API listens on loopback behind our own proxy, so the socket's address
  * is always the proxy's. The client's rides in `x-forwarded-for`, and the
  * *last* entry is the one to read: each hop appends the address it saw, so
- * the last was written by the hop nearest us — Caddy, or the Next proxy —
+ * the last was written by the hop nearest us — the edge or the Next proxy —
  * and anything before it is whatever the client chose to send.
  */
 export function clientAddress(request: Request, server?: { requestIP: (request: Request) => { address: string } | null } | null): string {
