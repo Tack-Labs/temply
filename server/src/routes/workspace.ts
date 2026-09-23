@@ -1,5 +1,5 @@
 import { Elysia } from 'elysia';
-import { and, eq, isNull, sql } from 'drizzle-orm';
+import { and, count, eq, isNull, sql } from 'drizzle-orm';
 import { apiKeysTable, apiUsage, assets, brands, mails, orgPrefs, orgUsage, subscriptions, templateVersions, userPrefs } from '@temply/shared/schema';
 import { json, unauthorized } from '../lib/errors';
 import { noWorkspace } from '../lib/workspace';
@@ -24,8 +24,8 @@ export const workspaceRoutes = new Elysia()
     let moved = 0;
     for (const table of [mails, templateVersions, apiKeysTable, brands, assets]) {
       const orphan = and(eq(table.user_id, userId), isNull(table.org_id));
-      const [count] = await ctx.db.select({ n: sql<number>`count(*)` }).from(table).where(orphan);
-      moved += Number(count?.n ?? 0);
+      const [orphans] = await ctx.db.select({ n: count() }).from(table).where(orphan);
+      moved += orphans?.n ?? 0;
       await ctx.db.update(table).set({ org_id: orgId }).where(orphan);
     }
     // One subscription per org: a legacy row moves across only if the org

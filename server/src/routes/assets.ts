@@ -1,5 +1,5 @@
 import { Elysia, t } from 'elysia';
-import { and, desc, eq, like, sql } from 'drizzle-orm';
+import { and, count, desc, eq, like, sql } from 'drizzle-orm';
 import { assets, mails, templateVersions } from '@temply/shared/schema';
 import { PLAN_LIMITS } from '@temply/shared/plans';
 import { checkStorageLimit, getPlan, getStorageUsed } from '../lib/billing';
@@ -88,10 +88,10 @@ export const assetsRoutes = new Elysia()
     // Two files may share a name — they are different images with different
     // ids — but the user deserves to hear it, so the response says so.
     const [existing] = await ctx.db
-      .select({ count: sql<number>`count(*)` })
+      .select({ count: count() })
       .from(assets)
       .where(and(eq(assets.org_id, ctx.orgId), eq(assets.name, fileName)));
-    const duplicateName = Number(existing?.count ?? 0) > 0;
+    const duplicateName = (existing?.count ?? 0) > 0;
 
     let uploaded: Awaited<ReturnType<typeof ik.upload>>;
     try {

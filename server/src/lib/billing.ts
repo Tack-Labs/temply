@@ -1,5 +1,5 @@
 import Stripe from 'stripe';
-import { eq, sql, and, isNull, or } from 'drizzle-orm';
+import { eq, sql, and, count, isNull, or } from 'drizzle-orm';
 import { subscriptions, mails, apiKeysTable, brands, assets } from '@temply/shared/schema';
 import type { Db } from '../plugins/db';
 import { PLAN_LIMITS as planLimits, type Plan } from '@temply/shared/plans';
@@ -46,14 +46,14 @@ export async function getPlan(db: Db, orgId: string): Promise<{ plan: Plan; stat
 
 export async function getUsage(db: Db, orgId: string) {
   const [templateCount] = await db
-    .select({ count: sql<number>`count(*)` })
+    .select({ count: count() })
     .from(mails)
     .where(eq(mails.org_id, orgId));
 
   // The cap is on keys that work. A revoked key stays as a row so its history
   // reads, but it holds no slot; test keys sit outside the plan entirely.
   const [apiKeyCount] = await db
-    .select({ count: sql<number>`count(*)` })
+    .select({ count: count() })
     .from(apiKeysTable)
     .where(and(eq(apiKeysTable.org_id, orgId), eq(apiKeysTable.mode, 'live'), isNull(apiKeysTable.revoked_at)));
 
@@ -87,7 +87,7 @@ export async function checkBrandLimit(db: Db, orgId: string): Promise<{ allowed:
   const { plan } = await getPlan(db, orgId);
   const limit = planLimits[plan].maxBrands;
   if (!Number.isFinite(limit)) return { allowed: true };
-  const [row] = await db.select({ count: sql<number>`count(*)` }).from(brands).where(eq(brands.org_id, orgId));
+  const [row] = await db.select({ count: count() }).from(brands).where(eq(brands.org_id, orgId));
   if ((row?.count ?? 0) >= limit) {
     return { allowed: false, message: `You can save ${limit} brand${limit === 1 ? '' : 's'} on your current plan. Upgrade for more.` };
   }
@@ -96,10 +96,10 @@ export async function checkBrandLimit(db: Db, orgId: string): Promise<{ allowed:
 
 export async function getStorageUsed(db: Db, orgId: string): Promise<number> {
   const [row] = await db
-    .select({ total: sql<number>`coalesce(sum(${assets.bytes}), 0)` })
+    .select({ total: sql`coalesce(sum(${assets.bytes}), 0)`.mapWith(Number) })
     .from(assets)
     .where(eq(assets.org_id, orgId));
-  return Number(row?.total ?? 0);
+  return row?.total ?? 0;
 }
 
 /** Checked before the bytes reach ImageKit, so a refused upload costs nothing
