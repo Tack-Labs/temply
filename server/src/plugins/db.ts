@@ -184,6 +184,13 @@ export function backfillShortCodes(sqlite: Database) {
   tx();
 }
 
+/** Closing the last connection folds the write-ahead log back into the
+ *  database file, so a copy of the volume taken afterwards is whole. */
+export function closeDb() {
+  db?.$client.close();
+  db = null;
+}
+
 export const dbPlugin = new Elysia({ name: 'db' })
   .derive({ as: 'global' }, () => {
     if (!db) {

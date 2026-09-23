@@ -37,7 +37,7 @@ trap 'exit 0' TERM INT
 
 # Only Next listens on the public interface. The API keeps its existing
 # loopback binding and trusted-proxy authentication contract.
-(cd /app/server && exec env PORT=3001 bun dist/index.js) &
+(cd /app/server && exec env PORT=3001 HOST=127.0.0.1 bun dist/index.js) &
 api_pid=$!
 (cd /app/client && exec env HOSTNAME=0.0.0.0 PORT="$PORT" API_URL=http://127.0.0.1:3001 node server.js) &
 web_pid=$!

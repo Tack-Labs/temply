@@ -84,6 +84,7 @@ same value must be in `client/.env` and `server/.env`.
 | `NEXT_PUBLIC_APP_URL` | both | yes | The site's own address. Client: metadata, sitemap, docs snippets, legal pages, dev-origin allow-list. Server: absolute image URLs in rendered email, Stripe return URLs. `bun run dev:public` writes it. |
 | `API_URL` | client | no | Where Next.js reaches the API. Defaults to `http://127.0.0.1:3001`; the Railway container sets this automatically. |
 | `SQLITE_DB_PATH` | server | no | Database file, default `maily.db` in `server/`. Created on first run. |
+| `HOST` | server | no | The interface the API listens on, default `127.0.0.1`. The API trusts the identity the Next proxy forwards, so it must never be reachable from the internet; the Railway container pins it to loopback. |
 | `STRIPE_SECRET_KEY` | server | for billing | Checkout, portal and webhook verification. |
 | `STRIPE_PRICE_PRO` | server | for billing | The Pro plan's recurring price id — the only thing Checkout sells. |
 | `STRIPE_WEBHOOK_SECRET` | server | for billing | Signing secret of the `/api/webhooks/stripe` endpoint. |
