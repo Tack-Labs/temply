@@ -135,6 +135,22 @@ export const orgUsage = sqliteTable(
   (t) => ({ pk: primaryKey({ columns: [t.org_id, t.period] }) }),
 );
 
+/**
+ * How many calls a rate-limit bucket has let through in one window, keyed by
+ * the window's start as an ISO timestamp. It lives in the database rather
+ * than in the process so that every process running the API counts against
+ * the same number. See lib/rate-limit.ts.
+ */
+export const rateWindows = sqliteTable(
+  'rate_windows',
+  {
+    bucket: text('bucket').notNull(),
+    window_start: text('window_start').notNull(),
+    count: integer('count').notNull().default(0),
+  },
+  (t) => ({ pk: primaryKey({ columns: [t.bucket, t.window_start] }) }),
+);
+
 export const brands = sqliteTable('brands', {
   id: text('id').primaryKey(),
   user_id: text('user_id').notNull(),

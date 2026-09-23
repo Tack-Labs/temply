@@ -1,6 +1,7 @@
 import { Elysia } from 'elysia';
 import { json } from '../lib/errors';
 import { checkPerMinute, clientAddress } from '../lib/rate-limit';
+import { dbPlugin } from '../plugins/db';
 
 /** Reports one address may send in a minute. A page that trips the policy
  *  on load can send a dozen at once; past that it is a loop or a flood. */
@@ -14,10 +15,10 @@ export const REPORTS_PER_MINUTE = 20;
  * what it was refusing, and the page, which is all a policy needs to be
  * corrected. Nothing is stored and nobody is identified.
  */
-export const cspReportRoutes = new Elysia().post(
+export const cspReportRoutes = new Elysia().use(dbPlugin).post(
   '/api/csp-report',
-  async ({ request, server }) => {
-    const fuse = checkPerMinute(`address:${clientAddress(request, server)}`, REPORTS_PER_MINUTE);
+  async ({ request, server, db }) => {
+    const fuse = await checkPerMinute(db, `address:${clientAddress(request, server)}`, REPORTS_PER_MINUTE);
     if (!fuse.allowed) return json({ status: 'ok' });
 
     let body: unknown;

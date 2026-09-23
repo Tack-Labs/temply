@@ -3,7 +3,7 @@ import { Resend } from 'resend';
 import { render } from '../render/render';
 import { MissingVariablesError } from '../render/engine';
 import { json, tooManyRequests, unauthorized, unprocessable } from '../lib/errors';
-import { ANONYMOUS_RENDERS_PER_MINUTE, checkPerMinute, clientAddress } from '../lib/rate-limit';
+import { ANONYMOUS_RENDERS_PER_MINUTE, HOUR_MS, checkPerMinute, checkWindow, clientAddress } from '../lib/rate-limit';
 import { TEMPLATE_CONTENT_MAX_LENGTH } from '@temply/shared/plans';
 import { isEmailAddress } from '@temply/shared/email';
 import { authPlugin } from '../plugins/auth';
@@ -18,8 +18,7 @@ function buildFrom(name?: string): string {
   return `${display} <${FROM_ADDRESS}>`;
 }
 
-// In-process abuse guard for the shared debug sender: 20 test sends / hour /
-// user. Resets on restart — acceptable for a debug aid.
+// Abuse guard for the shared debug sender: 20 test sends an hour per user.
 const TEST_SENDS_PER_HOUR = 20;
 
 /**
@@ -29,20 +28,6 @@ const TEST_SENDS_PER_HOUR = 20;
  * strangers as fit in the field, from Temply's own sending domain.
  */
 const TEST_SEND_MAX_RECIPIENTS = 5;
-
-const sendCounts = new Map<string, { hour: string; count: number }>();
-
-function overRateLimit(userId: string): boolean {
-  const hour = new Date().toISOString().slice(0, 13); // "YYYY-MM-DDTHH" (UTC)
-  const entry = sendCounts.get(userId);
-  if (!entry || entry.hour !== hour) {
-    sendCounts.set(userId, { hour, count: 1 });
-    return false;
-  }
-  if (entry.count >= TEST_SENDS_PER_HOUR) return true;
-  entry.count += 1;
-  return false;
-}
 
 export const emailsRoutes = new Elysia()
   .use(authPlugin)
@@ -58,9 +43,9 @@ export const emailsRoutes = new Elysia()
    */
   .post(
     '/api/v1/emails/preview',
-    async ({ body, request, server, userId }) => {
+    async ({ body, request, server, userId, db }) => {
       if (!userId) {
-        const fuse = checkPerMinute(`address:${clientAddress(request, server)}`, ANONYMOUS_RENDERS_PER_MINUTE);
+        const fuse = await checkPerMinute(db, `address:${clientAddress(request, server)}`, ANONYMOUS_RENDERS_PER_MINUTE);
         if (!fuse.allowed) {
           return tooManyRequests(
             `Previews are limited to ${fuse.limit} a minute. Try again in ${fuse.retryAfterSeconds}s.`,
@@ -133,7 +118,7 @@ export const emailsRoutes = new Elysia()
         return json({ status: 400, message, errors: [message] }, 400);
       }
 
-      if (overRateLimit(userId)) {
+      if (!(await checkWindow(ctx.db, `sends:${userId}`, TEST_SENDS_PER_HOUR, HOUR_MS)).allowed) {
         return json({ status: 429, message: 'Too many test sends — try again later.', errors: ['Rate limited'] }, 429);
       }
 

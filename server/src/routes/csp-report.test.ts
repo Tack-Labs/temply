@@ -1,9 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it, spyOn } from 'bun:test';
-import { resetBurstWindows } from '../lib/rate-limit';
+import { createTestApp, createTestDb } from '../test/helpers';
 import { REPORTS_PER_MINUTE, cspReportRoutes } from './csp-report';
 
+let app: ReturnType<typeof createTestApp>;
+
 const send = (body: unknown, type: string, address = '203.0.113.5') =>
-  cspReportRoutes.handle(
+  app.handle(
     new Request('http://localhost/api/csp-report', {
       method: 'POST',
       headers: { 'Content-Type': type, 'x-forwarded-for': address },
@@ -15,7 +17,7 @@ let warnings: string[];
 let warn: ReturnType<typeof spyOn>;
 
 beforeEach(() => {
-  resetBurstWindows();
+  app = createTestApp(createTestDb(), cspReportRoutes);
   warnings = [];
   warn = spyOn(console, 'warn').mockImplementation((line: string) => {
     warnings.push(line);

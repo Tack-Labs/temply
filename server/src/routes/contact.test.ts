@@ -16,7 +16,7 @@ mock.module('resend', () => ({
 }));
 
 import { contactRoutes } from './contact';
-import { CONTACT_MESSAGES_PER_MINUTE, resetBurstWindows } from '../lib/rate-limit';
+import { CONTACT_MESSAGES_PER_MINUTE } from '../lib/rate-limit';
 
 let db: TestDb;
 let app: any;
@@ -25,7 +25,6 @@ beforeEach(() => {
   db = createTestDb();
   app = createTestApp(db, contactRoutes);
   sent.length = 0;
-  resetBurstWindows();
   process.env.RESEND_API_KEY = 're_test_key';
   process.env.CONTACT_EMAIL = 'team@example.com';
   delete process.env.CONTACT_FROM_EMAIL;

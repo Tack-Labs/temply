@@ -44,7 +44,7 @@ async function resolveKey(ctx: { request: Request; db: Db }): Promise<{ error: R
 
   // The fuse comes before the quota: a runaway loop must not spend the
   // month's budget while it burns.
-  const burst = checkBurst(key.id, key.mode);
+  const burst = await checkBurst(ctx.db, key.id, key.mode);
   if (!burst.allowed) {
     return {
       error: tooManyRequests(

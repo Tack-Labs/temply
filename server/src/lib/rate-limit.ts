@@ -1,45 +1,71 @@
+import { lt, sql } from 'drizzle-orm';
 import { API_BURST_PER_MINUTE } from '@temply/shared/plans';
+import { rateWindows } from '@temply/shared/schema';
+import type { Db } from '../plugins/db';
 import type { ApiKeyMode } from './codes';
 
-type Window = { minute: number; count: number };
-const windows = new Map<string, Window>();
+export const MINUTE_MS = 60_000;
+export const HOUR_MS = 60 * MINUTE_MS;
 
-/** Past this many buckets in the map the stale windows are swept on insert. */
-const SWEEP_ABOVE = 5_000;
+/** Comfortably longer than any window, so a sweep never removes one that is
+ *  still counting. */
+const KEEP_WINDOWS_MS = 24 * HOUR_MS;
+
+/** The share of calls that also sweep finished windows, which keeps the
+ *  table small without a scheduled job of its own. */
+const SWEEP_CHANCE = 0.01;
 
 export type BurstVerdict = { allowed: true } | { allowed: false; limit: number; retryAfterSeconds: number };
 
 /**
- * A fixed one-minute window per bucket, held in process. This is a single-
- * instance service — SQLite already says so — and a shared store would be
- * more machinery than the guard is worth. A restart forgives everyone, which
- * is fine for a limit that exists to stop a runaway loop, not to meter use;
- * the monthly quota does the metering.
+ * A fixed window per bucket, counted in the database so that every process
+ * serving the API draws on one count. Held in memory, each of N processes
+ * would allow the full limit and the fuse would be N times looser. It exists
+ * to stop a runaway loop, not to meter use; the monthly quota does the
+ * metering.
+ *
+ * One statement counts and decides. The upsert increments only while the
+ * count is under the limit, so a refused call is not counted, and no other
+ * process can act between a read and a write. No row back means the window
+ * is full.
  *
  * The bucket names what is being counted: a key, an address. Two callers
  * counting the same thing under different names would each see half the
- * traffic, so the name carries its kind.
+ * traffic, so the name carries its kind. A bucket keeps one window length:
+ * windows of two lengths can start at the same instant and would share a row.
  */
-export function checkPerMinute(bucket: string, limit: number, now: Date = new Date()): BurstVerdict {
-  const minute = Math.floor(now.getTime() / 60_000);
-  const entry = windows.get(bucket);
-  if (!entry || entry.minute !== minute) {
-    if (windows.size > SWEEP_ABOVE) {
-      for (const [id, w] of windows) if (w.minute !== minute) windows.delete(id);
-    }
-    windows.set(bucket, { minute, count: 1 });
-    return { allowed: true };
+export async function checkWindow(
+  db: Db,
+  bucket: string,
+  limit: number,
+  windowMs: number,
+  now: Date = new Date(),
+): Promise<BurstVerdict> {
+  const start = Math.floor(now.getTime() / windowMs) * windowMs;
+  const counted = await db
+    .insert(rateWindows)
+    .values({ bucket, window_start: new Date(start).toISOString(), count: 1 })
+    .onConflictDoUpdate({
+      target: [rateWindows.bucket, rateWindows.window_start],
+      set: { count: sql`${rateWindows.count} + 1` },
+      setWhere: sql`${rateWindows.count} < ${limit}`,
+    })
+    .returning({ count: rateWindows.count });
+  if (Math.random() < SWEEP_CHANCE) {
+    const cutoff = new Date(now.getTime() - KEEP_WINDOWS_MS).toISOString();
+    await db.delete(rateWindows).where(lt(rateWindows.window_start, cutoff));
   }
-  if (entry.count >= limit) {
-    return { allowed: false, limit, retryAfterSeconds: 60 - Math.floor((now.getTime() % 60_000) / 1000) };
-  }
-  entry.count += 1;
-  return { allowed: true };
+  if (counted.length) return { allowed: true };
+  return { allowed: false, limit, retryAfterSeconds: Math.ceil((start + windowMs - now.getTime()) / 1000) };
+}
+
+export function checkPerMinute(db: Db, bucket: string, limit: number, now: Date = new Date()): Promise<BurstVerdict> {
+  return checkWindow(db, bucket, limit, MINUTE_MS, now);
 }
 
 /** The per-key fuse on the public API, by the key's mode. */
-export function checkBurst(keyId: string, mode: ApiKeyMode, now: Date = new Date()): BurstVerdict {
-  return checkPerMinute(`key:${keyId}`, API_BURST_PER_MINUTE[mode], now);
+export function checkBurst(db: Db, keyId: string, mode: ApiKeyMode, now: Date = new Date()): Promise<BurstVerdict> {
+  return checkPerMinute(db, `key:${keyId}`, API_BURST_PER_MINUTE[mode], now);
 }
 
 /**
@@ -68,9 +94,4 @@ export function clientAddress(request: Request, server?: { requestIP: (request: 
     if (hops.length) return hops[hops.length - 1];
   }
   return server?.requestIP(request)?.address ?? 'unknown';
-}
-
-/** Tests share the module-level map; this is how one test stops leaking into the next. */
-export function resetBurstWindows() {
-  windows.clear();
 }

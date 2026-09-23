@@ -18,7 +18,7 @@ mock.module('resend', () => ({
 
 const { emailsRoutes } = await import('./emails');
 const { createTestApp, createTestDb, post } = await import('../test/helpers');
-const { ANONYMOUS_RENDERS_PER_MINUTE, resetBurstWindows } = await import('../lib/rate-limit');
+const { ANONYMOUS_RENDERS_PER_MINUTE } = await import('../lib/rate-limit');
 const { TEMPLATE_CONTENT_MAX_LENGTH } = await import('@temply/shared/plans');
 
 let db: TestDb;
@@ -29,7 +29,6 @@ beforeEach(() => {
   db = createTestDb();
   app = createTestApp(db, emailsRoutes);
   sent.length = 0;
-  resetBurstWindows();
 });
 
 describe('POST /api/v1/emails/preview', () => {
@@ -114,6 +113,15 @@ describe('POST /api/v1/emails/send', () => {
     expect((await post(app, '/api/v1/emails/send', body({ replyTo: '' }), USER)).status).toBe(200);
     expect(sent).toHaveLength(2);
     expect(sent[1].replyTo).toBeUndefined();
+  });
+
+  it('stops a user at twenty test sends an hour, and counts each user apart', async () => {
+    for (let i = 0; i < 20; i++) expect((await post(app, '/api/v1/emails/send', body(), USER)).status).toBe(200);
+    const refused = await post(app, '/api/v1/emails/send', body(), USER);
+    expect(refused.status).toBe(429);
+    expect((await refused.json()).message).toBe('Too many test sends — try again later.');
+    expect(sent).toHaveLength(20);
+    expect((await post(app, '/api/v1/emails/send', body(), 'user_other')).status).toBe(200);
   });
 
   it('bounds the headers a test send can carry', async () => {

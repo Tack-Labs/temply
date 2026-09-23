@@ -2,7 +2,6 @@ import { beforeEach, describe, expect, it } from 'bun:test';
 import { eq } from 'drizzle-orm';
 import { apiKeysTable, orgUsage, mails } from '@temply/shared/schema';
 import { generateApiKey, generateShortCode } from '../lib/codes';
-import { resetBurstWindows } from '../lib/rate-limit';
 import { API_BURST_PER_MINUTE } from '@temply/shared/plans';
 import { createTestApp, createTestDb, get, givePlan, type TestDb } from '../test/helpers';
 import { publicRoutes } from './public';
@@ -15,7 +14,6 @@ const OWNER = 'user_owner';
 beforeEach(() => {
   db = createTestDb();
   app = createTestApp(db, publicRoutes);
-  resetBurstWindows();
 });
 
 async function seedKey(userId: string, { revoked = false, mode = 'live' as 'live' | 'test' } = {}) {

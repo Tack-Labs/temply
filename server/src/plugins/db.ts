@@ -81,6 +81,10 @@ export function initTables(sqlite: Database) {
   sqlite.run(`CREATE TABLE IF NOT EXISTS org_prefs (
     org_id TEXT PRIMARY KEY, default_brand_id TEXT
   )`);
+  sqlite.run(`CREATE TABLE IF NOT EXISTS rate_windows (
+    bucket TEXT NOT NULL, window_start TEXT NOT NULL, count INTEGER NOT NULL DEFAULT 0,
+    PRIMARY KEY (bucket, window_start)
+  )`);
 
   // Draft / published split. Rows from before it exist only as a single copy
   // the API was already serving, so that copy becomes the published one and

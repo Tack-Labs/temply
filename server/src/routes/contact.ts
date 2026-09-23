@@ -27,7 +27,7 @@ export const contactRoutes = new Elysia()
     // The honeypot catches the bots that fill every field; the fuse is for
     // the ones that do not, and for a script — every message is stored and
     // delivered, so a burst is a full table and a full inbox.
-    const fuse = checkPerMinute(`address:${clientAddress(ctx.request, ctx.server)}`, CONTACT_MESSAGES_PER_MINUTE);
+    const fuse = await checkPerMinute(ctx.db, `address:${clientAddress(ctx.request, ctx.server)}`, CONTACT_MESSAGES_PER_MINUTE);
     if (!fuse.allowed) {
       return tooManyRequests(`That is a lot of messages at once. Try again in ${fuse.retryAfterSeconds}s.`, fuse.retryAfterSeconds);
     }
