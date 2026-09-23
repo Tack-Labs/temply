@@ -60,6 +60,8 @@ export function initTables(sqlite: Database) {
     created_at TEXT DEFAULT (datetime('now'))
   )`);
   sqlite.run(`CREATE INDEX IF NOT EXISTS assets_user_id ON assets(user_id)`);
+  // Every integrator call finds its key by hash.
+  sqlite.run(`CREATE INDEX IF NOT EXISTS api_keys_key_hash ON api_keys(key_hash)`);
 
   addColumnIfMissing(sqlite, 'mails', 'theme', 'TEXT');
   addColumnIfMissing(sqlite, 'template_versions', 'theme', 'TEXT');
