@@ -17,6 +17,7 @@ import { cn } from '~/lib/classname';
 import { EMAIL_TRANSFORM, isLibraryUrl, UPLOAD_MIME_TYPES, withTransform } from '~/lib/assets';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/surfaces';
+import { ReadOnlyNotice } from '../dashboard/billing-banner';
 import { AssetPickerDialog } from '../assets/asset-picker-dialog';
 import { DeleteEmailDialog } from '../delete-email-dialog';
 import { EmailEditor } from '../email-editor';
@@ -50,7 +51,7 @@ export function DesktopEditorLayout({
   imageUploads: boolean;
 }) {
   const {
-    template,
+    template, readOnly,
     subject, setSubject, previewText, setPreviewText, fromName, setFromName, to, setTo, replyTo, setReplyTo,
     theme, setTheme, pageStyle, cardStyle,
     setEditor, editorContent, editorPaneRef, paneClass, paneHeight,
@@ -66,6 +67,8 @@ export function DesktopEditorLayout({
 
   return (
     <div className="space-y-6">
+      {readOnly ? <ReadOnlyNotice /> : null}
+
       {/* Toolbar — every control in it acts on a saved template, so on the
           anonymous playground it would render as an empty box. */}
       {template?.id && (
@@ -75,7 +78,7 @@ export function DesktopEditorLayout({
         <div className="flex flex-wrap items-center gap-2">
           <Button
             variant="primary"
-            disabled={isPublishing || (!unpublished && publishedAt !== null && !publishArmed)}
+            disabled={readOnly || isPublishing || (!unpublished && publishedAt !== null && !publishArmed)}
             onClick={handlePublish}
             title={publishedLabel ?? undefined}
           >
@@ -171,7 +174,8 @@ export function DesktopEditorLayout({
   ${typeof window !== 'undefined' ? window.location.origin : ''}/api/public/v1/templates/${template.short_code}/render`}
               </pre>
               <p className="mt-2 text-2xs text-faint">
-                API access is a Pro feature — create a key under API keys first.
+                Create a key under API keys first. Every render counts as a call, so
+                render a broadcast once and cache on the template&apos;s updatedAt.
               </p>
             </PopoverContent>
           </Popover>
@@ -191,6 +195,7 @@ export function DesktopEditorLayout({
             <input
               className={inputClass}
               id="subject"
+              readOnly={readOnly}
               onChange={(e) => setSubject(e.target.value)}
               placeholder="Your email subject"
               value={subject}
@@ -242,6 +247,7 @@ export function DesktopEditorLayout({
           <input
             className={inputClass}
             id="previewText"
+            readOnly={readOnly}
             onChange={(e) => setPreviewText(e.target.value)}
             placeholder="Preview text shown in inbox..."
             value={previewText}
@@ -250,7 +256,12 @@ export function DesktopEditorLayout({
         </div>
       </section>
 
-      <TemplateThemePanel theme={theme} onChange={setTheme} />
+      {/* Subject and preview text are the template's; the rest of Email
+          details only addresses a test send, which a read-only workspace can
+          still make. The brand is all the template's, so all of it locks. */}
+      <fieldset disabled={readOnly} className="m-0 min-w-0 border-0 p-0">
+        <TemplateThemePanel theme={theme} onChange={setTheme} />
+      </fieldset>
 
       {/* Editor — same section/header shape as Email details and Brand */}
       <section className="overflow-hidden rounded-lg border border-line bg-raised">
@@ -350,8 +361,9 @@ export function DesktopEditorLayout({
               allowedMimeTypes={UPLOAD_MIME_TYPES}
               autofocus={autofocus}
               defaultContent={editorContent}
-              onImageUpload={imageUploads ? imageUploader : undefined}
-              onPickImage={imageUploads ? pickFromLibrary : undefined}
+              editable={!readOnly}
+              onImageUpload={imageUploads && !readOnly ? imageUploader : undefined}
+              onPickImage={imageUploads && !readOnly ? pickFromLibrary : undefined}
               isLibraryImage={isLibraryUrl}
               setEditor={setEditor}
             />
@@ -380,7 +392,7 @@ export function DesktopEditorLayout({
         )}
       </section>
 
-      {imageUploads && (
+      {imageUploads && !readOnly && (
         <AssetPickerDialog
           open={pickerOpen}
           onOpenChange={(open) => { if (!open) settlePick(null); }}

@@ -16,6 +16,7 @@ import { ConfirmDialog } from '~/components/ui/confirm-dialog';
 import { PageLoading } from '~/components/ui/page-loading';
 import { EmptyState, ErrorState, PageHeader } from '~/components/ui/surfaces';
 import { assetUsage, toastUploaded, UPLOAD_MIME_TYPES, type Asset } from '~/lib/assets';
+import { PLAN_PAGE, useBilling } from '~/lib/billing';
 import { cn } from '~/lib/classname';
 import { errorMessage } from '~/lib/http';
 import { localId } from '~/lib/id';
@@ -47,6 +48,10 @@ export default function AssetsPage() {
   const limit = list?.limitBytes ?? null;
   const ratio = limit ? used / limit : 0;
   const usage = limit ? `${formatBytes(used)} of ${formatBytes(limit)} used` : `${formatBytes(used)} used`;
+  const { data: billing } = useBilling();
+  // A read-only workspace keeps its images and can delete them, but can't
+  // upload; the dashboard's banner says why.
+  const readOnly = billing?.plan === 'lapsed';
 
   const uploadFiles = useCallback(async (files: FileList | File[] | null) => {
     // A name the library already holds is asked about first; a declined
@@ -79,7 +84,7 @@ export default function AssetsPage() {
     }
   }, [uploadOne, duplicates.check]);
 
-  const dragging = useFileDrop(uploadFiles);
+  const dragging = useFileDrop(uploadFiles, !readOnly);
 
   const askDelete = async (asset: Asset) => {
     setPreview(null);
@@ -134,7 +139,7 @@ export default function AssetsPage() {
               className="hidden"
               onChange={(event) => { void uploadFiles(event.target.files); event.target.value = ''; }}
             />
-            <Button variant="primary" disabled={upload.isPending} onClick={() => fileInput.current?.click()}>
+            <Button variant="primary" disabled={upload.isPending || readOnly} onClick={() => fileInput.current?.click()}>
               {upload.isPending ? <Loader2Icon className="animate-spin" /> : <UploadIcon />}
               Upload
             </Button>
@@ -142,12 +147,18 @@ export default function AssetsPage() {
         }
       />
 
-      {limit && ratio >= 0.8 ? (
+      {/* Only a trial has more storage to move to; on Team the room is made
+          by deleting. */}
+      {limit && ratio >= 0.8 && !readOnly ? (
         <p className={cn('text-sm', ratio >= 1 ? 'text-danger-ink' : 'text-warn-ink')}>
           {ratio >= 1 ? 'Storage is full.' : 'Storage is almost full.'}{' '}
-          <Link href="/dashboard/settings/plan" className="underline underline-offset-2">
-            Delete images or upgrade
-          </Link>
+          {billing?.plan === 'trial' ? (
+            <Link href={PLAN_PAGE} className="underline underline-offset-2">
+              Delete images, or subscribe for 1 GB
+            </Link>
+          ) : (
+            'Delete images you no longer use.'
+          )}
         </p>
       ) : null}
 
@@ -176,7 +187,7 @@ export default function AssetsPage() {
           icon={ImageIcon}
           title={search ? 'No images match' : 'No images yet'}
           description={search ? 'Try a different file name.' : 'Upload one to reuse it across templates, or drop images anywhere on this page'}
-          action={search ? undefined : <Button variant="primary" onClick={() => fileInput.current?.click()}>Upload</Button>}
+          action={search ? undefined : <Button variant="primary" disabled={readOnly} onClick={() => fileInput.current?.click()}>Upload</Button>}
         />
       ) : (
         <AssetGrid

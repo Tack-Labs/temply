@@ -8,7 +8,7 @@ import { EMPTY_DOC } from '../fixtures/api';
 import { WORKSPACES_FILE } from '../fixtures/workspaces';
 import { activateWorkspace } from '../fixtures/session';
 import { ensureFirstWorkspace, ensureSecondUser } from './clerk';
-import { upgradeTo } from './plan';
+import { subscribe } from './plan';
 import { STORAGE_STATE } from './storage-state';
 
 /** What one attempt at the sign-in is allowed, well under the setup's own
@@ -88,13 +88,14 @@ setup('sign in as the e2e user', async ({ page: firstPage, browser }) => {
   const first = await ensureFirstWorkspace();
   await activateWorkspace(page, first.orgId);
 
-  // A fresh database puts the workspace on the Free plan: two templates,
-  // one brand, one live key. Every spec seeds its own and the two browser
-  // projects run at once, so the run takes the plan with no ceilings — the
-  // checkout route only sells Pro, and the forged webhook names Enterprise.
-  // The plan is read back so a silent failure of the upgrade fails the run
+  // A fresh database puts the workspace on a trial: ten templates, five
+  // brands, five API keys, 10,000 live calls. Every spec seeds its own and
+  // the two browser projects run at once, so the run takes the plan with no
+  // ceilings — the checkout route only sells Team, and the subscription
+  // made in the fake Stripe carries the metadata that names Enterprise.
+  // The plan is read back so a silent failure of the checkout fails the run
   // here rather than as a 402 inside some unrelated spec.
-  const session = await upgradeTo(page.request, fakes, 'enterprise');
+  const { session } = await subscribe(page.request, fakes, { plan: 'enterprise' });
   expect(session.orgId, 'the checkout was scoped to the first workspace').toBe(first.orgId);
   const quota = await page.request.get('/api/v1/quota');
   expect(quota.ok(), 'the quota endpoint answers').toBeTruthy();

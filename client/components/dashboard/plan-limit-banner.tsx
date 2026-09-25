@@ -5,14 +5,17 @@ import { Button } from '~/components/ui/button';
 /**
  * Shown when a plan limit is reached, above the list it caps. States the limit
  * and offers the way out, so the wall arrives before the click rather than as
- * an error after it.
+ * an error after it. Some limits can't be bought past — keys and brands are
+ * five on every plan — and there the way out is in the detail, not a button.
  */
 export function PlanLimitBanner({
   title,
   detail,
+  action,
 }: {
   title: string;
   detail: string;
+  action?: { label: string; href: string } | null;
 }) {
   return (
     <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-accent-wash bg-accent-wash/40 px-3.5 py-3 shadow-sm">
@@ -23,12 +26,14 @@ export function PlanLimitBanner({
           <p className="mt-0.5 text-sm text-muted">{detail}</p>
         </div>
       </div>
-      <Button variant="primary" asChild>
-        <Link href="/dashboard/settings/plan">
-          Upgrade
-          <ArrowUpRightIcon />
-        </Link>
-      </Button>
+      {action ? (
+        <Button variant="primary" asChild>
+          <Link href={action.href}>
+            {action.label}
+            <ArrowUpRightIcon />
+          </Link>
+        </Button>
+      ) : null}
     </div>
   );
 }

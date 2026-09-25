@@ -25,6 +25,7 @@ import { BrandEditor } from '~/components/brand/brand-editor';
 import { BrandPreview } from '~/components/brand/brand-preview';
 import { useMinimumDisplay } from '~/hooks/use-minimum-display';
 import { brandsQueryOptions, type Brand } from '~/lib/brands';
+import { useBilling } from '~/lib/billing';
 
 /** The three colours that read a brand at a glance: page, button, link. */
 function Swatches({ theme }: { theme: RendererThemeOptions }) {
@@ -66,6 +67,7 @@ export default function BrandsPage() {
   };
 
   const { data, isLoading, isError, refetch } = useQuery(brandsQueryOptions());
+  const { data: billing } = useBilling();
   const showLoading = useMinimumDisplay(isLoading);
 
   const invalidate = () => queryClient.invalidateQueries({ queryKey: ['brands'] });
@@ -141,6 +143,9 @@ export default function BrandsPage() {
   const limit = data?.limit ?? null;
   const defaultBrandId = data?.defaultBrandId ?? null;
   const atLimit = limit !== null && brands.length >= limit;
+  // A read-only workspace keeps its brands and can delete them, but can't
+  // save or change one; the dashboard's banner says why.
+  const readOnly = billing?.plan === 'lapsed';
   const isSaving = isCreating || isUpdating;
 
   return (
@@ -149,17 +154,19 @@ export default function BrandsPage() {
         title="Brands"
         description="Reusable looks you apply to templates."
         actions={
-          <Button variant="primary" disabled={atLimit} onClick={openCreate}>
+          <Button variant="primary" disabled={atLimit || readOnly} onClick={openCreate}>
             <PlusIcon />
             New brand
           </Button>
         }
       />
 
-      {atLimit ? (
+      {/* Brands are capped the same on every plan short of Enterprise, so
+          the way out is freeing a slot, not a button to the plan page. */}
+      {atLimit && !readOnly ? (
         <PlanLimitBanner
-          title={`You've used all ${limit} custom brand${limit === 1 ? '' : 's'} on your plan.`}
-          detail="Upgrade to save more."
+          title={`You've saved all ${limit} brand${limit === 1 ? '' : 's'}.`}
+          detail="Delete one you no longer use to save another."
         />
       ) : null}
 
@@ -176,7 +183,7 @@ export default function BrandsPage() {
             title="No custom brands yet"
             description="Save a look — from a preset or your own colours — to reuse it across templates."
             action={
-              <Button onClick={openCreate} disabled={atLimit}>
+              <Button onClick={openCreate} disabled={atLimit || readOnly}>
                 New brand
               </Button>
             }
@@ -200,6 +207,7 @@ export default function BrandsPage() {
                         size="icon-sm"
                         title="Edit"
                         aria-label={`Edit ${brand.name}`}
+                        disabled={readOnly}
                         onClick={() => openEdit(brand)}
                       >
                         <PencilIcon />
@@ -218,7 +226,7 @@ export default function BrandsPage() {
                         </Button>
                       </ConfirmDialog>
                       {!isDefault ? (
-                        <Button variant="ghost" size="sm" onClick={() => setDefaultBrand(brand.id)}>
+                        <Button variant="ghost" size="sm" disabled={readOnly} onClick={() => setDefaultBrand(brand.id)}>
                           Set as default
                         </Button>
                       ) : null}
@@ -255,7 +263,7 @@ export default function BrandsPage() {
                 }
                 actions={
                   !isDefault ? (
-                    <Button variant="ghost" size="sm" onClick={() => setDefaultBrand(p.id)}>
+                    <Button variant="ghost" size="sm" disabled={readOnly} onClick={() => setDefaultBrand(p.id)}>
                       Set as default
                     </Button>
                   ) : null

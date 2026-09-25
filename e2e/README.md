@@ -1,10 +1,13 @@
 # e2e
 
-Playwright, against a stack Playwright starts itself: a fakes server (Lemon
-Squeezy, ImageKit, Resend), the API on a fresh SQLite, and the built client.
-The stack takes its own ports (client 9101, API 3101, fakes 3999) and
-builds the client into `client/.next-e2e` rather than `.next`, so a dev
-checkout on 9000/3001 is left alone, including the build it serves from.
+Playwright, against a stack Playwright starts itself: a fakes server
+(Stripe, ImageKit, Resend), the API on a fresh SQLite, and the built client.
+The stack takes its own ports (client 9101, API 3101, fakes 3999, and 3998
+for Stripe, whose SDK takes a host and port but no base path) and builds
+the client into `client/.next-e2e` rather than `.next`, so a dev checkout
+on 9000/3001 is left alone, including the build it serves from. Stripe's
+keys and price ids are fixed in `env.ts`, never read from `.env`, so a real
+key can never reach the stack.
 
 ## Run
 
@@ -31,9 +34,10 @@ other, since it writes memberships and roles through Clerk's backend API.
 Setup signs in the first user, makes their own "e2e first workspace" the
 active one (created through Clerk's backend API on the first run, and never
 whichever workspace Clerk last remembered for them), and puts it on
-Enterprise through the app's checkout and a forged `subscription_created`
-for the Enterprise variant — every spec seeds into it and both browser
-projects run at once, so it needs the plan with no ceilings. The second
+Enterprise through the app's checkout, a subscription in the fake Stripe
+whose metadata names Enterprise, and a signed
+`customer.subscription.created` — every spec seeds into it and both
+browser projects run at once, so it needs the plan with no ceilings. The second
 user is a member of that workspace and the admin of "e2e second
 workspace"; setup makes both once and never removes them, since Clerk keeps
 them across runs and the app's database does not, and it puts a role back
@@ -44,6 +48,15 @@ user into either workspace in a context of its own.
 `billing.e2e.ts` and `brands-default.e2e.ts` run on desktop only, and
 serially, because they move workspace-wide state: a plan change or a new
 default brand would be seen by every test running beside them.
+
+A plan moves the way a paying customer moves it, with `setup/plan.ts`
+playing Stripe's side: the app opens a real checkout against the fake,
+`completeCheckout` makes the subscription that checkout would and delivers
+`customer.subscription.created`, and `updateSubscription`,
+`cancelSubscription` and `endSubscription` change it and deliver
+`customer.subscription.updated` or `.deleted`. Each webhook is signed with
+the stack's secret and goes through the Next proxy, and the app reads the
+subscription back from the fake, as it would from Stripe.
 
 The stack inherits the shell environment plus `server/.env` and
 `client/.env` (Bun and Next load them from their working directories);

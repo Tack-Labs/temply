@@ -4,28 +4,27 @@
  *   bun run dev:public              # new cloudflared quick tunnel, then `bun run dev`
  *   bun run dev:public --url <url>  # reuse an address (a tunnel already up, or a named one)
  *   bun run dev:public --no-dev     # configure only; the dev servers are already running
- *   bun run dev:public --keep-webhooks  # leave the Lemon Squeezy and Clerk endpoints where they are
+ *   bun run dev:public --keep-webhooks  # leave the Stripe and Clerk endpoints where they are
  *
  * A quick tunnel's address is random and changes every time, and three
  * things have to follow it: NEXT_PUBLIC_APP_URL in both env files (every
- * printed URL and the dev-origin allow-list derive from it), the Lemon
- * Squeezy webhook (re-pointed here through the API), and the Clerk
+ * printed URL and the dev-origin allow-list derive from it), the Stripe
+ * webhook endpoint (re-pointed here through the API), and the Clerk
  * endpoint, which only the dashboard can change — the URL to paste is
  * printed. The dev servers start after the envs are written, since neither
  * re-reads .env while running. Ctrl+C stops everything.
  *
  * --keep-webhooks is for a tunnel that only exists to look at the work from
  * a phone while the webhooks belong to the Railway deployment: the envs
- * still follow the tunnel, but Lemon Squeezy is not touched and nothing
+ * still follow the tunnel, but Stripe is not touched and nothing
  * asks for the Clerk endpoint to move.
  */
 import { spawn, type ChildProcess } from 'node:child_process';
-import { randomBytes } from 'node:crypto';
 import { readFileSync, writeFileSync } from 'node:fs';
 
 const ENV_FILES = ['client/.env', 'server/.env'];
-const LEMONSQUEEZY_API = 'https://api.lemonsqueezy.com/v1';
-const LEMONSQUEEZY_EVENTS = ['subscription_created', 'subscription_updated', 'subscription_expired'];
+const STRIPE_API = 'https://api.stripe.com/v1';
+const STRIPE_EVENTS = ['customer.subscription.created', 'customer.subscription.updated', 'customer.subscription.deleted'];
 
 const noDev = process.argv.includes('--no-dev');
 const keepWebhooks = process.argv.includes('--keep-webhooks');
@@ -74,43 +73,42 @@ function startTunnel(): Promise<string> {
 }
 
 /**
- * Lemon Squeezy never hands a webhook's secret back. A webhook that exists
- * keeps its secret, which server/.env must already hold: the staging stack
- * can share the store's test mode, and moving the URL back must be all it
- * takes to restore it. A new webhook, or a server/.env with no secret at
- * all, gets a fresh one, written there once the webhook has it.
+ * Stripe returns an endpoint's signing secret only in the reply that creates
+ * it. Re-pointing the endpoint that exists keeps that secret, so the one in
+ * server/.env stays valid; a new endpoint's secret is written there straight
+ * from the reply, since there is no second chance to read it through the API.
  */
-async function repointLemonSqueezy(url: string) {
-  const key = readEnv('server/.env', 'LEMONSQUEEZY_API_KEY');
-  const store = readEnv('server/.env', 'LEMONSQUEEZY_STORE_ID');
-  if (!key || !store) { console.log('Lemon Squeezy: LEMONSQUEEZY_API_KEY or LEMONSQUEEZY_STORE_ID not set, skipping'); return; }
-  const headers = { Accept: 'application/vnd.api+json', 'Content-Type': 'application/vnd.api+json', Authorization: `Bearer ${key}` };
-  const target = `${url}/api/webhooks/lemonsqueezy`;
-  type Reply = { data?: unknown; errors?: Array<{ detail?: string; title?: string }> };
-  const why = (res: Response, body: Reply) => body.errors?.[0]?.detail ?? body.errors?.[0]?.title ?? `HTTP ${res.status}`;
+async function repointStripe(url: string) {
+  const key = readEnv('server/.env', 'STRIPE_SECRET_KEY');
+  if (!key) { console.log('Stripe: STRIPE_SECRET_KEY not set, skipping'); return; }
+  const headers = { Authorization: `Bearer ${key}`, 'Content-Type': 'application/x-www-form-urlencoded' };
+  const target = `${url}/api/webhooks/stripe`;
+  type Reply = { error?: { message?: string } };
+  const why = (res: Response, body: Reply) => body.error?.message ?? `HTTP ${res.status}`;
 
-  // A failed listing must not read as "no webhook yet": creating one then
-  // would leave the store posting every event twice.
-  const listRes = await fetch(`${LEMONSQUEEZY_API}/webhooks?filter[store_id]=${encodeURIComponent(store)}&page[size]=100`, { headers });
-  const list = (await listRes.json().catch(() => ({}))) as Reply & { data?: Array<{ id: string; attributes: { url: string } }> };
-  if (!listRes.ok || !list.data) { console.log(`Lemon Squeezy: could not list webhooks — ${why(listRes, list)}`); return; }
-  const ours = list.data.find((w) => w.attributes.url.endsWith('/api/webhooks/lemonsqueezy'));
+  // A failed listing must not read as "no endpoint yet": creating one then
+  // would leave Stripe posting every event twice.
+  const listRes = await fetch(`${STRIPE_API}/webhook_endpoints?limit=100`, { headers });
+  const list = (await listRes.json().catch(() => ({}))) as Reply & { data?: Array<{ id: string; url: string }> };
+  if (!listRes.ok || !list.data) { console.log(`Stripe: could not list webhook endpoints — ${why(listRes, list)}`); return; }
+  const ours = list.data.find((endpoint) => endpoint.url.endsWith('/api/webhooks/stripe'));
 
-  const existing = readEnv('server/.env', 'LEMONSQUEEZY_WEBHOOK_SECRET');
-  const secret = ours && existing ? undefined : existing ?? randomBytes(16).toString('hex');
-  const attributes = { url: target, events: LEMONSQUEEZY_EVENTS, ...(secret ? { secret } : {}) };
-  const data = ours
-    ? { type: 'webhooks', id: ours.id, attributes }
-    : { type: 'webhooks', attributes, relationships: { store: { data: { type: 'stores', id: store } } } };
-  const res = await fetch(ours ? `${LEMONSQUEEZY_API}/webhooks/${ours.id}` : `${LEMONSQUEEZY_API}/webhooks`, {
-    method: ours ? 'PATCH' : 'POST',
+  const body = new URLSearchParams({ url: target });
+  for (const event of STRIPE_EVENTS) body.append('enabled_events[]', event);
+  const res = await fetch(ours ? `${STRIPE_API}/webhook_endpoints/${ours.id}` : `${STRIPE_API}/webhook_endpoints`, {
+    method: 'POST',
     headers,
-    body: JSON.stringify({ data }),
+    body,
   });
-  const saved = (await res.json().catch(() => ({}))) as Reply & { data?: { id: string } };
-  if (!res.ok || !saved.data) { console.log(`Lemon Squeezy: could not ${ours ? 'update' : 'create'} the webhook — ${why(res, saved)}`); return; }
-  console.log(`Lemon Squeezy: webhook ${saved.data.id} → ${target}`);
-  if (secret && !existing) { writeEnv('server/.env', 'LEMONSQUEEZY_WEBHOOK_SECRET', secret); console.log('Lemon Squeezy: new signing secret written to server/.env'); }
+  const saved = (await res.json().catch(() => ({}))) as Reply & { id?: string; secret?: string };
+  if (!res.ok || !saved.id) { console.log(`Stripe: could not ${ours ? 'update' : 'create'} the webhook endpoint — ${why(res, saved)}`); return; }
+  console.log(`Stripe: webhook endpoint ${saved.id} → ${target}`);
+  if (saved.secret) {
+    writeEnv('server/.env', 'STRIPE_WEBHOOK_SECRET', saved.secret);
+    console.log('Stripe: new signing secret written to server/.env');
+  } else if (!readEnv('server/.env', 'STRIPE_WEBHOOK_SECRET')) {
+    console.log(`Stripe: server/.env has no STRIPE_WEBHOOK_SECRET. Copy the signing secret of ${saved.id} from the Stripe dashboard (Developers → Webhooks).`);
+  }
 }
 
 const url = argUrl ?? (await startTunnel());
@@ -122,7 +120,7 @@ console.log(`NEXT_PUBLIC_APP_URL written to ${ENV_FILES.join(' and ')}`);
 if (keepWebhooks) {
   console.log('Webhooks left alone (--keep-webhooks): billing and account events keep going to wherever they point now.\n');
 } else {
-  await repointLemonSqueezy(url);
+  await repointStripe(url);
   console.log(`Clerk: set the endpoint in the dashboard to ${url}/api/webhooks/clerk (it cannot be changed through the API)\n`);
 }
 

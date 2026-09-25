@@ -51,7 +51,7 @@ describe('one organization, two people', () => {
     expect(key.status).toBe(403);
     expect((await key.json()).code).toBe('admin-only');
     expect((await del(app, '/api/v1/api-keys/some-id', BOB, inAcme('member'))).status).toBe(403);
-    expect((await post(app, '/api/v1/billing/checkout', { plan: 'pro' }, BOB, inAcme('member'))).status).toBe(403);
+    expect((await post(app, '/api/v1/billing/checkout', {}, BOB, inAcme('member'))).status).toBe(403);
     expect((await post(app, '/api/v1/billing/portal', {}, BOB, inAcme('member'))).status).toBe(403);
 
     expect((await post(app, '/api/v1/api-keys', { name: 'Staging', mode: 'test' }, ALICE, inAcme())).status).toBe(200);
@@ -72,7 +72,7 @@ describe('POST /api/v1/workspace/adopt', () => {
     const { prefix, hash } = generateApiKey();
     await db.insert(apiKeysTable).values({ id: 'legacy-key', user_id: userId, name: 'Old key', key_prefix: prefix, key_hash: hash });
     await db.insert(brands).values({ id: 'legacy-brand', user_id: userId, name: 'Old brand', theme: '{}' });
-    await db.insert(subscriptions).values({ id: 'legacy-sub', user_id: userId, plan: 'pro', status: 'active' });
+    await db.insert(subscriptions).values({ id: 'legacy-sub', user_id: userId, plan: 'team', status: 'active' });
     await db.insert(apiUsage).values({ user_id: userId, period: '2026-09', count: 7 });
     await db.insert(userPrefs).values({ user_id: userId, default_brand_id: 'legacy-brand' });
   }
@@ -121,7 +121,7 @@ describe('a key from before organizations', () => {
   it('still renders its owner’s legacy templates until adoption', async () => {
     const { fullKey, prefix, hash } = generateApiKey();
     await db.insert(apiKeysTable).values({ id: 'legacy-key', user_id: ALICE, name: 'Production', key_prefix: prefix, key_hash: hash });
-    await db.insert(subscriptions).values({ id: 'legacy-sub', user_id: ALICE, plan: 'pro', status: 'active' });
+    await db.insert(subscriptions).values({ id: 'legacy-sub', user_id: ALICE, plan: 'team', status: 'active' });
     const shortCode = generateShortCode();
     const stamp = '2026-01-01T00:00:00.000Z';
     await db.insert(mails).values({ id: 'legacy-mail', user_id: ALICE, title: 'Old', content: '{"type":"doc"}', short_code: shortCode, updated_at: stamp, published_content: '{"type":"doc"}', published_at: stamp });

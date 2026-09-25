@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it } from 'bun:test';
 import { eq } from 'drizzle-orm';
 import { apiKeysTable } from '@temply/shared/schema';
 import { hashApiKey } from '../lib/codes';
-import { createTestApp, createTestDb, del, get, givePlan, post, type TestDb } from '../test/helpers';
+import { createTestApp, createTestDb, del, get, givePlan, lapse, post, type TestDb } from '../test/helpers';
 import { apiKeysRoutes } from './api-keys';
 
 let db: TestDb;
@@ -34,14 +34,22 @@ describe('authentication', () => {
 });
 
 describe('POST /api/v1/api-keys', () => {
-  it('lets a free user create one key, then blocks the second', async () => {
-    expect((await createKey(OWNER)).status).toBe(200);
-    const { status } = await createKey(OWNER, 'Second');
+  it('gives a trial the same five live keys as Team, and says so at the sixth', async () => {
+    for (let i = 0; i < 5; i++) expect((await createKey(OWNER, `Key ${i}`)).status).toBe(200);
+    const { status, body } = await createKey(OWNER, 'Sixth');
     expect(status).toBe(402);
+    expect(body.message).toBe('You can have 5 live API keys. Revoke one you no longer use to make another.');
+  });
+
+  it('makes no key for a read-only workspace, but still revokes one', async () => {
+    const { body } = await createKey(OWNER);
+    await lapse(db, OWNER);
+    expect((await createKey(OWNER, 'Second')).status).toBe(402);
+    expect((await del(app, `/api/v1/api-keys/${body.key.id}`, OWNER)).status).toBe(200);
   });
 
   it('returns the full key exactly once and stores only its hash', async () => {
-    await givePlan(db, OWNER, 'pro');
+    await givePlan(db, OWNER, 'team');
     const { body } = await createKey(OWNER);
 
     expect(body.key.full_key).toMatch(/^tply_live_[0-9A-Za-z]{32}$/);
@@ -54,14 +62,15 @@ describe('POST /api/v1/api-keys', () => {
 
   it('a revoked key gives its slot back', async () => {
     const { body } = await createKey(OWNER);
-    expect((await createKey(OWNER, 'Second')).status).toBe(402);
+    for (let i = 1; i < 5; i++) await createKey(OWNER, `Key ${i}`);
+    expect((await createKey(OWNER, 'Sixth')).status).toBe(402);
 
     await del(app, `/api/v1/api-keys/${body.key.id}`, OWNER);
 
-    expect((await createKey(OWNER, 'Second')).status).toBe(200);
+    expect((await createKey(OWNER, 'Sixth')).status).toBe(200);
   });
 
-  it('mints a test key on the free plan, outside the live-key cap', async () => {
+  it('mints a test key on a trial, outside the live-key cap', async () => {
     const res = await post(app, '/api/v1/api-keys', { name: 'Staging', mode: 'test' }, OWNER);
     expect(res.status).toBe(200);
     const { key } = await res.json();
@@ -69,7 +78,7 @@ describe('POST /api/v1/api-keys', () => {
     expect(key.key_prefix).toBe(key.full_key.slice(0, 14));
     expect(key.mode).toBe('test');
 
-    // The live cap is untouched: a free user still gets their one live key.
+    // The live cap is untouched.
     expect((await createKey(OWNER)).status).toBe(200);
   });
 
@@ -80,13 +89,13 @@ describe('POST /api/v1/api-keys', () => {
   });
 
   it('rejects an empty name', async () => {
-    await givePlan(db, OWNER, 'pro');
+    await givePlan(db, OWNER, 'team');
     const res = await post(app, '/api/v1/api-keys', { name: '' }, OWNER);
     expect(res.status).toBe(400);
   });
 
-  it('stops a pro user after 5 keys', async () => {
-    await givePlan(db, OWNER, 'pro');
+  it('stops Team after 5 live keys', async () => {
+    await givePlan(db, OWNER, 'team');
     for (let i = 0; i < 5; i++) expect((await createKey(OWNER, `Key ${i}`)).status).toBe(200);
 
     const { status, body } = await createKey(OWNER, 'Sixth');
@@ -97,7 +106,7 @@ describe('POST /api/v1/api-keys', () => {
 
 describe('GET /api/v1/api-keys', () => {
   it('never returns the hash or the full key', async () => {
-    await givePlan(db, OWNER, 'pro');
+    await givePlan(db, OWNER, 'team');
     const { body: created } = await createKey(OWNER);
 
     const { keys } = await (await get(app, '/api/v1/api-keys', OWNER)).json();
@@ -107,8 +116,8 @@ describe('GET /api/v1/api-keys', () => {
   });
 
   it('lists only the caller’s keys', async () => {
-    await givePlan(db, OWNER, 'pro');
-    await givePlan(db, OTHER, 'pro');
+    await givePlan(db, OWNER, 'team');
+    await givePlan(db, OTHER, 'team');
     await createKey(OWNER, 'Mine');
     await createKey(OTHER, 'Theirs');
 
@@ -120,7 +129,7 @@ describe('GET /api/v1/api-keys', () => {
 
 describe('DELETE /api/v1/api-keys/:id', () => {
   it('revokes the key rather than deleting the row', async () => {
-    await givePlan(db, OWNER, 'pro');
+    await givePlan(db, OWNER, 'team');
     const { body } = await createKey(OWNER);
 
     await del(app, `/api/v1/api-keys/${body.key.id}`, OWNER);
@@ -130,7 +139,7 @@ describe('DELETE /api/v1/api-keys/:id', () => {
   });
 
   it('will not revoke another user’s key', async () => {
-    await givePlan(db, OWNER, 'pro');
+    await givePlan(db, OWNER, 'team');
     const { body } = await createKey(OWNER);
 
     await del(app, `/api/v1/api-keys/${body.key.id}`, OTHER);

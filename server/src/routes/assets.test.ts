@@ -45,7 +45,7 @@ mock.module('imagekit', () => ({
 }));
 
 const { assetsRoutes } = await import('./assets');
-const { createTestApp, createTestDb, del, get, givePlan, postForm } = await import('../test/helpers');
+const { createTestApp, createTestDb, del, get, givePlan, lapse, postForm } = await import('../test/helpers');
 
 let db: TestDb;
 let app: any;
@@ -149,11 +149,17 @@ describe('POST /api/v1/assets', () => {
   it('402 when the plan quota would be crossed, with the formatted numbers', async () => {
     await db.insert(assets).values({
       id: 'seed', user_id: OWNER, org_id: OWNER, imagekit_file_id: 'f0', url: 'https://ik.imagekit.io/test/x.png',
-      name: 'x.png', mime: 'image/png', bytes: 49 * 1024 * 1024,
+      name: 'x.png', mime: 'image/png', bytes: 99 * 1024 * 1024,
     });
     const res = await upload(OWNER, 2 * 1024 * 1024);
     expect(res.status).toBe(402);
-    expect((await res.json()).message).toBe('Storage is full — 49 MB of 50 MB used. Delete images in your library or upgrade.');
+    expect((await res.json()).message).toBe('Storage is full — 99 MB of 100 MB used. Delete images in your library, or subscribe for 1 GB.');
+    expect(ik.uploads).toHaveLength(0);
+  });
+
+  it('uploads nothing for a read-only workspace', async () => {
+    await lapse(db, OWNER);
+    expect((await upload(OWNER)).status).toBe(402);
     expect(ik.uploads).toHaveLength(0);
   });
 
@@ -182,7 +188,7 @@ describe('GET /api/v1/assets', () => {
     const body = await (await get(app, '/api/v1/assets', OWNER)).json();
     expect(body.assets.map((a: { name: string }) => a.name)).toEqual(['second.png', 'first.png']);
     expect(body.usedBytes).toBe(300);
-    expect(body.limitBytes).toBe(50 * 1024 * 1024);
+    expect(body.limitBytes).toBe(100 * 1024 * 1024);
   });
 
   it('reports null (unlimited) for enterprise', async () => {

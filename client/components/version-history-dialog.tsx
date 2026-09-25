@@ -7,6 +7,7 @@ import { List, Row } from '~/components/ui/item';
 import { useMemo, useState } from 'react';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { httpGet, httpPost } from '~/lib/http';
+import { useBilling } from '~/lib/billing';
 import { Button } from '~/components/ui/button';
 import { ErrorState } from '~/components/ui/surfaces';
 import { storedDocument } from '~/core/editor/utils/replace-deprecated';
@@ -56,6 +57,12 @@ export function VersionHistoryDialog({
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [previewVersion, setPreviewVersion] = useState<VersionDetail | null>(null);
+  // How many versions are kept depends on the plan — more with a template
+  // pack, more again on Enterprise — and a read-only workspace can look back
+  // through them but not restore one or drop its draft.
+  const { data: billing } = useBilling();
+  const kept = billing?.limits.maxVersions ?? null;
+  const readOnly = billing?.plan === 'lapsed';
 
   const { data, isLoading } = useQuery({
     queryKey: ['versions', templateId],
@@ -135,7 +142,8 @@ export function VersionHistoryDialog({
         <DialogHeader>
           <DialogTitle>Version history</DialogTitle>
           <DialogDescription>
-            Every publish is a version; restoring one puts it in your draft. Only the last 10 are kept.
+            Every publish is a version; restoring one puts it in your draft.
+            {kept !== null ? ` Only the last ${kept} are kept.` : null}
           </DialogDescription>
         </DialogHeader>
 
@@ -153,7 +161,7 @@ export function VersionHistoryDialog({
               confirmLabel="Discard"
               onConfirm={() => discardDraft()}
             >
-              <Button variant="danger-quiet" size="sm" disabled={isDiscarding}>
+              <Button variant="danger-quiet" size="sm" disabled={isDiscarding || readOnly}>
                 {isDiscarding ? <Loader2Icon className="animate-spin" /> : <Undo2Icon />}
                 Discard changes
               </Button>
@@ -188,7 +196,7 @@ export function VersionHistoryDialog({
               <Button
                 variant="primary"
                 onClick={() => restoreVersion(previewVersion.id)}
-                disabled={isRestoring || previewJson === null}
+                disabled={isRestoring || previewJson === null || readOnly}
               >
                 {isRestoring ? <Loader2Icon className="animate-spin" /> : <RotateCcwIcon />}
                 Restore this version
@@ -219,7 +227,7 @@ export function VersionHistoryDialog({
                     variant="ghost"
                     size="sm"
                     onClick={() => restoreVersion(version.id)}
-                    disabled={isRestoring}
+                    disabled={isRestoring || readOnly}
                     className="text-accent-ink hover:bg-accent-wash hover:text-accent-ink"
                   >
                     <RotateCcwIcon />

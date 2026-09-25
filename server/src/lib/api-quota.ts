@@ -1,8 +1,8 @@
 import { and, eq, sql } from 'drizzle-orm';
 import { orgUsage } from '@temply/shared/schema';
 import type { Db } from '../plugins/db';
-import { PLAN_LIMITS, TEST_API_CALLS_PER_MONTH } from '@temply/shared/plans';
-import { getPlan } from './billing';
+import { PRICES_USD, TEST_API_CALLS_PER_MONTH } from '@temply/shared/plans';
+import { getPlan, limitsForAccount, type Account } from './billing';
 import type { ApiKeyMode } from './codes';
 
 /**
@@ -31,6 +31,23 @@ export function ukMonthString(now: Date = new Date()): string {
   return `${y}-${m}`;
 }
 
+/** "YYYY-MM" for the month before one. */
+export function previousMonth(period: string): string {
+  const [y, m] = period.split('-').map(Number);
+  return m === 1 ? `${y - 1}-12` : `${y}-${String(m - 1).padStart(2, '0')}`;
+}
+
+/**
+ * The instant a London month starts, in UTC. Clocks never change on the
+ * 1st, so it is midnight UTC in winter and an hour before in summer.
+ */
+export function londonMonthStart(period: string): Date {
+  const [y, m] = period.split('-').map(Number);
+  const midnightUtc = Date.UTC(y, m - 1, 1);
+  const summer = midnightUtc - 3_600_000;
+  return new Date(ukMonthString(new Date(summer)) === period ? summer : midnightUtc);
+}
+
 /** ISO date ("YYYY-MM-DD") of the 1st of next London month. */
 export function nextResetDate(now: Date = new Date()): string {
   const [y, m] = londonParts(now).map(Number);
@@ -54,6 +71,8 @@ export async function checkApiQuota(
   orgId: string,
   now: Date = new Date(),
   mode: ApiKeyMode = 'live',
+  /** The workspace's account, when the caller has already read it. */
+  account?: Account,
 ): Promise<{ allowed: boolean; message?: string; used: number; limit: number; remaining: number }> {
   const used = await getApiUsage(db, orgId, now, mode);
   if (mode === 'test') {
@@ -70,8 +89,9 @@ export async function checkApiQuota(
     }
     return { allowed: true, used, limit, remaining };
   }
-  const { plan } = await getPlan(db, orgId);
-  const limit = PLAN_LIMITS[plan].maxApiCalls;
+  // Only a trial caps live calls: a paid plan serves the rest and bills
+  // them, and a lapsed one is refused before the quota is asked.
+  const limit = limitsForAccount(account ?? (await getPlan(db, orgId))).maxApiCalls;
   if (!Number.isFinite(limit)) return { allowed: true, used, limit, remaining: Infinity };
   const remaining = Math.max(0, limit - used);
   if (used >= limit) {
@@ -80,7 +100,7 @@ export async function checkApiQuota(
       used,
       limit,
       remaining,
-      message: `Monthly API limit reached — ${limit} calls on the ${plan} plan. Upgrade for more.`,
+      message: `This month's ${limit.toLocaleString('en-US')} trial calls are used. Subscribe to keep serving: calls past them cost $${PRICES_USD.overagePer1000Calls} per 1,000.`,
     };
   }
   return { allowed: true, used, limit, remaining };

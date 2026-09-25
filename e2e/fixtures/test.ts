@@ -1,7 +1,7 @@
 import { test as base, expect } from '@playwright/test';
 import { RUN_ID } from '../env';
 import { fakes } from '../fakes/client';
-import type { Recorded } from '../fakes/index';
+import type { Recorded, Service } from '../fakes/index';
 import { makeApi } from './api';
 import { refreshSession } from './session';
 import { emulateCoarsePointer } from './phone';
@@ -13,8 +13,10 @@ type Fixtures = {
   /** What this test may ask of the fakes: `requests` is scoped to the test,
    *  and `reset` is left off on purpose (see the fixture). */
   fakes: {
-    requests: (service: 'lemonsqueezy' | 'imagekit' | 'resend') => Promise<Recorded[]>;
-    signLemonSqueezyEvent: typeof fakes.signLemonSqueezyEvent;
+    requests: (service: Service) => Promise<Recorded[]>;
+    signStripeEvent: typeof fakes.signStripeEvent;
+    stripeSubscription: typeof fakes.stripeSubscription;
+    putStripeSubscription: typeof fakes.putStripeSubscription;
   };
   api: ReturnType<typeof makeApi>;
 };
@@ -70,7 +72,12 @@ export const test = base.extend<Fixtures>({
   // biome-ignore lint/correctness/noEmptyPattern: as above
   fakes: async ({}, use) => {
     const startedAt = Date.now();
-    await use({ requests: (service) => fakes.requests(service, startedAt), signLemonSqueezyEvent: fakes.signLemonSqueezyEvent });
+    await use({
+      requests: (service) => fakes.requests(service, startedAt),
+      signStripeEvent: fakes.signStripeEvent,
+      stripeSubscription: fakes.stripeSubscription,
+      putStripeSubscription: fakes.putStripeSubscription,
+    });
   },
   // Seeding goes through the page's own cookie jar rather than the
   // standalone `request` fixture, which starts from the stored session and

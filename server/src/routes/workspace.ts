@@ -3,6 +3,7 @@ import { and, count, eq, isNull, sql } from 'drizzle-orm';
 import { apiKeysTable, apiUsage, assets, brands, mails, orgPrefs, orgUsage, subscriptions, templateVersions, userPrefs } from '@temply/shared/schema';
 import { json, unauthorized } from '../lib/errors';
 import { noWorkspace } from '../lib/workspace';
+import { ensureAccount } from '../lib/billing';
 import { authPlugin } from '../plugins/auth';
 import { dbPlugin } from '../plugins/db';
 
@@ -34,6 +35,8 @@ export const workspaceRoutes = new Elysia()
     const [existing] = await ctx.db.select({ id: subscriptions.id }).from(subscriptions).where(eq(subscriptions.org_id, orgId)).limit(1);
     if (existing) await ctx.db.delete(subscriptions).where(orphanSub);
     else await ctx.db.update(subscriptions).set({ org_id: orgId }).where(orphanSub);
+    // The first visit to a workspace starts its trial.
+    await ensureAccount(ctx.db, orgId, userId);
 
     const usage = await ctx.db.select().from(apiUsage).where(eq(apiUsage.user_id, userId));
     for (const row of usage) {

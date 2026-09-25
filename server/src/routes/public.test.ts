@@ -117,7 +117,7 @@ function listTemplates(apiKey?: string) {
 describe('GET /api/public/v1/templates', () => {
   it('401s without a key, and lists only what the key\'s workspace made', async () => {
     expect((await listTemplates()).status).toBe(401);
-    await givePlan(db, OWNER, 'pro');
+    await givePlan(db, OWNER, 'team');
     const { fullKey } = await seedKey(OWNER);
     const mine = await seedTemplate(OWNER);
     await seedTemplate('someone_else');
@@ -131,7 +131,7 @@ describe('GET /api/public/v1/templates', () => {
   });
 
   it('a live key lists what is published; a test key lists the drafts too', async () => {
-    await givePlan(db, OWNER, 'pro');
+    await givePlan(db, OWNER, 'team');
     const live = await seedKey(OWNER);
     const test = await seedKey(OWNER, { mode: 'test' });
     const published = await seedTemplate(OWNER);
@@ -142,7 +142,7 @@ describe('GET /api/public/v1/templates', () => {
   });
 
   it('counts as a call', async () => {
-    await givePlan(db, OWNER, 'pro');
+    await givePlan(db, OWNER, 'team');
     const { fullKey } = await seedKey(OWNER);
     await listTemplates(fullKey);
     const [usage] = await db.select().from(orgUsage);
@@ -165,7 +165,7 @@ describe('GET /api/public/v1/templates/:shortCode', () => {
   });
 
   it('401s for a revoked key', async () => {
-    await givePlan(db, OWNER, 'pro');
+    await givePlan(db, OWNER, 'team');
     const { fullKey } = await seedKey(OWNER, { revoked: true });
     const shortCode = await seedTemplate(OWNER);
 
@@ -226,7 +226,7 @@ describe('GET /api/public/v1/templates/:shortCode', () => {
   });
 
   it('404s for an unknown short code', async () => {
-    await givePlan(db, OWNER, 'pro');
+    await givePlan(db, OWNER, 'team');
     const { fullKey } = await seedKey(OWNER);
 
     const res = await fetchTemplate('tpl_00000000', fullKey);
@@ -234,7 +234,7 @@ describe('GET /api/public/v1/templates/:shortCode', () => {
   });
 
   it('returns the template metadata for a paid key, without the content', async () => {
-    await givePlan(db, OWNER, 'pro');
+    await givePlan(db, OWNER, 'team');
     const { fullKey } = await seedKey(OWNER);
     const shortCode = await seedTemplate(OWNER);
 
@@ -249,7 +249,7 @@ describe('GET /api/public/v1/templates/:shortCode', () => {
   });
 
   it('404s for a template belonging to another account', async () => {
-    await givePlan(db, OWNER, 'pro');
+    await givePlan(db, OWNER, 'team');
     const { fullKey } = await seedKey(OWNER);
     const someoneElses = await seedTemplate('user_stranger');
 
@@ -258,7 +258,7 @@ describe('GET /api/public/v1/templates/:shortCode', () => {
   });
 
   it('404s for a template that has never been published', async () => {
-    await givePlan(db, OWNER, 'pro');
+    await givePlan(db, OWNER, 'team');
     const { fullKey } = await seedKey(OWNER);
     const shortCode = await seedTemplate(OWNER, '{"type":"doc"}', { published: false });
 
@@ -268,7 +268,7 @@ describe('GET /api/public/v1/templates/:shortCode', () => {
   });
 
   it('reports the publish time as updatedAt, not the draft’s', async () => {
-    await givePlan(db, OWNER, 'pro');
+    await givePlan(db, OWNER, 'team');
     const { fullKey } = await seedKey(OWNER);
     const shortCode = await seedTemplate(OWNER);
     await db.update(mails).set({ updated_at: '2026-06-01T00:00:00.000Z', preview_text: 'Draft words' }).where(eq(mails.short_code, shortCode));
@@ -280,7 +280,7 @@ describe('GET /api/public/v1/templates/:shortCode', () => {
   });
 
   it('stamps last_used_at on a successful call', async () => {
-    await givePlan(db, OWNER, 'pro');
+    await givePlan(db, OWNER, 'team');
     const { id, fullKey } = await seedKey(OWNER);
     const shortCode = await seedTemplate(OWNER);
 
@@ -294,7 +294,7 @@ describe('GET /api/public/v1/templates/:shortCode', () => {
   });
 
   it('rewrites last_used_at once a minute, not once a call', async () => {
-    await givePlan(db, OWNER, 'pro');
+    await givePlan(db, OWNER, 'team');
     const { id, fullKey } = await seedKey(OWNER);
     const shortCode = await seedTemplate(OWNER);
     const stamp = (agoMs: number) => new Date(Date.now() - agoMs).toISOString();
@@ -318,7 +318,7 @@ describe('POST /api/public/v1/templates/:shortCode/render', () => {
   });
 
   it('404s for a template belonging to another account', async () => {
-    await givePlan(db, OWNER, 'pro');
+    await givePlan(db, OWNER, 'team');
     const { fullKey } = await seedKey(OWNER);
     const someoneElses = await seedTemplate('user_stranger');
 
@@ -326,7 +326,7 @@ describe('POST /api/public/v1/templates/:shortCode/render', () => {
   });
 
   it('returns the rendered HTML', async () => {
-    await givePlan(db, OWNER, 'pro');
+    await givePlan(db, OWNER, 'team');
     const { fullKey } = await seedKey(OWNER);
     const shortCode = await seedTemplate(OWNER, CONDITIONAL_DOC);
 
@@ -339,7 +339,7 @@ describe('POST /api/public/v1/templates/:shortCode/render', () => {
   });
 
   it('404s before the template is published', async () => {
-    await givePlan(db, OWNER, 'pro');
+    await givePlan(db, OWNER, 'team');
     const { fullKey } = await seedKey(OWNER);
     const shortCode = await seedTemplate(OWNER, CONDITIONAL_DOC, { published: false });
 
@@ -348,7 +348,7 @@ describe('POST /api/public/v1/templates/:shortCode/render', () => {
   });
 
   it('renders the published copy while the draft has moved on', async () => {
-    await givePlan(db, OWNER, 'pro');
+    await givePlan(db, OWNER, 'team');
     const { fullKey } = await seedKey(OWNER);
     const shortCode = await seedTemplate(OWNER, '{"type":"doc","content":[{"type":"paragraph","content":[{"type":"text","text":"Published words"}]}]}');
     await db.update(mails).set({ content: '{"type":"doc","content":[{"type":"paragraph","content":[{"type":"text","text":"Draft words"}]}]}' }).where(eq(mails.short_code, shortCode));
@@ -412,7 +412,7 @@ describe('POST /api/public/v1/templates/:shortCode/render', () => {
     const PILLS = '{"type":"doc","content":[{"type":"paragraph","content":[{"type":"text","text":"Hi "},{"type":"variable","attrs":{"id":"firstName","fallback":"there"}},{"type":"text","text":", order "},{"type":"variable","attrs":{"id":"orderNumber","fallback":"#1001","required":false}}]}]}';
 
     it('422s with the names when data is sent but a required value is not', async () => {
-      await givePlan(db, OWNER, 'pro');
+      await givePlan(db, OWNER, 'team');
       const { fullKey } = await seedKey(OWNER);
       const shortCode = await seedTemplate(OWNER, PILLS);
 
@@ -424,7 +424,7 @@ describe('POST /api/public/v1/templates/:shortCode/render', () => {
     });
 
     it('422s naming the key when a Repeat is sent something other than a list', async () => {
-      await givePlan(db, OWNER, 'pro');
+      await givePlan(db, OWNER, 'team');
       const { fullKey } = await seedKey(OWNER);
       const REPEAT = '{"type":"doc","content":[{"type":"repeat","attrs":{"each":"items"},"content":[{"type":"paragraph","content":[{"type":"variable","attrs":{"id":"name","fallback":"item"}}]}]}]}';
       const shortCode = await seedTemplate(OWNER, REPEAT);
@@ -437,7 +437,7 @@ describe('POST /api/public/v1/templates/:shortCode/render', () => {
     });
 
     it('never mails the placeholder: an optional pill renders as nothing', async () => {
-      await givePlan(db, OWNER, 'pro');
+      await givePlan(db, OWNER, 'team');
       const { fullKey } = await seedKey(OWNER);
       const shortCode = await seedTemplate(OWNER, PILLS);
 
@@ -449,7 +449,7 @@ describe('POST /api/public/v1/templates/:shortCode/render', () => {
     });
 
     it('shows placeholders when no data is sent at all', async () => {
-      await givePlan(db, OWNER, 'pro');
+      await givePlan(db, OWNER, 'team');
       const { fullKey } = await seedKey(OWNER);
       const shortCode = await seedTemplate(OWNER, PILLS);
 
@@ -459,7 +459,7 @@ describe('POST /api/public/v1/templates/:shortCode/render', () => {
   });
 
   it('returns a text alternative beside the HTML', async () => {
-    await givePlan(db, OWNER, 'pro');
+    await givePlan(db, OWNER, 'team');
     const { fullKey } = await seedKey(OWNER);
     const shortCode = await seedTemplate(OWNER, CONDITIONAL_DOC);
 
@@ -471,7 +471,7 @@ describe('POST /api/public/v1/templates/:shortCode/render', () => {
   });
 
   it('shows a conditional block when no data is sent', async () => {
-    await givePlan(db, OWNER, 'pro');
+    await givePlan(db, OWNER, 'team');
     const { fullKey } = await seedKey(OWNER);
     const shortCode = await seedTemplate(OWNER, CONDITIONAL_DOC);
 
@@ -480,7 +480,7 @@ describe('POST /api/public/v1/templates/:shortCode/render', () => {
   });
 
   it('drops a conditional block when the data says so', async () => {
-    await givePlan(db, OWNER, 'pro');
+    await givePlan(db, OWNER, 'team');
     const { fullKey } = await seedKey(OWNER);
     const shortCode = await seedTemplate(OWNER, CONDITIONAL_DOC);
 
@@ -489,7 +489,7 @@ describe('POST /api/public/v1/templates/:shortCode/render', () => {
   });
 
   it('keeps a conditional block when the data allows it', async () => {
-    await givePlan(db, OWNER, 'pro');
+    await givePlan(db, OWNER, 'team');
     const { fullKey } = await seedKey(OWNER);
     const shortCode = await seedTemplate(OWNER, CONDITIONAL_DOC);
 

@@ -6,7 +6,7 @@ import { TEMPLATE_CONTENT_MAX_LENGTH } from '@temply/shared/plans';
 import { generateShareToken, generateShortCode } from '../lib/codes';
 import { nextStamp } from '../lib/stamp';
 import { hasUnpublishedChanges } from '@temply/shared/publish';
-import { checkTemplateLimit, shouldSnapshot } from '../lib/billing';
+import { checkTemplateLimit, refuseWhenLapsed, versionsKept } from '../lib/billing';
 import { render } from '../render/render';
 import type { EngineConfig } from '../render/engine';
 import { json, unauthorized, notFound, paymentRequired, badRequest } from '../lib/errors';
@@ -40,11 +40,12 @@ function publishedPatch(row: Pick<Row, 'content' | 'theme' | 'preview_text'>, st
 }
 
 /**
- * Keeps the newest ten. Versions are the publish history — a draft save
- * never snapshots, or autosave would flush every real publish out of the
- * list within minutes.
+ * Keeps the newest `keep` — the plan's number, which a template pack
+ * raises. Versions are the publish history: a draft save never snapshots,
+ * or autosave would flush every real publish out of the list within
+ * minutes.
  */
-async function snapshotVersion(db: Db, row: Row) {
+async function snapshotVersion(db: Db, row: Row, keep: number) {
   // Numbered inside the insert: read first and written after, two publishes
   // of one template could both take the same number, and the unique index
   // on (template_id, version_number) would refuse the second.
@@ -63,7 +64,7 @@ async function snapshotVersion(db: Db, row: Row) {
   await db
     .delete(templateVersions)
     .where(
-      sql`${templateVersions.id} NOT IN (SELECT id FROM (SELECT ${templateVersions.id} FROM ${templateVersions} WHERE ${templateVersions.template_id} = ${row.id} ORDER BY ${templateVersions.version_number} DESC LIMIT 10)) AND ${templateVersions.template_id} = ${row.id}`,
+      sql`${templateVersions.id} NOT IN (SELECT id FROM (SELECT ${templateVersions.id} FROM ${templateVersions} WHERE ${templateVersions.template_id} = ${row.id} ORDER BY ${templateVersions.version_number} DESC LIMIT ${keep})) AND ${templateVersions.template_id} = ${row.id}`,
     );
 }
 
@@ -88,6 +89,8 @@ async function ownRow(db: Db, orgId: string, id: string): Promise<Row | undefine
 export const templatesRoutes = new Elysia()
   .use(authPlugin)
   .use(dbPlugin)
+  // A workspace without a plan reads and deletes, and changes nothing.
+  .onBeforeHandle(refuseWhenLapsed)
   /**
    * The list, as the dashboard draws it: a title, a code, two dates and a
    * flag per row. It used to select every column — the document, the
@@ -235,7 +238,7 @@ export const templatesRoutes = new Elysia()
     if (!row) return notFound('Template not found');
     const stamp = nextStamp();
     await ctx.db.update(mails).set(publishedPatch(row, stamp)).where(eq(mails.id, row.id));
-    if (await shouldSnapshot(ctx.db, ctx.orgId)) await snapshotVersion(ctx.db, row);
+    await snapshotVersion(ctx.db, row, await versionsKept(ctx.db, ctx.orgId));
     const [published] = await ctx.db.select().from(mails).where(eq(mails.id, row.id)).limit(1);
     return json({ template: withFlags(published) });
   })

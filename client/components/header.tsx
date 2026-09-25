@@ -14,6 +14,7 @@ import { cn } from '~/lib/classname';
 const sections = [
   { label: 'Features', hash: '#features' },
   { label: 'Blocks', hash: '#blocks' },
+  { label: 'Pricing', hash: '#pricing' },
   { label: 'Contact', hash: '#contact' },
 ];
 

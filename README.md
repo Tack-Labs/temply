@@ -30,7 +30,7 @@ Never npm, yarn or pnpm.
 | Database | SQLite via `bun:sqlite` and Drizzle ORM 0.45; schema in `shared/schema.ts`, boot-time migrations in `src/plugins/db.ts` |
 | Rendering | `@react-email/render` + `juice` turn the editor document into table-based, inlined HTML (`src/render/`) |
 | Auth | `@clerk/backend` 3 verifies sessions and webhooks; proxied requests carry identity in headers proven by `INTERNAL_API_SECRET` |
-| Billing | Lemon Squeezy as merchant of record (hosted checkout, customer portal, webhooks), through its REST API with `fetch` — no SDK |
+| Billing | Stripe 22 (Checkout, the customer portal, a Billing Meter for API overage, webhooks). Temply sells the plan; Stripe processes the payment and holds the card |
 | Email | Resend 4 for test sends and the contact form |
 | Images | ImageKit 6 for uploads |
 | Validation | Elysia's `t` schemas |
@@ -58,7 +58,7 @@ What you need before the app is useful:
 | Service | Keys | Used for |
 |---|---|---|
 | [Clerk](https://clerk.com) | publishable + secret | Sign-in, organizations, team membership. Enable **Organizations** in the Clerk dashboard. |
-| [Lemon Squeezy](https://www.lemonsqueezy.com) | API key, store id, a variant per paid plan, webhook secret | Plans and billing, sold under Lemon Squeezy's name as merchant of record. Checkout sells Pro only; Enterprise is by hand. |
+| [Stripe](https://stripe.com) | secret key, three prices, a meter, webhook secret | The Team plan: seats, API overage and template packs, at the prices in `shared/plans.ts`. Stripe is the payment processor, not the merchant of record. Checkout sells Team only; Enterprise is by hand. |
 | [Resend](https://resend.com) | API key, a verified sender | Test sends from the editor, contact-form delivery. |
 | [ImageKit](https://imagekit.io) | public + private key, URL endpoint | Image uploads. Without it, images are URL-only. |
 | [Sentry](https://sentry.io) | DSN | Error reports. Optional; nothing is sent without a DSN. |
@@ -79,17 +79,19 @@ same value must be in `client/.env` and `server/.env`.
 |---|---|---|---|
 | `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` | both | yes | Clerk instance; the client mounts the sign-in UI with it, the API needs it to verify a session token presented directly. |
 | `CLERK_SECRET_KEY` | both | yes | Clerk server key. |
-| `CLERK_WEBHOOK_SIGNING_SECRET` | server | for purges | Verifies `organization.deleted` / `user.deleted` webhooks. Without it the endpoint answers 503 and deleted workspaces are never purged. |
+| `CLERK_WEBHOOK_SIGNING_SECRET` | server | for purges and seats | Verifies `organization.deleted`, `user.deleted` and `organizationMembership.created` / `.deleted` webhooks. Without it the endpoint answers 503, deleted workspaces are never purged, and a subscription's seats stop following the workspace's members. |
 | `INTERNAL_API_SECRET` | both | yes | Random string proving a request came from the Next.js proxy. Without it the API ignores forwarded identities and every dashboard call is signed out. |
 | `NEXT_PUBLIC_APP_URL` | both | yes | The site's own address. Client: metadata, sitemap, docs snippets, legal pages, dev-origin allow-list. Server: absolute image URLs in rendered email, the checkout return URL. `bun run dev:public` writes it. |
 | `API_URL` | client | no | Where Next.js reaches the API. Defaults to `http://127.0.0.1:3001`; the Railway container sets this automatically. |
 | `SQLITE_DB_PATH` | server | no | Database file, default `maily.db` in `server/`. Created on first run. |
 | `HOST` | server | no | The interface the API listens on, default `127.0.0.1`. The API trusts the identity the Next proxy forwards, so it must never be reachable from the internet; the Railway container pins it to loopback. |
-| `LEMONSQUEEZY_API_KEY` | server | for billing | Opens checkouts and portal links, and cancels the subscription of a deleted workspace. A test-mode key sells in test mode. |
-| `LEMONSQUEEZY_STORE_ID` | server | for billing | The store checkouts are opened in. |
-| `LEMONSQUEEZY_VARIANT_PRO` | server | for billing | The Pro plan's subscription variant — the only thing checkout sells. |
-| `LEMONSQUEEZY_VARIANT_ENTERPRISE` | server | no | The variant an Enterprise plan arranged by hand is sold as, so its webhooks grant Enterprise. |
-| `LEMONSQUEEZY_WEBHOOK_SECRET` | server | for billing | The signing secret you gave the `/api/webhooks/lemonsqueezy` webhook (6–40 characters). It also signs the workspace into each checkout, so changing it strands checkouts opened before the change. |
+| `STRIPE_SECRET_KEY` | server | for billing | Opens checkouts and portal sessions, changes seat and pack quantities, reports overage to the meter, and cancels the subscription of a deleted workspace. A test-mode key (`sk_test_…`) bills in test mode. |
+| `STRIPE_WEBHOOK_SECRET` | server | for billing | The signing secret (`whsec_…`) of the `/api/webhooks/stripe` endpoint. Every endpoint has its own, so a new endpoint means a new secret; `bun run dev:public` writes it when it creates one. |
+| `STRIPE_PRICE_SEAT` | server | for billing | The seat price: licensed, monthly, $5 a unit. Its quantity follows the workspace's Clerk members. |
+| `STRIPE_PRICE_API_OVERAGE` | server | for billing | The overage price: usage-based on the meter below, $0.001 a unit (a unit amount of `0.1` cents), so 1,000 calls cost $1. |
+| `STRIPE_PRICE_TEMPLATE_PACK` | server | for billing | The template pack price: licensed, monthly, $5 a unit. |
+| `STRIPE_METER_EVENT` | server | no | The event name of the Billing Meter the overage price reads. Default `temply_api_calls`. |
+| `STRIPE_API_BASE` | server | no | Points the Stripe client at another host. The e2e stack sets it to its fake; never set it anywhere else. |
 | `RESEND_API_KEY` | server | for sending | Test sends from the editor and contact-form delivery. Without it sends are refused and contact messages are stored but not delivered. |
 | `SENDING_FROM_ADDRESS`, `SENDING_FROM_LABEL` | server | no | The verified sender test sends go out from; users set a display name only. Defaults `send@temply.app` / `Temply`. |
 | `CONTACT_EMAIL` | server | for contact form | Where contact-form messages are delivered. |
@@ -129,7 +131,7 @@ bun run dev:public
 
 This starts a [cloudflared](https://developers.cloudflare.com/cloudflare-one/connections/connect-apps/downloads/)
 quick tunnel to `:9000`, writes the address into both env files as
-`NEXT_PUBLIC_APP_URL`, re-points the Lemon Squeezy webhook through its
+`NEXT_PUBLIC_APP_URL`, re-points the Stripe webhook endpoint through its
 API, prints the Clerk endpoint URL for you to paste into the Clerk
 dashboard, then runs `bun run dev`. One address then serves the site, the
 API and both webhooks — the same shape as production.
@@ -148,26 +150,58 @@ env file, restart the servers.
 Set both webhooks up once:
 
 - **Clerk** → Webhooks → add endpoint `<address>/api/webhooks/clerk` for
-  `organization.deleted` and `user.deleted`; put the signing secret in
+  `organization.deleted`, `user.deleted`, `organizationMembership.created`
+  and `organizationMembership.deleted`; put the signing secret in
   `CLERK_WEBHOOK_SIGNING_SECRET`. A deleted workspace is purged and its
-  subscription cancelled.
-- **Lemon Squeezy** → `<address>/api/webhooks/lemonsqueezy` for
-  `subscription_created`, `subscription_updated` and
-  `subscription_expired`, signed with `LEMONSQUEEZY_WEBHOOK_SECRET`. The
-  script creates or re-points this one for you. A webhook that already
-  exists keeps its secret, so `server/.env` must hold the same one; with
-  none there, the script gives the webhook a fresh one and writes it in.
-  Plans are variants of one subscription product; put their ids in
-  `LEMONSQUEEZY_VARIANT_PRO` (and `_ENTERPRISE`). "Manage subscription"
-  opens Lemon Squeezy's own customer portal for the workspace's
-  subscription.
+  subscription cancelled; a member joining or leaving changes the seats on
+  the workspace's subscription, prorated.
+- **Stripe** → Developers → Webhooks → `<address>/api/webhooks/stripe` for
+  `customer.subscription.created`, `customer.subscription.updated` and
+  `customer.subscription.deleted`, with its signing secret in
+  `STRIPE_WEBHOOK_SECRET`. The script creates or re-points this one for
+  you. Re-pointing an endpoint keeps its secret; creating one makes a new
+  secret, which the script writes into `server/.env`.
+
+Set Stripe up once, in test mode first:
+
+1. **Meter.** Billing → Meters → create a meter with the event name
+   `temply_api_calls` (or set `STRIPE_METER_EVENT` to yours), aggregation
+   *Sum*, the customer read from the payload key `stripe_customer_id` and
+   the value from `value`. The API reports each Team workspace's calls
+   past the included ones to it every five minutes.
+2. **Prices.** One product with three monthly prices: the seat (licensed,
+   $5 a unit) in `STRIPE_PRICE_SEAT`; the overage (usage-based on that
+   meter, per unit, a unit amount of 0.1 cents) in
+   `STRIPE_PRICE_API_OVERAGE`; the template pack (licensed, $5 a unit) in
+   `STRIPE_PRICE_TEMPLATE_PACK`. Billing counts as configured only when
+   the key and all three are set.
+3. **Customer portal.** Settings → Billing → Customer portal: let
+   customers cancel (at the end of the period), update payment methods
+   and see invoices. Do not let them change quantities or switch plans:
+   seats follow Clerk membership, and packs change on the Plan page.
+4. **Enterprise** is arranged by hand. Give the workspace's Stripe
+   customer (made the first time an admin opens checkout; its metadata
+   carries the `orgId`) a subscription whose metadata has `plan` set to
+   `enterprise`. Checkout sells Team only.
+
+Subscriptions renew at 00:00 UTC on the 1st, so a bill covers the month
+the usage counter keeps; the days before the first renewal are prorated.
+Every public API call counts toward the month, so point integrators at
+the docs' Caching section (`/docs#caching`): render a broadcast once and
+cache on the template's `updatedAt`.
+
+Moving from the old plans: a workspace row still on `pro` becomes `team`
+when the API starts. A subscriber still paying the old Stripe Pro price
+is not moved for you — swap their subscription onto the three prices
+above by hand in the Stripe dashboard (seat quantity = the workspace's
+members), and the webhook brings the row up to date.
 
 In test mode, pay with `4242 4242 4242 4242`, any future expiry and any CVC.
 
 Once the production Railway service is receiving the webhooks, a
 tunnel that only exists to look at the work from a phone should not move
 them: `bun run dev:public --keep-webhooks` writes the envs and starts the
-dev servers but leaves Lemon Squeezy and Clerk where they point.
+dev servers but leaves Stripe and Clerk where they point.
 
 ## Gates
 
@@ -242,7 +276,8 @@ this setup does not promise zero-downtime releases.
    `PORT=8080`, `SQLITE_DB_PATH=/data/maily.db` and
    `BACKUP_DIR=/data/backups` are image defaults. Leave `API_URL` unset;
    startup supplies the loopback URL. Add the Clerk webhook secret, the
-   Lemon Squeezy key, store, variants and webhook secret, and Resend and
+   Stripe key, three prices, meter event (if not the default) and webhook
+   secret, and Resend and
    ImageKit values for the features you use. Runtime secrets belong in
    Railway, not the Dockerfile or GitHub build arguments.
    `NEXT_PUBLIC_*` values are compiled into the client, so changing one
@@ -273,7 +308,8 @@ this setup does not promise zero-downtime releases.
    cancelled halfway through a release.
 6. Set Clerk's allowed production domain and register the webhooks at
    `https://<domain>/api/webhooks/clerk` and
-   `https://<domain>/api/webhooks/lemonsqueezy`, using the events in *Setup*.
+   `https://<domain>/api/webhooks/stripe`, using the events in *Setup*, and
+   set up the live-mode meter, prices and customer portal the same way.
    Confirm the operator/contact details in `client/lib/legal.ts`.
 
 Use branch protection on `main` to require the three validation jobs:
@@ -339,7 +375,7 @@ client/
   lib/site.ts           SITE_URL and friends — the only place the domain lives
   scripts/check-*.ts    the design gates
 server/
-  src/routes/           one file per resource; webhooks/ for Lemon Squeezy and Clerk
+  src/routes/           one file per resource; webhooks/ for Stripe and Clerk
   src/render/           the email renderer
   src/plugins/db.ts     SQLite schema and the boot-time migrations
   scripts/backup-db.ts

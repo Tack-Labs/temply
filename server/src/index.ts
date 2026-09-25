@@ -3,6 +3,7 @@ import { Elysia } from 'elysia';
 import { errorResponse } from './lib/errors';
 import { authPlugin } from './plugins/auth';
 import { closeDb, dbPlugin } from './plugins/db';
+import { startOverageReporter } from './lib/overage';
 import { templatesRoutes } from './routes/templates';
 import { apiKeysRoutes } from './routes/api-keys';
 import { brandsRoutes } from './routes/brands';
@@ -13,7 +14,7 @@ import { emailsRoutes } from './routes/emails';
 import { publicRoutes } from './routes/public';
 import { workspaceRoutes } from './routes/workspace';
 import { contactRoutes } from './routes/contact';
-import { lemonSqueezyWebhookRoutes } from './routes/webhooks/lemonsqueezy';
+import { stripeWebhookRoutes } from './routes/webhooks/stripe';
 import { clerkWebhookRoutes } from './routes/webhooks/clerk';
 import { authRoutes } from './routes/auth/logout';
 import { healthRoutes } from './routes/health';
@@ -58,7 +59,7 @@ const app = new Elysia()
   .use(publicRoutes)
   .use(workspaceRoutes)
   .use(contactRoutes)
-  .use(lemonSqueezyWebhookRoutes)
+  .use(stripeWebhookRoutes)
   .use(clerkWebhookRoutes)
   .use(authRoutes)
   .use(healthRoutes)
@@ -80,11 +81,14 @@ console.log(`🦊 Elysia server running on ${app.server?.url}`);
  * closes after them, so none loses it mid-write. A second signal is someone
  * who has stopped waiting.
  */
+const stopOverageReporter = startOverageReporter();
+
 let stopping = false;
 async function shutdown(signal: string) {
   if (stopping) process.exit(1);
   stopping = true;
   console.log(`${signal}: finishing requests in flight, then stopping`);
+  stopOverageReporter();
   await app.stop();
   closeDb();
   process.exit(0);

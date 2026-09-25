@@ -97,13 +97,36 @@ export function postForm(app: TestApp, path: string, form: FormData, userId?: st
   );
 }
 
-/** Gives `userId` a paid subscription so plan-gated branches can be reached. */
-export async function givePlan(db: TestDb, userId: string, plan: 'free' | 'pro' | 'enterprise', status = 'active') {
+type PlanOptions = {
+  trialEndsAt?: string | null;
+  templatePacks?: number;
+  seats?: number;
+  customer?: string;
+  subscription?: string;
+  cancelAt?: string;
+};
+
+/** Gives `userId`'s workspace a subscription row so plan-gated branches can be
+ *  reached. A paid plan has had its trial; 'free' is on one unless
+ *  `trialEndsAt` says otherwise. */
+export async function givePlan(db: TestDb, userId: string, plan: 'free' | 'team' | 'enterprise', status = 'active', opts: PlanOptions = {}) {
+  const paid = plan !== 'free';
   await db.insert(schema.subscriptions).values({
     id: crypto.randomUUID(),
     user_id: userId,
     org_id: userId,
     plan,
     status,
+    trial_ends_at: opts.trialEndsAt === undefined ? new Date(Date.now() + (paid ? -1 : 14) * 86_400_000).toISOString() : opts.trialEndsAt,
+    template_packs: opts.templatePacks ?? 0,
+    seats: opts.seats ?? (paid ? 1 : null),
+    stripe_customer_id: opts.customer ?? null,
+    stripe_subscription_id: opts.subscription ?? (paid ? `sub_${userId}` : null),
+    cancel_at: opts.cancelAt ?? null,
   });
+}
+
+/** A workspace whose trial ended without a plan: read-only. */
+export async function lapse(db: TestDb, userId: string) {
+  await givePlan(db, userId, 'free', 'active', { trialEndsAt: new Date(Date.now() - 86_400_000).toISOString() });
 }

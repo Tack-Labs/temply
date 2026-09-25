@@ -81,11 +81,12 @@ test.describe('auth', () => {
     const shared = await signInAs(browser, TEST_USER_2, workspaces.shared);
     expect((await (await shared.page.request.get('/api/v1/quota')).json()).plan).toBe('enterprise');
     await shared.context.close();
-    // The billing spec moves this workspace between Free and Pro while the
-    // suite runs; Enterprise belongs to the shared workspace alone, so
-    // either of the other two is what tells this one apart.
+    // A new workspace starts on a trial, and the billing spec moves this one
+    // on to Team and then to lapsed while the suite runs; Enterprise belongs
+    // to the shared workspace alone, so any of the other three is what tells
+    // this one apart.
     const own = await signInAs(browser, TEST_USER_2, workspaces.second);
-    expect(['free', 'pro']).toContain((await (await own.page.request.get('/api/v1/quota')).json()).plan);
+    expect(['trial', 'team', 'lapsed']).toContain((await (await own.page.request.get('/api/v1/quota')).json()).plan);
     await own.context.close();
   });
 });

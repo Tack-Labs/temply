@@ -7,12 +7,13 @@ import { TemplateList } from '~/components/dashboard/template-list';
 import { EmptyState, ErrorState, PageHeader } from '~/components/ui/surfaces';
 import { serverFetch } from '~/lib/server-fetch';
 import type { TemplateListItem } from '~/lib/template-search';
-import { isLimitReached } from '@temply/shared/plans';
+import { PLAN_PAGE, type Billing } from '~/lib/billing';
+import { INCLUDED, PRICES_USD, TEMPLATE_PACK, formatUsd, isLimitReached } from '@temply/shared/plans';
 
 export const dynamic = 'force-dynamic';
 
 export default async function TemplatesPage() {
-  const { userId } = await auth();
+  const { userId, orgRole } = await auth();
 
   if (!userId) redirect('/login');
 
@@ -43,24 +44,42 @@ export default async function TemplatesPage() {
     }),
   );
 
-  const billing = billingRes?.ok ? await billingRes.json() : null;
-  const templateLimit = billing?.limits?.maxTemplates ?? null;
-  const atLimit = billing ? isLimitReached(billing.usage?.templates ?? templates.length, templateLimit) : false;
+  const billing: Billing | null = billingRes?.ok ? await billingRes.json() : null;
+  const templateLimit = billing?.limits.maxTemplates ?? null;
+  const atLimit = billing ? isLimitReached(billing.usage.templates, templateLimit) : false;
+  // A read-only workspace can't make anything; the dashboard's banner says
+  // why, so the list only takes away the controls.
+  const readOnly = billing?.plan === 'lapsed';
+  const isAdmin = orgRole === 'org:admin';
+  const pack = `${TEMPLATE_PACK.templates} more — ${formatUsd(PRICES_USD.templatePack)} a month each`;
+  const limitBanner =
+    !atLimit || readOnly
+      ? null
+      : billing?.plan === 'trial'
+        ? {
+            title: `You've used all ${INCLUDED.templates} templates in your trial.`,
+            detail: isAdmin
+              ? `Subscribe, then add a template pack for ${pack}.`
+              : `Ask an admin to subscribe; template packs add ${pack}.`,
+            action: isAdmin ? { label: 'Subscribe', href: PLAN_PAGE } : null,
+          }
+        : {
+            title: `You've used all ${templateLimit} templates on your plan.`,
+            detail: isAdmin
+              ? `Add a template pack for ${pack}.`
+              : `Ask an admin to add a template pack for ${pack}.`,
+            action: isAdmin ? { label: 'Add a pack', href: PLAN_PAGE } : null,
+          };
 
   return (
     <div className="space-y-5">
       <PageHeader
         title="Templates"
         description="Every email you have built here."
-        actions={<NewTemplateButton disabled={atLimit} />}
+        actions={<NewTemplateButton disabled={atLimit || readOnly} />}
       />
 
-      {atLimit ? (
-        <PlanLimitBanner
-          title={`You've used all ${templateLimit} templates on the Free plan.`}
-          detail="Upgrade to Pro for unlimited templates."
-        />
-      ) : null}
+      {limitBanner ? <PlanLimitBanner {...limitBanner} /> : null}
 
       {failed ? (
         <ErrorState description="We could not reach the server, so your templates are not shown. This is not a sign that they are gone." />
@@ -69,10 +88,10 @@ export default async function TemplatesPage() {
           icon={FileTextIcon}
           title="No templates yet"
           description="Start one and it will appear here, ready to edit or send."
-          action={<NewTemplateButton />}
+          action={<NewTemplateButton disabled={readOnly} />}
         />
       ) : (
-        <TemplateList templates={list} canDuplicate={!atLimit} />
+        <TemplateList templates={list} canDuplicate={!atLimit && !readOnly} />
       )}
     </div>
   );

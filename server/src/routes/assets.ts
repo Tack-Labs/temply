@@ -1,8 +1,7 @@
 import { Elysia, t } from 'elysia';
 import { and, count, desc, eq, like } from 'drizzle-orm';
 import { assets, mails, templateVersions } from '@temply/shared/schema';
-import { PLAN_LIMITS } from '@temply/shared/plans';
-import { checkStorageLimit, getPlan, getStorageUsed } from '../lib/billing';
+import { checkStorageLimit, getPlan, getStorageUsed, limitsForAccount, refuseWhenLapsed } from '../lib/billing';
 import { json, notFound, paymentRequired, unauthorized } from '../lib/errors';
 import { assetFolder, getImageKit } from '../lib/imagekit';
 import { nextStamp } from '../lib/stamp';
@@ -59,6 +58,8 @@ export function sniffImageType(buffer: Buffer): string | null {
 export const assetsRoutes = new Elysia()
   .use(authPlugin)
   .use(dbPlugin)
+  // A workspace without a plan reads and deletes, and changes nothing.
+  .onBeforeHandle(refuseWhenLapsed)
   .post('/api/v1/assets', async (ctx) => {
     if (!ctx.userId) return unauthorized();
     if (!ctx.orgId) return noWorkspace();
@@ -134,8 +135,7 @@ export const assetsRoutes = new Elysia()
     if (!ctx.userId) return unauthorized();
     if (!ctx.orgId) return noWorkspace();
     const list = await ctx.db.select().from(assets).where(eq(assets.org_id, ctx.orgId)).orderBy(desc(assets.created_at), desc(assets.id));
-    const { plan } = await getPlan(ctx.db, ctx.orgId);
-    const raw = PLAN_LIMITS[plan].maxStorageBytes;
+    const raw = limitsForAccount(await getPlan(ctx.db, ctx.orgId)).maxStorageBytes;
     return json({
       assets: list,
       usedBytes: await getStorageUsed(ctx.db, ctx.orgId),

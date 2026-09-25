@@ -2,6 +2,12 @@
  * The prose, one named export per section, so the page file reads as a table
  * of contents rather than a wall of copy.
  */
+import {
+  INCLUDED,
+  limitsFor,
+  TEMPLATE_PACK,
+  TEST_API_CALLS_PER_MONTH,
+} from '@temply/shared/plans';
 import { PUBLIC_API_URL } from '~/lib/site';
 import {
   ArrowUpRightSquare,
@@ -503,11 +509,14 @@ export function CreatingATemplate() {
         recipient does.
       </P>
       <P>
-        Press <strong className="font-medium text-ink">Save</strong> when it
-        looks right. On Pro, each save also keeps a version — the last ten — so
-        an edit you regret is recoverable from{' '}
-        <strong className="font-medium text-ink">History</strong>. On Free,
-        saving overwrites.
+        Edits save as you go, into a draft. Press{' '}
+        <strong className="font-medium text-ink">Publish</strong> when it looks
+        right. Every publish keeps a version, on every plan — the last{' '}
+        {INCLUDED.versionsPerTemplate}, or the last{' '}
+        {TEMPLATE_PACK.versionsPerTemplate} once the workspace has a template
+        pack ({limitsFor('enterprise').maxVersions} on Enterprise) — so a
+        change you regret is recoverable from{' '}
+        <strong className="font-medium text-ink">History</strong>.
       </P>
       <P>
         From there the email leaves Temply one of two ways. The{' '}
@@ -551,13 +560,83 @@ export function CreatingATemplate() {
       <P>
         Keys come in two kinds. A <strong className="font-medium text-ink">live</strong>{' '}
         key (<Code>tply_live_…</Code>) renders what you published and counts
-        toward your plan; live keys are a Pro feature. A{' '}
-        <strong className="font-medium text-ink">test</strong> key
+        toward your plan. Live keys work on every plan, the free trial
+        included. When a trial or plan ends unpaid the workspace turns
+        read-only, and its live keys answer <Code>402</Code> until someone
+        subscribes. A <strong className="font-medium text-ink">test</strong> key
         (<Code>tply_test_…</Code>) renders your current draft — published or
         not — so staging always shows what you are working on. Test keys are
-        free on every plan and stop at 1,000 calls a month.
+        free on every plan, keep working when a workspace is read-only, and
+        stop at {TEST_API_CALLS_PER_MONTH.toLocaleString('en-GB')} calls a month.
+      </P>
+      <P>
+        Every call counts, repeats included, so render once and reuse the
+        result where the email is the same —{' '}
+        <a href="#caching" className="text-accent-ink underline-offset-4 hover:underline">
+          Caching
+        </a>{' '}
+        shows how.
       </P>
     </section>
+  );
+}
+
+/* ------------------------------------------------------------------ caching */
+
+/**
+ * How to call less. Every call is billed, so this is pricing advice as much
+ * as engineering advice. The example is a plain block rather than CodeTabs:
+ * the reference carries exactly three tabbed snippets, and a JavaScript tab
+ * here would put a `fetch(` on a page that is checked for having none until
+ * a reader picks one.
+ */
+export function Caching() {
+  return (
+    <div className="mt-10">
+      <H3 id="caching">Caching</H3>
+      <P>
+        Every call counts toward the month — a list, a metadata call and a
+        render alike. Asking again for something that has not changed counts
+        the same as the first time; there is no free not-modified answer. What
+        keeps the bill down is calling less, and an email rarely changes between
+        sends.
+      </P>
+      <P>
+        <strong className="font-medium text-ink">Render a broadcast once.</strong>{' '}
+        When many people get the same email, render it once and hand the same{' '}
+        <Code>html</Code> and <Code>text</Code> to every send: one call, not one
+        per recipient. Render per recipient only where the content differs per
+        recipient.
+      </P>
+      <P>
+        <strong className="font-medium text-ink">Cache on updatedAt.</strong>{' '}
+        Keep each render under the template, the data you sent and the{' '}
+        <Code>updatedAt</Code> that came back with it. <Code>updatedAt</Code>{' '}
+        moves only when the copy your key serves changes — on publish for a live
+        key, on save for a test key — so until it moves, the cached email is the
+        one Temply would give you. Check it with one list call on a schedule or
+        when you deploy, not before every send.
+      </P>
+      <Block>
+        {`# 1. On a schedule, or when you deploy: one call dates every template
+curl -H "Authorization: Bearer tply_live_…" \\
+  ${PUBLIC_API_URL}/templates
+# → { "templates": [{ "shortCode": "tpl_AbCd1234", "updatedAt": "2026-09-01T09:30:00.000Z", … }] }
+
+# 2. Only where updatedAt moved since you cached it: render once
+curl -X POST \\
+  -H "Authorization: Bearer tply_live_…" \\
+  -H "Content-Type: application/json" \\
+  -d '{"data":{"campaign":"autumn"}}' \\
+  ${PUBLIC_API_URL}/templates/tpl_AbCd1234/render
+# → keep { html, text } with that updatedAt, and send the same html to everyone`}
+      </Block>
+      <P>
+        Never render on a page view, or on any request a visitor can repeat: a
+        reload or a crawler then spends your calls. Render when you send, from
+        your own server, and reuse what you rendered.
+      </P>
+    </div>
   );
 }
 

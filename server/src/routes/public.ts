@@ -4,11 +4,12 @@ import { eq, and, desc, isNull, isNotNull } from 'drizzle-orm';
 import { mails, apiKeysTable } from '@temply/shared/schema';
 import { hashApiKey } from '../lib/codes';
 import { checkApiQuota, recordApiCall } from '../lib/api-quota';
+import { ensureAccount, getPlan } from '../lib/billing';
 import { checkBurst } from '../lib/rate-limit';
 import { render } from '../render/render';
 import { MissingVariablesError, RepeatNotListError } from '../render/engine';
 import type { EngineConfig } from '../render/engine';
-import { json, notFound, tooManyRequests, unauthorized, unprocessable } from '../lib/errors';
+import { json, notFound, paymentRequired, tooManyRequests, unauthorized, unprocessable } from '../lib/errors';
 import { authPlugin } from '../plugins/auth';
 import { PUBLIC_PREVIEW_ROUTE, PUBLIC_RENDER_ROUTE, PUBLIC_TEMPLATE_ROUTE, PUBLIC_TEMPLATES_ROUTE } from '@temply/shared/api';
 import { dbPlugin, type Db } from '../plugins/db';
@@ -54,7 +55,16 @@ async function resolveKey(ctx: { request: Request; db: Db }): Promise<{ error: R
     };
   }
 
-  const quota = await checkApiQuota(ctx.db, key.org_id ?? key.user_id, new Date(), key.mode);
+  const scope = key.org_id ?? key.user_id;
+  // A workspace that calls the API before anyone opens the dashboard starts
+  // its trial here.
+  if (key.org_id) await ensureAccount(ctx.db, key.org_id, key.user_id);
+  const account = key.mode === 'live' ? await getPlan(ctx.db, scope) : undefined;
+  if (account?.plan === 'lapsed') {
+    return { error: paymentRequired("This workspace's trial or plan has ended, so its live keys are paused. Subscribe on the Plan page to resume them.") };
+  }
+
+  const quota = await checkApiQuota(ctx.db, scope, new Date(), key.mode, account);
   if (!quota.allowed) {
     return {
       error: json({ status: 429, message: quota.message!, errors: [quota.message!] }, 429),

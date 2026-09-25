@@ -3,7 +3,7 @@
 import { useAuth } from '@clerk/nextjs';
 import { PUBLIC_API_URL } from '~/lib/site';
 
-import { CheckIcon, CopyIcon, KeyIcon, Loader2Icon, LockIcon, PlusIcon, Trash2Icon } from 'lucide-react';
+import { CheckIcon, CopyIcon, KeyIcon, Loader2Icon, LockIcon, PlusIcon, Trash2Icon, ZapIcon } from 'lucide-react';
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import Link from 'next/link';
@@ -11,6 +11,7 @@ import { useMinimumDisplay } from '~/hooks/use-minimum-display';
 import { httpDelete, httpGet, httpPost } from '~/lib/http';
 import { toast } from 'sonner';
 import { isLimitReached } from '@temply/shared/plans';
+import { useBilling } from '~/lib/billing';
 import { Button, pressable } from '~/components/ui/button';
 import { cn } from '~/lib/classname';
 import { ConfirmDialog } from '~/components/ui/confirm-dialog';
@@ -70,15 +71,12 @@ export default function ApiKeysPage() {
   const { orgRole } = useAuth();
   const isAdmin = orgRole === 'org:admin';
 
-  const { data: billing } = useQuery({
-    queryKey: ['billing'],
-    queryFn: () => httpGet<{ usage: { apiKeys: number }; limits: { maxApiKeys: number | null } }>('/api/v1/billing', {}),
-  });
-  const apiKeyLimit = billing?.limits?.maxApiKeys ?? null;
-  // Free's cap is 0 — the feature is locked, not used up. That reads
-  // differently from a Pro user who has spent all five, so keep them apart.
-  const featureLocked = apiKeyLimit === 0;
-  const atLimit = billing ? isLimitReached(billing.usage?.apiKeys ?? 0, apiKeyLimit) : false;
+  const { data: billing } = useBilling();
+  const apiKeyLimit = billing?.limits.maxApiKeys ?? null;
+  const atLimit = billing ? isLimitReached(billing.usage.apiKeys, apiKeyLimit) : false;
+  // A read-only workspace can't make keys of either kind; the dashboard's
+  // banner says why. The keys it has keep their rows and can be revoked.
+  const readOnly = billing?.plan === 'lapsed';
 
   const { mutateAsync: createKey, isPending: isCreating } = useMutation({
     mutationFn: (input: { name: string; mode: ApiKeyMode }) =>
@@ -100,11 +98,11 @@ export default function ApiKeysPage() {
     onError: (error) => toast.error(error.message || 'Could not revoke the key'),
   });
 
-  // Live keys are gated by the plan; a test key is open to everyone, so on
-  // a locked plan the dialog opens on Test and Live is shown as the upsell.
+  // Live keys are capped by the plan and test keys aren't, so once the live
+  // slots are spent the dialog opens on Test.
   const openCreate = () => {
     setNewlyCreatedKey(null);
-    setKeyMode(featureLocked || atLimit ? 'test' : 'live');
+    setKeyMode(atLimit ? 'test' : 'live');
     setShowCreate(true);
   };
 
@@ -140,17 +138,19 @@ export default function ApiKeysPage() {
           once there is a list for it to sit above. */}
       {keys.length > 0 ? (
         <div className="flex justify-end">
-          <Button variant="primary" onClick={openCreate}>
+          <Button variant="primary" onClick={openCreate} disabled={readOnly}>
             <PlusIcon />
             Create key
           </Button>
         </div>
       ) : null}
 
-      {atLimit && !featureLocked ? (
+      {/* Live keys can't be bought past on any plan short of Enterprise, so
+          the way out is freeing a slot, not a button to the plan page. */}
+      {atLimit && !readOnly ? (
         <PlanLimitBanner
-          title={`You've used all ${apiKeyLimit} API keys on your plan.`}
-          detail="Upgrade for more."
+          title={`You've used all ${apiKeyLimit} live API keys.`}
+          detail="Revoke a key you no longer use to make another. Test keys don't count."
         />
       ) : null}
 
@@ -179,30 +179,13 @@ export default function ApiKeysPage() {
           description="We could not load your keys. Any keys you already created are still active."
           onRetry={() => refetch()}
         />
-      ) : keys.length === 0 && featureLocked ? (
-        <EmptyState
-          icon={LockIcon}
-          title="Live keys are a Pro feature"
-          description="A test key is free on every plan: it renders your drafts so you can build against the API before you upgrade."
-          action={
-            <div className="flex flex-wrap items-center justify-center gap-2">
-              <Button variant="primary" onClick={openCreate}>
-                <PlusIcon />
-                Create test key
-              </Button>
-              <Button asChild>
-                <Link href="/dashboard/settings/plan">Upgrade to Pro</Link>
-              </Button>
-            </div>
-          }
-        />
       ) : keys.length === 0 ? (
         <EmptyState
           icon={KeyIcon}
           title="No API keys"
           description="Create one to read your templates from your own application."
           action={
-            <Button variant="primary" onClick={openCreate}>
+            <Button variant="primary" onClick={openCreate} disabled={readOnly}>
               <PlusIcon />
               Create key
             </Button>
@@ -295,6 +278,16 @@ curl -X POST -H "Authorization: Bearer tply_live_..." \\
   -d '{"data":{"firstName":"Ada","isMember":true}}' \\
   ${PUBLIC_API_URL}/templates/tpl_abc123/render`}</code>
           </pre>
+          <p className="mt-3 flex items-start gap-2 text-sm text-muted">
+            <ZapIcon aria-hidden className="mt-0.5 size-4 shrink-0 text-accent-ink" />
+            <span>
+              Every render counts as a call. Render a broadcast once and send that HTML to
+              everyone, and cache renders on the template&apos;s <code className="font-mono text-xs">updatedAt</code>.{' '}
+              <Link href="/docs#caching" className="text-accent-ink underline-offset-4 hover:underline">
+                How to cache renders
+              </Link>
+            </span>
+          </p>
         </Card>
       )}
 
@@ -323,17 +316,17 @@ curl -X POST -H "Authorization: Bearer tply_live_..." \\
             <div className="grid grid-cols-2 gap-2" role="radiogroup" aria-label="Key type">
               {(
                 [
-                  { mode: 'live' as const, label: 'Live', hint: 'Renders what you published. Counts toward your plan.' },
+                  { mode: 'live' as const, label: 'Live', hint: 'Renders what you published. Its calls count toward your plan.' },
                   { mode: 'test' as const, label: 'Test', hint: 'Renders your draft. Free on every plan, 1,000 calls a month.' },
                 ] as const
               ).map((option) => {
-                const locked = option.mode === 'live' && (featureLocked || atLimit);
+                const locked = option.mode === 'live' && atLimit;
                 const active = keyMode === option.mode;
                 // The name is the word on the chip and nothing else. Read off
-                // the content it was the whole tile — "Live" ran into "Pro"
-                // with no separator, and the sentence underneath followed it
-                // — so the choice took twenty words to hear. Both of those
-                // still reach a reader, as the description they are.
+                // the content it was the whole tile — the name ran into the
+                // lock label with no separator, and the sentence underneath
+                // followed it — so the choice took twenty words to hear. Both
+                // of those still reach a reader, as the description they are.
                 const hintId = `api-key-${option.mode}-hint`;
                 const lockId = `api-key-${option.mode}-lock`;
                 return (
@@ -357,7 +350,7 @@ curl -X POST -H "Authorization: Bearer tply_live_..." \\
                       {option.label}
                       {locked ? (
                         <span id={lockId} className="ml-1.5 text-xs font-normal text-muted">
-                          Pro
+                          Limit reached
                         </span>
                       ) : null}
                     </span>

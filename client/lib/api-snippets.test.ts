@@ -62,12 +62,15 @@ describe('API snippets', () => {
       expect(Object.keys(errors).sort()).toEqual(SNIPPET_LANGUAGES.map((l) => l.id).sort());
     });
     for (const { id } of SNIPPET_LANGUAGES) {
-      it(`${id} reads missing on a 422 and Retry-After on a 429`, () => {
+      // A 429 without Retry-After is the trial's monthly cap, and a 402 a
+      // workspace with no plan: waiting fixes neither, so neither is retried.
+      it(`${id} reads missing on a 422, Retry-After on a 429, and stops on a 402`, () => {
         const snippet = errors[id];
         expect(snippet).toContain('422');
         expect(snippet).toContain('missing');
         expect(snippet).toContain('429');
         expect(snippet).toContain('Retry-After');
+        expect(snippet).toContain('402');
       });
     }
   });

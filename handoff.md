@@ -26,7 +26,7 @@
 | In-memory state | Only the per-process monotonic clock `nextStamp` (`server/src/lib/stamp.ts:10`). Every rate limit counts in the `rate_windows` table (§3.1). | Each replica keeps its own clock, so two replicas can issue the same stamp (§4.4). |
 | Request path | Every request goes through the catch-all proxy `client/app/api/[[...path]]/route.ts`: dashboard calls, the integrator API `/api/v1/...`, and both webhooks. The proxy forwards to `API_URL` and proves itself with `x-internal-token`. | The API never needs a public address. It only has to listen on a private interface. It binds to `HOST`, which defaults to `127.0.0.1` (`server/src/index.ts:72`), and `start.sh` pins it to loopback. |
 | Files | None on local disk. Images live on ImageKit. | Nothing to migrate and no shared filesystem needed. |
-| Third parties | Clerk, Lemon Squeezy, Resend, ImageKit, Sentry. All SaaS. | They don't move. Only the webhook URLs, and possibly their secrets, change at cutover. |
+| Third parties | Clerk, Stripe, Resend, ImageKit, Sentry. All SaaS. | They don't move. Only the webhook URLs, and possibly their secrets, change at cutover. |
 
 ---
 
@@ -36,7 +36,7 @@
                          ┌─────────────── Railway project "temply", environment: production ───────────────┐
                          │                                                                                  │
   browser / integrator   │   ┌──────────────┐   private network    ┌──────────────┐        ┌────────────┐  │
-  Lemon Squeezy, Clerk ──┼──▶│ web          │  http://api.railway  │ api          │  TCP   │ postgres   │  │
+  Stripe, Clerk ─────────┼──▶│ web          │  http://api.railway  │ api          │  TCP   │ postgres   │  │
   https://<domain>       │   │ Next.js 15   │ ────.internal:3001──▶│ Elysia / Bun │───────▶│ single     │  │
                          │   │ replicas: 2+ │  x-internal-token    │ replicas: 2+ │  pool  │ instance,  │  │
                          │   └──────────────┘                      └──────────────┘        │ volume +   │  │
@@ -45,7 +45,7 @@
                          └──────────────────────────────────────────────────────────────────────────────────┘
                                          │                         │
                                          ▼                         ▼
-                                       Clerk          Lemon Squeezy · Resend · ImageKit · Sentry
+                                       Clerk          Stripe · Resend · ImageKit · Sentry
 ```
 
 | Service | Built from | Public | Replicas at launch | Health check |
@@ -56,7 +56,7 @@
 
 Launching with two replicas of each service is **not about load**. It gives zero-downtime deploys (Railway overlaps old and new replicas) and means one crashed replica doesn't take the site down.
 
-A `staging` environment has the same shape with one replica each. It uses Clerk's dev instance and Lemon Squeezy test mode.
+A `staging` environment has the same shape with one replica each. It uses Clerk's dev instance and Stripe test mode.
 
 **Tradeoffs for the follow-up**
 
@@ -94,11 +94,12 @@ This phase changes the database contract, so the work stays on a branch and stag
 - [ ] **2.4 Make concurrent writes safe.** SQLite serialised all writes in one process; Postgres with several replicas doesn't.
   - Wrap publish and `snapshotVersion` (`server/src/routes/templates.ts:47`) in `db.transaction`, starting with `SELECT … FOR UPDATE` on the `mails` row. The version number is already computed inside the insert (§3.4). That makes it atomic on SQLite, but under Postgres's default READ COMMITTED isolation two concurrent inserts can still read the same `MAX`. Without the lock, the §3.4 unique index would turn that race into a 500 rather than a duplicate.
   - `nextStamp()` is monotonic only within one process. Inside the same locked transaction, set the new stamp to the later of `nextStamp()` and the row's current `updated_at` plus 1 ms. That keeps the invariant "a draft save after a publish always shows unpublished changes" true across replicas.
-  - Lemon Squeezy can deliver two events for the same subscription to different replicas at once. `server/src/routes/webhooks/lemonsqueezy.ts` already settles them: the update applies only when the event's `updated_at` is no older than the stored `lemonsqueezy_updated_at`, and the check sits in the `UPDATE`'s own `WHERE`. Keep it there when the query moves to Postgres; a read-then-write would reopen the race.
+  - Stripe can deliver two events for the same subscription to different replicas at once. `applySubscription` (`server/src/lib/stripe.ts`) already settles them: the webhook reads the subscription back from Stripe and stamps when it read it, the update applies only when that stamp is no older than the stored `stripe_synced_at`, and the check sits in the `UPDATE`'s own `WHERE`. Keep it there when the query moves to Postgres; a read-then-write would reopen the race. The same `UPDATE` sets `trial_ends_at` with SQLite's two-argument `min()`, which Postgres spells `LEAST`.
+  - The overage reporter (`server/src/lib/overage.ts`) runs in every `api` replica. It claims `org_usage.reported` with a compare-and-set before Stripe hears anything, so two replicas never report the same calls. Keep that claim a single conditional `UPDATE`.
 - [ ] **2.5 Health check.** `server/src/routes/health.ts:19` calls `db.get(...)` synchronously inside a `try`. With an async driver the `try` would miss the rejection, so it has to become `await db.execute(sql\`select 1\`)`.
 - [ ] **2.6 Unit tests on PGlite.** Point `createTestDb()` (`server/src/test/helpers.ts:15`) at an in-process PGlite (`@electric-sql/pglite` + `drizzle-orm/pglite`) and apply the same migration files. The tests then keep tracking the real schema the way they track `initTables` today, and `bun test` still needs no Docker. There are 21 call sites across 18 test files. If starting a fresh PGlite per test is too slow, use one instance per file and `TRUNCATE` between tests. **Before committing to this, check that PGlite runs under Bun 1.4.2.** The fallback is a Docker Postgres with one schema per test file.
 - [ ] **2.7 Local dev, e2e and CI.** Add a `compose.yaml` with a Postgres image matching the major version Railway provisions, and put `DATABASE_URL` in `server/.env`. In `e2e/env.ts:33,137`, create a `temply_e2e_<RUN_ID>` database instead of the temporary SQLite file, and drop stale ones the same way stale files are pruned today. The CI `e2e` job gets a `services: postgres` container, and so does the `check` job if 2.6 falls back to Docker. Update `.env.example` and the README tables: `DATABASE_URL` and `DB_POOL_MAX` come in (`HOST` is already there, §3.5); `SQLITE_DB_PATH`, `BACKUP_DIR` and `BACKUP_KEEP` go out.
-- [ ] **2.8 Copy script.** Write `server/scripts/sqlite-to-postgres.ts`. It reads a SQLite snapshot and, in a single Postgres transaction, `TRUNCATE`s and re-inserts all 11 tables in batches: `mails`, `api_keys`, `template_versions`, `subscriptions`, `api_usage`, `org_usage`, `brands`, `user_prefs`, `org_prefs`, `contact_messages`, `assets`. `rate_windows` stays behind: no row in it is older than a day, and starting it empty just resets every limit once. It then prints each table's row count on both sides and exits non-zero if any differ, so it's safe to re-run. Copy by the Postgres schema's columns, not the source's: `subscriptions` in a database from before Lemon Squeezy still has `stripe_customer_id` and `stripe_subscription_id`, which nothing reads. Rehearse it against a copy of the Railway SQLite database on staging (§5.5).
+- [ ] **2.8 Copy script.** Write `server/scripts/sqlite-to-postgres.ts`. It reads a SQLite snapshot and, in a single Postgres transaction, `TRUNCATE`s and re-inserts all 11 tables in batches: `mails`, `api_keys`, `template_versions`, `subscriptions`, `api_usage`, `org_usage`, `brands`, `user_prefs`, `org_prefs`, `contact_messages`, `assets`. `rate_windows` stays behind: no row in it is older than a day, and starting it empty just resets every limit once. It then prints each table's row count on both sides and exits non-zero if any differ, so it's safe to re-run. Copy by the Postgres schema's columns, not the source's: a column an older SQLite shape kept — the `lemonsqueezy_*` columns of a database from the unreleased Lemon Squeezy branch, say — has nowhere to go and nothing reads it. Rehearse it against a copy of the Railway SQLite database on staging (§5.5).
 - [ ] **2.9 Remove the SQLite leftovers:** `server/scripts/backup-db.ts`, the `db:backup` script, the `bun:sqlite` imports and `closeDb`'s WAL note. On Postgres, `closeDb` becomes ending the pool.
 
 ---
@@ -148,7 +149,7 @@ Set these once per environment. The `${{ }}` syntax is Railway's variable refere
 | shared | `SENTRY_ENVIRONMENT`, `NEXT_PUBLIC_SENTRY_ENVIRONMENT` | `production` / `staging` |
 | api | `DATABASE_URL` | `${{Postgres.DATABASE_URL}}` (the private URL) |
 | api | `HOST`, `PORT`, `DB_POOL_MAX` | `::`, `3001`, `10` |
-| api | everything else from the server block of `.env.example` | Lemon Squeezy, the Clerk webhook secret, Resend, contact, sending, ImageKit, `SENTRY_DSN` |
+| api | everything else from the server block of `.env.example` | Stripe (key, webhook secret, three prices, meter event), the Clerk webhook secret, Resend, contact, sending, ImageKit, `SENTRY_DSN` |
 | web | `API_URL` | `http://${{api.RAILWAY_PRIVATE_DOMAIN}}:${{api.PORT}}` |
 | web | everything else from the client block | sign-in/up URLs, `NEXT_PUBLIC_SENTRY_DSN`, `SENTRY_ORG`/`PROJECT`/`AUTH_TOKEN`, contact emails |
 
@@ -161,7 +162,7 @@ Turn on Railway's scheduled backups for the Postgres volume. Add a small cron se
 ### 5.5 Stand up staging
 
 - [ ] Create project `temply` with environments `production` and `staging`. Add Postgres, `api` (from `feature/railway`) and `web`. Generate a Railway domain for `web` only.
-- [ ] Point the Clerk dev instance and Lemon Squeezy test mode webhooks at `https://<staging domain>/api/webhooks/{clerk,lemonsqueezy}`.
+- [ ] Point the Clerk dev instance and Stripe test mode webhooks at `https://<staging domain>/api/webhooks/{clerk,stripe}`, and set up the test-mode meter, prices and customer portal as the README's *Setup* describes.
 - [ ] Rehearse the §6 copy: take a snapshot of the Railway SQLite database, load it with `sqlite-to-postgres.ts`, and check the counts.
 - [ ] Walk through the §6 smoke list on staging.
 - [ ] **Load test to find the per-replica ceiling.** Hit the public render endpoint with `oha` or k6 at rising concurrency on one `api` replica, and record requests per second at an acceptable p95. That number turns traffic forecasts into replica counts (§7). The burst limiter and the test-key monthly cap will block a load test, so use a live key on an Enterprise-plan staging org, and raise the limits through staging-only variables if needed.
@@ -182,7 +183,7 @@ Do this in one announced maintenance window, off-peak for UK users.
 2. [ ] Take and export a final consistent SQLite snapshot using the README's Railway backup procedure.
 3. [ ] Turn on the Postgres TCP proxy briefly. Run `sqlite-to-postgres.ts` against production. **Go / no-go:** every table count matches. Turn the TCP proxy off again.
 4. [ ] Move the production domain to the new Railway `web` service and verify its certificate.
-5. [ ] If the domain is unchanged, the Clerk and Lemon Squeezy webhook URLs don't change either. If it changes, repoint both webhooks and update `CLERK_WEBHOOK_SIGNING_SECRET`. Lemon Squeezy's webhook keeps its secret when only its URL changes, and it must: `LEMONSQUEEZY_WEBHOOK_SECRET` also signs checkouts already open.
+5. [ ] If the domain is unchanged, the Clerk and Stripe webhook URLs don't change either. If it changes, repoint both webhooks and update `CLERK_WEBHOOK_SIGNING_SECRET`. Edit the existing Stripe endpoint's URL rather than adding a new one: an edited endpoint keeps its signing secret, while a new endpoint has a new one and `STRIPE_WEBHOOK_SECRET` would have to change with it.
 6. [ ] Smoke test: sign in; switch workspace; open, edit and autosave a template; publish and check version history; fetch that template through the integrator API with a live key; upload an image; send a test email; submit the contact form; open the billing portal (no purchase); check `/api/health` and confirm Sentry receives a test error.
 7. [ ] Merge `feature/railway` → `main` and point both Railway services at `main`.
 

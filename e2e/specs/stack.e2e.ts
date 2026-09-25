@@ -1,4 +1,4 @@
-import { FAKES_URL, RUN_ID } from '../env';
+import { FAKES_URL, RUN_ID, STRIPE, STRIPE_URL } from '../env';
 import { test, expect } from '../fixtures/test';
 
 // Runs on the desktop project only (see playwright.config): the fakes are one
@@ -11,14 +11,26 @@ test('the stack is wired: the fakes answer and record', async ({ fakes }) => {
   const email = (await fakes.requests('resend')).find((r) => (r.body as { to?: string }).to === to);
   expect(email, 'the Resend fake recorded the email').toBeDefined();
 
-  // The Lemon Squeezy fake answers at the paths the API requests, under its
-  // prefix on the same port.
-  const subscription = `sub_stack_${RUN_ID}`;
-  const lsRes = await fetch(`${FAKES_URL}/lemonsqueezy/v1/subscriptions/${subscription}`, { headers: { accept: 'application/vnd.api+json' } });
-  expect(lsRes.status).toBe(200);
-  const body = (await lsRes.json()) as { data: { id: string; attributes: { urls: { customer_portal: string } } } };
-  expect(body.data.id).toBe(subscription);
-  expect(body.data.attributes.urls.customer_portal).toMatch(/portal=fake/);
-  const recorded = (await fakes.requests('lemonsqueezy')).find((r) => r.path === `/v1/subscriptions/${subscription}`);
-  expect(recorded, 'the Lemon Squeezy fake recorded the request').toMatchObject({ method: 'GET' });
+  // The Stripe fake answers on its own origin at the paths the SDK requests,
+  // returns what Stripe's side was given, and checks the key as Stripe does.
+  const id = `sub_stack_${RUN_ID}`;
+  await fakes.putStripeSubscription({
+    id,
+    object: 'subscription',
+    customer: `cus_stack_${RUN_ID}`,
+    status: 'active',
+    metadata: {},
+    cancel_at: null,
+    cancel_at_period_end: false,
+    canceled_at: null,
+    ended_at: null,
+    items: { object: 'list', data: [] },
+  });
+  const stripeRes = await fetch(`${STRIPE_URL}/v1/subscriptions/${id}`, { headers: { authorization: `Bearer ${STRIPE.secretKey}` } });
+  expect(stripeRes.status).toBe(200);
+  expect(((await stripeRes.json()) as { id: string }).id).toBe(id);
+  const recorded = (await fakes.requests('stripe')).find((r) => r.path === `/v1/subscriptions/${id}`);
+  expect(recorded, 'the Stripe fake recorded the request').toMatchObject({ method: 'GET' });
+  const unkeyed = await fetch(`${STRIPE_URL}/v1/subscriptions/${id}`);
+  expect(unkeyed.status, 'the Stripe fake refuses a request without the key').toBe(401);
 });

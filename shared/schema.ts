@@ -77,22 +77,39 @@ export const templateVersions = sqliteTable('template_versions', {
   created_at: text('created_at').default(now),
 });
 
+/**
+ * A workspace's account: one row per organization, made on its first visit,
+ * which is when its trial starts. `user_id` is who that was — not unique,
+ * since one person can start several workspaces.
+ */
 export const subscriptions = sqliteTable('subscriptions', {
   id: text('id').primaryKey(),
-  user_id: text('user_id').notNull().unique(),
+  user_id: text('user_id').notNull(),
   /** The organization this row belongs to; every query scopes on it.
    *  user_id stays as who did it. Null only on rows from before
    *  organizations, until adoption moves them. */
   org_id: text('org_id'),
-  /** The Lemon Squeezy subscription that can still bill this workspace;
-   *  null once it has expired, so nothing tries to cancel it again. */
-  lemonsqueezy_subscription_id: text('lemonsqueezy_subscription_id'),
-  /** The subscription's own `updated_at` as of the event this row last
-   *  took. Webhooks can arrive out of order, and one older than this is
-   *  dropped rather than rolling the plan back. */
-  lemonsqueezy_updated_at: text('lemonsqueezy_updated_at'),
+  /** The Stripe customer made for this workspace at its first checkout.
+   *  Webhooks find the row through it, so it is unique. */
+  stripe_customer_id: text('stripe_customer_id'),
+  /** The Stripe subscription that can still bill this workspace; null once
+   *  it has ended, so nothing tries to change or cancel it again. */
+  stripe_subscription_id: text('stripe_subscription_id'),
+  /** When this row last read its subscription from Stripe. Two webhooks can
+   *  read it a moment apart and write in the other order; a write that read
+   *  earlier than this is dropped rather than rolling the plan back. */
+  stripe_synced_at: text('stripe_synced_at'),
+  /** `free` means nothing is paying; whether that is a trial or read-only
+   *  is `trial_ends_at`'s to say. Otherwise the plan paid for. */
   plan: text('plan').notNull().default('free'),
+  /** Stripe's word for the subscription (`active`, `past_due`, `canceled`…). */
   status: text('status').notNull().default('active'),
+  /** Set when the row is made. Subscribing brings it forward to that moment,
+   *  so a plan that later ends goes read-only rather than back to a trial. */
+  trial_ends_at: text('trial_ends_at'),
+  /** Members billed for, as the subscription last said. */
+  seats: integer('seats'),
+  template_packs: integer('template_packs').notNull().default(0),
   current_period_end: text('current_period_end'),
   /** When a cancellation made in the portal takes effect; null while the
    *  plan simply renews. The plan stays paid until this passes, so the
@@ -136,6 +153,9 @@ export const orgUsage = sqliteTable(
     org_id: text('org_id').notNull(),
     period: text('period').notNull(),
     count: integer('count').notNull().default(0),
+    /** Calls past the included ones already sent to Stripe's meter for this
+     *  month. See lib/overage.ts. */
+    reported: integer('reported').notNull().default(0),
   },
   (t) => ({ pk: primaryKey({ columns: [t.org_id, t.period] }) }),
 );

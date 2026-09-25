@@ -23,11 +23,11 @@ async function handleRequest(request: NextRequest, { params }: { params: Promise
     // Proves to the API that these forwarded ids came from our own proxy.
     'x-internal-token': process.env.INTERNAL_API_SECRET || '',
   };
-  // Webhook signatures ride on their own headers. Lemon Squeezy and Clerk
-  // post to this host, and without these the API sees an unsigned body and
-  // refuses every event. Nothing else in the app sends them, so forwarding
-  // them is safe: a forged one is still verified against the secret downstream.
-  for (const name of ['x-signature', 'svix-id', 'svix-timestamp', 'svix-signature']) {
+  // Webhook signatures ride on their own headers. Stripe and Clerk post to
+  // this host, and without these the API sees an unsigned body and refuses
+  // every event. Nothing else in the app sends them, so forwarding them is
+  // safe: a forged one is still verified against the secret downstream.
+  for (const name of ['stripe-signature', 'svix-id', 'svix-timestamp', 'svix-signature']) {
     const value = request.headers.get(name);
     if (value) headers[name] = value;
   }
@@ -66,6 +66,11 @@ async function handleRequest(request: NextRequest, { params }: { params: Promise
   // response as uncacheable and refetches thumbnails on each visit.
   const cacheControl = res.headers.get('Cache-Control');
   if (cacheControl) response.headers.set('Cache-Control', cacheControl);
+
+  // An integrator's retry waits on this; the docs tell them to read it rather
+  // than guess a backoff.
+  const retryAfter = res.headers.get('Retry-After');
+  if (retryAfter) response.headers.set('Retry-After', retryAfter);
 
   // Forward any Set-Cookie the API returns so cookie-setting routes work through
   // the proxy; getSetCookie keeps multiple cookies intact.

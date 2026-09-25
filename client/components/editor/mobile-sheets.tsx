@@ -27,6 +27,7 @@ function Field({
   onChange,
   placeholder,
   type = 'text',
+  readOnly,
 }: {
   id: string;
   label: string;
@@ -34,6 +35,7 @@ function Field({
   onChange: (v: string) => void;
   placeholder?: string;
   type?: string;
+  readOnly?: boolean;
 }) {
   return (
     <div className="space-y-1.5">
@@ -42,6 +44,7 @@ function Field({
         id={id}
         type={type}
         className={inputClass}
+        readOnly={readOnly}
         value={value}
         placeholder={placeholder}
         onChange={(e) => onChange(e.target.value)}
@@ -84,11 +87,11 @@ export function MobileSheets({
     <>
       <BottomSheet open={open === 'details'} onOpenChange={close} title="Email details">
         <div className="space-y-4 py-1">
-          <Field id="m-subject" label="Subject" value={model.subject} onChange={model.setSubject} placeholder="Your email subject" />
+          <Field id="m-subject" label="Subject" value={model.subject} onChange={model.setSubject} placeholder="Your email subject" readOnly={model.readOnly} />
           <Field id="m-from" label="From name" value={model.fromName} onChange={model.setFromName} placeholder="Your name or brand" />
           <Field id="m-to" label="To" value={model.to} onChange={model.setTo} placeholder="to@example.com" type="email" />
           <Field id="m-reply" label="Reply to" value={model.replyTo} onChange={model.setReplyTo} placeholder="replyto@example.com" type="email" />
-          <Field id="m-preview" label="Preview text" value={model.previewText} onChange={model.setPreviewText} placeholder="Preview text shown in inbox…" />
+          <Field id="m-preview" label="Preview text" value={model.previewText} onChange={model.setPreviewText} placeholder="Preview text shown in inbox…" readOnly={model.readOnly} />
         </div>
       </BottomSheet>
 
@@ -98,9 +101,9 @@ export function MobileSheets({
             inline are grown here; the brand dropdown's rows and the colour
             popovers render in portals no wrapper class can reach, so they take
             `touch` instead. */}
-        <div className="[&_button]:min-h-11 [&_input]:min-h-11">
+        <fieldset disabled={model.readOnly} className="m-0 min-w-0 border-0 p-0 [&_button]:min-h-11 [&_input]:min-h-11">
           <TemplateThemePanel theme={model.theme} onChange={model.setTheme} touch className="border-0 bg-transparent shadow-none" />
-        </div>
+        </fieldset>
       </BottomSheet>
 
       <BottomSheet open={open === 'data'} onOpenChange={close} title="Sample data">

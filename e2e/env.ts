@@ -20,10 +20,25 @@ process.env.E2E_RUN_ID = process.env.E2E_RUN_ID ?? RUN_ID;
 // the e2e stack gets its own ports throughout. Client is 9101, not 9100: on
 // this machine 9100 is held by an unrelated long-running Flutter DevTools
 // process for a different project.
-export const PORTS = { client: 9101, api: 3101, fakes: 3999 } as const;
+export const PORTS = { client: 9101, api: 3101, fakes: 3999, stripe: 3998 } as const;
 export const BASE_URL = `http://localhost:${PORTS.client}`;
 export const API_URL = `http://127.0.0.1:${PORTS.api}`;
 export const FAKES_URL = `http://127.0.0.1:${PORTS.fakes}`;
+/** The Stripe fake has an origin of its own: the SDK takes a host and a port
+ *  but no base path, so it cannot share the fakes port under a prefix. */
+export const STRIPE_URL = `http://127.0.0.1:${PORTS.stripe}`;
+
+/**
+ * What the stack's Stripe is set up with. Fixed rather than read from the
+ * environment: the fake is the only Stripe this stack talks to, and a real
+ * key copied into e2e/.env must never reach it. The prices only have to be
+ * told apart — the app knows seats, overage and packs by these ids.
+ */
+export const STRIPE = {
+  secretKey: 'sk_test_e2e',
+  webhookSecret: 'whsec_e2e',
+  prices: { seat: 'price_e2e_seat', apiOverage: 'price_e2e_api_overage', templatePack: 'price_e2e_template_pack' },
+} as const;
 
 /** A fresh database per run. Under e2e/.tmp so a crashed run leaves a file
  *  you can open, and the next run does not see it. */
@@ -135,14 +150,12 @@ export function stackEnv(): Record<string, string> {
     API_URL,
     SQLITE_DB_PATH: DB_PATH,
     INTERNAL_API_SECRET: process.env.INTERNAL_API_SECRET || 'e2e-internal-secret',
-    LEMONSQUEEZY_API_KEY: process.env.LEMONSQUEEZY_API_KEY || 'ls_e2e',
-    LEMONSQUEEZY_WEBHOOK_SECRET: process.env.LEMONSQUEEZY_WEBHOOK_SECRET || 'ls_webhook_e2e',
-    LEMONSQUEEZY_API_BASE: `${FAKES_URL}/lemonsqueezy`,
-    // The store only has to exist for the checkout route; the variants are
-    // what the forged webhooks name, and each must map to its plan.
-    LEMONSQUEEZY_STORE_ID: '1',
-    LEMONSQUEEZY_VARIANT_PRO: '101',
-    LEMONSQUEEZY_VARIANT_ENTERPRISE: '202',
+    STRIPE_SECRET_KEY: STRIPE.secretKey,
+    STRIPE_WEBHOOK_SECRET: STRIPE.webhookSecret,
+    STRIPE_API_BASE: STRIPE_URL,
+    STRIPE_PRICE_SEAT: STRIPE.prices.seat,
+    STRIPE_PRICE_API_OVERAGE: STRIPE.prices.apiOverage,
+    STRIPE_PRICE_TEMPLATE_PACK: STRIPE.prices.templatePack,
     IMAGEKIT_PUBLIC_KEY: 'public_e2e',
     IMAGEKIT_PRIVATE_KEY: 'private_e2e',
     IMAGEKIT_URL_ENDPOINT: `${FAKES_URL}/imagekit/cdn`,

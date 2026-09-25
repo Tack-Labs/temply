@@ -37,8 +37,9 @@ export default function PrivacyPage() {
               preview, and the version history of each template.
             </>,
             <>
-              <Strong>Billing.</Strong> Your plan, and a reference to your Lemon Squeezy subscription. Lemon Squeezy
-              sells the plan to you as merchant of record, so your payment details go to it and never reach us.
+              <Strong>Billing.</Strong> Your plan, your Stripe customer and subscription ids, the number of seats and
+              template packs, and your monthly API call counts. Stripe processes the payments and stores your card
+              details, which go to it directly and never reach us.
             </>,
             <>
               <Strong>API use.</Strong> Which key was used, when, and a monthly count per workspace — enough to

@@ -60,8 +60,10 @@ export default defineConfig({
   ],
   webServer: [
     {
-      // Started first: the API's requests to Lemon Squeezy and ImageKit need
-      // this listening before the API itself does.
+      // Started first: the API's requests to Stripe, ImageKit and Resend
+      // need these listening before the API itself does. Stripe's fake is on
+      // its own port (STRIPE_URL) and is up before the shared one answers
+      // the health check.
       command: 'bun fakes/index.ts',
       cwd: import.meta.dirname,
       url: `${FAKES_URL}/__health`,

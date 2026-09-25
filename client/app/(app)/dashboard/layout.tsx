@@ -1,5 +1,6 @@
 import { SettingsIcon } from 'lucide-react';
 import Link from 'next/link';
+import { BillingBanner } from '~/components/dashboard/billing-banner';
 import { MobileNav } from '~/components/dashboard/mobile-nav';
 import { Sidebar } from '~/components/dashboard/sidebar';
 import { ThemeToggle } from '~/components/theme-toggle';
@@ -40,7 +41,10 @@ export default async function DashboardLayout({
         </header>
 
         <main id="main-content" className="flex-1 overflow-y-auto p-4 lg:p-6">
-          <div className="mx-auto max-w-6xl">{children}</div>
+          <div className="mx-auto max-w-6xl">
+            <BillingBanner />
+            {children}
+          </div>
         </main>
       </div>
     </div>

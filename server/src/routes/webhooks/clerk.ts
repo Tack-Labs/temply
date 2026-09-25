@@ -2,15 +2,18 @@ import { Elysia } from 'elysia';
 import { verifyWebhook } from '@clerk/backend/webhooks';
 import { json } from '../../lib/errors';
 import { getImageKit } from '../../lib/imagekit';
-import { cancelSubscription } from '../../lib/lemonsqueezy';
+import { getStripe, syncSeats } from '../../lib/stripe';
 import { purgeLegacyUser, purgeOrganization } from '../../lib/purge';
 import { dbPlugin } from '../../plugins/db';
 
 /**
- * Clerk tells us when an account goes; nothing else does. Without this a
- * deleted organization kept its templates, keys and — worst — its
- * subscription, so a customer who left kept paying. Register the endpoint
- * in the Clerk dashboard for organization.deleted and user.deleted.
+ * Clerk tells us when an account goes, and when someone joins or leaves a
+ * workspace; nothing else does. Without it a deleted organization kept its
+ * templates, keys and — worst — its subscription, so a customer who left
+ * kept paying, and a team billed per member was billed for last month's
+ * team. Register the endpoint in the Clerk dashboard for
+ * organization.deleted, user.deleted, organizationMembership.created and
+ * organizationMembership.deleted.
  */
 export const clerkWebhookRoutes = new Elysia()
   .use(dbPlugin)
@@ -29,7 +32,7 @@ export const clerkWebhookRoutes = new Elysia()
     }
 
     const effects = {
-      cancelSubscription: process.env.LEMONSQUEEZY_API_KEY ? cancelSubscription : undefined,
+      cancelSubscription: process.env.STRIPE_SECRET_KEY ? async (id: string) => { await getStripe().subscriptions.cancel(id); } : undefined,
       deleteFile: (() => {
         const ik = getImageKit();
         return ik ? async (id: string) => { await ik.deleteFile(id); } : undefined;
@@ -47,6 +50,13 @@ export const clerkWebhookRoutes = new Elysia()
         if (!event.data.id) break;
         const report = await purgeLegacyUser(ctx.db, event.data.id, effects);
         console.log(`Purged user ${event.data.id}:`, report);
+        break;
+      }
+      case 'organizationMembership.created':
+      case 'organizationMembership.deleted': {
+        // A failure answers 500 so Clerk retries: a missed count bills the
+        // wrong number of members until the next one.
+        await syncSeats(ctx.db, event.data.organization.id);
         break;
       }
     }

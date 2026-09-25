@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it } from 'bun:test';
 import { eq } from 'drizzle-orm';
 import { brands } from '@temply/shared/schema';
-import { createTestApp, createTestDb, del, get, givePlan, post, put, type TestDb } from '../test/helpers';
+import { createTestApp, createTestDb, del, get, givePlan, lapse, post, put, type TestDb } from '../test/helpers';
 import { brandsRoutes } from './brands';
 
 let db: TestDb;
@@ -15,9 +15,15 @@ const make = (userId: string, name = 'Brand') => post(app, '/api/v1/brands', { n
 
 describe('POST /api/v1/brands', () => {
   it('401 without a user', async () => { expect((await make(null as any)).status).toBe(401); });
-  it('creates one for a free user, blocks the second', async () => {
-    expect((await make(OWNER)).status).toBe(200);
-    expect((await make(OWNER, 'Second')).status).toBe(402);
+  it('saves five on a trial, and says so at the sixth', async () => {
+    for (let i = 0; i < 5; i++) expect((await make(OWNER, `Brand ${i}`)).status).toBe(200);
+    const res = await make(OWNER, 'Sixth');
+    expect(res.status).toBe(402);
+    expect((await res.json()).message).toBe('You can save 5 brands. Delete one to save another.');
+  });
+  it('saves nothing for a read-only workspace', async () => {
+    await lapse(db, OWNER);
+    expect((await make(OWNER)).status).toBe(402);
   });
   it('does not auto-default a newly created brand', async () => {
     const { brand } = await (await make(OWNER)).json();
@@ -27,12 +33,12 @@ describe('POST /api/v1/brands', () => {
 
 describe('GET /api/v1/brands', () => {
   it('lists only the caller’s brands and reports the plan cap', async () => {
-    await givePlan(db, OWNER, 'pro'); await givePlan(db, OTHER, 'pro');
+    await givePlan(db, OWNER, 'team'); await givePlan(db, OTHER, 'team');
     await make(OWNER, 'Mine'); await make(OTHER, 'Theirs');
     const body = await (await get(app, '/api/v1/brands', OWNER)).json();
     expect(body.brands).toHaveLength(1);
     expect(body.brands[0].name).toBe('Mine');
-    expect(body.limit).toBe(5); // pro
+    expect(body.limit).toBe(5);
   });
 
   it('reports null (unlimited) for enterprise', async () => {
@@ -53,7 +59,7 @@ const defaultOf = async (userId: string) =>
 
 describe('POST /api/v1/brands/:id/default', () => {
   it('moves default to the chosen brand', async () => {
-    await givePlan(db, OWNER, 'pro');
+    await givePlan(db, OWNER, 'team');
     await make(OWNER, 'A');
     const b = (await (await make(OWNER, 'B')).json()).brand;
     await post(app, `/api/v1/brands/${b.id}/default`, {}, OWNER);
@@ -111,7 +117,7 @@ describe('DELETE /api/v1/brands/:id', () => {
   });
 
   it('deletes the default brand and hands the default to the next custom brand', async () => {
-    await givePlan(db, OWNER, 'pro');
+    await givePlan(db, OWNER, 'team');
     const a = (await (await make(OWNER, 'A')).json()).brand;
     const b = (await (await make(OWNER, 'B')).json()).brand;
     await post(app, `/api/v1/brands/${a.id}/default`, {}, OWNER);
@@ -132,7 +138,7 @@ describe('DELETE /api/v1/brands/:id', () => {
   });
 
   it('leaves the default untouched when a non-default brand is deleted', async () => {
-    await givePlan(db, OWNER, 'pro');
+    await givePlan(db, OWNER, 'team');
     const a = (await (await make(OWNER, 'A')).json()).brand;
     const b = (await (await make(OWNER, 'B')).json()).brand;
     await post(app, `/api/v1/brands/${a.id}/default`, {}, OWNER);

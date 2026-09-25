@@ -37,7 +37,10 @@ test.describe('team', () => {
 
       await member.page.goto('/dashboard/settings/plan');
       await clerkLoaded(member.page);
-      await expect(member.page.getByText('Plan and billing are for admins')).toBeVisible();
+      // A member can read the plan — its usage is theirs too — but every
+      // control that spends money is the admin's.
+      await expect(member.page.getByText('Ask an admin to change the plan.')).toBeVisible();
+      await expect(member.page.getByRole('button', { name: 'Manage billing' })).toHaveCount(0);
       await member.page.goto('/dashboard/settings/api-keys');
       await clerkLoaded(member.page);
       await expect(member.page.getByText('API keys are for admins')).toBeVisible();
@@ -45,9 +48,9 @@ test.describe('team', () => {
       const key = await member.page.request.post('/api/v1/api-keys', { data: { name: name('member key'), mode: 'test' } });
       expect(key.status()).toBe(403);
       expect((await key.json()).message).toBe('Only an admin can create API keys. Ask an admin on your team.');
-      const checkout = await member.page.request.post('/api/v1/billing/checkout', { data: { plan: 'pro' } });
+      const checkout = await member.page.request.post('/api/v1/billing/checkout', { data: {} });
       expect(checkout.status()).toBe(403);
-      expect((await checkout.json()).message).toBe('Only an admin can change the plan. Ask an admin on your team.');
+      expect((await checkout.json()).message).toBe('Only an admin can subscribe. Ask an admin on your team.');
     } finally {
       // The context closes even when a cleanup delete fails: an open
       // member session would outlive the test and hold its worker.

@@ -55,6 +55,13 @@ export type EmailEditorSandboxProps = {
   imageUploads?: boolean;
   autofocus?: FocusPosition;
   /**
+   * A workspace whose trial or plan has ended: the template opens and
+   * previews, but nothing is saved or published — the server would refuse
+   * it with a 402 anyway, and an editor that looked live would lose the
+   * work the moment it tried.
+   */
+  readOnly?: boolean;
+  /**
    * Starting values for the "Email details" fields when there is no row to
    * read them from. A saved template always takes subject and preview text
    * from its row instead — this only fills the gap for a caller that has
@@ -88,6 +95,7 @@ const sameCounts = (a: Record<string, number>, b: Record<string, number>) => {
 
 export type TemplateEditorModel = {
   template?: Mail;
+  readOnly: boolean;
   // fields
   subject: string; setSubject: (v: string) => void;
   previewText: string; setPreviewText: (v: string) => void;
@@ -146,7 +154,7 @@ function themeOfRow(raw: string | null | undefined): RendererThemeOptions {
 }
 
 export function useTemplateEditor(props: EmailEditorSandboxProps): TemplateEditorModel {
-  const { template, seedFields } = props;
+  const { template, seedFields, readOnly = false } = props;
 
   const router = useRouter();
 
@@ -206,7 +214,7 @@ export function useTemplateEditor(props: EmailEditorSandboxProps): TemplateEdito
   const savedFingerprint = useRef<string | null>(null);
 
   const autosave = useMemo(() => {
-    if (!template?.id) return null;
+    if (!template?.id || readOnly) return null;
     const id = template.id;
     return createAutosave<DraftSnapshot>({
       delayMs: 500,
@@ -223,7 +231,7 @@ export function useTemplateEditor(props: EmailEditorSandboxProps): TemplateEdito
       },
       onStatus: setSaveStatus,
     });
-  }, [template?.id]);
+  }, [template?.id, readOnly]);
 
   // Leaving the page (a Link, a route change) saves whatever is waiting —
   // including the capture still sitting in its own timer, which the effect
@@ -963,7 +971,7 @@ export function useTemplateEditor(props: EmailEditorSandboxProps): TemplateEdito
   };
 
   return {
-    template,
+    template, readOnly,
     subject, setSubject, previewText, setPreviewText, fromName, setFromName, to, setTo, replyTo, setReplyTo,
     theme, setTheme, pageStyle, cardStyle,
     editor, setEditor, editorContent, flushContent, editorPaneRef, paneClass, paneHeight,

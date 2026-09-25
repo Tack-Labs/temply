@@ -1,9 +1,8 @@
 import { Elysia, t } from 'elysia';
 import { and, desc, eq } from 'drizzle-orm';
 import { brands, orgPrefs } from '@temply/shared/schema';
-import { PLAN_LIMITS } from '@temply/shared/plans';
 import { BRAND_PRESETS } from '@temply/shared/brand-presets';
-import { checkBrandLimit, getPlan } from '../lib/billing';
+import { checkBrandLimit, getPlan, limitsForAccount, refuseWhenLapsed } from '../lib/billing';
 import { FALLBACK_PRESET_ID, readDefault } from '../lib/brands';
 import { json, unauthorized, paymentRequired, notFound } from '../lib/errors';
 import { authPlugin } from '../plugins/auth';
@@ -20,14 +19,15 @@ async function writeDefault(db: Db, orgId: string, id: string | null): Promise<v
 export const brandsRoutes = new Elysia()
   .use(authPlugin)
   .use(dbPlugin)
+  // A workspace without a plan reads and deletes, and changes nothing.
+  .onBeforeHandle(refuseWhenLapsed)
   .get('/api/v1/brands', async (ctx) => {
     if (!ctx.userId) return unauthorized();
     if (!ctx.orgId) return noWorkspace();
     const list = await ctx.db.select().from(brands).where(eq(brands.org_id, ctx.orgId)).orderBy(desc(brands.created_at));
     // The client needs the cap to render the "custom brands used up" banner.
     // null means unlimited (Enterprise). Presets do not count — only these rows.
-    const { plan } = await getPlan(ctx.db, ctx.orgId);
-    const raw = PLAN_LIMITS[plan].maxBrands;
+    const raw = limitsForAccount(await getPlan(ctx.db, ctx.orgId)).maxBrands;
     return json({
       brands: list,
       limit: Number.isFinite(raw) ? raw : null,

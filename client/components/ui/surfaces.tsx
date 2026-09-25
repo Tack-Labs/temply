@@ -141,6 +141,36 @@ export function Badge({
   );
 }
 
+/**
+ * Content that comes and goes grows from nothing rather than popping in.
+ * Collapsed, it is inert as well as hidden, so neither the tab order nor a
+ * screen reader lands on something that isn't there. Spacing belongs inside
+ * the children: a margin on the wrapper would stay behind when it closes.
+ */
+export function Reveal({
+  open,
+  className,
+  children,
+}: {
+  open: boolean;
+  className?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div
+      className={cn(
+        'grid transition-[grid-template-rows,opacity] duration-base ease-out motion-reduce:transition-none',
+        open ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0',
+        className,
+      )}
+    >
+      <div className="min-h-0 overflow-hidden" aria-hidden={!open} inert={!open}>
+        {children}
+      </div>
+    </div>
+  );
+}
+
 /** Label above, value below — the dashboard and billing pages drew this two
  *  different ways for the same numbers. */
 export function StatTile({

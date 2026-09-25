@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { LegalPage, List, P, Section, Strong } from '~/components/legal/legal-page';
 import { LEGAL } from '~/lib/legal';
-import { PLAN_LIMITS, TEST_API_CALLS_PER_MONTH } from '@temply/shared/plans';
+import { formatUsd, INCLUDED, PRICES_USD, TEST_API_CALLS_PER_MONTH, TRIAL_DAYS } from '@temply/shared/plans';
 
 export const metadata: Metadata = {
   title: 'Terms of service',
@@ -72,22 +72,45 @@ export default function TermsPage() {
 
       <Section id="plans" title="5. Plans, limits and billing">
         <P>
-          The Free plan has no charge and comes with limits: {PLAN_LIMITS.free.maxTemplates} templates,{' '}
-          {PLAN_LIMITS.free.maxBrands} brand, and a test API key with{' '}
-          {TEST_API_CALLS_PER_MONTH.toLocaleString('en-GB')} calls a month. Paid plans raise those limits; the current
-          limits and prices are on the <Link href="/dashboard/settings/plan" className="text-accent-ink underline-offset-4 hover:underline">plan page</Link>.
+          Every new workspace starts with a {TRIAL_DAYS}-day free trial. It needs no card and comes with limits,
+          including {INCLUDED.apiCalls.toLocaleString('en-GB')} live API calls a month. The current limits and prices
+          are on our <Link href="/#pricing" className="text-accent-ink underline-offset-4 hover:underline">pricing</Link>{' '}
+          and on the <Link href="/dashboard/settings/plan" className="text-accent-ink underline-offset-4 hover:underline">plan page</Link>.
         </P>
         <List
           items={[
             <>
-              <Strong>Billing.</Strong> Paid plans are sold through Lemon Squeezy, our reseller and merchant of
-              record: it takes payment, monthly in advance, and charges any sales tax or VAT due. Your subscription
-              renews automatically until you cancel.
+              <Strong>When the trial ends.</Strong> Without a subscription the workspace becomes read-only: you can
+              still sign in and see everything you built, and test keys keep their{' '}
+              {TEST_API_CALLS_PER_MONTH.toLocaleString('en-GB')} calls a month, but editing, publishing, uploading
+              and creating keys stop, and live API keys are refused, until someone subscribes. Nothing is deleted.
             </>,
             <>
-              <Strong>Cancelling.</Strong> Cancel any time from the plan page. Your plan stays active until the end
-              of the period you have paid for, then drops to Free. Anything over the Free limits is kept but cannot
-              be added to until you are within them.
+              <Strong>The Team plan.</Strong> {formatUsd(PRICES_USD.seat)} a month for each member of the workspace,
+              billed monthly in advance. When someone joins or leaves, the charge is prorated for the rest of the
+              period. Template packs are optional, at {formatUsd(PRICES_USD.templatePack)} a month each, billed the
+              same way. Your subscription renews automatically until you cancel.
+            </>,
+            <>
+              <Strong>API usage.</Strong> The Team plan includes {INCLUDED.apiCalls.toLocaleString('en-GB')} live API
+              calls a month. Calls past that are billed at {formatUsd(PRICES_USD.overagePer1000Calls)} per 1,000, pro
+              rata, in arrears on the next invoice. Every call counts, including repeats. During the trial, calls past
+              its allowance are refused, not billed. On every plan each key also has a per-minute rate, and calls
+              past it are refused, not billed.
+            </>,
+            <>
+              <Strong>Payments.</Strong> We sell the plan to you; Stripe processes the payment. Stripe is our
+              payment processor, not the merchant of record, and your card details go to Stripe and never reach us.
+            </>,
+            <>
+              <Strong>Prices.</Strong> Prices are in US dollars, before tax. Any tax due where you are is added to
+              the invoice.
+            </>,
+            <>
+              <Strong>Cancelling.</Strong> Cancel any time from the billing portal on the plan page. Your plan stays
+              active until the end of the period you have paid for, and calls past the allowance in that period are
+              still billed. After that the workspace becomes read-only, as at the end of a trial, and nothing is
+              deleted.
             </>,
             <>
               <Strong>Refunds.</Strong> If the service was unavailable for a substantial part of a billing period, or
@@ -97,10 +120,6 @@ export default function TermsPage() {
             <>
               <Strong>Price changes.</Strong> We will give at least 30 days’ notice by email before a price change
               applies to you.
-            </>,
-            <>
-              <Strong>API limits.</Strong> Each plan has a monthly call quota and each key a per-minute rate; calls
-              past either are refused, not billed.
             </>,
           ]}
         />

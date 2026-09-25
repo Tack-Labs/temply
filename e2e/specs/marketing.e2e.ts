@@ -105,6 +105,23 @@ test.describe('marketing', () => {
     await expect(page.getByRole('heading', { name: 'Privacy policy', level: 1 })).toBeVisible();
   });
 
+  test('the pricing section states the trial, the prices and the caching advice', async ({ page }) => {
+    // The figures are written out rather than imported: this package does
+    // not depend on the shared plan rules, and a change to a price should
+    // have to be made here on purpose.
+    await page.goto('/');
+    const pricing = page.locator('#pricing');
+    await expect(pricing.getByRole('heading', { name: 'One price per person, after a free trial' })).toBeVisible();
+    for (const figure of ['14 days', 'No card needed', '$5', 'per user a month', '$1 per 1,000 calls', '+10 templates', '50 versions', 'updatedAt']) {
+      await expect(pricing).toContainText(figure);
+    }
+    await expect(pricing.getByRole('link', { name: 'Start your free trial' })).toHaveAttribute('href', '/sign-up');
+    await expect(pricing.getByRole('link', { name: 'Contact sales' })).toHaveAttribute('href', /^mailto:/);
+    await pricing.getByRole('link', { name: 'How to cache' }).click();
+    await expect(page).toHaveURL(/\/docs#caching$/);
+    await expect(page.getByRole('heading', { name: 'Caching', exact: true })).toBeVisible();
+  });
+
   test('docs code tabs switch the language and remember it', async ({ page }) => {
     await page.goto('/docs');
     // Only a JavaScript snippet contains `fetch(`, and until a reload only the

@@ -53,7 +53,7 @@ test.describe('api keys', () => {
 
   test('each key type is offered by its name, with its terms as the description', async ({ page }) => {
     // The choice is two words. Read off the tile it was twenty: "Live" ran
-    // straight into the "Pro" marker with no separator and then into the
+    // straight into the plan's marker with no separator and then into the
     // sentence of terms underneath, so hearing the second option meant
     // hearing the whole of the first.
     await page.goto('/dashboard/settings/api-keys');

@@ -2,6 +2,7 @@ import { Database } from 'bun:sqlite';
 import { drizzle } from 'drizzle-orm/bun-sqlite';
 import * as schema from '@temply/shared/schema';
 import { Elysia } from 'elysia';
+import { TRIAL_DAYS } from '@temply/shared/plans';
 
 export type Db = ReturnType<typeof drizzle<typeof schema>>;
 
@@ -24,12 +25,8 @@ export function initTables(sqlite: Database) {
     title TEXT NOT NULL, preview_text TEXT, content TEXT NOT NULL,
     version_number INTEGER NOT NULL, created_at TEXT DEFAULT (datetime('now'))
   )`);
-  sqlite.run(`CREATE TABLE IF NOT EXISTS subscriptions (
-    id TEXT PRIMARY KEY, user_id TEXT NOT NULL UNIQUE,
-    plan TEXT NOT NULL DEFAULT 'free', status TEXT NOT NULL DEFAULT 'active',
-    current_period_end TEXT,
-    created_at TEXT DEFAULT (datetime('now')), updated_at TEXT DEFAULT (datetime('now'))
-  )`);
+  sqlite.run(`CREATE TABLE IF NOT EXISTS subscriptions (${SUBSCRIPTION_COLUMNS})`);
+  rebuildSubscriptions(sqlite);
   sqlite.run(`CREATE TABLE IF NOT EXISTS api_usage (
     user_id TEXT NOT NULL, period TEXT NOT NULL, count INTEGER NOT NULL DEFAULT 0,
     PRIMARY KEY (user_id, period)
@@ -81,8 +78,10 @@ export function initTables(sqlite: Database) {
   sqlite.run(`CREATE UNIQUE INDEX IF NOT EXISTS subscriptions_org_id_unique ON subscriptions(org_id) WHERE org_id IS NOT NULL`);
   sqlite.run(`CREATE TABLE IF NOT EXISTS org_usage (
     org_id TEXT NOT NULL, period TEXT NOT NULL, count INTEGER NOT NULL DEFAULT 0,
+    reported INTEGER NOT NULL DEFAULT 0,
     PRIMARY KEY (org_id, period)
   )`);
+  addColumnIfMissing(sqlite, 'org_usage', 'reported', 'INTEGER NOT NULL DEFAULT 0');
   sqlite.run(`CREATE TABLE IF NOT EXISTS org_prefs (
     org_id TEXT PRIMARY KEY, default_brand_id TEXT
   )`);
@@ -107,16 +106,21 @@ export function initTables(sqlite: Database) {
     published_preview_text = preview_text, published_at = updated_at
     WHERE published_at IS NULL`);
 
-  addColumnIfMissing(sqlite, 'subscriptions', 'cancel_at', 'TEXT');
-  // Databases from before Lemon Squeezy keep their Stripe columns, unread:
-  // SQLite cannot drop a UNIQUE column in place.
-  addColumnIfMissing(sqlite, 'subscriptions', 'lemonsqueezy_subscription_id', 'TEXT');
-  addColumnIfMissing(sqlite, 'subscriptions', 'lemonsqueezy_updated_at', 'TEXT');
-  // Every webhook finds its row by subscription.
-  sqlite.run(`CREATE INDEX IF NOT EXISTS subscriptions_lemonsqueezy_subscription_id ON subscriptions(lemonsqueezy_subscription_id)`);
+  // Every Stripe webhook finds its row by customer.
+  sqlite.run(`CREATE UNIQUE INDEX IF NOT EXISTS subscriptions_stripe_customer_id ON subscriptions(stripe_customer_id) WHERE stripe_customer_id IS NOT NULL`);
+  sqlite.run(`CREATE INDEX IF NOT EXISTS subscriptions_user_id ON subscriptions(user_id)`);
 
-  // One-time migration: the top plan was renamed from `scale` to `enterprise`.
+  // One-time migrations: the top plan was renamed from `scale` to
+  // `enterprise`, and Pro became Team when pricing went per member.
   sqlite.run(`UPDATE subscriptions SET plan = 'enterprise' WHERE plan = 'scale'`);
+  sqlite.run(`UPDATE subscriptions SET plan = 'team' WHERE plan = 'pro'`);
+  // Rows from before trials: a workspace on the old free plan gets a full
+  // trial from the day this ships, and one already paying has had its trial,
+  // so a plan that ends later goes read-only rather than back to a trial.
+  sqlite.run(`UPDATE subscriptions SET trial_ends_at = CASE
+      WHEN plan = 'free' THEN strftime('%Y-%m-%dT%H:%M:%fZ', 'now', '+${TRIAL_DAYS} days')
+      ELSE strftime('%Y-%m-%dT%H:%M:%fZ', 'now') END
+    WHERE trial_ends_at IS NULL`);
 
   // Heal timestamps: Drizzle used to send explicit NULLs past the DDL
   // defaults, so every historic row is missing its dates. Idempotent — only
@@ -158,6 +162,44 @@ function renumberClashingVersions(sqlite: Database) {
   })();
 }
 
+/** No UNIQUE here: uniqueness lives in the indexes initTables builds, where a
+ *  later change can drop it without rebuilding the table. */
+const SUBSCRIPTION_COLUMNS = `
+    id TEXT PRIMARY KEY, user_id TEXT NOT NULL, org_id TEXT,
+    stripe_customer_id TEXT, stripe_subscription_id TEXT, stripe_synced_at TEXT,
+    plan TEXT NOT NULL DEFAULT 'free', status TEXT NOT NULL DEFAULT 'active',
+    trial_ends_at TEXT, seats INTEGER, template_packs INTEGER NOT NULL DEFAULT 0,
+    current_period_end TEXT, cancel_at TEXT,
+    created_at TEXT DEFAULT (datetime('now')), updated_at TEXT DEFAULT (datetime('now'))`;
+
+const SUBSCRIPTION_COLUMN_NAMES = [
+  'id', 'user_id', 'org_id', 'stripe_customer_id', 'stripe_subscription_id', 'stripe_synced_at',
+  'plan', 'status', 'trial_ends_at', 'seats', 'template_packs', 'current_period_end', 'cancel_at',
+  'created_at', 'updated_at',
+];
+
+/**
+ * The table used to hold one row per user, UNIQUE on user_id — which refused
+ * a second workspace started by the same person — and SQLite cannot drop a
+ * constraint in place. So a table still declaring one, or missing a column,
+ * is copied into the current shape and swapped in, keeping every column the
+ * two share. The Lemon Squeezy columns of a database from that unreleased
+ * branch are left behind. Runs only while the table is out of date.
+ */
+function rebuildSubscriptions(sqlite: Database) {
+  const table = sqlite.query(`SELECT sql FROM sqlite_master WHERE type = 'table' AND name = 'subscriptions'`).get() as { sql: string } | null;
+  if (!table) return;
+  const existing = new Set((sqlite.query(`PRAGMA table_info(subscriptions)`).all() as Array<{ name: string }>).map((c) => c.name));
+  if (!/\bUNIQUE\b/i.test(table.sql) && SUBSCRIPTION_COLUMN_NAMES.every((c) => existing.has(c))) return;
+  const shared = SUBSCRIPTION_COLUMN_NAMES.filter((c) => existing.has(c)).join(', ');
+  sqlite.transaction(() => {
+    sqlite.run(`CREATE TABLE subscriptions_rebuilt (${SUBSCRIPTION_COLUMNS})`);
+    sqlite.run(`INSERT INTO subscriptions_rebuilt (${shared}) SELECT ${shared} FROM subscriptions`);
+    sqlite.run(`DROP TABLE subscriptions`);
+    sqlite.run(`ALTER TABLE subscriptions_rebuilt RENAME TO subscriptions`);
+  })();
+}
+
 /** SQLite has no `ADD COLUMN IF NOT EXISTS`, and existing installs already have
  *  the table, so widen it here rather than in the CREATE above. */
 function addColumnIfMissing(sqlite: Database, table: string, column: string, type: string) {
@@ -196,16 +238,20 @@ export function closeDb() {
   db = null;
 }
 
+/** The process's one connection, opened on first use — by a request, or by
+ *  a job that runs outside one. */
+export function getDb(): Db {
+  if (!db) {
+    const dbPath = process.env.SQLITE_DB_PATH || 'maily.db';
+    const sqlite = new Database(dbPath);
+    sqlite.run('PRAGMA journal_mode = WAL');
+    sqlite.run('PRAGMA foreign_keys = ON');
+    initTables(sqlite);
+    backfillShortCodes(sqlite);
+    db = drizzle(sqlite, { schema });
+  }
+  return db;
+}
+
 export const dbPlugin = new Elysia({ name: 'db' })
-  .derive({ as: 'global' }, () => {
-    if (!db) {
-      const dbPath = process.env.SQLITE_DB_PATH || 'maily.db';
-      const sqlite = new Database(dbPath);
-      sqlite.run('PRAGMA journal_mode = WAL');
-      sqlite.run('PRAGMA foreign_keys = ON');
-      initTables(sqlite);
-      backfillShortCodes(sqlite);
-      db = drizzle(sqlite, { schema });
-    }
-    return { db };
-  });
+  .derive({ as: 'global' }, () => ({ db: getDb() }));

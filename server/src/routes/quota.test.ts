@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it } from 'bun:test';
 import { createTestApp, createTestDb, get, givePlan, type TestDb } from '../test/helpers';
-import { recordApiCall, nextResetDate } from '../lib/api-quota';
+import { orgUsage } from '@temply/shared/schema';
+import { recordApiCall, nextResetDate, ukMonthString } from '../lib/api-quota';
 import { quotaRoutes } from './quota';
 
 let db: TestDb;
@@ -17,19 +18,28 @@ describe('GET /api/v1/quota', () => {
     expect((await get(app, '/api/v1/quota')).status).toBe(401);
   });
 
-  it('reports a free user’s monthly API usage', async () => {
+  it('reports a trial’s monthly usage against where it stops', async () => {
     await recordApiCall(db, USER);
     await recordApiCall(db, USER);
     const body = await (await get(app, '/api/v1/quota', USER)).json();
-    expect(body.plan).toBe('free');
-    expect(body.api).toEqual({ used: 2, limit: 10000, remaining: 9998 });
-    expect(body.resetsOn).toBe(nextResetDate());
+    expect(body).toMatchObject({ plan: 'trial', cancelAt: null, trialEndsAt: null, resetsOn: nextResetDate() });
+    expect(body.api).toEqual({ used: 2, limit: 10_000, included: 10_000, remaining: 9_998 });
+    expect(body.overage).toEqual({ calls: 0, usd: 0 });
   });
 
-  it('reports unlimited (null limit) for enterprise', async () => {
+  it('reports Team as unbounded, with the calls past the included ones and their cost', async () => {
+    await givePlan(db, USER, 'team');
+    await db.insert(orgUsage).values({ org_id: USER, period: ukMonthString(new Date()), count: 12_500 });
+    const body = await (await get(app, '/api/v1/quota', USER)).json();
+    expect(body.plan).toBe('team');
+    expect(body.api).toEqual({ used: 12_500, limit: null, included: 10_000, remaining: null });
+    expect(body.overage).toEqual({ calls: 2_500, usd: 2.5 });
+  });
+
+  it('reports unlimited (null) for enterprise', async () => {
     await givePlan(db, USER, 'enterprise');
     const body = await (await get(app, '/api/v1/quota', USER)).json();
-    expect(body.api.limit).toBeNull();
-    expect(body.api.remaining).toBeNull();
+    expect(body.api).toMatchObject({ limit: null, included: null, remaining: null });
+    expect(body.overage).toEqual({ calls: 0, usd: 0 });
   });
 });

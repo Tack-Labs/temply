@@ -40,6 +40,7 @@ import { useVisualViewport } from '~/hooks/use-visual-viewport';
 import { SaveStatus } from '../email-editor-sandbox';
 import { EditorBottomBar, type IdleTab } from './bottom-bar';
 import { DesktopOnlyBanner } from './desktop-only-banner';
+import { ReadOnlyNotice } from '~/components/dashboard/billing-banner';
 import { MobileSheets, type SheetId } from './mobile-sheets';
 import { ShellFrameContext } from './shell-context';
 import type { TemplateEditorModel } from './use-template-editor';
@@ -194,7 +195,7 @@ export function MobileEditorLayout({
               <>
                 <DropdownMenuItem
                   className={touchTarget}
-                  disabled={model.isPublishing || (!model.unpublished && model.publishedAt !== null && !model.publishArmed)}
+                  disabled={model.readOnly || model.isPublishing || (!model.unpublished && model.publishedAt !== null && !model.publishArmed)}
                   onSelect={model.handlePublish}
                 >
                   {model.isPublishing ? <Loader2Icon className="animate-spin" /> : <GlobeIcon />}
@@ -261,6 +262,11 @@ export function MobileEditorLayout({
       </header>
 
       <DesktopOnlyBanner playground={!model.template} />
+      {model.readOnly ? (
+        <div className="shrink-0 border-b border-line p-2">
+          <ReadOnlyNotice />
+        </div>
+      ) : null}
 
       {/* A failed save asks for something, so it is `danger` and it is on the
           screen rather than behind a tap: the ⋯ menu that holds the status

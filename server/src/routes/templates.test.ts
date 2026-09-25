@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it } from 'bun:test';
 import { eq, sql } from 'drizzle-orm';
 import { brands, mails, orgPrefs, templateVersions } from '@temply/shared/schema';
 import { BRAND_PRESETS } from '@temply/shared/brand-presets';
-import { createTestApp, createTestDb, del, get, givePlan, post, type TestDb } from '../test/helpers';
+import { createTestApp, createTestDb, del, get, givePlan, lapse, post, type TestDb } from '../test/helpers';
 import { templatesRoutes } from './templates';
 
 let db: TestDb;
@@ -66,12 +66,19 @@ describe('POST /api/v1/templates', () => {
     expect((await post(app, `/api/v1/templates/${id}`, { title: 'Heavy', content: heavy }, OWNER)).status).toBe(400);
   });
 
-  it('returns 402 once a free user hits the template cap', async () => {
-    for (let i = 0; i < 3; i++) await createTemplate(OWNER, `Template ${i}`);
+  it('returns 402 once a trial has made its ten templates, and says what lifts it', async () => {
+    for (let i = 0; i < 10; i++) await createTemplate(OWNER, `Template ${i}`);
 
     const res = await post(app, '/api/v1/templates', { title: 'One too many', content: '{}' }, OWNER);
     expect(res.status).toBe(402);
-    expect((await res.json()).message).toContain('Upgrade');
+    expect((await res.json()).message).toBe("You've used all 10 templates in the trial. Subscribe, then add a template pack for 10 more.");
+  });
+
+  it('makes nothing for a read-only workspace', async () => {
+    await lapse(db, OWNER);
+    const res = await post(app, '/api/v1/templates', { title: 'Welcome', content: '{}' }, OWNER);
+    expect(res.status).toBe(402);
+    expect(await db.select().from(mails)).toEqual([]);
   });
 
   // The default brand is a workspace preference, so the brands routes are not
@@ -271,7 +278,7 @@ describe('POST /api/v1/templates/:id', () => {
   });
 
   it('never snapshots a version — saving is the draft, history is what was published', async () => {
-    await givePlan(db, OWNER, 'pro');
+    await givePlan(db, OWNER, 'team');
     const template = await createTemplate(OWNER, 'Before');
     await post(app, `/api/v1/templates/${template.id}`, { title: 'After', content: '{"v":2}' }, OWNER);
 
@@ -321,7 +328,7 @@ describe('DELETE /api/v1/templates/:id', () => {
 
 describe('POST /api/v1/templates/:id/duplicate', () => {
   it('copies the content under a new id and short code', async () => {
-    await givePlan(db, OWNER, 'pro');
+    await givePlan(db, OWNER, 'team');
     const template = await createTemplate(OWNER, 'Original');
 
     const res = await post(app, `/api/v1/templates/${template.id}/duplicate`, {}, OWNER);
@@ -334,7 +341,7 @@ describe('POST /api/v1/templates/:id/duplicate', () => {
   });
 
   it('copies the theme along with the content', async () => {
-    await givePlan(db, OWNER, 'pro');
+    await givePlan(db, OWNER, 'team');
     const template = await createTemplate(OWNER, 'Branded');
     const theme = '{"container":{"backgroundColor":"#123456"}}';
     await db.update(mails).set({ theme }).where(eq(mails.id, template.id));
@@ -351,9 +358,9 @@ describe('POST /api/v1/templates/:id/duplicate', () => {
     expect(res.status).toBe(404);
   });
 
-  it('returns 402 when a free user is already at the template cap', async () => {
+  it('returns 402 when a trial is already at its ten templates', async () => {
     const first = await createTemplate(OWNER, 'Template 0');
-    for (let i = 1; i < 3; i++) await createTemplate(OWNER, `Template ${i}`);
+    for (let i = 1; i < 10; i++) await createTemplate(OWNER, `Template ${i}`);
 
     const res = await post(app, `/api/v1/templates/${first.id}/duplicate`, {}, OWNER);
     expect(res.status).toBe(402);
@@ -375,16 +382,26 @@ describe('POST /api/v1/templates/:id/publish', () => {
     expect(published.has_unpublished_changes).toBe(false);
   });
 
-  it('does not snapshot a version for a free user', async () => {
+  it('keeps history on a trial too', async () => {
     const template = await createTemplate(OWNER, 'Welcome');
     await post(app, `/api/v1/templates/${template.id}/publish`, {}, OWNER);
 
     const versions = await db.select().from(templateVersions).where(eq(templateVersions.template_id, template.id));
-    expect(versions).toHaveLength(0);
+    expect(versions).toHaveLength(1);
+  });
+
+  it('refuses a read-only workspace, and leaves the live copy as it was', async () => {
+    const template = await createTemplate(OWNER, 'Welcome');
+    await post(app, `/api/v1/templates/${template.id}`, { title: 'Welcome', content: '{"v":2}' }, OWNER);
+    await lapse(db, OWNER);
+    const res = await post(app, `/api/v1/templates/${template.id}/publish`, {}, OWNER);
+    expect(res.status).toBe(402);
+    const [row] = await db.select().from(mails).where(eq(mails.id, template.id));
+    expect(row.published_content).toBe(template.published_content);
   });
 
   it('snapshots the published copy for a paid user', async () => {
-    await givePlan(db, OWNER, 'pro');
+    await givePlan(db, OWNER, 'team');
     const template = await createTemplate(OWNER, 'Welcome');
     await post(app, `/api/v1/templates/${template.id}`, { title: 'Welcome v2', content: '{"v":2}' }, OWNER);
 
@@ -476,7 +493,7 @@ describe('a legacy row from before publishing existed', () => {
 describe('version history', () => {
   /** Publish twice so there is a version to go back to. */
   async function publishedTwice(first: string, second: string, theme?: string) {
-    await givePlan(db, OWNER, 'pro');
+    await givePlan(db, OWNER, 'team');
     const template = await createTemplate(OWNER, first);
     await post(app, `/api/v1/templates/${template.id}/publish`, {}, OWNER);
     await post(app, `/api/v1/templates/${template.id}`, { title: second, content: '{"v":2}', theme }, OWNER);
@@ -486,11 +503,19 @@ describe('version history', () => {
   }
 
   it('numbers each publish and lists the newest ten, newest first, however fast they land', async () => {
-    await givePlan(db, OWNER, 'pro');
+    await givePlan(db, OWNER, 'team');
     const template = await createTemplate(OWNER, 'Rapid');
     for (let i = 0; i < 12; i++) await post(app, `/api/v1/templates/${template.id}/publish`, {}, OWNER);
     const { versions } = await (await get(app, `/api/v1/templates/${template.id}/versions`, OWNER)).json();
     expect(versions.map((v: { version_number: number }) => v.version_number)).toEqual([12, 11, 10, 9, 8, 7, 6, 5, 4, 3]);
+  });
+
+  it('keeps fifty with a template pack', async () => {
+    await givePlan(db, OWNER, 'team', 'active', { templatePacks: 1 });
+    const template = await createTemplate(OWNER, 'Rapid');
+    for (let i = 0; i < 12; i++) await post(app, `/api/v1/templates/${template.id}/publish`, {}, OWNER);
+    const stored = await db.select().from(templateVersions).where(eq(templateVersions.template_id, template.id));
+    expect(stored).toHaveLength(12);
   });
 
   it('restores an earlier version into the draft without snapshotting or publishing', async () => {
@@ -528,7 +553,7 @@ describe('version history', () => {
   it('snapshots the theme and restores it with the content', async () => {
     const blue = '{"container":{"backgroundColor":"#0000ff"}}';
     const red = '{"container":{"backgroundColor":"#ff0000"}}';
-    await givePlan(db, OWNER, 'pro');
+    await givePlan(db, OWNER, 'team');
     const template = await createTemplate(OWNER, 'Branded v1');
     await post(app, `/api/v1/templates/${template.id}`, { title: 'Branded v1', content: '{}', theme: blue }, OWNER);
     await post(app, `/api/v1/templates/${template.id}/publish`, {}, OWNER);

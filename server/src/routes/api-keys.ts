@@ -2,7 +2,7 @@ import { Elysia, t } from 'elysia';
 import { eq, and, desc } from 'drizzle-orm';
 import { apiKeysTable } from '@temply/shared/schema';
 import { generateApiKey } from '../lib/codes';
-import { checkApiKeyLimit } from '../lib/billing';
+import { checkApiKeyLimit, refuseWhenLapsed } from '../lib/billing';
 import { json, unauthorized, paymentRequired } from '../lib/errors';
 import { authPlugin } from '../plugins/auth';
 import { askAnAdmin, isAdmin, noWorkspace } from '../lib/workspace';
@@ -11,6 +11,8 @@ import { dbPlugin } from '../plugins/db';
 export const apiKeysRoutes = new Elysia()
   .use(authPlugin)
   .use(dbPlugin)
+  // A workspace without a plan reads and deletes, and changes nothing.
+  .onBeforeHandle(refuseWhenLapsed)
   .get('/api/v1/api-keys', async (ctx) => {
     if (!ctx.userId) return unauthorized();
     if (!ctx.orgId) return noWorkspace();

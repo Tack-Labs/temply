@@ -162,8 +162,10 @@ Resend::Emails.send({
 }
 
 /**
- * The two answers worth code rather than a retry loop: a 422 says which
- * values to add, and a 429 says how long to wait. Everything else is an
+ * The answers worth code rather than a retry loop: a 422 says which values
+ * to add, and a 429 with Retry-After says how long to wait. A 429 without
+ * it is the trial's monthly cap and a 402 a workspace with no plan — waiting
+ * a minute fixes neither, so neither is retried. Everything else is an
  * ordinary failed request.
  */
 export function errorSnippets(shortCode: string): Record<SnippetLanguage, string> {
@@ -178,7 +180,10 @@ export function errorSnippets(shortCode: string): Record<SnippetLanguage, string
 
 # HTTP/2 429
 # Retry-After: 12
-# { "status": 429, "message": "...", ... }`,
+# { "status": 429, "message": "...", ... }
+
+# HTTP/2 402
+# { "status": 402, "message": "...", ... }`,
     javascript: `const res = await fetch("${render}", {
   method: "POST",
   headers: { Authorization: "Bearer ${KEY}", "Content-Type": "application/json" },
@@ -189,9 +194,12 @@ if (res.status === 422) {
   const { missing } = await res.json(); // e.g. ["firstName"]
   throw new Error(\`Add these to data: \${missing.join(", ")}\`);
 }
-if (res.status === 429) {
-  const seconds = Number(res.headers.get("Retry-After") ?? 60);
+if (res.status === 429 && res.headers.has("Retry-After")) {
+  const seconds = Number(res.headers.get("Retry-After"));
   // wait \`seconds\`, then try again — the call was not counted
+}
+if (res.status === 402) {
+  throw new Error("The workspace has no plan; subscribe to resume live keys");
 }
 if (!res.ok) throw new Error(\`Render failed: \${res.status}\`);
 const { html, text } = await res.json();`,
@@ -200,9 +208,11 @@ const { html, text } = await res.json();`,
 if res.status_code == 422:
     missing = res.json()["missing"]  # e.g. ["firstName"]
     raise ValueError(f"Add these to data: {', '.join(missing)}")
-if res.status_code == 429:
-    seconds = int(res.headers.get("Retry-After", "60"))
+if res.status_code == 429 and "Retry-After" in res.headers:
+    seconds = int(res.headers["Retry-After"])
     # wait \`seconds\`, then try again — the call was not counted
+if res.status_code == 402:
+    raise RuntimeError("The workspace has no plan; subscribe to resume live keys")
 res.raise_for_status()
 email = res.json()`,
     ruby: `res = Net::HTTP.start(uri.host, uri.port, use_ssl: true) { |http| http.request(req) }
@@ -212,7 +222,12 @@ when 422
   missing = JSON.parse(res.body)["missing"] # e.g. ["firstName"]
   raise "Add these to data: #{missing.join(", ")}"
 when 429
-  seconds = res["Retry-After"].to_i # wait, then try again — the call was not counted
+  # Only with Retry-After: wait that long, then try again — the call was not
+  # counted. Without it the month's calls are used up.
+  raise "Monthly limit reached" unless res["Retry-After"]
+  seconds = res["Retry-After"].to_i
+when 402
+  raise "The workspace has no plan; subscribe to resume live keys"
 when 200
   email = JSON.parse(res.body)
 else

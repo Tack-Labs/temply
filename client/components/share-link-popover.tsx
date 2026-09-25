@@ -8,6 +8,7 @@ import { Button } from '~/components/ui/button';
 import { ConfirmDialog } from '~/components/ui/confirm-dialog';
 import { Popover, PopoverContent, PopoverTrigger } from '~/components/ui/popover';
 import { httpDelete, httpPost } from '~/lib/http';
+import { useBilling } from '~/lib/billing';
 import { useCopyToClipboard } from '~/hooks/use-copy-to-clipboard';
 
 /**
@@ -29,6 +30,10 @@ export function ShareLinkPopover({
   trigger?: React.ReactElement;
 }) {
   const [token, setToken] = useState<string | null>(initialToken);
+  // A read-only workspace can copy or turn off a link it already has, but
+  // can't make a new one.
+  const { data: billing } = useBilling();
+  const readOnly = billing?.plan === 'lapsed';
   const [copied, setCopied] = useState(false);
   const [, copyText] = useCopyToClipboard();
   // The origin is the browser's; read after mount so the server render
@@ -112,7 +117,7 @@ export function ShareLinkPopover({
           </>
         ) : (
           <div className="mt-3">
-            <Button variant="primary" onClick={() => createLink()} disabled={isCreating}>
+            <Button variant="primary" onClick={() => createLink()} disabled={isCreating || readOnly}>
               {isCreating ? <Loader2Icon className="animate-spin" /> : <Link2Icon />}
               Create link
             </Button>

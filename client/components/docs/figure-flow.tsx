@@ -3,9 +3,9 @@
  * `sm` and up and a vertical list below it.
  *
  * The wording is checked against the product, not against the prose: pressing
- * New template seeds a starter email rather than a blank one, and the version
- * a save keeps is a paid-plan feature (`shouldSnapshot` in the server's billing
- * lib returns false on Free).
+ * New template seeds a starter email rather than a blank one, edits save
+ * themselves into a draft, and a version is kept on publish, not on save, on
+ * every plan (`snapshotVersion` in the server's template routes).
  */
 import type { ReactNode } from 'react';
 
@@ -40,8 +40,8 @@ const steps: { n: number; title: string; body: ReactNode }[] = [
   },
   {
     n: 4,
-    title: 'Preview and save',
-    body: <>Check it in Preview, then save. On Pro, every save keeps a version.</>,
+    title: 'Preview and publish',
+    body: <>Check it in Preview, then publish. Every publish keeps a version.</>,
   },
 ];
 

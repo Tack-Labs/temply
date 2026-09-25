@@ -18,7 +18,7 @@ import type { Db } from '../plugins/db';
  *  testable without either, and so a missing ImageKit config skips files
  *  instead of failing the whole purge. */
 export type PurgeSideEffects = {
-  cancelSubscription?: (lemonSqueezySubscriptionId: string) => Promise<void>;
+  cancelSubscription?: (stripeSubscriptionId: string) => Promise<void>;
   deleteFile?: (imagekitFileId: string) => Promise<void>;
 };
 
@@ -29,7 +29,7 @@ export type PurgeReport = { rows: number; filesDeleted: number; subscriptionCanc
  * organization by the time its webhook arrives, so nobody can sign in to
  * see or pay for any of this — a subscription left running would bill a
  * customer for a workspace that no longer exists, and the files would sit
- * on the image host counting against our storage forever. Lemon Squeezy and
+ * on the image host counting against our storage forever. Stripe and
  * ImageKit are best effort and logged: the rows go regardless, because a
  * retry of the webhook must find nothing left rather than half a workspace.
  */
@@ -66,12 +66,12 @@ async function purgeScope(
   const report: PurgeReport = { rows: 0, filesDeleted: 0, subscriptionCancelled: false };
 
   const [sub] = await db.select().from(subscriptions).where(own.subscription).limit(1);
-  if (sub?.lemonsqueezy_subscription_id && effects.cancelSubscription) {
+  if (sub?.stripe_subscription_id && effects.cancelSubscription) {
     try {
-      await effects.cancelSubscription(sub.lemonsqueezy_subscription_id);
+      await effects.cancelSubscription(sub.stripe_subscription_id);
       report.subscriptionCancelled = true;
     } catch (error) {
-      console.error(`Purge: could not cancel Lemon Squeezy subscription ${sub.lemonsqueezy_subscription_id}`, error);
+      console.error(`Purge: could not cancel Stripe subscription ${sub.stripe_subscription_id}`, error);
     }
   }
 
