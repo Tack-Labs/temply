@@ -11,9 +11,10 @@ appeared on screen — not assumptions.
 ## The spec is the test for UI
 
 The browser suite lives in `e2e/` (read `e2e/README.md` first). Playwright
-starts its own stack — fakes, the API on a fresh SQLite, the built client on
-:9101 — so nothing on 9000/3001 is touched, and a run needs `e2e/.env` to
-exist with the Clerk dev keys.
+starts its own stack — fakes, and the built client on :9300 with the API
+inside it on a fresh Postgres database — so nothing on 9000 is touched, and
+a run needs `e2e/.env` to exist with the Clerk dev keys and a Postgres to
+reach (`docker compose up -d`, or `E2E_POSTGRES_URL`).
 
 1. Find the spec file for the feature the change touches in `e2e/specs/`
    (one file per feature, named `<feature>.e2e.ts`). Read it and decide
@@ -34,9 +35,10 @@ Only for a state no spec can reach: a dev-only surface, a visual judgement
 or something behind a dashboard step a spec cannot yet seed. Say in the
 report why the spec could not cover it.
 
-`bun run dev` from the repo root (run it in the background) starts both
-sides: client on http://localhost:9000, API on :3001. Check the log shows
-"Ready" before navigating. If a dev server is already running, reuse it.
+`bun run dev` from the repo root (run it in the background) starts the
+client on http://localhost:9000, with the API running inside it. Check the
+log shows "Ready" before navigating. If a dev server is already running,
+reuse it.
 
 Load the Chrome tools in ONE ToolSearch call before browsing:
 `select:mcp__claude-in-chrome__tabs_context_mcp,mcp__claude-in-chrome__navigate,mcp__claude-in-chrome__computer,mcp__claude-in-chrome__read_page,mcp__claude-in-chrome__tabs_create_mcp,mcp__claude-in-chrome__tabs_close_mcp,mcp__claude-in-chrome__javascript_tool`

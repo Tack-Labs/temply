@@ -1,5 +1,5 @@
 import { and, eq, isNull, type SQL } from 'drizzle-orm';
-import type { AnySQLiteColumn } from 'drizzle-orm/sqlite-core';
+import type { AnyPgColumn } from 'drizzle-orm/pg-core';
 import {
   apiKeysTable,
   apiUsage,
@@ -55,7 +55,7 @@ export async function purgeLegacyUser(db: Db, userId: string, effects: PurgeSide
 }
 
 /** Any table that carries the two ownership columns. */
-type Scoped = { org_id: AnySQLiteColumn; user_id: AnySQLiteColumn };
+type Scoped = { org_id: AnyPgColumn; user_id: AnyPgColumn };
 
 async function purgeScope(
   db: Db,

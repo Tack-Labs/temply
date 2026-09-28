@@ -9,12 +9,18 @@ import { timingSafeEqual } from 'node:crypto';
  */
 const INTERNAL_API_SECRET = process.env.INTERNAL_API_SECRET ?? '';
 
-function proxyTokenIsValid(presented: string | null): boolean {
-  if (!INTERNAL_API_SECRET || !presented) return false;
+/** Compared in constant time, so how long a refusal takes says nothing
+ *  about how much of a guess was right. An unset secret matches nothing. */
+export function matchesSecret(presented: string | null, secret: string): boolean {
+  if (!secret || !presented) return false;
   const a = Buffer.from(presented);
-  const b = Buffer.from(INTERNAL_API_SECRET);
+  const b = Buffer.from(secret);
   if (a.length !== b.length) return false;
   return timingSafeEqual(a, b);
+}
+
+function proxyTokenIsValid(presented: string | null): boolean {
+  return matchesSecret(presented, INTERNAL_API_SECRET);
 }
 
 export type OrgRole = 'admin' | 'member';

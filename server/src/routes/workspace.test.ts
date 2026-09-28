@@ -20,8 +20,8 @@ const ACME = 'org_acme';
 /** Alice and Bob both in Acme; Bob as a member, Alice as admin. */
 const inAcme = (role: 'admin' | 'member' = 'admin') => ({ 'x-org-id': ACME, 'x-org-role': role });
 
-beforeEach(() => {
-  db = createTestDb();
+beforeEach(async () => {
+  db = await createTestDb();
   app = createTestApp(
     db,
     new Elysia().use(templatesRoutes).use(apiKeysRoutes).use(billingRoutes).use(publicRoutes).use(workspaceRoutes),

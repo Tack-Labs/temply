@@ -13,7 +13,7 @@ let stripe: FakeStripe;
 
 beforeEach(async () => {
   stripe = fakeStripe();
-  db = createTestDb();
+  db = await createTestDb();
   app = createTestApp(db, stripeWebhookRoutes);
   // As after checkout made the customer: a workspace on its trial.
   await givePlan(db, ORG, 'free', 'active', { customer: 'cus_a' });

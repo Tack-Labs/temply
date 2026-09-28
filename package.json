@@ -9,11 +9,12 @@
     "e2e"
   ],
   "scripts": {
-    "dev": "bun run dev:server & bun run dev:client & wait",
+    "dev": "bun run --filter @temply/client dev",
     "dev:public": "bun run scripts/dev-public.ts",
-    "dev:client": "bun run --filter @temply/client dev",
     "dev:server": "bun run --filter @temply/server dev",
-    "build": "bun run --filter @temply/server build",
+    "build": "bun run --filter @temply/client build",
+    "db:generate": "bun run --filter @temply/server db:generate",
+    "db:migrate": "bun run --filter @temply/server db:migrate",
     "typecheck": "bun run --filter '*' typecheck",
     "test": "bun test",
     "e2e": "bun run --filter @temply/e2e test",

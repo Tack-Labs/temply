@@ -134,7 +134,7 @@ export async function applySubscription(db: Db, sub: Stripe.Subscription, synced
       template_packs: paid ? quantityOf(prices?.templatePack) : 0,
       // Paying ends the trial, so a plan that later ends goes read-only
       // rather than back to a trial.
-      ...(paid ? { trial_ends_at: sql`min(coalesce(${subscriptions.trial_ends_at}, ${now}), ${now})` } : {}),
+      ...(paid ? { trial_ends_at: sql`least(coalesce(${subscriptions.trial_ends_at}, ${now}), ${now})` } : {}),
       updated_at: now,
     })
     .where(and(eq(subscriptions.stripe_customer_id, customer), or(holds, mayClaim), fresher))

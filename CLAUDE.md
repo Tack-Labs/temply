@@ -2,9 +2,11 @@
 
 Bun monorepo (never npm/yarn). `client/` is Next.js 15 (dashboard behind
 Clerk; tiptap editor core in `client/core/editor`; editing surface in
-`client/components/email-editor-sandbox.tsx`). `server/` is an Elysia API on
-:3001 with the renderer in `server/src/render/engine.tsx`. `shared/` holds
-theme types, contrast maths and the preflight checks used by both.
+`client/components/email-editor-sandbox.tsx`). `server/` is the Elysia API,
+run inside the Next route `/api/[[...path]]` (and alone on :3001 for
+`dev:server`), with the renderer in `server/src/render/engine.tsx`. It
+talks to Postgres through Drizzle. `shared/` holds the schema, theme types,
+contrast maths and the preflight checks used by both.
 
 Gates, all of them, before calling anything done: `bun run typecheck`,
 `bun run lint`, `bun test` and `bun run e2e` from the root; `bun run check:contrast`,
@@ -54,6 +56,17 @@ merely works is a proof of concept. Before a UI change is done:
 - **Copy is part of the design.** Plain verbs, sentence case, the same word
   for an action from button to toast. Counts and units beat sentences
   ("2 errors", "~5 KB of 102 KB") when the reader is scanning.
+
+## Migrations expand, then contract
+
+The release before a deploy keeps serving against the new schema until the
+deploy lands, and Vercel's Instant Rollback brings it back without undoing
+any migration. So a migration only ever adds: a new column is nullable or
+has a default, a backfill follows, and a constraint is enforced in a later
+deploy, once nothing writes without it. Drop or rename a column only in a
+deploy after the one that stopped using it. After changing
+`shared/schema.ts`, run `bun run db:generate` and commit the new file in
+`server/drizzle/` with the change; CI fails a schema change without one.
 
 ## Comments and commits
 

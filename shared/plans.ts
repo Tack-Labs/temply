@@ -12,6 +12,8 @@
  * changed together.
  */
 
+import { formatBytes } from './bytes';
+
 /**
  * `trial` is every new workspace for its first TRIAL_DAYS, with no card.
  * `lapsed` is a workspace whose trial or subscription has ended unpaid: it
@@ -197,7 +199,20 @@ export const API_BURST_PER_MINUTE: Record<'live' | 'test', number> = { live: 120
  * share. On disk that is a megabyte of Latin text and up to three of CJK;
  * the bound is on what nobody wrote by hand either way. The largest starter
  * is under 20 thousand, and every save, render and version copy carries the
- * whole document. The request limit above this is 8 MB, sized for an image
- * upload — it is not a bound on a document.
+ * whole document. MAX_REQUEST_BYTES below is sized for an image
+ * upload; it is not a bound on a document.
  */
 export const TEMPLATE_CONTENT_MAX_LENGTH = 1_000_000;
+
+/**
+ * Vercel refuses a request body over 4.5 MB with an error of its own,
+ * before any of our code runs. This takes the smaller reading of "MB", and
+ * local runs refuse at the same size so they fail the way production does.
+ */
+export const MAX_REQUEST_BYTES = 4_500_000;
+
+/** The largest image an upload may carry, leaving room under
+ *  MAX_REQUEST_BYTES for the multipart framing. */
+export const MAX_IMAGE_BYTES = 4 * 1024 * 1024;
+
+export const IMAGE_TOO_LARGE = `Images must be under ${formatBytes(MAX_IMAGE_BYTES)}.`;

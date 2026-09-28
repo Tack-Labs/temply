@@ -4,7 +4,7 @@ import { healthRoutes } from './health';
 
 describe('GET /api/health', () => {
   it('answers 200 with the database reachable', async () => {
-    const app = createTestApp(createTestDb(), healthRoutes);
+    const app = createTestApp(await createTestDb(), healthRoutes);
     const res = await get(app, '/api/health');
     expect(res.status).toBe(200);
     const body = (await res.json()) as { ok: boolean; db: string; uptimeSeconds: number };
@@ -14,7 +14,7 @@ describe('GET /api/health', () => {
   });
 
   it('needs no session', async () => {
-    const app = createTestApp(createTestDb(), healthRoutes);
+    const app = createTestApp(await createTestDb(), healthRoutes);
     expect((await get(app, '/api/health', null)).status).toBe(200);
   });
 });

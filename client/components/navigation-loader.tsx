@@ -55,10 +55,13 @@ export function NavigationLoadingBar() {
 
   useEffect(() => {
     const originalFetch = window.fetch;
-    window.fetch = function (...args) {
+    // Carries over whatever the runtime hangs off fetch, which its type also
+    // promises: Bun's declares `preconnect`, and the API's types bring Bun's
+    // into this program.
+    window.fetch = Object.assign(function (this: unknown, ...args: Parameters<typeof fetch>) {
       handleStart();
       return originalFetch.apply(this, args).finally(handleStop);
-    };
+    }, originalFetch);
 
     return () => {
       window.fetch = originalFetch;

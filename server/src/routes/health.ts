@@ -6,17 +6,17 @@ import { dbPlugin } from '../plugins/db';
 const startedAt = Date.now();
 
 /**
- * What a load balancer or an uptime monitor asks. It reaches the database on
- * purpose: a process that answers but cannot read its own file is down in
- * every way that matters, and the 503 is what makes the platform restart it.
- * Lives under /api so the Next.js proxy carries it too — one request from
- * the edge then proves the whole chain.
+ * What the uptime monitor and the deploy check ask. It reaches the database
+ * on purpose: an app that answers but cannot query is down in every way that
+ * matters, and the 503 is what pages someone. Lives under /api so the
+ * Next.js route carries it too, and one request from outside then proves
+ * the whole chain.
  */
 export const healthRoutes = new Elysia()
   .use(dbPlugin)
-  .get('/api/health', ({ db }) => {
+  .get('/api/health', async ({ db }) => {
     try {
-      db.get(sql`select 1`);
+      await db.execute(sql`select 1`);
     } catch (error) {
       console.error('Health check: database unreachable', error);
       return json({ ok: false, db: 'unreachable' }, 503);

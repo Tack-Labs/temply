@@ -7,7 +7,7 @@ import { withTransform, type Asset } from '~/lib/assets';
 import { assetDate, assetMeta, copyAssetUrl } from './asset-grid';
 
 /** Large enough to judge the image, small enough not to pull the original
- *  (a 5 MB upload) into the dialog. */
+ *  (up to a 4 MB upload) into the dialog. */
 const PREVIEW_TRANSFORM = 'tr=w-1600';
 
 /** The image at a size you can actually look at, with the facts beside it

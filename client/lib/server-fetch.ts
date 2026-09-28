@@ -1,6 +1,6 @@
 import { auth } from '@clerk/nextjs/server';
 import { cookies } from 'next/headers';
-import { API_TARGET } from './api-target';
+import { callApi } from './call-api';
 
 export async function serverFetch(path: string, init?: RequestInit) {
   const store = await cookies();
@@ -14,7 +14,7 @@ export async function serverFetch(path: string, init?: RequestInit) {
   // needs CLERK_SECRET_KEY — unset in keyless development.
   const { userId, orgId, orgRole } = await auth();
 
-  return fetch(`${API_TARGET}${path}`, {
+  return callApi(path, {
     ...init,
     headers: {
       ...init?.headers,

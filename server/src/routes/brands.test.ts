@@ -9,7 +9,7 @@ let app: any;
 const OWNER = 'user_owner';
 const OTHER = 'user_other';
 
-beforeEach(() => { db = createTestDb(); app = createTestApp(db, brandsRoutes); });
+beforeEach(async () => { db = await createTestDb(); app = createTestApp(db, brandsRoutes); });
 
 const make = (userId: string, name = 'Brand') => post(app, '/api/v1/brands', { name, theme: '{"link":{"color":"#000"}}' }, userId);
 

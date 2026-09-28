@@ -1,0 +1,22 @@
+# Postgres for local dev and e2e. The major version follows what Supabase
+# provisions, so a query that works here works there. It binds to loopback
+# only: the credentials are the image's defaults. `temply` is the dev
+# database .env.example points at; e2e makes its own beside it.
+services:
+  postgres:
+    image: postgres:17
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: temply
+    ports:
+      - 127.0.0.1:5432:5432
+    volumes:
+      - postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: [CMD, pg_isready, -U, postgres]
+      interval: 2s
+      retries: 15
+
+volumes:
+  postgres:

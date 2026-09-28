@@ -25,8 +25,8 @@ let db: TestDb;
 let app: any;
 const USER = 'user_send';
 
-beforeEach(() => {
-  db = createTestDb();
+beforeEach(async () => {
+  db = await createTestDb();
   app = createTestApp(db, emailsRoutes);
   sent.length = 0;
 });

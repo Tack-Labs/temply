@@ -5,8 +5,8 @@ import { HOUR_MS, checkBurst, checkPerMinute, checkWindow, clientAddress } from 
 
 let db: TestDb;
 
-beforeEach(() => {
-  db = createTestDb();
+beforeEach(async () => {
+  db = await createTestDb();
 });
 
 describe('checkPerMinute', () => {

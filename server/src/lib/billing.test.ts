@@ -19,8 +19,8 @@ import {
 
 let db: TestDb;
 
-beforeEach(() => {
-  db = createTestDb();
+beforeEach(async () => {
+  db = await createTestDb();
 });
 
 async function addTemplates(userId: string, count: number) {
@@ -262,7 +262,9 @@ describe('checkStorageLimit', () => {
 
   it('never blocks enterprise', async () => {
     await givePlan(db, 'u_ent', 'enterprise');
-    await seed('u_ent', 5 * 1024 * MB);
+    // A row holds one image, so a column of 32-bit integers is plenty; the
+    // total past 2 GB takes several rows.
+    for (let i = 0; i < 5; i++) await seed('u_ent', 1024 * MB);
     expect((await checkStorageLimit(db, 'u_ent', 1)).allowed).toBe(true);
   });
 

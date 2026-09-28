@@ -13,8 +13,8 @@ const SIGNING_SECRET = `whsec_${SECRET_BYTES.toString('base64')}`;
 let db: TestDb;
 let app: any;
 
-beforeEach(() => {
-  db = createTestDb();
+beforeEach(async () => {
+  db = await createTestDb();
   app = createTestApp(db, clerkWebhookRoutes);
   process.env.CLERK_WEBHOOK_SIGNING_SECRET = SIGNING_SECRET;
 });

@@ -75,8 +75,15 @@ test.describe('assets', () => {
     // MIME the browser sends.
     await fileInput(page).setInputFiles({ name: fileName(name('text')), mimeType: 'image/png', buffer: Buffer.from('not a picture') });
     await expect(page.getByText('Only JPEG, PNG, GIF and WebP images can be uploaded.')).toBeVisible();
-    const big = Buffer.concat([PNG_1x1, Buffer.alloc(6 * 1024 * 1024)]);
+    // An oversized file never leaves the browser: past 4.5 MB Vercel would
+    // answer with an error page of its own, before the API could say why.
+    const sent: string[] = [];
+    page.on('request', (req) => {
+      if (req.method() === 'POST' && req.url().endsWith('/api/v1/assets')) sent.push(req.url());
+    });
+    const big = Buffer.concat([PNG_1x1, Buffer.alloc(4 * 1024 * 1024)]);
     await fileInput(page).setInputFiles({ name: fileName(name('big')), mimeType: 'image/png', buffer: big });
-    await expect(page.getByText('Images must be under 5 MB.')).toBeVisible();
+    await expect(page.getByText('Images must be under 4 MB.')).toBeVisible();
+    expect(sent).toEqual([]);
   });
 });

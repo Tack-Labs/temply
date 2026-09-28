@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, mock } from 'bun:test';
 import { eq } from 'drizzle-orm';
+import { MAX_IMAGE_BYTES } from '@temply/shared/plans';
 import { assets, mails, templateVersions } from '@temply/shared/schema';
 import { resetImageKitForTests } from '../lib/imagekit';
 import type { TestDb } from '../test/helpers';
@@ -52,8 +53,8 @@ let app: any;
 const OWNER = 'user_owner';
 const OTHER = 'user_other';
 
-beforeEach(() => {
-  db = createTestDb();
+beforeEach(async () => {
+  db = await createTestDb();
   app = createTestApp(db, assetsRoutes);
   ik.uploads = [];
   ik.deleted = [];
@@ -139,11 +140,15 @@ describe('POST /api/v1/assets', () => {
     expect(ik.uploads[0].fileName).toBe('héro 图.png');
   });
 
-  it('400 over 5 MB, before touching ImageKit', async () => {
-    const res = await upload(OWNER, 5 * 1024 * 1024 + 1);
+  it('400 over 4 MB, before touching ImageKit', async () => {
+    const res = await upload(OWNER, MAX_IMAGE_BYTES + 1);
     expect(res.status).toBe(400);
-    expect((await res.json()).message).toBe('Images must be under 5 MB.');
+    expect((await res.json()).message).toBe('Images must be under 4 MB.');
     expect(ik.uploads).toHaveLength(0);
+  });
+
+  it('takes an image of exactly 4 MB', async () => {
+    expect((await upload(OWNER, MAX_IMAGE_BYTES)).status).toBe(200);
   });
 
   it('402 when the plan quota would be crossed, with the formatted numbers', async () => {
@@ -165,10 +170,10 @@ describe('POST /api/v1/assets', () => {
 
   it('never hits quota on enterprise', async () => {
     await givePlan(db, OWNER, 'enterprise');
-    await db.insert(assets).values({
-      id: 'seed', user_id: OWNER, org_id: OWNER, imagekit_file_id: 'f0', url: 'https://ik.imagekit.io/test/x.png',
-      name: 'x.png', mime: 'image/png', bytes: 3 * 1024 * 1024 * 1024,
-    });
+    await db.insert(assets).values(['a', 'b', 'c'].map((id) => ({
+      id, user_id: OWNER, org_id: OWNER, imagekit_file_id: id, url: 'https://ik.imagekit.io/test/x.png',
+      name: 'x.png', mime: 'image/png', bytes: 1024 * 1024 * 1024,
+    })));
     expect((await upload(OWNER)).status).toBe(200);
   });
 

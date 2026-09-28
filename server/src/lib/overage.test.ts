@@ -8,8 +8,8 @@ let db: TestDb;
 let sent: MeterEvent[];
 const send = async (event: MeterEvent) => { sent.push(event); };
 
-beforeEach(() => {
-  db = createTestDb();
+beforeEach(async () => {
+  db = await createTestDb();
   sent = [];
 });
 

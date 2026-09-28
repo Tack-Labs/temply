@@ -3,6 +3,8 @@
 import { ImageIcon, ImagePlusIcon, Loader2Icon, UploadIcon } from 'lucide-react';
 import { useCallback, useRef, useState } from 'react';
 import { toast } from 'sonner';
+import { formatBytes } from '@temply/shared/bytes';
+import { MAX_IMAGE_BYTES } from '@temply/shared/plans';
 import { errorMessage } from '~/lib/http';
 import { toastUploaded, UPLOAD_MIME_TYPES, type Asset } from '~/lib/assets';
 import { Button } from '~/components/ui/button';
@@ -79,7 +81,7 @@ export function AssetPickerDialog({
           <div className="flex flex-col items-center gap-2 rounded-lg border-2 border-dashed border-accent bg-raised px-8 py-6 text-center shadow-lg">
             <ImagePlusIcon className="size-6 text-accent-ink" />
             <p className="text-sm font-medium text-ink">Drop an image to upload and use it</p>
-            <p className="text-2xs text-muted">JPEG, PNG, GIF or WebP · up to 5 MB</p>
+            <p className="text-2xs text-muted">JPEG, PNG, GIF or WebP · up to {formatBytes(MAX_IMAGE_BYTES)}</p>
           </div>
         </div>
 

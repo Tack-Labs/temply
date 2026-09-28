@@ -1,11 +1,18 @@
 import { sql } from 'drizzle-orm';
-import { sqliteTable, text, integer, primaryKey } from 'drizzle-orm/sqlite-core';
+import { index, integer, pgTable, primaryKey, text, uniqueIndex } from 'drizzle-orm/pg-core';
 
-/** Drizzle sends an explicit NULL for omitted columns, so a default declared
- *  only in the DDL never fires — it has to live here to reach any insert. */
-const now = sql`(datetime('now'))`;
+/**
+ * Timestamps are text in SQLite's `datetime('now')` shape, which every row
+ * copied from the SQLite database carries, so this default writes the same
+ * shape. See shared/publish.ts before mixing it with ISO stamps.
+ *
+ * Every table turns row-level security on and has no policy. Only the API
+ * reaches the database, as the owner role, which RLS does not restrict;
+ * Supabase's anon and authenticated roles see no rows.
+ */
+const now = sql`to_char(now() at time zone 'utc', 'YYYY-MM-DD HH24:MI:SS')`;
 
-export const mails = sqliteTable('mails', {
+export const mails = pgTable('mails', {
   id: text('id').primaryKey(),
   user_id: text('user_id').notNull(),
   /** The organization this row belongs to; every query scopes on it.
@@ -35,10 +42,13 @@ export const mails = sqliteTable('mails', {
   /** A review link's secret: anyone holding it can view the draft, signed
    *  out. Null means no link. Turning the link off clears it; making a new
    *  one mints a new secret, so an old link stays dead. */
-  share_token: text('share_token').unique(),
-});
+  share_token: text('share_token'),
+}, (t) => [
+  index('mails_org_id').on(t.org_id),
+  uniqueIndex('mails_share_token').on(t.share_token),
+]).enableRLS();
 
-export const apiKeysTable = sqliteTable('api_keys', {
+export const apiKeysTable = pgTable('api_keys', {
   id: text('id').primaryKey(),
   user_id: text('user_id').notNull(),
   /** The organization this row belongs to; every query scopes on it.
@@ -57,9 +67,13 @@ export const apiKeysTable = sqliteTable('api_keys', {
   created_at: text('created_at').default(now),
   last_used_at: text('last_used_at'),
   revoked_at: text('revoked_at'),
-});
+}, (t) => [
+  index('api_keys_org_id').on(t.org_id),
+  // Every integrator call finds its key by hash.
+  index('api_keys_key_hash').on(t.key_hash),
+]).enableRLS();
 
-export const templateVersions = sqliteTable('template_versions', {
+export const templateVersions = pgTable('template_versions', {
   id: text('id').primaryKey(),
   template_id: text('template_id').notNull(),
   user_id: text('user_id').notNull(),
@@ -75,14 +89,19 @@ export const templateVersions = sqliteTable('template_versions', {
   theme: text('theme'),
   version_number: integer('version_number').notNull(),
   created_at: text('created_at').default(now),
-});
+}, (t) => [
+  index('template_versions_org_id').on(t.org_id),
+  // One number per version of a template. Its leading column also serves
+  // every lookup of a template's versions, which need no index of their own.
+  uniqueIndex('template_versions_number').on(t.template_id, t.version_number),
+]).enableRLS();
 
 /**
  * A workspace's account: one row per organization, made on its first visit,
  * which is when its trial starts. `user_id` is who that was — not unique,
  * since one person can start several workspaces.
  */
-export const subscriptions = sqliteTable('subscriptions', {
+export const subscriptions = pgTable('subscriptions', {
   id: text('id').primaryKey(),
   user_id: text('user_id').notNull(),
   /** The organization this row belongs to; every query scopes on it.
@@ -117,7 +136,13 @@ export const subscriptions = sqliteTable('subscriptions', {
   cancel_at: text('cancel_at'),
   created_at: text('created_at').default(now),
   updated_at: text('updated_at').default(now),
-});
+}, (t) => [
+  // Also serves every lookup by org: `org_id = $1` implies the predicate.
+  uniqueIndex('subscriptions_org_id_unique').on(t.org_id).where(sql`${t.org_id} IS NOT NULL`),
+  // Every Stripe webhook finds its row by customer.
+  uniqueIndex('subscriptions_stripe_customer_id').on(t.stripe_customer_id).where(sql`${t.stripe_customer_id} IS NOT NULL`),
+  index('subscriptions_user_id').on(t.user_id),
+]).enableRLS();
 
 export type Mail = typeof mails.$inferSelect;
 export type NewMail = typeof mails.$inferInsert;
@@ -133,21 +158,21 @@ export type NewSubscription = typeof subscriptions.$inferInsert;
 
 /** One row per user per UK calendar month. Counts successful public API
  *  template fetches. */
-export const apiUsage = sqliteTable(
+export const apiUsage = pgTable(
   'api_usage',
   {
     user_id: text('user_id').notNull(),
     period: text('period').notNull(), // "YYYY-MM" in Europe/London
     count: integer('count').notNull().default(0),
   },
-  (t) => ({ pk: primaryKey({ columns: [t.user_id, t.period] }) }),
-);
+  (t) => [primaryKey({ columns: [t.user_id, t.period] })],
+).enableRLS();
 
 export type ApiUsage = typeof apiUsage.$inferSelect;
 
 /** One row per organization per UK calendar month, and a suffixed period
  *  for test keys. Replaces api_usage, which was keyed by user. */
-export const orgUsage = sqliteTable(
+export const orgUsage = pgTable(
   'org_usage',
   {
     org_id: text('org_id').notNull(),
@@ -157,8 +182,8 @@ export const orgUsage = sqliteTable(
      *  month. See lib/overage.ts. */
     reported: integer('reported').notNull().default(0),
   },
-  (t) => ({ pk: primaryKey({ columns: [t.org_id, t.period] }) }),
-);
+  (t) => [primaryKey({ columns: [t.org_id, t.period] })],
+).enableRLS();
 
 /**
  * How many calls a rate-limit bucket has let through in one window, keyed by
@@ -166,17 +191,17 @@ export const orgUsage = sqliteTable(
  * than in the process so that every process running the API counts against
  * the same number. See lib/rate-limit.ts.
  */
-export const rateWindows = sqliteTable(
+export const rateWindows = pgTable(
   'rate_windows',
   {
     bucket: text('bucket').notNull(),
     window_start: text('window_start').notNull(),
     count: integer('count').notNull().default(0),
   },
-  (t) => ({ pk: primaryKey({ columns: [t.bucket, t.window_start] }) }),
-);
+  (t) => [primaryKey({ columns: [t.bucket, t.window_start] })],
+).enableRLS();
 
-export const brands = sqliteTable('brands', {
+export const brands = pgTable('brands', {
   id: text('id').primaryKey(),
   user_id: text('user_id').notNull(),
   /** The organization this row belongs to; every query scopes on it.
@@ -189,7 +214,7 @@ export const brands = sqliteTable('brands', {
   is_default: integer('is_default').notNull().default(0),
   created_at: text('created_at').default(now),
   updated_at: text('updated_at').default(now),
-});
+}, (t) => [index('brands_org_id').on(t.org_id)]).enableRLS();
 
 export type Brand = typeof brands.$inferSelect;
 export type NewBrand = typeof brands.$inferInsert;
@@ -197,36 +222,36 @@ export type NewBrand = typeof brands.$inferInsert;
 /** One row per user. `default_brand_id` points at the user's default look — a
  *  preset id (e.g. 'classic') or a custom brand id. Presets are not rows, so
  *  the default cannot live on the brands table. */
-export const userPrefs = sqliteTable('user_prefs', {
+export const userPrefs = pgTable('user_prefs', {
   user_id: text('user_id').primaryKey(),
   default_brand_id: text('default_brand_id'),
-});
+}).enableRLS();
 
 export type UserPrefs = typeof userPrefs.$inferSelect;
 
 /** The organization's default look — same shape as user_prefs, keyed by
  *  org. The default is shared by the team, not per member. */
-export const orgPrefs = sqliteTable('org_prefs', {
+export const orgPrefs = pgTable('org_prefs', {
   org_id: text('org_id').primaryKey(),
   default_brand_id: text('default_brand_id'),
-});
+}).enableRLS();
 
 /** Landing-page contact submissions. Stored before any delivery attempt, so a
  *  mail outage never loses a message. */
-export const contactMessages = sqliteTable('contact_messages', {
+export const contactMessages = pgTable('contact_messages', {
   id: text('id').primaryKey(),
   name: text('name').notNull(),
   email: text('email').notNull(),
   message: text('message').notNull(),
   created_at: text('created_at').default(now),
-});
+}).enableRLS();
 
 export type ContactMessage = typeof contactMessages.$inferSelect;
 
 /** One row per image a user uploaded. `url` is the bare ImageKit URL — the
  *  email-safe transform is added by the client at insert time, so the same
  *  asset can serve a 240px thumbnail and a 1200px email image. */
-export const assets = sqliteTable('assets', {
+export const assets = pgTable('assets', {
   id: text('id').primaryKey(),
   user_id: text('user_id').notNull(),
   /** The organization this row belongs to; every query scopes on it.
@@ -241,7 +266,10 @@ export const assets = sqliteTable('assets', {
   width: integer('width'),
   height: integer('height'),
   created_at: text('created_at').default(now),
-});
+}, (t) => [
+  index('assets_org_id').on(t.org_id),
+  index('assets_user_id').on(t.user_id),
+]).enableRLS();
 
 export type Asset = typeof assets.$inferSelect;
 export type NewAsset = typeof assets.$inferInsert;
