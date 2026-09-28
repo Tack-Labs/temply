@@ -1,6 +1,6 @@
 import { defineConfig, devices } from '@playwright/test';
 import { join } from 'node:path';
-import { BASE_URL, API_URL, FAKES_URL, PORTS, stackEnv } from './env';
+import { BASE_URL, FAKES_URL, PORTS, stackEnv } from './env';
 import { STORAGE_STATE } from './setup/storage-state';
 
 const root = join(import.meta.dirname, '..');
@@ -61,9 +61,9 @@ export default defineConfig({
   webServer: [
     {
       // Started first: the API's requests to Stripe, ImageKit and Resend
-      // need these listening before the API itself does. Stripe's fake is on
-      // its own port (STRIPE_URL) and is up before the shared one answers
-      // the health check.
+      // need these listening before the client it runs in starts. Stripe's
+      // fake is on its own port (STRIPE_URL) and is up before the shared
+      // one answers the health check.
       command: 'bun fakes/index.ts',
       cwd: import.meta.dirname,
       url: `${FAKES_URL}/__health`,
@@ -72,22 +72,13 @@ export default defineConfig({
       timeout: 15_000,
     },
     {
-      // PORT steers the Elysia listener onto the e2e stack's own port so the
-      // dev server already running on 3001 is left alone.
-      command: 'bun src/index.ts',
-      cwd: join(root, 'server'),
-      url: `${API_URL}/api/health`,
-      env: { ...env, PORT: String(PORTS.api) },
-      reuseExistingServer: false,
-      timeout: 60_000,
-    },
-    {
+      // The API runs inside it, as on Vercel, against this run's database.
       // Built once, served with `next start`: NEXT_PUBLIC_* is baked at
       // build, so the build runs with the same env as the server. The build
       // goes into its own directory (next.config reads NEXT_DIST_DIR) so it
       // never overwrites the `.next` a dev server on 9000 is serving from,
       // and build-client.ts puts back the two files Next rewrites for it.
-      command: `bun ../e2e/build-client.ts && bunx next start -p ${PORTS.client}`,
+      command: `bun ../e2e/database.ts && bun ../e2e/build-client.ts && bunx next start -p ${PORTS.client}`,
       cwd: join(root, 'client'),
       url: BASE_URL,
       env: { ...env, NEXT_DIST_DIR: '.next-e2e' },

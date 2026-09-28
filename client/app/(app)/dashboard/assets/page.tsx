@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useCallback, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { formatBytes } from '@temply/shared/bytes';
+import { MAX_IMAGE_BYTES } from '@temply/shared/plans';
 import { AssetGrid, type PendingUpload } from '~/components/assets/asset-grid';
 import { AssetPreviewDialog } from '~/components/assets/asset-preview-dialog';
 import { AssetViewSwitch, useAssetView } from '~/components/assets/asset-view-switch';
@@ -122,7 +123,7 @@ export default function AssetsPage() {
         <div className="flex flex-col items-center gap-2 rounded-lg border-2 border-dashed border-accent bg-raised px-10 py-8 text-center shadow-lg">
           <ImagePlusIcon className="size-6 text-accent-ink" />
           <p className="text-sm font-medium text-ink">Drop images to upload</p>
-          <p className="text-2xs text-muted">JPEG, PNG, GIF or WebP · up to 5 MB each</p>
+          <p className="text-2xs text-muted">JPEG, PNG, GIF or WebP · up to {formatBytes(MAX_IMAGE_BYTES)} each</p>
         </div>
       </div>
 

@@ -1,22 +1,35 @@
-import { Database } from 'bun:sqlite';
-import { drizzle } from 'drizzle-orm/bun-sqlite';
+import { PGlite } from '@electric-sql/pglite';
+import { getTableName, isTable, sql } from 'drizzle-orm';
+import { drizzle } from 'drizzle-orm/pglite';
+import { migrate } from 'drizzle-orm/pglite/migrator';
 import * as schema from '@temply/shared/schema';
 import { Elysia, type AnyElysia } from 'elysia';
-import { initTables } from '../plugins/db';
+import { MIGRATIONS } from '../../scripts/migrate';
+import type { Db } from '../plugins/db';
 import { normaliseRole } from '../plugins/auth';
 import { errorResponse } from '../lib/errors';
 
-export type TestDb = ReturnType<typeof drizzle<typeof schema>>;
+export type TestDb = Db;
+
+let shared: Promise<Db> | null = null;
+
+const tables = Object.values(schema).filter(isTable).map((table) => `"${getTableName(table)}"`);
 
 /**
- * An in-memory database using the same DDL the server runs at startup, so the
- * tests drift with `initTables` instead of against it.
+ * An in-process Postgres built from the migrations production applies, so
+ * the tests drift with the schema instead of against it. PGlite takes about
+ * a second to boot, so the whole `bun test` run shares one, and each call
+ * empties it instead.
  */
-export function createTestDb(): TestDb {
-  const sqlite = new Database(':memory:');
-  sqlite.run('PRAGMA foreign_keys = ON');
-  initTables(sqlite);
-  return drizzle(sqlite, { schema });
+export async function createTestDb(): Promise<TestDb> {
+  shared ??= (async () => {
+    const db = drizzle(new PGlite(), { schema });
+    await migrate(db, { migrationsFolder: MIGRATIONS });
+    return db;
+  })();
+  const db = await shared;
+  await db.execute(sql.raw(`TRUNCATE ${tables.join(', ')}`));
+  return db;
 }
 
 /**

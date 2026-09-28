@@ -1,6 +1,12 @@
 import { auth } from '@clerk/nextjs/server';
 import { NextRequest, NextResponse } from 'next/server';
-import { API_TARGET } from '~/lib/api-target';
+import { IMAGE_TOO_LARGE, MAX_REQUEST_BYTES } from '@temply/shared/plans';
+import { callApi } from '~/lib/call-api';
+
+// The API runs in this function, so it needs Node, and a render is the
+// slowest thing it does.
+export const runtime = 'nodejs';
+export const maxDuration = 60;
 
 async function handleRequest(request: NextRequest, { params }: { params: Promise<{ path?: string[] }> }) {
   const { path } = await params;
@@ -8,7 +14,7 @@ async function handleRequest(request: NextRequest, { params }: { params: Promise
   const search = request.nextUrl.search;
 
   const { userId, orgId, orgRole } = await auth();
-  const targetUrl = pathStr ? `${API_TARGET}/api/${pathStr}${search}` : `${API_TARGET}/api${search}`;
+  const apiPath = pathStr ? `/api/${pathStr}${search}` : `/api${search}`;
 
   // Forward all relevant headers
   const headers: Record<string, string> = {
@@ -32,26 +38,23 @@ async function handleRequest(request: NextRequest, { params }: { params: Promise
     if (value) headers[name] = value;
   }
   // The API's per-address limits read the client off this header, last hop
-  // first; the Railway edge supplies the address it saw, and a request that arrived
-  // without one is coming from this machine.
+  // first. Vercel's edge replaces whatever the client sent with the address
+  // it saw, and a request that arrived without one is coming from this
+  // machine.
   const forwardedFor = request.headers.get('x-forwarded-for');
   if (forwardedFor) headers['x-forwarded-for'] = forwardedFor;
 
-  // The API refuses oversized bodies too, but refusing here keeps the bytes
-  // out of the Next process entirely.
-  if (request.method !== 'GET' && request.method !== 'HEAD' && Number(request.headers.get('Content-Length') || 0) > 8 * 1024 * 1024) {
-    return NextResponse.json({ status: 413, message: 'Images must be under 5 MB.', errors: ['Images must be under 5 MB.'] }, { status: 413 });
+  // On Vercel a body this size never gets here. Refusing it locally too
+  // keeps a run on this machine failing where production would.
+  if (request.method !== 'GET' && request.method !== 'HEAD' && Number(request.headers.get('Content-Length') || 0) > MAX_REQUEST_BYTES) {
+    return NextResponse.json({ status: 413, message: IMAGE_TOO_LARGE, errors: [IMAGE_TOO_LARGE] }, { status: 413 });
   }
 
   // Read bytes, not text: a multipart image upload passes through here and
   // decoding it as UTF-8 would corrupt every byte above 0x7f.
   const body = request.method !== 'GET' && request.method !== 'HEAD' ? await request.arrayBuffer() : undefined;
 
-  const res = await fetch(targetUrl, {
-    method: request.method,
-    headers,
-    body,
-  });
+  const res = await callApi(apiPath, { method: request.method, headers, body });
 
   const data = await res.text();
   const response = new NextResponse(data, {

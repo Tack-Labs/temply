@@ -21,8 +21,8 @@ import { CONTACT_MESSAGES_PER_MINUTE } from '../lib/rate-limit';
 let db: TestDb;
 let app: any;
 
-beforeEach(() => {
-  db = createTestDb();
+beforeEach(async () => {
+  db = await createTestDb();
   app = createTestApp(db, contactRoutes);
   sent.length = 0;
   process.env.RESEND_API_KEY = 're_test_key';

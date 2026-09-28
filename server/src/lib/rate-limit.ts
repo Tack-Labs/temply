@@ -81,11 +81,15 @@ export const CONTACT_MESSAGES_PER_MINUTE = 5;
 /**
  * Who is calling, for the limits that have no key to count by.
  *
- * The API listens on loopback behind our own proxy, so the socket's address
- * is always the proxy's. The client's rides in `x-forwarded-for`, and the
- * *last* entry is the one to read: each hop appends the address it saw, so
- * the last was written by the hop nearest us — the edge or the Next proxy —
- * and anything before it is whatever the client chose to send.
+ * The API is reached through the Next proxy, which runs it in-process on
+ * Vercel, so there is no socket whose address means anything: the client's
+ * rides in `x-forwarded-for`. Vercel's edge overwrites that header with the
+ * address it saw rather than appending to it, so a client cannot plant a
+ * value there. Elsewhere hops append, so the *last* entry is the one to read:
+ * it was written by the hop nearest us, and anything before it is whatever
+ * the client chose to send. Without the header, a standalone API
+ * (`dev:server`) falls back to the socket's address; in-process there is no
+ * socket, and the request came from this machine, which counts as one caller.
  */
 export function clientAddress(request: Request, server?: { requestIP: (request: Request) => { address: string } | null } | null): string {
   const forwarded = request.headers.get('x-forwarded-for');

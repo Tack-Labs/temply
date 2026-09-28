@@ -1,9 +1,9 @@
 /**
- * The dev servers behind a public address, in one command.
+ * The dev server behind a public address, in one command.
  *
  *   bun run dev:public              # new cloudflared quick tunnel, then `bun run dev`
  *   bun run dev:public --url <url>  # reuse an address (a tunnel already up, or a named one)
- *   bun run dev:public --no-dev     # configure only; the dev servers are already running
+ *   bun run dev:public --no-dev     # configure only; the dev server is already running
  *   bun run dev:public --keep-webhooks  # leave the Stripe and Clerk endpoints where they are
  *
  * A quick tunnel's address is random and changes every time, and three
@@ -11,18 +11,23 @@
  * printed URL and the dev-origin allow-list derive from it), the Stripe
  * webhook endpoint (re-pointed here through the API), and the Clerk
  * endpoint, which only the dashboard can change — the URL to paste is
- * printed. The dev servers start after the envs are written, since neither
- * re-reads .env while running. Ctrl+C stops everything.
+ * printed. The dev server starts after the envs are written, since it does
+ * not re-read .env while running. Ctrl+C stops everything.
  *
  * --keep-webhooks is for a tunnel that only exists to look at the work from
- * a phone while the webhooks belong to the Railway deployment: the envs
- * still follow the tunnel, but Stripe is not touched and nothing
- * asks for the Clerk endpoint to move.
+ * a phone while the webhooks belong to a deployment: the envs still follow
+ * the tunnel, but Stripe is not touched and nothing asks for the Clerk
+ * endpoint to move.
  */
 import { spawn, type ChildProcess } from 'node:child_process';
 import { readFileSync, writeFileSync } from 'node:fs';
 
+/** server/.env is for `dev:server`, the standalone API, which builds the
+ *  same absolute URLs. */
 const ENV_FILES = ['client/.env', 'server/.env'];
+/** The API runs inside `next dev`, so the secrets it checks a webhook with
+ *  are read from the client's env. */
+const API_ENV = 'client/.env';
 const STRIPE_API = 'https://api.stripe.com/v1';
 const STRIPE_EVENTS = ['customer.subscription.created', 'customer.subscription.updated', 'customer.subscription.deleted'];
 
@@ -75,11 +80,11 @@ function startTunnel(): Promise<string> {
 /**
  * Stripe returns an endpoint's signing secret only in the reply that creates
  * it. Re-pointing the endpoint that exists keeps that secret, so the one in
- * server/.env stays valid; a new endpoint's secret is written there straight
+ * API_ENV stays valid; a new endpoint's secret is written there straight
  * from the reply, since there is no second chance to read it through the API.
  */
 async function repointStripe(url: string) {
-  const key = readEnv('server/.env', 'STRIPE_SECRET_KEY');
+  const key = readEnv(API_ENV, 'STRIPE_SECRET_KEY');
   if (!key) { console.log('Stripe: STRIPE_SECRET_KEY not set, skipping'); return; }
   const headers = { Authorization: `Bearer ${key}`, 'Content-Type': 'application/x-www-form-urlencoded' };
   const target = `${url}/api/webhooks/stripe`;
@@ -104,10 +109,10 @@ async function repointStripe(url: string) {
   if (!res.ok || !saved.id) { console.log(`Stripe: could not ${ours ? 'update' : 'create'} the webhook endpoint — ${why(res, saved)}`); return; }
   console.log(`Stripe: webhook endpoint ${saved.id} → ${target}`);
   if (saved.secret) {
-    writeEnv('server/.env', 'STRIPE_WEBHOOK_SECRET', saved.secret);
-    console.log('Stripe: new signing secret written to server/.env');
-  } else if (!readEnv('server/.env', 'STRIPE_WEBHOOK_SECRET')) {
-    console.log(`Stripe: server/.env has no STRIPE_WEBHOOK_SECRET. Copy the signing secret of ${saved.id} from the Stripe dashboard (Developers → Webhooks).`);
+    writeEnv(API_ENV, 'STRIPE_WEBHOOK_SECRET', saved.secret);
+    console.log(`Stripe: new signing secret written to ${API_ENV}`);
+  } else if (!readEnv(API_ENV, 'STRIPE_WEBHOOK_SECRET')) {
+    console.log(`Stripe: ${API_ENV} has no STRIPE_WEBHOOK_SECRET. Copy the signing secret of ${saved.id} from the Stripe dashboard (Developers → Webhooks).`);
   }
 }
 
@@ -125,7 +130,7 @@ if (keepWebhooks) {
 }
 
 if (noDev) {
-  console.log('Restart the dev servers to pick up the new env (bun --watch and next dev do not re-read .env).');
+  console.log('Restart the dev server to pick up the new env (next dev does not re-read .env).');
   if (!argUrl) console.log('The tunnel stays up until this process is stopped.');
   else process.exit(0);
 } else {

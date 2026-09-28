@@ -11,8 +11,8 @@ let app: any;
 const OWNER = 'user_owner';
 const OTHER = 'user_other';
 
-beforeEach(() => {
-  db = createTestDb();
+beforeEach(async () => {
+  db = await createTestDb();
   app = createTestApp(db, apiKeysRoutes);
 });
 

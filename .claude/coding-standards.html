@@ -1,0 +1,2070 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Checkable coding and writing rules for Python, Flutter, TypeScript, Node.js, Terraform, C++, C# and web design, with plain-English rules for docs, comments and commits, and the Claude skills we use for UI work.">
+<title>Tack Labs Standards</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&family=Source+Serif+4:ital,opsz,wght@0,8..60,400..700;1,8..60,400&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+:root {
+  --ground: #f4f6f9;
+  --surface: #ffffff;
+  --ink: #141922;
+  --muted: #586274;
+  --rule: #dbe0e8;
+  --accent: #2f43cf;
+  --accent-soft: #e8ebfc;
+  --del: #b7322f;
+  --del-bg: #fbeceb;
+  --add: #1b7a4b;
+  --add-bg: #e5f4eb;
+  --code-bg: #eef1f6;
+  --code-ink: #1d2330;
+  --tok-kw: #7b2fb5;
+  --tok-str: #1b7a4b;
+  --tok-com: #7a8496;
+  --tok-num: #b35900;
+  --tok-type: #2f43cf;
+  --tok-fn: #0f6f86;
+
+  --display: "Archivo", "Helvetica Neue", Arial, sans-serif;
+  --body: "Source Serif 4", Georgia, "Times New Roman", serif;
+  --mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --ground: #0e1117;
+    --surface: #151922;
+    --ink: #e5e8ee;
+    --muted: #97a0b1;
+    --rule: #272d39;
+    --accent: #909dff;
+    --accent-soft: #1d2340;
+    --del: #ff8e88;
+    --del-bg: #2b1718;
+    --add: #6fd39c;
+    --add-bg: #12261b;
+    --code-bg: #1a1f2a;
+    --code-ink: #dbe0ea;
+    --tok-kw: #d3a4ff;
+    --tok-str: #8ddcaa;
+    --tok-com: #7d8799;
+    --tok-num: #ffb86b;
+    --tok-type: #a3aeff;
+    --tok-fn: #7fd3e6;
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --ground: #0e1117;
+  --surface: #151922;
+  --ink: #e5e8ee;
+  --muted: #97a0b1;
+  --rule: #272d39;
+  --accent: #909dff;
+  --accent-soft: #1d2340;
+  --del: #ff8e88;
+  --del-bg: #2b1718;
+  --add: #6fd39c;
+  --add-bg: #12261b;
+  --code-bg: #1a1f2a;
+  --code-ink: #dbe0ea;
+  --tok-kw: #d3a4ff;
+  --tok-str: #8ddcaa;
+  --tok-com: #7d8799;
+  --tok-num: #ffb86b;
+  --tok-type: #a3aeff;
+  --tok-fn: #7fd3e6;
+}
+
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+body {
+  background: var(--ground);
+  color: var(--ink);
+  font-family: var(--body);
+  font-size: 17px;
+  line-height: 1.6;
+  padding-inline: 16px;
+  padding-block: 0 64px;
+}
+a { color: var(--accent); text-underline-offset: 3px; }
+a:focus-visible, button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 3px; }
+
+.layout {
+  max-width: 1180px;
+  margin-inline: auto;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 48px;
+}
+@media (min-width: 1080px) {
+  .layout { grid-template-columns: 220px minmax(0, 1fr); }
+}
+
+/* Table of contents */
+.toc { display: none; }
+@media (min-width: 1080px) {
+  .toc {
+    display: block;
+    position: sticky;
+    top: calc(env(safe-area-inset-top, 0px) + 32px);
+    align-self: start;
+    max-height: calc(100vh - 48px);
+    overflow-y: auto;
+    padding-top: 56px;
+    font-family: var(--display);
+    font-size: 13.5px;
+  }
+}
+.toc h2 {
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin: 0 0 10px;
+  font-weight: 600;
+}
+.toc ol { list-style: none; margin: 0 0 24px; padding: 0; display: grid; gap: 2px; }
+.toc a {
+  display: flex;
+  gap: 8px;
+  color: var(--muted);
+  text-decoration: none;
+  padding: 3px 8px;
+  border-radius: 4px;
+  border-left: 2px solid transparent;
+}
+.toc a:hover { color: var(--ink); }
+.toc a.active { color: var(--accent); border-left-color: var(--accent); background: var(--accent-soft); }
+.toc .tag { font-family: var(--mono); font-size: 11.5px; min-width: 24px; }
+
+main { min-width: 0; max-width: 760px; }
+
+/* Masthead */
+.masthead { padding-block: 56px 8px; display: grid; gap: 18px; }
+.eyebrow {
+  font-family: var(--display);
+  font-size: 12px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
+  font-weight: 600;
+  margin: 0;
+}
+h1 {
+  font-family: var(--display);
+  font-variation-settings: "wdth" 112;
+  font-weight: 850;
+  font-size: clamp(38px, 7vw, 64px);
+  line-height: 1;
+  letter-spacing: -0.02em;
+  margin: 0;
+  text-wrap: balance;
+}
+.lede { font-size: 20px; line-height: 1.5; margin: 0; max-width: 62ch; }
+
+.tiers {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  margin-top: 12px;
+}
+.tier {
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: 8px;
+  padding: 16px 18px;
+  display: grid;
+  gap: 6px;
+  align-content: start;
+}
+.tier h3 { font-family: var(--display); font-size: 15px; margin: 0; letter-spacing: 0.01em; }
+.tier p { margin: 0; font-size: 15.5px; line-height: 1.5; }
+
+/* Sections */
+section { padding-top: 56px; scroll-margin-top: 16px; }
+h2 {
+  font-family: var(--display);
+  font-variation-settings: "wdth" 108;
+  font-weight: 800;
+  font-size: clamp(26px, 4vw, 34px);
+  line-height: 1.1;
+  margin: 0 0 14px;
+  letter-spacing: -0.01em;
+  text-wrap: balance;
+}
+h3 {
+  font-family: var(--display);
+  font-weight: 700;
+  font-size: 19px;
+  line-height: 1.25;
+  margin: 28px 0 8px;
+  text-wrap: balance;
+  scroll-margin-top: 16px;
+}
+h4 {
+  font-family: var(--display);
+  font-size: 12px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin: 22px 0 8px;
+  font-weight: 650;
+}
+p { margin: 0 0 14px; }
+ul, ol { margin: 0 0 14px; padding-left: 22px; }
+li { margin-bottom: 6px; }
+li::marker { color: var(--muted); }
+code {
+  font-family: var(--mono);
+  font-size: 0.84em;
+  background: var(--code-bg);
+  color: var(--code-ink);
+  padding: 1px 5px;
+  border-radius: 4px;
+}
+.section-intro { color: var(--muted); font-size: 16.5px; }
+
+/* Foundation entries rendered as a diff */
+.rule {
+  border-top: 1px solid var(--rule);
+  padding-top: 28px;
+  margin-top: 28px;
+  scroll-margin-top: 16px;
+}
+.rule:first-of-type { border-top: 0; margin-top: 8px; padding-top: 0; }
+.diff {
+  font-family: var(--mono);
+  font-size: 14px;
+  border-radius: 6px;
+  overflow: hidden;
+  border: 1px solid var(--rule);
+  margin-bottom: 16px;
+}
+.diff div {
+  display: grid;
+  grid-template-columns: 22px 56px minmax(0, 1fr);
+  padding: 7px 12px 7px 8px;
+  align-items: baseline;
+}
+.diff .minus { background: var(--del-bg); color: var(--del); }
+.diff .minus span:last-child { text-decoration: line-through; text-decoration-thickness: 1px; }
+.diff .plus, .diff .keep { background: var(--add-bg); color: var(--add); font-weight: 600; }
+.diff b { font-weight: 700; }
+.rule h3 { margin-top: 0; font-size: 22px; }
+.found { font-style: italic; color: var(--muted); }
+.check {
+  display: flex;
+  gap: 10px;
+  align-items: baseline;
+  font-size: 15.5px;
+  border-left: 3px solid var(--accent);
+  background: var(--accent-soft);
+  padding: 10px 14px;
+  border-radius: 0 6px 6px 0;
+  margin: 16px 0 0;
+}
+.check strong {
+  font-family: var(--display);
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--accent);
+  flex: none;
+}
+
+/* Code examples */
+.example { margin: 18px 0; display: grid; gap: 10px; }
+.snippet { border-radius: 6px; overflow: hidden; border: 1px solid var(--rule); background: var(--code-bg); }
+.snippet-label {
+  font-family: var(--display);
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  font-weight: 700;
+  padding: 6px 12px;
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  border-bottom: 1px solid var(--rule);
+}
+.snippet-label span:last-child { font-family: var(--mono); letter-spacing: 0; text-transform: none; font-weight: 400; color: var(--muted); text-align: right; }
+.avoid .snippet-label { color: var(--del); background: var(--del-bg); }
+.prefer .snippet-label { color: var(--add); background: var(--add-bg); }
+.config .snippet-label { color: var(--muted); background: var(--surface); }
+pre {
+  margin: 0;
+  padding: 14px 16px;
+  overflow-x: auto;
+  font-family: var(--mono);
+  font-size: 13.5px;
+  line-height: 1.55;
+  color: var(--code-ink);
+  tab-size: 2;
+}
+pre code { background: none; padding: 0; font-size: inherit; border-radius: 0; }
+.caption { font-size: 15px; color: var(--muted); margin: 0; }
+
+.hljs-keyword, .hljs-literal, .hljs-meta .hljs-keyword { color: var(--tok-kw); }
+.hljs-string, .hljs-regexp { color: var(--tok-str); }
+.hljs-comment { color: var(--tok-com); font-style: italic; }
+.hljs-number { color: var(--tok-num); }
+.hljs-type, .hljs-built_in, .hljs-title.class_ { color: var(--tok-type); }
+.hljs-title.function_, .hljs-title { color: var(--tok-fn); }
+.hljs-attr, .hljs-attribute, .hljs-property { color: var(--tok-fn); }
+.hljs-meta { color: var(--tok-num); }
+.hljs-section { color: var(--tok-kw); font-weight: 600; }
+.hljs-bullet { color: var(--tok-num); }
+
+/* Diagram */
+.diagram { margin: 18px 0; overflow-x: auto; }
+.diagram svg { display: block; width: 100%; min-width: 520px; height: auto; }
+.diagram .box { fill: var(--surface); stroke: var(--rule); stroke-width: 1.5; }
+.diagram .box.iface { fill: var(--accent-soft); stroke: var(--accent); stroke-dasharray: 5 4; }
+.diagram text { fill: var(--ink); font-family: var(--display); font-size: 13px; }
+.diagram text.small { fill: var(--muted); font-size: 11px; letter-spacing: 0.06em; }
+.diagram text.head { font-weight: 700; font-size: 12px; letter-spacing: 0.1em; fill: var(--muted); }
+.diagram .sep { stroke: var(--rule); stroke-width: 1; }
+.diagram .dep { stroke: var(--ink); stroke-width: 1.6; fill: none; }
+.diagram .flow { stroke: var(--accent); stroke-width: 1.6; fill: none; stroke-dasharray: 3 4; }
+.diagram .ah-dep { fill: var(--ink); }
+.diagram .ah-flow { fill: var(--accent); }
+.legend { display: flex; flex-wrap: wrap; gap: 18px; font-family: var(--display); font-size: 13px; color: var(--muted); margin: 6px 0 0; }
+.legend span { display: inline-flex; align-items: center; gap: 8px; }
+.legend i { display: inline-block; width: 26px; height: 0; border-top: 2px solid var(--ink); }
+.legend i.flow { border-top: 2px dashed var(--accent); }
+
+/* Tables */
+.table-wrap { overflow-x: auto; border: 1px solid var(--rule); border-radius: 8px; background: var(--surface); margin: 8px 0 16px; }
+table { border-collapse: collapse; width: 100%; min-width: 640px; font-size: 14.5px; }
+th, td { text-align: left; padding: 10px 14px; border-bottom: 1px solid var(--rule); vertical-align: top; }
+tr:last-child td { border-bottom: 0; }
+th {
+  font-family: var(--display);
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+  font-weight: 650;
+}
+td:first-child { font-family: var(--display); font-weight: 700; white-space: nowrap; }
+td code { font-size: 12.5px; white-space: nowrap; }
+.prose-table table { min-width: 560px; }
+.prose-table td:first-child { white-space: normal; width: 24%; }
+.prose-table td.bad { color: var(--del); }
+.prose-table td.good { color: var(--add); }
+.swaps table { min-width: 0; }
+.swaps td:first-child { font-family: var(--body); font-weight: 400; color: var(--del); white-space: normal; width: 50%; }
+.swaps td:last-child { color: var(--add); }
+
+/* Chip navigation */
+.lang-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 16px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.lang-nav li { margin: 0; }
+.lang-nav a {
+  font-family: var(--display);
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+  color: var(--ink);
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: 999px;
+  padding: 6px 14px;
+  display: inline-block;
+}
+.lang-nav a:hover { border-color: var(--accent); color: var(--accent); }
+@media (min-width: 1080px) { .mobile-nav { display: none; } }
+
+/* Language sections */
+.lang { border-top: 3px solid var(--ink); margin-top: 56px; padding-top: 22px; }
+.lang-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 16px; margin-bottom: 10px; }
+.lang-head h2 { margin: 0; }
+.lang-head p { margin: 0; color: var(--muted); font-family: var(--display); font-size: 14px; }
+.map { display: grid; gap: 0; margin: 0 0 12px; border-top: 1px solid var(--rule); }
+.map div { display: grid; grid-template-columns: 44px minmax(0, 1fr); gap: 10px; padding: 9px 0; border-bottom: 1px solid var(--rule); }
+.map dt {
+  font-family: var(--mono);
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--accent);
+  padding-top: 3px;
+}
+.map dd { margin: 0; font-size: 16px; }
+.map dd strong { font-family: var(--display); font-size: 15.5px; }
+
+/* Review comments */
+.review { display: grid; gap: 14px; margin-top: 12px; }
+.comment { background: var(--surface); border: 1px solid var(--rule); border-radius: 8px; overflow: hidden; }
+.comment-head {
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--muted);
+  padding: 8px 14px;
+  border-bottom: 1px solid var(--rule);
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.comment-body { padding: 12px 14px; display: grid; gap: 8px; }
+.comment-body p { margin: 0; font-size: 16px; }
+.comment .no { color: var(--del); text-decoration: line-through; font-family: var(--mono); font-size: 14px; }
+.comment .no::before { content: "− "; }
+.comment .yes::before { content: "+ "; color: var(--add); font-family: var(--mono); font-weight: 700; }
+
+footer { margin-top: 64px; padding-top: 20px; border-top: 1px solid var(--rule); font-size: 14.5px; color: var(--muted); }
+footer p { margin: 0; }
+</style>
+</head>
+<body>
+
+<div class="layout">
+  <nav class="toc" aria-label="Contents">
+    <h2>Foundations</h2>
+    <ol>
+      <li><a href="#f1"><span class="tag">F1</span>Merge what changes together</a></li>
+      <li><a href="#f2"><span class="tag">F2</span>Simple is measured</a></li>
+      <li><a href="#f3"><span class="tag">F3</span>Remove your code</a></li>
+      <li><a href="#f4"><span class="tag">F4</span>Behaviour with data</a></li>
+      <li><a href="#f5"><span class="tag">F5</span>Change or answer</a></li>
+      <li><a href="#f6"><span class="tag">F6</span>Feature, then layer</a></li>
+      <li><a href="#f7"><span class="tag">F7</span>Pattern on variant two</a></li>
+      <li><a href="#f8"><span class="tag">F8</span>Overrides never refuse</a></li>
+      <li><a href="#f9"><span class="tag">F9</span>Caller owns the interface</a></li>
+      <li><a href="#f10"><span class="tag">F10</span>Invert at IO boundaries</a></li>
+    </ol>
+    <h2>Writing</h2>
+    <ol>
+      <li><a href="#writing"><span class="tag">W</span>Plain English</a></li>
+      <li><a href="#docs">Documentation</a></li>
+      <li><a href="#comments">Code comments</a></li>
+      <li><a href="#commits">Commit messages</a></li>
+      <li><a href="#ai-drafts">AI drafts</a></li>
+    </ol>
+    <h2>Languages</h2>
+    <ol>
+      <li><a href="#gates">Gates at a glance</a></li>
+      <li><a href="#python">Python</a></li>
+      <li><a href="#flutter">Flutter and Dart</a></li>
+      <li><a href="#typescript">TypeScript</a></li>
+      <li><a href="#nodejs">Node.js</a></li>
+      <li><a href="#terraform">Terraform</a></li>
+      <li><a href="#cpp">C++</a></li>
+      <li><a href="#csharp">C#</a></li>
+      <li><a href="#web">Web design</a></li>
+      <li><a href="#web-risk">Cost and legal risk</a></li>
+      <li><a href="#seo">Search engines</a></li>
+    </ol>
+    <h2>Practice</h2>
+    <ol>
+      <li><a href="#skills">UI skills</a></li>
+      <li><a href="#review">Reviewing</a></li>
+    </ol>
+  </nav>
+
+  <main>
+    <header class="masthead">
+      <p class="eyebrow">Coding and writing standards · Version 1 · September 2026</p>
+      <h1>Tack Labs Standards</h1>
+      <p class="lede">SOLID, KISS, DRY and YAGNI point at real problems. They are also too vague to review against. Two good engineers can read the same principle and reach opposite answers. This standard keeps the aim of each one and turns it into a rule you can check.</p>
+      <div class="tiers">
+        <div class="tier">
+          <h3>Gates block the merge</h3>
+          <p>Formatters, linters, type checkers and tests run in CI. If a tool can check a rule, the tool checks it. Nobody debates those rules in review.</p>
+        </div>
+        <div class="tier">
+          <h3>Foundations are defaults</h3>
+          <p>F1 to F10 below. You may break one if you have a reason. Write the reason in a one-line comment. Reviewers then discuss the reason.</p>
+        </div>
+        <div class="tier">
+          <h3>Writing is plain English</h3>
+          <p>W1 to W6 cover docs, code comments and commit messages. They apply to every draft, whether a person or an AI wrote it.</p>
+        </div>
+      </div>
+      <nav class="mobile-nav" aria-label="Contents">
+        <ul class="lang-nav">
+          <li><a href="#foundations">Foundations</a></li>
+          <li><a href="#writing">Writing</a></li>
+          <li><a href="#gates">Gates</a></li>
+          <li><a href="#python">Python</a></li>
+          <li><a href="#flutter">Flutter</a></li>
+          <li><a href="#typescript">TypeScript</a></li>
+          <li><a href="#nodejs">Node.js</a></li>
+          <li><a href="#terraform">Terraform</a></li>
+          <li><a href="#cpp">C++</a></li>
+          <li><a href="#csharp">C#</a></li>
+          <li><a href="#web">Web design</a></li>
+          <li><a href="#web-risk">Cost and legal</a></li>
+          <li><a href="#seo">Search</a></li>
+          <li><a href="#skills">UI skills</a></li>
+          <li><a href="#review">Reviewing</a></li>
+        </ul>
+      </nav>
+    </header>
+
+    <section id="foundations">
+      <h2>The ten foundations</h2>
+      <p class="section-intro">Each entry names the acronym it replaces and why that acronym is hard to apply. Then it gives the rule we use. In review, cite a rule by its ID, for example "see F3".</p>
+
+      <article class="rule" id="f1">
+        <div class="diff" aria-hidden="true">
+          <div class="minus"><span>−</span><span>DRY</span><span>Don't repeat yourself</span></div>
+          <div class="plus"><span>+</span><b>F1</b><span>Merge only what changes together</span></div>
+        </div>
+        <h3>Merge only what changes together</h3>
+        <p class="found">DRY never says what counts as duplication. Merging two similar functions can produce code worse than either copy. Code that looks the same today often drifts apart within a year. Every merge ties the callers together, and sometimes that tie is wrong.</p>
+        <ul>
+          <li>Two copies are fine. Extract a shared function when a third copy appears. Only do it if every copy changes for the same reason.</li>
+          <li>A shared helper that needs a boolean flag or a <code>mode</code> argument is really two functions. Split it back.</li>
+          <li>Business rules, limits, schemas and URLs live in one place. This part of DRY still holds.</li>
+          <li>Tests may repeat themselves. Each test should read top to bottom without jumping into helpers. Share builders for test data. Keep the assertions in the test.</li>
+        </ul>
+        <p class="check"><strong>Check</strong><span>Would a bug fix in one copy always be needed in the others? If yes, merge them. If you are unsure, leave them apart.</span></p>
+      </article>
+
+      <article class="rule" id="f2">
+        <div class="diff" aria-hidden="true">
+          <div class="minus"><span>−</span><span>KISS</span><span>Keep it simple, stupid</span></div>
+          <div class="plus"><span>+</span><b>F2</b><span>Simple is measured</span></div>
+        </div>
+        <h3>Simple is measured</h3>
+        <p class="found">Nobody defines "simple". Show two developers the same two functions and they may pick different ones. People who over-build usually believe the problem needed it.</p>
+        <p>Here, simple means code that meets these numbers. Linters enforce them where the language has a rule for it.</p>
+        <ul>
+          <li>Cyclomatic complexity of 10 or less per function.</li>
+          <li>Nesting of 3 levels or less. Return early instead of wrapping code in another block.</li>
+          <li>A function fits on one screen, around 40 lines.</li>
+          <li>4 parameters or fewer. Past that, pass one named options object.</li>
+          <li>A list of values is data. Store it as data instead of a chain of <code>if</code> statements.</li>
+          <li>A one-liner that needs a comment to decode gets rewritten as two plain lines.</li>
+        </ul>
+        <p>The first version below repeats itself for each name. The names are data, so the fix is a set lookup.</p>
+        <div class="example">
+          <div class="snippet avoid">
+            <div class="snippet-label"><span>Avoid</span><span>a chain of ifs</span></div>
+<pre><code class="language-csharp">string FoundPerson(string[] people)
+{
+    for (int i = 0; i &lt; people.Length; i++)
+    {
+        if (people[i].Equals("Don"))  return people[i];
+        if (people[i].Equals("John")) return people[i];
+        if (people[i].Equals("Kent")) return people[i];
+    }
+    return String.Empty;
+}</code></pre>
+          </div>
+          <div class="snippet prefer">
+            <div class="snippet-label"><span>Prefer</span><span>C# 12</span></div>
+<pre><code class="language-csharp">private static readonly HashSet&lt;string&gt; Candidates = ["Don", "John", "Kent"];
+
+string FindCandidate(IEnumerable&lt;string&gt; people) =&gt;
+    people.FirstOrDefault(Candidates.Contains) ?? string.Empty;</code></pre>
+          </div>
+        </div>
+        <p class="check"><strong>Check</strong><span>The linter passes. A new reader can say what the function does after one read.</span></p>
+      </article>
+
+      <article class="rule" id="f3">
+        <div class="diff" aria-hidden="true">
+          <div class="minus"><span>−</span><span>YAGNI</span><span>You aren't going to need it</span></div>
+          <div class="plus"><span>+</span><b>F3</b><span>Remove your code</span></div>
+        </div>
+        <h3>Remove your code</h3>
+        <p class="found">Nobody argues for unused code. It stays anyway. People keep it in case it is needed, or because it took hours to write. The useful rule is to delete it. Some flexibility is worth building early, and F10 covers that cheap kind: a small interface where code meets the database or network.</p>
+        <ul>
+          <li>No commented-out code. Git keeps the history.</li>
+          <li>No unused parameters, flags, config keys, exports, variables or outputs.</li>
+          <li>No abstraction built for later. An interface with one implementation is allowed at an IO boundary, as in F10. It is also allowed when tests need a fake.</li>
+          <li>Every feature flag has an owner and a removal date. Put both next to the code that reads the flag.</li>
+          <li>A pull request that only deletes code is normal. Review it like any other.</li>
+        </ul>
+        <p class="check"><strong>Check</strong><span>Dead-code tools run in CI for each language. See the gates table.</span></p>
+      </article>
+
+      <article class="rule" id="f4">
+        <div class="diff" aria-hidden="true">
+          <div class="minus"><span>−</span><span>TDA</span><span>Tell, don't ask</span></div>
+          <div class="plus"><span>+</span><b>F4</b><span>Behaviour lives with the data it guards</span></div>
+        </div>
+        <h3>Behaviour lives with the data it guards</h3>
+        <p class="found">Tell, Don't Ask is object-oriented design under another name. In the first example below, every caller must remember to raise the event after changing the name. Sooner or later one caller forgets.</p>
+        <ul>
+          <li>Sometimes changing a field must also do something else. It might raise an event, record a time or validate the value. The owning type does all of it in one method. Callers cannot set the field directly.</li>
+          <li>Validate in the constructor. If an object exists, it is valid.</li>
+          <li>Values that should not change are immutable. Use records, frozen dataclasses or final fields with <code>copyWith</code>.</li>
+          <li>Request and response DTOs at the edges may be plain data. They are converted to domain objects at the boundary.</li>
+        </ul>
+        <div class="example">
+          <div class="snippet avoid">
+            <div class="snippet-label"><span>Avoid</span><span>the caller does the work</span></div>
+<pre><code class="language-csharp">public class User
+{
+    public string Name { get; set; }
+}
+
+var oldName = user.Name;
+user.Name = "New user name";
+RaiseEvent(new UserNameChanged(oldName, user.Name));</code></pre>
+          </div>
+          <div class="snippet prefer">
+            <div class="snippet-label"><span>Prefer</span><span>the owner does the work</span></div>
+<pre><code class="language-csharp">public class User
+{
+    private string _name;
+
+    public void ChangeName(string newName)
+    {
+        var oldName = _name;
+        _name = newName;
+        RaiseEvent(new UserNameChanged(oldName, newName));
+    }
+}
+
+user.ChangeName("New user name");</code></pre>
+          </div>
+        </div>
+        <p class="check"><strong>Check</strong><span>Look for callers that set a field and then do a follow-up step. Move that step into the owner.</span></p>
+      </article>
+
+      <article class="rule" id="f5">
+        <div class="diff" aria-hidden="true">
+          <div class="keep"><span> </span><b>F5</b><span>CQS kept. Change state or answer a question</span></div>
+        </div>
+        <h3>Change state or answer a question</h3>
+        <p class="found">Command-query separation is worth keeping. A function either does something or returns something, never both. Standard libraries break this on purpose in a few places, for convenience.</p>
+        <ul>
+          <li>The name says which kind a function is. <code>get</code>, <code>find</code>, <code>is</code>, <code>has</code> and <code>count</code> answer. <code>save</code>, <code>send</code>, <code>create</code>, <code>apply</code> and <code>set</code> change.</li>
+          <li>Four exceptions are allowed: try-parse, pop, get-or-add and moving an iterator forward. Use the language's own version. Do not invent new ones.</li>
+          <li>Render and build functions are queries. They never fetch, navigate or write state.</li>
+          <li>Property getters have no side effects.</li>
+        </ul>
+        <p class="check"><strong>Check</strong><span>A function with a query name that writes anything blocks the merge.</span></p>
+      </article>
+
+      <article class="rule" id="f6">
+        <div class="diff" aria-hidden="true">
+          <div class="minus"><span>−</span><span>SRP</span><span>Single responsibility principle</span></div>
+          <div class="plus"><span>+</span><b>F6</b><span>Group by feature, then by layer</span></div>
+        </div>
+        <h3>Group by feature, then by layer</h3>
+        <p class="found">Nobody agrees what a "responsibility" is. Take one method that reads users and one that reads orders. Do they share a class because both read data? Or do they split because the entities differ? Push SRP too far and the code breaks into pieces too small to follow.</p>
+        <p>We split by entity, inside the feature that owns it.</p>
+        <ul>
+          <li>Top-level folders are features, such as <code>orders</code>, <code>invites</code> and <code>care_teams</code>. Inside each are layers. The route or view calls the service or view model, which calls the repository.</li>
+          <li>A function does one operation, as in F5. A class holds what one feature needs from one layer. So <code>UserRepository</code> and <code>OrderRepository</code> each sit in their own feature.</li>
+          <li>Shared code such as the HTTP client, logging and auth lives in <code>core</code> or <code>shared</code>. Features depend on it. It never depends on a feature. Features never import each other's internals.</li>
+          <li>Split a class when its callers use separate halves of it. Also split when edits to one half keep breaking tests of the other. Do not split earlier.</li>
+          <li>Merging is as valid as splitting. Three classes that always change together are one class.</li>
+        </ul>
+        <p class="check"><strong>Check</strong><span>Can you delete the feature by deleting its folder and its registration lines?</span></p>
+      </article>
+
+      <article class="rule" id="f7">
+        <div class="diff" aria-hidden="true">
+          <div class="minus"><span>−</span><span>OCP</span><span>Open for extension, closed for modification</span></div>
+          <div class="plus"><span>+</span><b>F7</b><span>Reach for a named pattern when the second variant arrives</span></div>
+        </div>
+        <h3>Reach for a named pattern when the second variant arrives</h3>
+        <p class="found">The open-closed principle says what to aim for and gives no method. Design patterns give the method. Strategy adds algorithms. Decorator adds behaviour. Visitor adds operations. Used too early, any of them is over-engineering.</p>
+        <ul>
+          <li>Write the first variant directly. Add no extension point.</li>
+          <li>When a second variant arrives, pick a named pattern. Strategy swaps an algorithm. Decorator wraps extra behaviour such as retry, caching or logging. Adapter fits a third-party API to our interface.</li>
+          <li>Some languages have closed unions. A closed union lists every case in one type, and the compiler checks that each <code>switch</code> handles them all. Where you have one, prefer it to Visitor or a class per case.</li>
+          <li>Put the pattern in the type name, for example <code>RetryingHttpClient</code> or <code>FlatRatePricing</code>.</li>
+        </ul>
+        <p class="check"><strong>Check</strong><span>Every abstraction has at least two real uses today, or sits at an IO boundary.</span></p>
+      </article>
+
+      <article class="rule" id="f8">
+        <div class="diff" aria-hidden="true">
+          <div class="minus"><span>−</span><span>LSP</span><span>Liskov substitution principle</span></div>
+          <div class="plus"><span>+</span><b>F8</b><span>An override never refuses</span></div>
+        </div>
+        <h3>An override never refuses</h3>
+        <p class="found">Liskov substitution comes down to using inheritance properly. In the example, <code>Train</code> inherits <code>Turn()</code> and throws. Code that accepts any vehicle now crashes when it is given a train.</p>
+        <ul>
+          <li>An override that throws "not supported" is a design error. Fix the hierarchy, or split the interface as in F9.</li>
+          <li>Inherit only when the subtype can stand in for its parent everywhere. To reuse code, compose.</li>
+          <li>Classes are sealed or final by default. Opening one for inheritance is a deliberate choice.</li>
+          <li>One level of your own below a framework base class is normal. Three levels is a warning sign.</li>
+        </ul>
+        <div class="example">
+          <div class="snippet avoid">
+            <div class="snippet-label"><span>Avoid</span><span>Train throws on Turn</span></div>
+<pre><code class="language-csharp">abstract class VehicleBase
+{
+    public abstract void Turn();
+}
+
+class Train : VehicleBase
+{
+    public override void Turn() =&gt; throw new InvalidOperationException();
+}</code></pre>
+          </div>
+          <div class="snippet prefer">
+            <div class="snippet-label"><span>Prefer</span><span>only vehicles that turn can turn</span></div>
+<pre><code class="language-csharp">abstract class VehicleBase { }
+
+abstract class FreeDirectionalVehicleBase : VehicleBase
+{
+    public abstract void Turn();
+}
+
+sealed class Train : VehicleBase { }</code></pre>
+          </div>
+        </div>
+        <p class="check"><strong>Check</strong><span>Search the diff for overrides that throw <code>NotSupported</code>, <code>NotImplemented</code> or <code>InvalidOperation</code>.</span></p>
+      </article>
+
+      <article class="rule" id="f9">
+        <div class="diff" aria-hidden="true">
+          <div class="minus"><span>−</span><span>ISP</span><span>Interface segregation principle</span></div>
+          <div class="plus"><span>+</span><b>F9</b><span>The caller owns the interface</span></div>
+        </div>
+        <h3>The caller owns the interface</h3>
+        <p class="found">Interface segregation mostly repeats F6 and F8. A typical example is an <code>IAnimal</code> interface that makes every animal implement <code>Fly()</code> and <code>Swim()</code>. A cat then has to fake flying.</p>
+        <ul>
+          <li>Declare an interface next to the code that calls it. List only what that caller uses.</li>
+          <li>Name it for what it can do, such as <code>OrderStore</code>, <code>Clock</code> or <code>Notifier</code>. Avoid an <code>IOrderService</code> that copies one class member for member.</li>
+          <li>One implementation, one caller and no IO means no interface. Use the class.</li>
+          <li>TypeScript types and Python <code>Protocol</code> match on shape. The implementation does not even need to declare the interface.</li>
+        </ul>
+        <p class="check"><strong>Check</strong><span>Every member of the interface has a caller in the module that declares it.</span></p>
+      </article>
+
+      <article class="rule" id="f10">
+        <div class="diff" aria-hidden="true">
+          <div class="keep"><span> </span><b>F10</b><span>DIP kept. Invert dependencies at the IO boundary</span></div>
+        </div>
+        <h3>Invert dependencies at the IO boundary</h3>
+        <p class="found">Dependency inversion earns its place. It shapes the architecture, reduces coupling between modules and breaks import cycles. It is also badly explained. Few people can say what "high-level" and "low-level" mean, so we define them here.</p>
+        <p>There are two kinds of dependency. A code dependency is one module importing another. Execution flow is one module calling another at runtime. Usually both point the same way. Inversion turns the import around. Calls still go the same way.</p>
+        <p><strong>Low-level</strong> code touches the outside world. That means the database, network, file system, clock, random numbers, environment variables and platform channels. <strong>High-level</strong> code holds the business rules. The rules declare an interface. The IO code implements it.</p>
+        <figure class="diagram" aria-label="Before inversion, the service imports the Postgres repository and calls it. After inversion, the service owns an OrderStore interface. The Postgres repository imports and implements it. Runtime calls still go from service to repository.">
+          <svg viewBox="0 0 720 250" role="img">
+            <defs>
+              <marker id="ah-dep" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="ah-dep"/></marker>
+              <marker id="ah-flow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="ah-flow"/></marker>
+            </defs>
+            <text x="20" y="22" class="head">BEFORE</text>
+            <rect x="20" y="40" width="150" height="46" rx="6" class="box"/>
+            <text x="95" y="68" text-anchor="middle">OrderService</text>
+            <rect x="20" y="170" width="150" height="46" rx="6" class="box"/>
+            <text x="95" y="198" text-anchor="middle">PostgresOrderRepo</text>
+            <path d="M80 88 L80 166" class="dep" marker-end="url(#ah-dep)"/>
+            <path d="M110 88 L110 166" class="flow" marker-end="url(#ah-flow)"/>
+            <text x="120" y="132" class="small">both point down</text>
+
+            <line x1="290" y1="20" x2="290" y2="230" class="sep"/>
+
+            <text x="330" y="22" class="head">AFTER</text>
+            <rect x="330" y="40" width="150" height="46" rx="6" class="box"/>
+            <text x="405" y="68" text-anchor="middle">OrderService</text>
+            <rect x="530" y="40" width="170" height="46" rx="6" class="box iface"/>
+            <text x="615" y="60" text-anchor="middle" class="small">INTERFACE</text>
+            <text x="615" y="77" text-anchor="middle">OrderStore</text>
+            <rect x="330" y="170" width="150" height="46" rx="6" class="box"/>
+            <text x="405" y="198" text-anchor="middle">PostgresOrderRepo</text>
+            <path d="M482 56 L526 56" class="dep" marker-end="url(#ah-dep)"/>
+            <path d="M482 193 L615 193 L615 90" class="dep" marker-end="url(#ah-dep)"/>
+            <text x="500" y="186" class="small">implements</text>
+            <path d="M405 88 L405 166" class="flow" marker-end="url(#ah-flow)"/>
+            <text x="416" y="132" class="small">calls still</text>
+            <text x="416" y="146" class="small">go down</text>
+          </svg>
+          <figcaption class="legend"><span><i></i>code dependency, meaning imports</span><span><i class="flow"></i>execution flow, meaning calls</span></figcaption>
+        </figure>
+        <ul>
+          <li>Business rules never import a database driver, SDK or HTTP client.</li>
+          <li>The clock and randomness count as IO. Inject them so tests give the same result every run.</li>
+          <li>Each app wires its concrete classes in one place, called the composition root. That is usually <code>main</code>, the DI setup, the provider graph or the Terraform root module.</li>
+          <li>Modules may not import each other in a cycle. Break a cycle by inverting one import.</li>
+        </ul>
+        <p class="check"><strong>Check</strong><span>Search the domain folders for driver and SDK imports. There should be none.</span></p>
+      </article>
+    </section>
+
+    <section id="writing">
+      <h2>Plain English, not Claudish</h2>
+      <p>Claudish is the style AI assistants tend to write in. It is dense, padded and heavy with jargon. It sounds confident and says less than it seems to. People write it too, especially when rushed.</p>
+      <p>These rules cover everything we write in English. That includes docs, READMEs, runbooks, PR descriptions, review comments, code comments and commit messages. They apply whoever drafted the text. The person who commits it is the author.</p>
+      <dl class="map">
+        <div><dt>W1</dt><dd><strong>Lead with the point.</strong> The first sentence tells the reader what they need. Skip the greeting, the preamble and the closing summary.</dd></div>
+        <div><dt>W2</dt><dd><strong>Short sentences, everyday words.</strong> Aim for about 15 words a sentence. Split anything over 25. Use the word swaps below.</dd></div>
+        <div><dt>W3</dt><dd><strong>Every sentence carries a fact.</strong> Cut hedges, intensifiers and filler. If deleting a sentence loses nothing, delete it.</dd></div>
+        <div><dt>W4</dt><dd><strong>Keep the facts exact.</strong> Names, numbers, paths, commands and identifiers stay exactly as they are. Keep precise technical terms. Explain each one the first time it appears.</dd></div>
+        <div><dt>W5</dt><dd><strong>Plain punctuation and layout.</strong> Use full stops. Avoid dashes between clauses, asides in brackets and chains of semicolons. Bold only a warning. No emoji. Add headings only when a document is long enough to need them.</dd></div>
+        <div><dt>W6</dt><dd><strong>Describe the code as it is.</strong> Docs and comments describe the current code. History belongs in commits. Nobody narrates with "I've updated", "we now" or "this ensures".</dd></div>
+      </dl>
+
+      <h3>How to spot Claudish</h3>
+      <div class="table-wrap prose-table">
+        <table>
+          <thead><tr><th>Pattern</th><th>Claudish</th><th>English</th></tr></thead>
+          <tbody>
+            <tr><td>Preamble</td><td class="bad">"Great question! Here's a quick breakdown of how auth works."</td><td class="good">"Auth uses two tokens."</td></tr>
+            <tr><td>Closing summary</td><td class="bad">"In summary, this approach ensures a robust flow. Hope this helps!"</td><td class="good">Stop after the last fact.</td></tr>
+            <tr><td>Narration</td><td class="bad">"I've refactored the service to ensure retries are handled."</td><td class="good">"The service retries a failed call three times."</td></tr>
+            <tr><td>Hedging</td><td class="bad">"This should potentially help improve performance."</td><td class="good">"This cuts p95 latency from 800 ms to 300 ms." If you have not measured it, say so.</td></tr>
+            <tr><td>Contrast frame</td><td class="bad">"It's not just a cache, it's a consistency layer."</td><td class="good">"The cache keeps reads consistent across pods."</td></tr>
+            <tr><td>Groups of three</td><td class="bad">"Fast, reliable and scalable."</td><td class="good">Keep the one that is true. Add the number.</td></tr>
+            <tr><td>Colon reveal</td><td class="bad">"The fix? One line."</td><td class="good">"A one-line change fixes it."</td></tr>
+            <tr><td>Dashes and asides</td><td class="bad">Two clauses joined by a dash, or a thought tucked into brackets.</td><td class="good">Two sentences.</td></tr>
+            <tr><td>Decoration</td><td class="bad">Bold in every paragraph. Emoji bullets. Headings on a ten-line note.</td><td class="good">Plain paragraphs. Bold only a warning.</td></tr>
+            <tr><td>Coined labels</td><td class="bad">"The single-flight gate." "The truth layer."</td><td class="good">Name the real class, function or table.</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>Word swaps</h3>
+      <div class="table-wrap swaps">
+        <table>
+          <thead><tr><th>Instead of</th><th>Write</th></tr></thead>
+          <tbody>
+            <tr><td>utilise, leverage</td><td>use</td></tr>
+            <tr><td>facilitate</td><td>help, let</td></tr>
+            <tr><td>in order to</td><td>to</td></tr>
+            <tr><td>prior to</td><td>before</td></tr>
+            <tr><td>due to the fact that</td><td>because</td></tr>
+            <tr><td>is able to</td><td>can</td></tr>
+            <tr><td>a number of</td><td>some, or give the number</td></tr>
+            <tr><td>ensure</td><td>make sure, or say how</td></tr>
+            <tr><td>functionality</td><td>feature, or say what it does</td></tr>
+            <tr><td>robust, comprehensive, seamless</td><td>say what it handles, or cut it</td></tr>
+            <tr><td>essentially, basically, simply, just</td><td>cut it</td></tr>
+            <tr><td>it's worth noting that, importantly</td><td>cut it</td></tr>
+            <tr><td>delve into, dive into</td><td>look at</td></tr>
+            <tr><td>load-bearing, under the hood</td><td>say what depends on it, or cut it</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3 id="docs">Documentation</h3>
+      <p>This covers READMEs, runbooks, design notes, PR descriptions and anything else in <code>docs/</code>.</p>
+      <ul>
+        <li>Start with what the reader will do or learn. Setup steps come before background.</li>
+        <li>One idea per paragraph, three or four sentences at most.</li>
+        <li>Number the steps. Put comparisons in a table.</li>
+        <li>Spell out each abbreviation the first time it appears.</li>
+        <li>Describe the system as it is. History goes in the changelog.</li>
+        <li>Copy commands, paths and code exactly, in code formatting.</li>
+        <li>Delete sections nobody reads. Short docs get read.</li>
+        <li>A PR description answers four questions. What changed? Why? How did you test it? What could break?</li>
+      </ul>
+      <div class="example">
+        <div class="snippet avoid">
+          <div class="snippet-label"><span>Avoid</span><span>README.md</span></div>
+<pre><code class="language-markdown">## Overview
+
+This comprehensive guide will walk you through everything you need
+to know to get up and running. It's worth noting that a number of
+prerequisites must be satisfied prior to installation in order to
+ensure a seamless experience.</code></pre>
+        </div>
+        <div class="snippet prefer">
+          <div class="snippet-label"><span>Prefer</span><span>README.md</span></div>
+<pre><code class="language-markdown">## Run it locally
+
+You need Docker and Node 24.
+
+1. Copy `.env.example` to `.env`.
+2. Run `docker compose up -d db`.
+3. Run `npm ci`, then `npm run dev`.
+
+The API starts on port 8080.</code></pre>
+        </div>
+      </div>
+
+      <h3 id="comments">Code comments</h3>
+      <ul>
+        <li>Comment why, and only when the code cannot show it. Good names and structure already show what.</li>
+        <li>A comment describes the code as it is now. Never write "now uses", "updated to", "new approach" or "as discussed". That belongs in the commit.</li>
+        <li>A doc comment on a public API starts with a one-line summary. Add only what the signature cannot say, such as units, errors, side effects or threading.</li>
+        <li>Every TODO has a ticket number, for example <code>TODO(CB-412)</code>.</li>
+        <li>No banners, ASCII boxes or decorative dividers.</li>
+      </ul>
+      <div class="example">
+        <div class="snippet avoid">
+          <div class="snippet-label"><span>Avoid</span><span>says what, narrates a change</span></div>
+<pre><code class="language-typescript">// This function is responsible for robustly handling retries.
+// It essentially ensures that failed requests are seamlessly
+// retried up to 3 times, which is crucial for reliability.
+// Updated to use exponential backoff as discussed.
+async function withRetry&lt;T&gt;(call: () =&gt; Promise&lt;T&gt;): Promise&lt;T&gt; {</code></pre>
+        </div>
+        <div class="snippet prefer">
+          <div class="snippet-label"><span>Prefer</span><span>says why</span></div>
+<pre><code class="language-typescript">// The payments API drops about 1 in 200 requests during its deploys.
+// Three tries with backoff hide that. Retrying cannot charge twice,
+// because every call carries an idempotency key.
+async function withRetry&lt;T&gt;(call: () =&gt; Promise&lt;T&gt;): Promise&lt;T&gt; {</code></pre>
+        </div>
+      </div>
+
+      <h3 id="commits">Commit messages</h3>
+      <ul>
+        <li>The subject line is in the imperative mood, 72 characters at most, with no full stop. It should finish the sentence "If applied, this commit will...".</li>
+        <li>Use the repo's prefix convention if it has one, such as <code>fix:</code> or <code>feat:</code>.</li>
+        <li>Leave a blank line, then write the body. Wrap it at 72 characters.</li>
+        <li>The body says why. Include what a reviewer cannot see in the diff, such as the bug, its cause or a trade-off.</li>
+        <li>Skip the list of changed files. The diff already shows them.</li>
+        <li>No emoji, gitmoji or marketing words. Never start with "This commit".</li>
+      </ul>
+      <div class="example">
+        <div class="snippet avoid">
+          <div class="snippet-label"><span>Avoid</span><span>git log</span></div>
+<pre><code class="language-plaintext">:sparkles: Enhance authentication flow for improved robustness
+
+This commit introduces a comprehensive refactor of the token refresh
+logic to ensure seamless session continuity. Key changes include:
+
+* Implemented a single-flight refresh mechanism
+* Updated interceptor ordering
+* Added tests
+
+These changes significantly improve reliability and user experience.</code></pre>
+        </div>
+        <div class="snippet prefer">
+          <div class="snippet-label"><span>Prefer</span><span>git log</span></div>
+<pre><code class="language-plaintext">Share one token refresh across parallel 401s
+
+When five requests failed together, each started its own refresh.
+The server rotates the refresh token on use, so four of the five
+refreshes failed and signed the user out.
+
+Requests now wait on a single refresh and retry with its token.</code></pre>
+        </div>
+      </div>
+
+      <h3 id="ai-drafts">Drafting with an AI assistant</h3>
+      <p>Using an assistant to draft text is fine. Edit the draft to these rules before it lands. Reviewers treat Claudish like any other defect and send it back.</p>
+      <p>Most assistants read a project instructions file, such as <code>CLAUDE.md</code>, <code>AGENTS.md</code> or <code>.github/copilot-instructions.md</code>. Put this block in it so drafts start closer to the standard.</p>
+      <div class="snippet config">
+        <div class="snippet-label"><span>Instructions</span><span>paste into the assistant's project file</span></div>
+<pre><code class="language-markdown">## Writing style
+
+Write in plain English.
+
+* Start with the answer. No preamble and no closing summary.
+* Short sentences of about 15 words. Everyday words.
+* Keep every fact, name, number, path and identifier exact.
+* Use full stops. No dashes between clauses. No asides in brackets.
+* Cut filler words: robust, seamless, comprehensive, leverage, ensure.
+* Code comments explain why. Never describe a change in a comment.
+* Commit subjects are imperative, 72 characters at most, with no emoji.
+* Describe code as it is. Never write "I've updated" or "this ensures".</code></pre>
+      </div>
+
+      <h3>Gate</h3>
+      <p>Vale checks Markdown docs against the word lists. Commitlint checks the shape of every commit in a pull request. Both run in CI. Reviewers still judge the words the tools cannot.</p>
+      <div class="example">
+        <div class="snippet config">
+          <div class="snippet-label"><span>Gate</span><span>.vale.ini</span></div>
+<pre><code class="language-ini">StylesPath = .github/vale
+MinAlertLevel = warning
+
+[*.md]
+BasedOnStyles = Plain</code></pre>
+        </div>
+        <div class="snippet config">
+          <div class="snippet-label"><span>Gate</span><span>.github/vale/Plain/Words.yml</span></div>
+<pre><code class="language-yaml">extends: substitution
+message: "Use '%s' instead of '%s'."
+level: error
+ignorecase: true
+swap:
+  utilise|utilize|leverage: use
+  facilitate: help
+  in order to: to
+  prior to: before
+  due to the fact that: because
+  is able to: can</code></pre>
+        </div>
+        <div class="snippet config">
+          <div class="snippet-label"><span>Gate</span><span>.github/vale/Plain/Filler.yml</span></div>
+<pre><code class="language-yaml">extends: existence
+message: "Cut '%s', or say what it actually does."
+level: warning
+ignorecase: true
+tokens:
+  - robust
+  - seamless(ly)?
+  - comprehensive
+  - essentially
+  - it's worth noting
+  - delve
+  - load-bearing</code></pre>
+        </div>
+        <div class="snippet config">
+          <div class="snippet-label"><span>Gate</span><span>.github/vale/Plain/Dashes.yml</span></div>
+<pre><code class="language-yaml">extends: existence
+message: "Replace the dash with a full stop."
+level: error
+nonword: true
+tokens:
+  - '\u2014'   # em dash
+  - '\u2013'   # en dash
+  - ' - '      # spaced hyphen</code></pre>
+        </div>
+        <div class="snippet config">
+          <div class="snippet-label"><span>Gate</span><span>commitlint.config.mjs</span></div>
+<pre><code class="language-javascript">export default {
+  rules: {
+    "header-max-length": [2, "always", 72],
+    "subject-full-stop": [2, "never", "."],
+    "body-max-line-length": [2, "always", 72],
+  },
+};
+
+// CI: npx commitlint --from "origin/$BASE_BRANCH" --to HEAD</code></pre>
+        </div>
+      </div>
+    </section>
+
+    <section id="gates">
+      <h2>Gates at a glance</h2>
+      <p class="section-intro">These checks run in CI and block the merge. The TypeScript row covers the language anywhere it runs. The Node.js row adds what a server needs. The web design row adds what a page in the browser needs.</p>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th>Language</th><th>Format</th><th>Lint and dead code</th><th>Types</th><th>Test</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>Python</td><td><code>ruff format --check</code></td><td><code>ruff check</code></td><td><code>mypy --strict</code></td><td><code>pytest</code></td></tr>
+            <tr><td>Flutter</td><td><code>dart format</code></td><td><code>dart analyze</code></td><td>in analyze</td><td><code>flutter test</code></td></tr>
+            <tr><td>TypeScript</td><td><code>prettier --check</code></td><td><code>eslint</code>, <code>knip</code></td><td><code>tsc --noEmit</code></td><td><code>vitest run</code></td></tr>
+            <tr><td>Node.js</td><td>as TypeScript</td><td>as TypeScript</td><td>as TypeScript</td><td><code>vitest run</code>, <code>npm audit</code></td></tr>
+            <tr><td>Terraform</td><td><code>terraform fmt -check</code></td><td><code>tflint</code>, <code>trivy config</code></td><td><code>terraform validate</code></td><td>reviewed <code>plan</code></td></tr>
+            <tr><td>C++</td><td><code>clang-format</code></td><td><code>clang-tidy</code></td><td><code>-Werror</code></td><td><code>ctest</code> with sanitizers</td></tr>
+            <tr><td>C#</td><td><code>dotnet format</code></td><td>.NET analyzers</td><td>nullable, warnings as errors</td><td><code>dotnet test</code></td></tr>
+            <tr><td>Web design</td><td><code>prettier --check</code></td><td><code>eslint</code> with <code>jsx-a11y</code>, <code>stylelint</code></td><td>as TypeScript</td><td><code>playwright test</code> with axe, the third-party and search checks, then <code>lhci autorun</code></td></tr>
+            <tr><td>Docs and commits</td><td>none</td><td><code>vale</code>, <code>commitlint</code></td><td>none</td><td>none</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <ul class="lang-nav" aria-label="Jump to language">
+        <li><a href="#python">Python</a></li>
+        <li><a href="#flutter">Flutter</a></li>
+        <li><a href="#typescript">TypeScript</a></li>
+        <li><a href="#nodejs">Node.js</a></li>
+        <li><a href="#terraform">Terraform</a></li>
+        <li><a href="#cpp">C++</a></li>
+        <li><a href="#csharp">C#</a></li>
+        <li><a href="#web">Web design</a></li>
+      </ul>
+    </section>
+
+    <!-- Python -->
+    <section class="lang" id="python">
+      <div class="lang-head"><h2>Python</h2><p>3.12 or later · services, pipelines, scripts</p></div>
+      <div class="snippet config">
+        <div class="snippet-label"><span>Gate</span><span>pyproject.toml</span></div>
+<pre><code class="language-ini">[tool.ruff]
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "SIM", "C90", "PL", "ERA", "S"]
+ignore = ["PLR2004"]            # flags every literal number
+
+[tool.ruff.lint.mccabe]
+max-complexity = 10             # F2
+
+[tool.ruff.lint.pylint]
+max-args = 4                    # F2
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["S101"]           # pytest relies on assert
+
+[tool.mypy]
+strict = true</code></pre>
+      </div>
+      <h4>Foundations here</h4>
+      <dl class="map">
+        <div><dt>F2</dt><dd><code>C90</code> and <code>PL</code> enforce the complexity, branch and argument limits. For a list of cases, use <code>match</code> or a dict lookup.</dd></div>
+        <div><dt>F3</dt><dd><code>F401</code> and <code>F841</code> catch unused imports and variables. <code>ERA001</code> catches commented-out code.</dd></div>
+        <div><dt>F4</dt><dd>Use <code>@dataclass(frozen=True, slots=True)</code> for values and validate in <code>__post_init__</code>. Use Pydantic models only at the edges.</dd></div>
+        <div><dt>F5</dt><dd><code>dict.setdefault</code>, <code>list.pop</code> and generators are the allowed exceptions.</dd></div>
+        <div><dt>F8</dt><dd>A concrete subclass never raises <code>NotImplementedError</code>. Only an <code>abc.ABC</code> base may leave a method abstract.</dd></div>
+        <div><dt>F9</dt><dd>Use <code>typing.Protocol</code>, declared in the module that calls it. No inheritance is needed.</dd></div>
+        <div><dt>F10</dt><dd>Domain modules never import <code>sqlalchemy</code>, <code>httpx</code> or <code>boto3</code>. FastAPI <code>Depends</code> wires in the concrete class.</dd></div>
+      </dl>
+      <h4>House rules</h4>
+      <ul>
+        <li>Type hints on every function. An <code>Any</code> in a signature needs a comment explaining it.</li>
+        <li>Never write a bare <code>except:</code>. Catch the narrowest exception. Re-raise with <code>raise NewError(...) from err</code>.</li>
+        <li>No blocking IO inside <code>async def</code>. Use an async driver or <code>run_in_threadpool</code>.</li>
+        <li>No mutable default arguments. Default to <code>None</code> and build the value inside.</li>
+        <li>SQL is always parameterised. Never build a query with f-strings or <code>%</code>.</li>
+      </ul>
+      <div class="example">
+        <div class="snippet prefer">
+          <div class="snippet-label"><span>Prefer</span><span>F4 · F5 · F9 · F10</span></div>
+<pre><code class="language-python"># orders/service.py declares only what it needs from storage.
+class OrderStore(Protocol):
+    def get(self, order_id: OrderId) -&gt; Order | None: ...
+    def save(self, order: Order) -&gt; None: ...
+
+
+def cancel_order(store: OrderStore, order_id: OrderId) -&gt; None:
+    order = store.get(order_id)
+    if order is None:
+        raise OrderNotFound(order_id)
+    order.cancel()  # Order.cancel rejects orders that have shipped
+    store.save(order)</code></pre>
+        </div>
+      </div>
+    </section>
+
+    <!-- Flutter -->
+    <section class="lang" id="flutter">
+      <div class="lang-head"><h2>Flutter and Dart</h2><p>Dart 3 · mobile, desktop and web clients</p></div>
+      <div class="snippet config">
+        <div class="snippet-label"><span>Gate</span><span>analysis_options.yaml</span></div>
+<pre><code class="language-yaml">include: package:flutter_lints/flutter.yaml
+
+analyzer:
+  language:
+    strict-casts: true
+    strict-inference: true
+    strict-raw-types: true
+
+linter:
+  rules:
+    avoid_dynamic_calls: true
+    unawaited_futures: true
+    prefer_final_locals: true
+    prefer_const_constructors: true</code></pre>
+      </div>
+      <p class="caption">Gate on <code>dart analyze</code>. Analyzer plugins such as <code>riverpod_lint</code> only load there. <code>flutter analyze</code> skips them and reports none of their findings.</p>
+      <h4>Foundations here</h4>
+      <dl class="map">
+        <div><dt>F2</dt><dd>Dart has no built-in complexity lint, so reviewers apply the numbers. Split a <code>build</code> method longer than one screen into widgets.</dd></div>
+        <div><dt>F3</dt><dd>The analyzer warns on unused imports and code, so the gate catches them. Every <code>// ignore:</code> needs a reason on the same line.</dd></div>
+        <div><dt>F4</dt><dd>Each screen's state is one immutable class with <code>copyWith</code>. Only the view model's methods change it.</dd></div>
+        <div><dt>F5</dt><dd><code>build</code> is a query. It never fetches, navigates or writes state. React to changes in a listener.</dd></div>
+        <div><dt>F6</dt><dd><code>lib/features/&lt;feature&gt;/</code> holds the view, view model and repository. <code>lib/core/</code> holds shared infrastructure. One widget per file.</dd></div>
+        <div><dt>F10</dt><dd>Views never import Dio or the API client. The view calls the view model, which calls the repository, which calls the API.</dd></div>
+      </dl>
+      <h4>House rules</h4>
+      <ul>
+        <li>Extract a widget class instead of a method that returns a <code>Widget</code>. A class can be <code>const</code> and rebuilds on its own.</li>
+        <li>After an <code>await</code>, check <code>context.mounted</code> before using <code>context</code>.</li>
+        <li>Use design system tokens and components. No one-off colours, sizes or text styles.</li>
+        <li>No personal data in route paths, query strings, logs or analytics events.</li>
+      </ul>
+      <div class="example">
+        <div class="snippet avoid">
+          <div class="snippet-label"><span>Avoid</span><span>navigation during build</span></div>
+<pre><code class="language-dart">@override
+Widget build(BuildContext context, WidgetRef ref) {
+  final state = ref.watch(editorProvider);
+  if (state.saved) context.go('/done');
+  return EditorForm(state: state);
+}</code></pre>
+        </div>
+        <div class="snippet prefer">
+          <div class="snippet-label"><span>Prefer</span><span>F5 · react in a listener</span></div>
+<pre><code class="language-dart">@override
+Widget build(BuildContext context, WidgetRef ref) {
+  ref.listen(editorProvider, (previous, next) {
+    if (next.saved &amp;&amp; !(previous?.saved ?? false)) context.go('/done');
+  });
+  return EditorForm(state: ref.watch(editorProvider));
+}</code></pre>
+        </div>
+      </div>
+    </section>
+
+    <!-- TypeScript -->
+    <section class="lang" id="typescript">
+      <div class="lang-head"><h2>TypeScript</h2><p>5.x in strict mode · browser and server</p></div>
+      <div class="snippet config">
+        <div class="snippet-label"><span>Gate</span><span>tsconfig.json · eslint.config.js</span></div>
+<pre><code class="language-javascript">// tsconfig.json
+{
+  "compilerOptions": {
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "exactOptionalPropertyTypes": true
+  }
+}
+
+// eslint.config.js
+import { defineConfig } from "eslint/config";
+import tseslint from "typescript-eslint";
+
+export default defineConfig(
+  tseslint.configs.strictTypeChecked,
+  {
+    languageOptions: { parserOptions: { projectService: true } },
+    rules: {
+      complexity: ["error", 10],
+      "max-depth": ["error", 3],
+      "max-params": ["error", 4],
+    },
+  },
+);</code></pre>
+      </div>
+      <h4>Foundations here</h4>
+      <dl class="map">
+        <div><dt>F2</dt><dd>ESLint enforces the numbers. Model states as a discriminated union. Avoid a bag of optional fields and booleans.</dd></div>
+        <div><dt>F3</dt><dd><code>knip</code> finds unused files, exports and dependencies. The compiler flags unused locals and parameters.</dd></div>
+        <div><dt>F4</dt><dd>Use <code>readonly</code> properties. Shape types so an illegal state cannot be written down.</dd></div>
+        <div><dt>F5</dt><dd><code>sort</code>, <code>reverse</code> and <code>splice</code> change the array in place. Queries use <code>toSorted</code>, <code>toReversed</code> and <code>toSpliced</code>.</dd></div>
+        <div><dt>F7</dt><dd>Use a union with an exhaustive <code>switch</code> that ends in <code>assertNever</code>. Do not write a class per case.</dd></div>
+        <div><dt>F9</dt><dd>Declare a small <code>interface</code> or <code>type</code> in the calling file. Shapes match without <code>implements</code>.</dd></div>
+      </dl>
+      <h4>House rules</h4>
+      <ul>
+        <li>No <code>any</code>. Accept <code>unknown</code> at a boundary and parse it with a schema library such as Zod.</li>
+        <li>A non-null assertion <code>!</code> needs a comment saying why the value cannot be null.</li>
+        <li>Prefer string unions or <code>as const</code> objects to <code>enum</code>.</li>
+        <li>Throw <code>Error</code> subclasses, never strings. Pass the original error as <code>{ cause }</code>.</li>
+      </ul>
+      <div class="example">
+        <div class="snippet avoid">
+          <div class="snippet-label"><span>Avoid</span><span>any mix of fields is allowed</span></div>
+<pre><code class="language-typescript">type Upload = { loading: boolean; error?: string; url?: string };</code></pre>
+        </div>
+        <div class="snippet prefer">
+          <div class="snippet-label"><span>Prefer</span><span>one shape per state</span></div>
+<pre><code class="language-typescript">type Upload =
+  | { status: "uploading" }
+  | { status: "failed"; error: string }
+  | { status: "done"; url: string };
+
+const assertNever = (value: never): never =&gt; {
+  throw new Error(`Unhandled case: ${JSON.stringify(value)}`);
+};
+
+function uploadLabel(upload: Upload): string {
+  switch (upload.status) {
+    case "uploading": return "Uploading";
+    case "failed": return `Failed: ${upload.error}`;
+    case "done": return "Uploaded";
+    default: return assertNever(upload);
+  }
+}</code></pre>
+        </div>
+      </div>
+    </section>
+
+    <!-- Node.js -->
+    <section class="lang" id="nodejs">
+      <div class="lang-head"><h2>Node.js</h2><p>Active LTS · HTTP services and workers</p></div>
+      <p>Everything in TypeScript applies. These rules cover running as a long-lived server.</p>
+      <h4>Foundations here</h4>
+      <dl class="map">
+        <div><dt>F6</dt><dd>Each <code>src/&lt;feature&gt;/</code> folder holds routes, a service and a repository. Routes parse and validate input. Services hold the business rules. Repositories talk to the database.</dd></div>
+        <div><dt>F10</dt><dd>One file, <code>main.ts</code>, builds every concrete object. No module opens a connection when it is imported.</dd></div>
+        <div><dt>F5</dt><dd>GET handlers never write. Only retry a handler that is a query or safe to repeat.</dd></div>
+      </dl>
+      <h4>House rules</h4>
+      <ul>
+        <li>No floating promises. A floating promise is one nobody awaits. Await it, or <code>void</code> it with an explicit <code>.catch</code>. The <code>no-floating-promises</code> lint enforces this.</li>
+        <li>Never block the event loop. No <code>*Sync</code> file or crypto calls while handling a request. Move CPU-heavy work to <code>worker_threads</code> or a queue.</li>
+        <li>Read environment variables once at startup. Validate them with a schema and exit on failure. Nothing else reads <code>process.env</code>.</li>
+        <li>One error handler maps domain errors to HTTP status codes. Stack traces never reach the client.</li>
+        <li>Log structured JSON. Never log tokens, passwords or personal data.</li>
+        <li>On <code>SIGTERM</code>, stop taking requests and finish in-flight work. Then close pools and exit.</li>
+        <li>SQL is always parameterised. Commit the lockfile and install with <code>npm ci</code> in CI.</li>
+      </ul>
+      <div class="example">
+        <div class="snippet prefer">
+          <div class="snippet-label"><span>Prefer</span><span>F10 · one place builds everything</span></div>
+<pre><code class="language-typescript">// config.ts fails at startup if a variable is missing or malformed.
+const Env = z.object({
+  DATABASE_URL: z.string().url(),
+  PORT: z.coerce.number().int().default(8080),
+});
+export const config = Env.parse(process.env);
+
+// main.ts is the only file that names concrete classes.
+const pool = new Pool({ connectionString: config.DATABASE_URL });
+const orders = new OrderService(new PgOrderStore(pool), systemClock);
+app.register(orderRoutes(orders));
+await app.listen({ port: config.PORT });</code></pre>
+        </div>
+      </div>
+    </section>
+
+    <!-- Terraform -->
+    <section class="lang" id="terraform">
+      <div class="lang-head"><h2>Terraform</h2><p>1.9 or later · cloud infrastructure</p></div>
+      <p>Terraform has no classes, so the foundations translate loosely. Every pull request includes the reviewed <code>plan</code> output.</p>
+      <h4>Foundations here</h4>
+      <dl class="map">
+        <div><dt>F1</dt><dd>A module needs three uses, or a rule that must always hold, such as "buckets are always versioned". Never wrap a single resource in a module just to rename its arguments.</dd></div>
+        <div><dt>F2</dt><dd>If a <code>locals</code> expression needs a comment to explain its output, split it into named locals. Use <code>count</code> only to switch a resource on or off.</dd></div>
+        <div><dt>F3</dt><dd><code>tflint</code> flags unused variables and outputs. Delete commented-out resources. Remove a resource with a <code>removed</code> block so nothing is destroyed by surprise.</dd></div>
+        <div><dt>F5</dt><dd><code>data</code> sources read. Resources write. No <code>local-exec</code> that changes things Terraform does not own.</dd></div>
+        <div><dt>F9</dt><dd>Type variables with <code>object({...})</code> and guard them with <code>validation</code> blocks. Output only what callers read.</dd></div>
+        <div><dt>F10</dt><dd>Modules take IDs as inputs. They do not look them up with <code>data</code> sources inside. The root module wires modules together. Modules never configure providers.</dd></div>
+      </dl>
+      <h4>House rules</h4>
+      <ul>
+        <li>Use remote state with locking. Keep one state per environment per component. Never commit <code>.tfstate</code>.</li>
+        <li>Pin <code>required_version</code> and providers with <code>~&gt;</code>. Commit <code>.terraform.lock.hcl</code>.</li>
+        <li>Put <code>lifecycle { prevent_destroy = true }</code> on anything that holds data, such as databases, buckets and keys.</li>
+        <li>Rename with <code>moved</code> blocks. Never destroy and recreate to rename.</li>
+        <li>Secrets come from a secret manager, never a variable default. Mark them <code>sensitive = true</code>.</li>
+        <li>On GCP, prefer additive <code>_iam_member</code> resources. <code>_iam_binding</code> and <code>_iam_policy</code> replace every existing grant, so use them only when the module owns the whole policy.</li>
+      </ul>
+      <div class="example">
+        <div class="snippet avoid">
+          <div class="snippet-label"><span>Avoid</span><span>keyed by position</span></div>
+<pre><code class="language-hcl">resource "google_storage_bucket" "exports" {
+  count    = length(var.regions)
+  name     = "exports-${var.regions[count.index]}"
+  location = var.regions[count.index]
+}</code></pre>
+        </div>
+        <div class="snippet prefer">
+          <div class="snippet-label"><span>Prefer</span><span>keyed by region</span></div>
+<pre><code class="language-hcl">resource "google_storage_bucket" "exports" {
+  for_each                    = toset(var.regions)
+  name                        = "exports-${each.key}"
+  location                    = each.key
+  uniform_bucket_level_access = true
+}</code></pre>
+        </div>
+        <p class="caption">Remove the first region from a <code>count</code> list and every later index shifts. Terraform then plans to destroy and recreate those buckets. <code>for_each</code> keys each bucket by region, so only the removed one changes.</p>
+      </div>
+    </section>
+
+    <!-- C++ -->
+    <section class="lang" id="cpp">
+      <div class="lang-head"><h2>C++</h2><p>C++20 or later · native plugins and runners</p></div>
+      <div class="snippet config">
+        <div class="snippet-label"><span>Gate</span><span>.clang-tidy · compiler flags</span></div>
+<pre><code class="language-yaml">Checks: >
+  bugprone-*, cppcoreguidelines-*, modernize-*, performance-*,
+  readability-function-cognitive-complexity, readability-function-size
+WarningsAsErrors: "*"
+CheckOptions:
+  readability-function-cognitive-complexity.Threshold: 15
+  readability-function-size.ParameterThreshold: 4
+
+# GCC and Clang: -Wall -Wextra -Wpedantic -Werror
+# MSVC:          /W4 /WX /permissive-
+# CI tests:      -fsanitize=address,undefined</code></pre>
+      </div>
+      <h4>Foundations here</h4>
+      <dl class="map">
+        <div><dt>F3</dt><dd>Unused-code warnings are errors. No <code>#if 0</code> blocks.</dd></div>
+        <div><dt>F4</dt><dd>The constructor creates a valid object. Keep data private and change it only through member functions that keep it valid. Use <code>struct</code> only for plain data.</dd></div>
+        <div><dt>F5</dt><dd>Queries are <code>const</code> member functions. Mark results that must not be ignored with <code>[[nodiscard]]</code>.</dd></div>
+        <div><dt>F7</dt><dd>Use <code>std::variant</code> with <code>std::visit</code> for a closed set of cases.</dd></div>
+        <div><dt>F8</dt><dd>Mark every override <code>override</code>. Mark leaf classes <code>final</code>. A base class used through pointers needs a virtual destructor.</dd></div>
+        <div><dt>F10</dt><dd>At IO boundaries, pass pure abstract interfaces into constructors by reference. Use concepts where virtual calls cost too much.</dd></div>
+      </dl>
+      <h4>House rules</h4>
+      <ul>
+        <li>An object owns every resource and frees it in its destructor. This is RAII. No naked <code>new</code> or <code>delete</code>. Use <code>std::unique_ptr</code> by default, and <code>std::shared_ptr</code> only for truly shared ownership.</li>
+        <li>Follow the rule of zero and let the compiler write copy, move and destructor. If you write one of them, justify all five.</li>
+        <li>No <code>using namespace</code> in headers. Use <code>#pragma once</code>. Include what you use.</li>
+        <li>Pick one error style per module. That is exceptions, or <code>std::expected</code> on C++23. Never mix them in one API.</li>
+        <li>Use <code>constexpr</code> and templates instead of macros.</li>
+        <li>Guard shared mutable state with a mutex or make it atomic. Prefer <code>std::jthread</code> and <code>std::scoped_lock</code>.</li>
+      </ul>
+      <div class="example">
+        <div class="snippet avoid">
+          <div class="snippet-label"><span>Avoid</span><span>leaks on the early return</span></div>
+<pre><code class="language-cpp">std::FILE* f = std::fopen(path, "r");
+if (!parse(f)) return false;
+std::fclose(f);</code></pre>
+        </div>
+        <div class="snippet prefer">
+          <div class="snippet-label"><span>Prefer</span><span>closes on every path</span></div>
+<pre><code class="language-cpp">struct FileCloser {
+  void operator()(std::FILE* f) const noexcept { std::fclose(f); }
+};
+using File = std::unique_ptr&lt;std::FILE, FileCloser&gt;;
+
+File f{std::fopen(path, "r")};
+if (!f || !parse(f.get())) return false;  // f closes itself here</code></pre>
+        </div>
+      </div>
+    </section>
+
+    <!-- C# -->
+    <section class="lang" id="csharp">
+      <div class="lang-head"><h2>C#</h2><p>C# 12 and .NET 8 or later · desktop apps and services</p></div>
+      <div class="snippet config">
+        <div class="snippet-label"><span>Gate</span><span>Directory.Build.props</span></div>
+<pre><code class="language-xml">&lt;PropertyGroup&gt;
+  &lt;Nullable&gt;enable&lt;/Nullable&gt;
+  &lt;TreatWarningsAsErrors&gt;true&lt;/TreatWarningsAsErrors&gt;
+  &lt;AnalysisLevel&gt;latest-recommended&lt;/AnalysisLevel&gt;
+  &lt;EnforceCodeStyleInBuild&gt;true&lt;/EnforceCodeStyleInBuild&gt;
+&lt;/PropertyGroup&gt;</code></pre>
+      </div>
+      <h4>Foundations here</h4>
+      <dl class="map">
+        <div><dt>F2</dt><dd>Turn on CA1502 and set its threshold to 10 in <code>CodeMetricsConfig.txt</code>.</dd></div>
+        <div><dt>F3</dt><dd>IDE0051 and IDE0052 flag unused private members, and both are errors. No <code>#if false</code>.</dd></div>
+        <div><dt>F4</dt><dd>Use private setters and behaviour methods, like <code>User.ChangeName</code> in F4. Use <code>record</code> for values.</dd></div>
+        <div><dt>F5</dt><dd>Properties never have side effects. <code>TryParse(out ...)</code> is the allowed exception.</dd></div>
+        <div><dt>F8</dt><dd>Classes are <code>sealed</code> by default. No override throws <code>NotSupportedException</code>.</dd></div>
+        <div><dt>F10</dt><dd>Use constructor injection, registered in one composition root. Business code never touches <code>IServiceProvider</code>. Inject <code>TimeProvider</code> instead of reading <code>DateTime.UtcNow</code>.</dd></div>
+      </dl>
+      <h4>House rules</h4>
+      <ul>
+        <li>Async all the way down. No <code>.Result</code> or <code>.Wait()</code>. No <code>async void</code> outside event handlers.</li>
+        <li>Every async method takes a <code>CancellationToken</code> and passes it on.</li>
+        <li>A null-forgiving <code>!</code> needs a comment.</li>
+        <li>Catch <code>Exception</code> only at the top level. Rethrow with <code>throw;</code>, never <code>throw ex;</code>.</li>
+        <li>Use <code>using</code> declarations for anything <code>IDisposable</code>.</li>
+        <li>Never enumerate an <code>IEnumerable</code> twice. Materialise it once.</li>
+        <li>In MVVM, view models expose state and commands. They never reference view types.</li>
+      </ul>
+      <div class="example">
+        <div class="snippet avoid">
+          <div class="snippet-label"><span>Avoid</span><span>blocks a thread, hides the clock</span></div>
+<pre><code class="language-csharp">public void ExpireStale()
+{
+    var cutoff = DateTime.UtcNow.AddDays(-7);
+    _store.DeleteOlderThanAsync(cutoff).Wait();
+}</code></pre>
+        </div>
+        <div class="snippet prefer">
+          <div class="snippet-label"><span>Prefer</span><span>async, cancellable, testable clock</span></div>
+<pre><code class="language-csharp">public sealed class InviteExpiry(TimeProvider clock, IInviteStore store)
+{
+    public Task ExpireStaleAsync(CancellationToken ct)
+    {
+        var cutoff = clock.GetUtcNow().AddDays(-7);
+        return store.DeleteOlderThanAsync(cutoff, ct);
+    }
+}</code></pre>
+        </div>
+      </div>
+    </section>
+
+    <!-- Web design -->
+    <section class="lang" id="web">
+      <div class="lang-head"><h2>Web design</h2><p>HTML, CSS and React · pages, components and design systems</p></div>
+      <p>Everything in TypeScript applies. These rules cover what people see and touch in the browser. The target is WCAG 2.2 at level AA.</p>
+      <div class="example">
+        <div class="snippet config">
+          <div class="snippet-label"><span>Gate</span><span>eslint.config.js · stylelint.config.mjs</span></div>
+<pre><code class="language-javascript">// eslint.config.js adds one preset to the TypeScript config.
+import jsxA11y from "eslint-plugin-jsx-a11y";
+
+export default defineConfig(
+  tseslint.configs.strictTypeChecked,
+  jsxA11y.flatConfigs.strict,
+  // then the rules from the TypeScript section
+);
+
+// stylelint.config.mjs
+export default {
+  extends: ["stylelint-config-standard"],
+  rules: {
+    "color-no-hex": true,             // colours come from tokens
+    "color-named": "never",
+    "declaration-no-important": true,
+    "selector-max-id": 0,
+    "max-nesting-depth": 3,           // F2
+  },
+  overrides: [
+    { files: ["src/styles/tokens.css"], rules: { "color-no-hex": null } },
+  ],
+};</code></pre>
+        </div>
+        <div class="snippet config">
+          <div class="snippet-label"><span>Gate</span><span>e2e/a11y.spec.ts</span></div>
+<pre><code class="language-typescript">import AxeBuilder from "@axe-core/playwright";
+import { expect, test } from "@playwright/test";
+
+const paths = ["/", "/sign-in", "/teams"];
+
+for (const path of paths) {
+  for (const colorScheme of ["light", "dark"] as const) {
+    test(`${path} passes axe in ${colorScheme} mode`, async ({ page }) =&gt; {
+      await page.emulateMedia({ colorScheme });
+      await page.goto(path);
+      const results = await new AxeBuilder({ page })
+        .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"])
+        .analyze();
+      expect(results.violations).toEqual([]);
+    });
+  }
+}</code></pre>
+        </div>
+        <p class="caption">Axe finds missing labels, low contrast and broken ARIA in both themes. It cannot judge focus order or whether alt text is useful. Reviewers check those.</p>
+      </div>
+      <h4>Foundations here</h4>
+      <dl class="map">
+        <div><dt>F1</dt><dd>A component with a boolean prop per variant is really several components. Replace flags such as <code>isDanger</code> with explicit variants such as <code>&lt;Alert.Destructive&gt;</code>, or pass children.</dd></div>
+        <div><dt>F2</dt><dd>Stylelint caps nesting at 3 levels and bans ID selectors and <code>!important</code>. Split a component when its JSX runs past one screen.</dd></div>
+        <div><dt>F3</dt><dd><code>knip</code> finds unused components. Keep a component's styles in its folder, so deleting the component deletes them too.</dd></div>
+        <div><dt>F4</dt><dd>A compound component keeps shared state in one context that the parent owns. Children read it. They never copy it into their own state.</dd></div>
+        <div><dt>F5</dt><dd>Render is a query. It never fetches, navigates or writes to the DOM. Event handlers and effects make changes.</dd></div>
+        <div><dt>F10</dt><dd>Components never call <code>fetch</code>. Data arrives through a hook or server loader that wraps the API client.</dd></div>
+      </dl>
+      <h4>Accessibility</h4>
+      <ul>
+        <li>Use the element that does the job. <code>&lt;button&gt;</code> runs an action. <code>&lt;a href&gt;</code> goes somewhere. Never put a click handler on a <code>&lt;div&gt;</code>.</li>
+        <li>Every input has a visible <code>&lt;label&gt;</code>. Placeholder text is not a label.</li>
+        <li>Every focusable element shows a ring on <code>:focus-visible</code>. Never remove an outline without drawing a replacement.</li>
+        <li>Tab order follows the visual order. Never set a positive <code>tabindex</code>.</li>
+        <li>A skip link is the first focusable element on every page. It jumps to <code>&lt;main&gt;</code>.</li>
+        <li>Escape closes a modal. Focus then returns to the control that opened it.</li>
+        <li>An icon-only button has an <code>aria-label</code> that names its action.</li>
+        <li>Text contrast is at least 4.5:1. Large text, icons and input borders need 3:1. Check both themes.</li>
+        <li>Colour is never the only signal. An error shows text or an icon as well as a red border.</li>
+        <li>One <code>&lt;h1&gt;</code> per page. Headings go down one level at a time.</li>
+        <li>Link text makes sense on its own. Never write "click here" or "read more".</li>
+        <li>Every image has <code>alt</code> text that says what it shows. A decorative image gets <code>alt=""</code>.</li>
+      </ul>
+      <h4>Look and feel</h4>
+      <ul>
+        <li>Colours, fonts, spacing, radii and shadows are CSS custom properties defined in one file. Stylelint blocks hex colours everywhere else.</li>
+        <li>Every token has a dark theme value. Check borders and translucent surfaces in both themes. A white card at 10% opacity vanishes on a light page.</li>
+        <li>Touch targets are at least 44 by 44 CSS pixels. WCAG 2.2 AA asks for 24. We use the stricter AAA size.</li>
+        <li>Pages work at 320 CSS pixels wide with no sideways scroll.</li>
+        <li>Every interaction shows feedback within 100 ms. Show a pressed state first. Add a spinner if the work takes longer.</li>
+        <li>Clickable elements set <code>cursor: pointer</code>.</li>
+        <li>Transitions last 150 to 300 ms. Animate only <code>transform</code> and <code>opacity</code>. Put motion inside <code>@media (prefers-reduced-motion: no-preference)</code>.</li>
+      </ul>
+      <h4>Performance</h4>
+      <ul>
+        <li>Start independent requests together with <code>Promise.all</code>. Awaiting one before starting the next is a waterfall.</li>
+        <li>Import from the module that defines the thing, not from an <code>index.ts</code> barrel. Barrels can pull a whole library into the bundle.</li>
+        <li>Load heavy components on demand with <code>React.lazy</code> or <code>next/dynamic</code>, inside a <code>&lt;Suspense&gt;</code> boundary.</li>
+        <li>Give every image a <code>width</code> and <code>height</code>. The page then does not jump as images load.</li>
+        <li>Long lists use <code>content-visibility: auto</code> or a virtual list.</li>
+      </ul>
+      <div class="example">
+        <div class="snippet avoid">
+          <div class="snippet-label"><span>Avoid</span><span>a div that acts as a link</span></div>
+<pre><code class="language-typescript">&lt;div className="team-card" onClick={() =&gt; navigate(`/teams/${team.id}`)}&gt;
+  &lt;img src={team.logoUrl} /&gt;
+  &lt;span style={{ color: "#9aa3b2" }}&gt;{team.name}&lt;/span&gt;
+&lt;/div&gt;</code></pre>
+        </div>
+        <div class="snippet prefer">
+          <div class="snippet-label"><span>Prefer</span><span>a real link</span></div>
+<pre><code class="language-typescript">&lt;a className="team-card" href={`/teams/${team.id}`}&gt;
+  &lt;img src={team.logoUrl} alt="" width={40} height={40} /&gt;
+  &lt;span className="team-card-name"&gt;{team.name}&lt;/span&gt;
+&lt;/a&gt;</code></pre>
+        </div>
+        <p class="caption">A keyboard cannot reach the div. A screen reader does not announce it as a link. The link fixes both, and it opens in a new tab. The name sits next to the logo, so the logo's alt text is empty. The grey scored 2.5:1 on white. The class uses a token that passes.</p>
+      </div>
+    </section>
+
+    <!-- Web cost and legal risk -->
+    <section class="lang" id="web-risk">
+      <div class="lang-head"><h2>Cost and legal risk</h2><p>Public web apps · hosting, data, consent, email, payments and uploads</p></div>
+      <p>A public web app can run up a large bill or a lawsuit before it has users. Everything in Web design applies. These rules close the holes that cost the most.</p>
+      <p class="check"><strong>Warning</strong><span>These are code fixes, not legal advice. The laws named here are American. UK and EU law differ and are often stricter. A lawyer reads the policy pages, consent text and email footers before launch.</span></p>
+      <div class="example">
+        <div class="snippet config">
+          <div class="snippet-label"><span>Gate</span><span>e2e/third-party.spec.ts</span></div>
+<pre><code class="language-typescript">import { expect, test } from "@playwright/test";
+
+const paths = ["/", "/sign-up", "/pricing"];
+
+for (const path of paths) {
+  test(`${path} calls no third party before consent`, async ({ page }) =&gt; {
+    const requested: URL[] = [];
+    page.on("request", (request) =&gt; requested.push(new URL(request.url())));
+    await page.goto(path);
+    await page.waitForLoadState("networkidle");
+
+    const origin = new URL(page.url()).origin;
+    const thirdParty = requested
+      .filter((url) =&gt; url.protocol.startsWith("http") &amp;&amp; url.origin !== origin)
+      .map((url) =&gt; url.hostname);
+    expect(thirdParty).toEqual([]);
+  });
+}</code></pre>
+        </div>
+        <p class="caption">The test fails on a remote font, a CDN script, an analytics tag or a session recorder that loads before the visitor consents.</p>
+      </div>
+      <h4>Hosting and spend</h4>
+      <ul>
+        <li>Rate-limit every public endpoint per IP address. Put a limit on the site as a whole too.</li>
+        <li>Serve any static file over 200 KB from a CDN with cache headers, or from object storage.</li>
+        <li>Set a hard spend cap in config. A budget alert only tells you about the bill. If the host has no config setting for it, name the dashboard setting in the README.</li>
+        <li>Set concurrency and maximum instances explicitly. Platform defaults can reach 1000 instances.</li>
+        <li>A function never calls or queues itself without limits. Give recursion and fan-out a depth limit, a visited set and a maximum number of attempts.</li>
+        <li>Every outbound call has a timeout.</li>
+        <li>Remove third-party scripts that load with the page but do nothing you use.</li>
+      </ul>
+      <h4>Data and secrets</h4>
+      <ul>
+        <li>Every table has row level security turned on. Owners reach only their own rows. Everything else runs on the server with the service role.</li>
+        <li>Firebase projects put the same rules in <code>firestore.rules</code> or <code>database.rules.json</code>.</li>
+        <li>Service role keys, secrets and admin credentials stay on the server. Never put them in <code>NEXT_PUBLIC_*</code> or <code>VITE_*</code> variables or a committed <code>.env</code> file. Both prefixes ship to the browser.</li>
+        <li>Check the client bundle, git history and logs for secrets. Rotate any key you find. Deleting it from the latest commit is not enough.</li>
+        <li>An API route reads the user from the session. It never trusts a user id from the body or URL.</li>
+        <li>Sign-in and password reset give the same response whether or not the account exists. Otherwise anyone can test which emails have accounts.</li>
+        <li>Sign-out ends the session on the server. Clearing the browser's copy is not enough.</li>
+      </ul>
+      <div class="example">
+        <div class="snippet avoid">
+          <div class="snippet-label"><span>Avoid</span><span>a table the public key can read</span></div>
+<pre><code class="language-sql">create table notes (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users,
+  body text not null
+);</code></pre>
+        </div>
+        <div class="snippet prefer">
+          <div class="snippet-label"><span>Prefer</span><span>owners reach only their own rows</span></div>
+<pre><code class="language-sql">create table notes (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users,
+  body text not null
+);
+
+alter table notes enable row level security;
+
+create policy "Owners manage their notes" on notes
+  for all to authenticated
+  using (auth.uid() = user_id)
+  with check (auth.uid() = user_id);</code></pre>
+        </div>
+        <p class="caption">Supabase ships the anon key to every browser. On a table without row level security, that key reads every row. With the policy, a signed-in user reaches only their own notes. Server code uses the service role key, which skips the policy.</p>
+      </div>
+      <h4>Privacy and consent</h4>
+      <ul>
+        <li>Self-host fonts with a local <code>@font-face</code>. Remove remote font <code>&lt;link&gt;</code> and <code>@import</code> lines. A remote font sends every visitor's IP address to the font host.</li>
+        <li>Bundle CSS and JavaScript too. Loading them from Typekit, jsDelivr, unpkg or cdnjs leaks the same data.</li>
+        <li>Keep a list of each third-party script that remains and the data it receives.</li>
+        <li>Load no analytics and set no tracking cookies until the visitor consents. Store the choice. Let them change it at any time.</li>
+        <li>Session replay is off by default. That covers PostHog, Hotjar, FullStory, LogRocket, Clarity, Mixpanel and Sentry Replay. Heatmaps, keystroke logging and rage-click recording count too. Recording without consent risks a CIPA claim.</li>
+        <li>Replay starts only after explicit opt-in. Mask every input. Never record password, payment or email fields.</li>
+        <li>Sign-up checks on the server that the visitor is 13 or older, before creating the account. Stop an under-13 attempt and store nothing from it. Newsletter, waitlist and contact forms run the same check. COPPA sets this rule.</li>
+        <li>The footer and the sign-up form link to the privacy policy and terms. The privacy policy names every processor the code sends data to.</li>
+      </ul>
+      <h4>Email and SMS</h4>
+      <ul>
+        <li>SMS needs prior express written consent. Ask with a checkbox that starts unchecked. Its text says what messages they get and how often. It says consent is not a condition of purchase, and that replying STOP unsubscribes.</li>
+        <li>Store each consent with a timestamp and the exact text shown.</li>
+        <li>Handle STOP and HELP replies.</li>
+        <li>Every commercial email has a one-click unsubscribe link and a physical postal address. It also sends the <code>List-Unsubscribe</code> and <code>List-Unsubscribe-Post</code> headers. CAN-SPAM sets these rules.</li>
+        <li>Mark transactional emails in code. Anything unmarked follows the commercial rules.</li>
+        <li>The send path checks the suppression list before every send. An unsubscribe then applies at once, well inside the 10 business days the law allows.</li>
+        <li>Rate-limit bulk sends and remove duplicate recipients.</li>
+      </ul>
+      <div class="example">
+        <div class="snippet avoid">
+          <div class="snippet-label"><span>Avoid</span><span>a bulk send with no checks</span></div>
+<pre><code class="language-typescript">for (const user of users) {
+  await mailer.send({ to: user.email, subject, html });
+}</code></pre>
+        </div>
+        <div class="snippet prefer">
+          <div class="snippet-label"><span>Prefer</span><span>deduped, suppressed, one-click unsubscribe</span></div>
+<pre><code class="language-typescript">const emails = new Set(users.map((user) =&gt; user.email.toLowerCase()));
+
+for (const email of emails) {
+  if (await suppressions.has(email)) continue;
+  await sendLimit.wait();
+  const unsubscribeUrl = `${APP_URL}/unsubscribe/${unsubscribeToken(email)}`;
+  await mailer.send({
+    to: email,
+    subject,
+    html: withCommercialFooter(html, unsubscribeUrl),
+    headers: {
+      "List-Unsubscribe": `&lt;${unsubscribeUrl}&gt;`,
+      "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
+    },
+  });
+}</code></pre>
+        </div>
+        <p class="caption">The first loop mails people who unsubscribed and mails a repeated address twice. Nothing slows it down. <code>withCommercialFooter</code> adds the unsubscribe link and the postal address. The <code>List-Unsubscribe-Post</code> header lets a mail client unsubscribe in one click.</p>
+      </div>
+      <h4>Subscriptions</h4>
+      <p>California's automatic renewal law sets these rules.</p>
+      <ul>
+        <li>Next to the pay button, show the price and how often it renews. Say that it renews until cancelled, and how to cancel.</li>
+        <li>Take affirmative consent to those terms. A box ticked in advance does not count.</li>
+        <li>Cancelling works inside the app and is as easy as signing up.</li>
+        <li>A confirmation email repeats the terms and how to cancel.</li>
+        <li>A free trial sends a reminder email before the first charge.</li>
+      </ul>
+      <h4>User uploads</h4>
+      <ul>
+        <li>Publish a copyright policy page. It gives the DMCA takedown procedure, an email address for notices and a repeat infringer policy.</li>
+        <li>Put a "Report copyright infringement" link next to uploaded content.</li>
+        <li>Register a designated agent at copyright.gov/dmca-directory before launch. It costs $6. Renew it every three years.</li>
+      </ul>
+    </section>
+
+    <!-- Search engines -->
+    <section class="lang" id="seo">
+      <div class="lang-head"><h2>Search engines</h2><p>Public pages · titles, crawling, speed, snippets and structured data</p></div>
+      <p>Search engine optimisation, or SEO, decides whether people find a public page. Everything in Web design applies. These rules help a crawler read the page, keep it fast and let Google quote it in a featured snippet.</p>
+      <p class="check"><strong>Warning</strong><span>Signed-in pages stay out of search. Titles, descriptions and snippets show up in results, browser history and shared links. Never put personal or health data in one.</span></p>
+      <div class="example">
+        <div class="snippet config">
+          <div class="snippet-label"><span>Gate</span><span>e2e/seo.spec.ts</span></div>
+<pre><code class="language-typescript">import { expect, test } from "@playwright/test";
+import { SITE_URL } from "../src/config";
+
+const publicPaths = ["/", "/pricing", "/guides/care-plan-review"];
+const signedInPaths = ["/dashboard", "/teams"];
+
+for (const path of publicPaths) {
+  test(`${path} is ready for search`, async ({ page }) =&gt; {
+    const response = await page.goto(path);
+    expect(response?.status()).toBe(200);
+
+    await expect(page).toHaveTitle(/^.{10,60}$/);
+    await expect(page.locator('meta[name="description"]'))
+      .toHaveAttribute("content", /^.{50,155}$/);
+    await expect(page.locator("h1")).toHaveCount(1);
+    await expect(page.locator('link[rel="canonical"]'))
+      .toHaveAttribute("href", new URL(path, SITE_URL).href);
+
+    const jsonLd = page.locator('script[type="application/ld+json"]');
+    for (const json of await jsonLd.allTextContents()) {
+      expect(() =&gt; JSON.parse(json)).not.toThrow();
+    }
+  });
+}
+
+for (const path of signedInPaths) {
+  test(`${path} stays out of search`, async ({ request }) =&gt; {
+    const response = await request.get(path, { maxRedirects: 0 });
+    expect(response.headers()["x-robots-tag"]).toContain("noindex");
+  });
+}
+
+test("a missing page returns 404", async ({ page }) =&gt; {
+  const response = await page.goto("/no-such-page");
+  expect(response?.status()).toBe(404);
+});</code></pre>
+        </div>
+        <div class="snippet config">
+          <div class="snippet-label"><span>Gate</span><span>lighthouserc.json</span></div>
+<pre><code class="language-json">{
+  "ci": {
+    "collect": {
+      "startServerCommand": "npm run start",
+      "url": ["http://localhost:3000/", "http://localhost:3000/pricing"]
+    },
+    "assert": {
+      "assertions": {
+        "categories:seo": ["error", { "minScore": 1 }],
+        "largest-contentful-paint": ["error", { "maxNumericValue": 2500 }],
+        "cumulative-layout-shift": ["error", { "maxNumericValue": 0.1 }],
+        "total-blocking-time": ["error", { "maxNumericValue": 200 }]
+      }
+    }
+  }
+}</code></pre>
+        </div>
+        <p class="caption">The spec fails on a missing or long title or description, a second <code>&lt;h1&gt;</code>, a canonical link that points elsewhere or JSON-LD that does not parse. It also fails when a signed-in page lacks <code>noindex</code> or a missing page returns 200. Lighthouse runs in a lab and cannot measure INP. Total Blocking Time stands in for it.</p>
+      </div>
+      <h4>Titles and descriptions</h4>
+      <ul>
+        <li>Every public page has its own <code>&lt;title&gt;</code> of 60 characters or fewer. Put the main search phrase first and the brand last.</li>
+        <li>Every public page has its own meta description of 50 to 155 characters. Write it as the answer the page gives. Google shows it under the title unless it prefers text from the page.</li>
+        <li>The <code>&lt;h1&gt;</code> names the same topic as the title. The two need not match word for word.</li>
+        <li>Name image files for what they show, such as <code>care-plan-review.webp</code>. Serve AVIF or WebP at the size the image displays.</li>
+        <li>Google indexes the mobile version of a page. The mobile layout keeps the same text, headings, links and structured data as desktop.</li>
+      </ul>
+      <h4>Crawling and URLs</h4>
+      <ul>
+        <li>Put the text a page should rank for in the HTML the server sends. Render public pages on the server or at build time. Google runs JavaScript later, in a second pass. Many other crawlers never run it.</li>
+        <li>Flutter web draws the page on a canvas, so crawlers see no text. Build public pages in HTML. Keep Flutter web for the signed-in app.</li>
+        <li>Each page has one URL. Its <code>&lt;link rel="canonical"&gt;</code> gives that URL in full. Pick one host, one protocol and one trailing slash rule. Every other form redirects to it with a 301.</li>
+        <li>A moved page redirects with a single 301 to its final address. Never chain redirects. Update internal links to point at the final address.</li>
+        <li>A missing page returns status 404. A "not found" page served with 200 gets indexed as an empty page. Single-page apps do this by default.</li>
+        <li>Generate <code>sitemap.xml</code> from the route table. List only public pages that return 200 and are their own canonical. Give each a <code>lastmod</code> date. Name the sitemap in <code>robots.txt</code>.</li>
+        <li>Signed-in pages send <code>X-Robots-Tag: noindex</code>. So does every response from a staging or preview host.</li>
+        <li>Never block a signed-in path in <code>robots.txt</code>. A blocked crawler never sees the <code>noindex</code>, and Google can still list the URL from links.</li>
+        <li>Verify Google Search Console with a DNS record. The analytics method needs a tracker on the page, which the third-party check fails.</li>
+      </ul>
+      <h4>Speed</h4>
+      <ul>
+        <li>Google uses three Core Web Vitals as ranking signals. Largest Contentful Paint, or LCP, times the main content. Interaction to Next Paint, or INP, times the response to a tap or key. Cumulative Layout Shift, or CLS, scores how much the page jumps.</li>
+        <li>At the 75th percentile of real visits, LCP is 2.5 s or less, INP is 200 ms or less and CLS is 0.1 or less.</li>
+        <li>INP replaced First Input Delay in March 2024. Ignore advice that still targets FID.</li>
+        <li>The Lighthouse score is not a ranking signal. Fix a PageSpeed warning for rank only when it moves one of the three vitals.</li>
+        <li>Never lazy-load the largest image above the fold. Give it <code>fetchpriority="high"</code>. If the largest element is text, preload its font.</li>
+        <li>Reserve space for anything that loads late, such as embeds, images and banners. Pin a consent banner to the viewport so it covers content instead of pushing it down.</li>
+        <li>Check the field numbers in Search Console each month. The lab numbers from the gate only predict them.</li>
+      </ul>
+      <h4>Site structure and links</h4>
+      <ul>
+        <li>Group pages by topic. Each topic has one pillar page that covers it broadly. Each supporting page answers one question in depth and links to the pillar. The pillar links to every supporting page.</li>
+        <li>Each page targets one search phrase and one intent. Two pages that target the same phrase compete, and both rank lower. Merge them and redirect the weaker one with a 301.</li>
+        <li>Every public page has at least one link from another page. A page reached only through the sitemap is an orphan. It gets no ranking weight from the rest of the site.</li>
+        <li>Internal links are plain <code>&lt;a href&gt;</code> elements. Crawlers do not click buttons or run router calls.</li>
+        <li>Link text names the topic of the page it opens. The accessibility rules already ban "click here".</li>
+        <li>Public URLs are short lowercase words joined by hyphens, such as <code>/guides/care-plan-review</code>. Leave ids and tracking parameters out of them.</li>
+      </ul>
+      <h4>Featured snippets</h4>
+      <p>A featured snippet is the answer box above the first result. Google fills it from a paragraph, list or table on a page that already ranks in the top ten.</p>
+      <ul>
+        <li>Phrase a heading as the question people search. Questions that start with who, what, where, when, why or how win snippets most often. So do step-by-step searches.</li>
+        <li>Answer the question in the first paragraph under the heading, in 40 to 60 words. Start with the answer, then explain it.</li>
+        <li>Put steps in an <code>&lt;ol&gt;</code>, one step per item, each starting with a verb. Put comparisons in a <code>&lt;table&gt;</code> with a header row. Google lifts lists and tables straight into the snippet.</li>
+        <li>A short FAQ section of real questions can win snippets and People Also Ask boxes. Give each question its own heading.</li>
+        <li>Since August 2023, Google shows FAQ rich results only for well-known government and health sites. It shows no HowTo rich results at all. Skip HowTo markup. Add FAQPage markup only if the site qualifies.</li>
+      </ul>
+      <h4>Structured data</h4>
+      <ul>
+        <li>Describe each public page in JSON-LD, inside a <code>&lt;script type="application/ld+json"&gt;</code>. Use <code>Organization</code> on the home page, <code>Article</code> on guides and posts, <code>SoftwareApplication</code> on product pages and <code>BreadcrumbList</code> on anything nested.</li>
+        <li>Build the JSON-LD from the same data the page renders. Hand-written markup drifts from the page. See F1.</li>
+        <li>Mark up only what a visitor can see on the page. Google can remove rich results from a site whose markup hides or misstates content.</li>
+        <li>Escape <code>&lt;</code> in JSON-LD as <code><</code>. Otherwise page text can close the script tag.</li>
+        <li>Run each new page type through Google's Rich Results Test before merge. The gate only checks that the JSON parses.</li>
+      </ul>
+      <div class="example">
+        <div class="snippet avoid">
+          <div class="snippet-label"><span>Avoid</span><span>one title for every guide</span></div>
+<pre><code class="language-typescript">export const metadata = { title: "Guides" };
+
+export default async function GuidePage({ params }: PageProps&lt;"/guides/[slug]"&gt;) {
+  const guide = await getGuide((await params).slug);
+  return (
+    &lt;div&gt;
+      &lt;div className="guide-title"&gt;{guide.title}&lt;/div&gt;
+      {guide.steps.map((step) =&gt; (
+        &lt;div key={step.id}&gt;{step.text}&lt;/div&gt;
+      ))}
+    &lt;/div&gt;
+  );
+}</code></pre>
+        </div>
+        <div class="snippet prefer">
+          <div class="snippet-label"><span>Prefer</span><span>metadata and markup from one guide</span></div>
+<pre><code class="language-typescript">export async function generateMetadata({ params }: PageProps&lt;"/guides/[slug]"&gt;) {
+  const guide = await getGuide((await params).slug);
+  return {
+    title: guide.title,
+    description: guide.description,
+    alternates: { canonical: `/guides/${guide.slug}` },
+  };
+}
+
+export default async function GuidePage({ params }: PageProps&lt;"/guides/[slug]"&gt;) {
+  const guide = await getGuide((await params).slug);
+  return (
+    &lt;article&gt;
+      &lt;h1&gt;{guide.title}&lt;/h1&gt;
+      &lt;p&gt;{guide.answer}&lt;/p&gt;
+      &lt;ol&gt;
+        {guide.steps.map((step) =&gt; (
+          &lt;li key={step.id}&gt;{step.text}&lt;/li&gt;
+        ))}
+      &lt;/ol&gt;
+      &lt;script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: articleJsonLd(guide) }}
+      /&gt;
+    &lt;/article&gt;
+  );
+}</code></pre>
+        </div>
+        <p class="caption">The first page gives every guide the title "Guides", with no description or canonical link. A crawler sees no heading and no list, so there is nothing to lift into a snippet. The second builds the metadata and JSON-LD from one <code>guide</code>, so they cannot drift. The title is the question and <code>guide.answer</code> is the 40 to 60 word reply. <code>metadataBase</code> in the root layout turns the canonical path into a full URL. <code>articleJsonLd</code> escapes <code>&lt;</code>.</p>
+      </div>
+      <h4>Using an assistant</h4>
+      <p>An assistant drafts search copy quickly. It cannot see real search data. Check every number it gives before you plan work on it.</p>
+      <ul>
+        <li>Ask for five titles and five descriptions from different angles, inside the length limits. Pick one of each and edit it to the Writing rules.</li>
+        <li>Paste a crawl report or PageSpeed result and ask for the issues ranked by effect on rank. Check that order against the rules above.</li>
+        <li>Search volume and difficulty from an assistant are guesses. Confirm them in Search Console or a keyword tool.</li>
+        <li>Never paste customer records or analytics exports with personal data into a prompt.</li>
+      </ul>
+      <div class="snippet config">
+        <div class="snippet-label"><span>Prompt</span><span>brief for a new public page</span></div>
+<pre><code class="language-plaintext">Act as an SEO editor. I am writing a public page for [audience].
+The main search phrase is [phrase]. The intent is [informational or commercial].
+Our current pages and their main phrases are: [list].
+
+Give me:
+1. Five titles of 60 characters or fewer, each from a different angle.
+2. Five meta descriptions of 50 to 155 characters.
+3. An outline of H2 and H3 headings. Phrase each H2 as a question people search.
+4. A 40 to 60 word answer to the question most likely to win a featured snippet.
+5. Which sections suit a numbered list or a table.
+6. The schema.org type for the page, and why.
+7. Which current pages should link to this one.
+
+Flag any current page that already targets this phrase.</code></pre>
+      </div>
+      <p class="caption">Item 7 and the last line catch an orphan page, or two pages competing for one phrase, before the page exists.</p>
+    </section>
+
+    <section id="skills">
+      <h2>Claude skills for UI work</h2>
+      <p class="section-intro">A skill is a folder holding a <code>SKILL.md</code> file and sometimes scripts. Claude loads it when a task matches. These skills take the repetitive work, such as contrast checks, responsive variants and audits against checklists. The designer still makes the decisions. A skill's review is advice. The gates still decide the merge.</p>
+      <div class="table-wrap prose-table">
+        <table>
+          <thead><tr><th>Skill</th><th>Source</th><th>Run it when</th></tr></thead>
+          <tbody>
+            <tr><td>Frontend Design</td><td><code>anthropics/skills</code></td><td>You start a new screen or page. It makes Claude settle purpose, tone and constraints before writing code, so the result avoids the generic AI look.</td></tr>
+            <tr><td>UI/UX Pro Max</td><td><code>nextlevelbuilder/ui-ux-pro-max-skill</code></td><td>You set up a design system. It searches over 50 styles, 97 palettes and 57 font pairings. It keeps one master system with overrides per page.</td></tr>
+            <tr><td>Bencium UX Designer</td><td><code>bencium/bencium-claude-code-design-skill</code></td><td>You design how a flow behaves. It covers feedback within 100 ms, preventing and recovering from mistakes, and progressive disclosure. Use the controlled variant inside an existing design system.</td></tr>
+            <tr><td>Web Design Guidelines</td><td><code>vercel-labs/agent-skills</code></td><td>Before every UI pull request. It reviews files against over 100 rules for ARIA, focus, labels, touch targets, reduced motion and heading order.</td></tr>
+            <tr><td>AccessLint</td><td><code>accesslint/claude-marketplace</code></td><td>Before every UI pull request. It checks contrast, colour-only meaning and link text. It can also fix missing alt text, labels and semantic HTML across files.</td></tr>
+            <tr><td>React Best Practices</td><td><code>vercel-labs/agent-skills</code></td><td>You write or review React. It ranks 57 performance rules by impact, starting with request waterfalls and bundle size.</td></tr>
+            <tr><td>Composition Patterns</td><td><code>vercel-labs/agent-skills</code></td><td>A component keeps gaining boolean props. It replaces them with compound components and explicit variants. See F1.</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>Install</h3>
+      <p>Commit skills to the repo's <code>.claude/skills/</code> folder. The whole team then runs the same reviewed copy.</p>
+      <div class="example">
+        <div class="snippet config">
+          <div class="snippet-label"><span>Install</span><span>shell, from the repo root</span></div>
+<pre><code class="language-bash"># Clone to a scratch folder. Read each skill before copying it in.
+git clone --depth 1 https://github.com/anthropics/skills.git /tmp/anthropic-skills
+git clone --depth 1 https://github.com/vercel-labs/agent-skills.git /tmp/vercel-skills
+git clone --depth 1 https://github.com/bencium/bencium-claude-code-design-skill.git /tmp/bencium
+
+cp -r /tmp/anthropic-skills/skills/frontend-design .claude/skills/
+cp -r /tmp/vercel-skills/skills/web-design-guidelines .claude/skills/
+cp -r /tmp/vercel-skills/skills/react-best-practices .claude/skills/
+cp -r /tmp/vercel-skills/skills/composition-patterns .claude/skills/
+cp -r /tmp/bencium/bencium-controlled-ux-designer .claude/skills/
+
+# Put these commit hashes in your commit message.
+git -C /tmp/anthropic-skills rev-parse HEAD
+git -C /tmp/vercel-skills rev-parse HEAD
+git -C /tmp/bencium rev-parse HEAD</code></pre>
+        </div>
+        <div class="snippet config">
+          <div class="snippet-label"><span>Install</span><span>inside Claude Code</span></div>
+<pre><code class="language-plaintext">/plugin marketplace add accesslint/claude-marketplace
+/plugin install accesslint@accesslint
+
+/plugin marketplace add nextlevelbuilder/ui-ux-pro-max-skill
+/plugin install ui-ux-pro-max@ui-ux-pro-max-skill</code></pre>
+        </div>
+        <p class="caption">AccessLint and UI/UX Pro Max ship as plugins, so they install per person.</p>
+      </div>
+
+      <h3>Before you install a skill</h3>
+      <ul>
+        <li>Read <code>SKILL.md</code> in full. A skill runs with your permissions. A malicious one can hide a reverse shell in its instructions.</li>
+        <li>Check the <code>allowed-tools</code> field in its frontmatter. A design skill that asks for shell or network access needs a reason you can name.</li>
+        <li>Read every bundled script line by line, Python especially. UI/UX Pro Max runs a Python search script. Its README says the script uses only the standard library and makes no network calls. Confirm that in the code.</li>
+        <li>Update a skill by pull request, like any other dependency. Record the source commit each time.</li>
+      </ul>
+    </section>
+
+    <section id="review">
+      <h2>Reviewing against this standard</h2>
+      <p>An acronym in a review comment starts an argument about definitions. Name the actual problem and what it costs. Then suggest a fix. Add an F or W rule ID if it helps the author find the reasoning. Never cite an acronym on its own.</p>
+      <div class="review">
+        <div class="comment">
+          <div class="comment-head"><span>orders/service.py · line 42</span><span>F5 · F6</span></div>
+          <div class="comment-body">
+            <p class="no">This violates SRP.</p>
+            <p class="yes"><code>save_order</code> also sends the confirmation email. If SMTP is down, the order saves but the request returns 500. The client retries and creates a duplicate order. Can the email move to a queued job after the save?</p>
+          </div>
+        </div>
+        <div class="comment">
+          <div class="comment-head"><span>parsers/invoice.ts · line 18</span><span>F1</span></div>
+          <div class="comment-body">
+            <p class="no">Not DRY.</p>
+            <p class="yes">This parser and <code>receipt.ts</code> got the same date fix in two PRs last month. They seem to change together. Should they share one function?</p>
+          </div>
+        </div>
+        <div class="comment">
+          <div class="comment-head"><span>api/client.ts · line 7</span><span>F3</span></div>
+          <div class="comment-body">
+            <p class="no">YAGNI.</p>
+            <p class="yes">Nothing passes <code>retryPolicy</code> yet. Can we drop the parameter until a caller needs it?</p>
+          </div>
+        </div>
+        <div class="comment">
+          <div class="comment-head"><span>storage/read_only_store.dart · line 30</span><span>F8 · F9</span></div>
+          <div class="comment-body">
+            <p class="no">Breaks Liskov.</p>
+            <p class="yes"><code>save</code> throws here, so any caller typed as <code>Store</code> crashes at runtime. Could readers depend on a smaller <code>StoreReader</code> interface instead?</p>
+          </div>
+        </div>
+        <div class="comment">
+          <div class="comment-head"><span>invites/list.ts · line 12</span><span>W3</span></div>
+          <div class="comment-body">
+            <p class="no">Great work! Maybe consider potentially renaming this?</p>
+            <p class="yes">Please rename <code>data</code> to <code>pendingInvites</code>. Three functions below read it, and the current name hides what it holds.</p>
+          </div>
+        </div>
+      </div>
+      <h3>When the author disagrees</h3>
+      <ul>
+        <li>If a gate flags it, the tool decides. To change a lint rule, open a separate pull request and agree it with the team.</li>
+        <li>If it is a foundation, the author may keep the code. They add a one-line comment giving the reason. The reviewer can challenge that reason.</li>
+        <li>If the same foundation keeps being broken for the same reason, it is wrong for us. Change this document.</li>
+      </ul>
+    </section>
+
+    <footer>
+      <p>Tack Labs Standards, version 1, September 2026. Propose changes to this document by pull request.</p>
+    </footer>
+  </main>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/dart.min.js"></script>
+<script>
+(function () {
+  if (window.hljs) {
+    hljs.registerLanguage("hcl", function (hljs) {
+      return {
+        name: "HCL",
+        keywords: {
+          keyword: "resource data variable output module locals provider terraform lifecycle moved removed for_each count dynamic for in if",
+          literal: "true false null",
+          built_in: "length toset tomap merge flatten lookup each var local"
+        },
+        contains: [
+          hljs.HASH_COMMENT_MODE,
+          hljs.C_LINE_COMMENT_MODE,
+          hljs.C_BLOCK_COMMENT_MODE,
+          { className: "string", begin: /"/, end: /"/, contains: [{ className: "subst", begin: /\$\{/, end: /\}/ }] },
+          hljs.NUMBER_MODE,
+          { className: "attr", begin: /\b[a-z_][a-z0-9_]*(?=\s*=)/ }
+        ]
+      };
+    });
+    hljs.configure({ ignoreUnescapedHTML: true });
+    document.querySelectorAll("pre code").forEach(function (el) { hljs.highlightElement(el); });
+  }
+
+  var links = Array.prototype.slice.call(document.querySelectorAll(".toc a"));
+  if (!("IntersectionObserver" in window) || links.length === 0) return;
+  var byId = {};
+  links.forEach(function (a) { byId[a.getAttribute("href").slice(1)] = a; });
+  var targets = Object.keys(byId).map(function (id) { return document.getElementById(id); }).filter(Boolean);
+  var observer = new IntersectionObserver(function (entries) {
+    entries.forEach(function (entry) {
+      if (!entry.isIntersecting) return;
+      links.forEach(function (a) { a.classList.remove("active"); });
+      var link = byId[entry.target.id];
+      if (link) link.classList.add("active");
+    });
+  }, { rootMargin: "-10% 0px -80% 0px" });
+  targets.forEach(function (t) { observer.observe(t); });
+})();
+</script>
+</body>
+</html>

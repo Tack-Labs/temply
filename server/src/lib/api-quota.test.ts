@@ -5,7 +5,7 @@ import { checkApiQuota, getApiUsage, londonMonthStart, nextResetDate, previousMo
 
 let db: TestDb;
 const USER = 'user_api';
-beforeEach(() => { db = createTestDb(); });
+beforeEach(async () => { db = await createTestDb(); });
 
 describe('ukMonthString', () => {
   it('uses the London calendar month', () => {

@@ -8,9 +8,9 @@ import { countMembers, cycleAnchor, setItemQuantity, syncSeats } from './stripe'
 let db: TestDb;
 let stripe: FakeStripe;
 
-beforeEach(() => {
+beforeEach(async () => {
   stripe = fakeStripe();
-  db = createTestDb();
+  db = await createTestDb();
 });
 afterEach(() => stripe.restore());
 

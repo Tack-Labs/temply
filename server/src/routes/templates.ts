@@ -1,10 +1,10 @@
 import { Elysia, t } from 'elysia';
 import type { JSONContent } from '@tiptap/core';
-import { eq, and, desc, sql } from 'drizzle-orm';
+import { eq, and, desc, notInArray, sql } from 'drizzle-orm';
 import { mails, templateVersions } from '@temply/shared/schema';
 import { TEMPLATE_CONTENT_MAX_LENGTH } from '@temply/shared/plans';
 import { generateShareToken, generateShortCode } from '../lib/codes';
-import { nextStamp } from '../lib/stamp';
+import { nextStamp, stampAfter } from '../lib/stamp';
 import { hasUnpublishedChanges } from '@temply/shared/publish';
 import { checkTemplateLimit, refuseWhenLapsed, versionsKept } from '../lib/billing';
 import { render } from '../render/render';
@@ -45,12 +45,12 @@ function publishedPatch(row: Pick<Row, 'content' | 'theme' | 'preview_text'>, st
  * or autosave would flush every real publish out of the list within
  * minutes.
  */
-async function snapshotVersion(db: Db, row: Row, keep: number) {
-  // Numbered inside the insert: read first and written after, two publishes
-  // of one template could both take the same number, and the unique index
-  // on (template_id, version_number) would refuse the second.
+async function snapshotVersion(tx: Db, row: Row, keep: number) {
+  // The caller holds the template's row lock. Without it two publishes of
+  // one template could both read the same MAX under READ COMMITTED, and the
+  // unique index on (template_id, version_number) would refuse the second.
   const next = sql`(SELECT COALESCE(MAX(${templateVersions.version_number}), 0) + 1 FROM ${templateVersions} WHERE ${templateVersions.template_id} = ${row.id})`;
-  await db.insert(templateVersions).values({
+  await tx.insert(templateVersions).values({
     id: crypto.randomUUID(),
     template_id: row.id,
     user_id: row.user_id,
@@ -61,11 +61,13 @@ async function snapshotVersion(db: Db, row: Row, keep: number) {
     theme: row.theme,
     version_number: next,
   });
-  await db
-    .delete(templateVersions)
-    .where(
-      sql`${templateVersions.id} NOT IN (SELECT id FROM (SELECT ${templateVersions.id} FROM ${templateVersions} WHERE ${templateVersions.template_id} = ${row.id} ORDER BY ${templateVersions.version_number} DESC LIMIT ${keep})) AND ${templateVersions.template_id} = ${row.id}`,
-    );
+  const newest = tx
+    .select({ id: templateVersions.id })
+    .from(templateVersions)
+    .where(eq(templateVersions.template_id, row.id))
+    .orderBy(desc(templateVersions.version_number))
+    .limit(keep);
+  await tx.delete(templateVersions).where(and(eq(templateVersions.template_id, row.id), notInArray(templateVersions.id, newest)));
 }
 
 /**
@@ -83,6 +85,13 @@ const templateBody = t.Object({
 
 async function ownRow(db: Db, orgId: string, id: string): Promise<Row | undefined> {
   const [row] = await db.select().from(mails).where(and(eq(mails.id, id), eq(mails.org_id, orgId))).limit(1);
+  return row;
+}
+
+/** The row, locked until `tx` ends. A second write to the same template
+ *  waits here, then reads what the first one wrote. */
+async function lockOwnRow(tx: Db, orgId: string, id: string): Promise<Row | undefined> {
+  const [row] = await tx.select().from(mails).where(and(eq(mails.id, id), eq(mails.org_id, orgId))).limit(1).for('update');
   return row;
 }
 
@@ -216,30 +225,38 @@ export const templatesRoutes = new Elysia()
   .post('/api/v1/templates/:id', async (ctx) => {
     if (!ctx.userId) return unauthorized();
     if (!ctx.orgId) return noWorkspace();
-    const { title, previewText, content, theme } = ctx.body;
-    // `theme` is omitted rather than null when the client is not editing it,
-    // so an absent field must not wipe a theme the template already has.
-    // SQLite has no ON UPDATE — the bump has to be written here.
-    const patch: Record<string, unknown> = {
-      title,
-      preview_text: previewText ?? null,
-      content,
-      updated_at: nextStamp(),
-    };
-    if (theme !== undefined) patch.theme = theme;
-    await ctx.db.update(mails).set(patch).where(and(eq(mails.id, ctx.params.id), eq(mails.org_id, ctx.orgId)));
+    const { orgId, body: { title, previewText, content, theme } } = ctx;
+    await ctx.db.transaction(async (tx) => {
+      const row = await lockOwnRow(tx, orgId, ctx.params.id);
+      if (!row) return;
+      // `theme` is omitted rather than null when the client is not editing
+      // it, so an absent field must not wipe a theme the template already
+      // has. Nothing in the schema bumps updated_at, so the save writes it.
+      const patch: Record<string, unknown> = {
+        title,
+        preview_text: previewText ?? null,
+        content,
+        updated_at: stampAfter(row.updated_at),
+      };
+      if (theme !== undefined) patch.theme = theme;
+      await tx.update(mails).set(patch).where(eq(mails.id, row.id));
+    });
     return json({ status: 'ok' });
   }, { body: templateBody })
 
   .post('/api/v1/templates/:id/publish', async (ctx) => {
     if (!ctx.userId) return unauthorized();
     if (!ctx.orgId) return noWorkspace();
-    const row = await ownRow(ctx.db, ctx.orgId, ctx.params.id);
-    if (!row) return notFound('Template not found');
-    const stamp = nextStamp();
-    await ctx.db.update(mails).set(publishedPatch(row, stamp)).where(eq(mails.id, row.id));
-    await snapshotVersion(ctx.db, row, await versionsKept(ctx.db, ctx.orgId));
-    const [published] = await ctx.db.select().from(mails).where(eq(mails.id, row.id)).limit(1);
+    const orgId = ctx.orgId;
+    const keep = await versionsKept(ctx.db, orgId);
+    const published = await ctx.db.transaction(async (tx) => {
+      const row = await lockOwnRow(tx, orgId, ctx.params.id);
+      if (!row) return undefined;
+      const [updated] = await tx.update(mails).set(publishedPatch(row, stampAfter(row.updated_at))).where(eq(mails.id, row.id)).returning();
+      await snapshotVersion(tx, row, keep);
+      return updated;
+    });
+    if (!published) return notFound('Template not found');
     return json({ template: withFlags(published) });
   })
 
@@ -347,22 +364,27 @@ export const templatesRoutes = new Elysia()
     if (!ctx.orgId) return noWorkspace();
     const [version] = await ctx.db.select().from(templateVersions).where(and(eq(templateVersions.id, ctx.params.versionId), eq(templateVersions.template_id, ctx.params.id), eq(templateVersions.org_id, ctx.orgId))).limit(1);
     if (!version) return notFound('Version not found');
-    // A null version theme means "snapshotted before themes were captured" —
-    // unknown, not absent — so it must not wipe the template's current theme.
-    const restorePatch: Record<string, unknown> = {
-      title: version.title,
-      preview_text: version.preview_text,
-      content: version.content,
-      updated_at: nextStamp(),
-    };
-    if (version.theme !== null) restorePatch.theme = version.theme;
-    await ctx.db.update(mails).set(restorePatch).where(and(eq(mails.id, ctx.params.id), eq(mails.org_id, ctx.orgId)));
+    const orgId = ctx.orgId;
+    const restored = await ctx.db.transaction(async (tx) => {
+      // The version existing says nothing about the template: it can have
+      // been deleted since the version was read.
+      const row = await lockOwnRow(tx, orgId, ctx.params.id);
+      if (!row) return undefined;
+      // A null version theme means "snapshotted before themes were captured"
+      // (unknown, not absent), so it must not wipe the template's theme.
+      const restorePatch: Record<string, unknown> = {
+        title: version.title,
+        preview_text: version.preview_text,
+        content: version.content,
+        updated_at: stampAfter(row.updated_at),
+      };
+      if (version.theme !== null) restorePatch.theme = version.theme;
+      const [updated] = await tx.update(mails).set(restorePatch).where(eq(mails.id, row.id)).returning();
+      return updated;
+    });
+    if (!restored) return notFound('Template not found');
     // The restored row goes back with the response: the editor that asked
     // for the restore is holding the document this just replaced, and
     // without the new one on hand it would have to be reloaded to show it.
-    const [restored] = await ctx.db.select().from(mails).where(and(eq(mails.id, ctx.params.id), eq(mails.org_id, ctx.orgId))).limit(1);
-    // The version existing says nothing about the template: it can be deleted
-    // between the write above and this read, and the row is then gone.
-    if (!restored) return notFound('Template not found');
     return json({ template: withFlags(restored) });
   });

@@ -1,5 +1,6 @@
 import { Elysia, t } from 'elysia';
 import { and, count, desc, eq, like } from 'drizzle-orm';
+import { IMAGE_TOO_LARGE, MAX_IMAGE_BYTES } from '@temply/shared/plans';
 import { assets, mails, templateVersions } from '@temply/shared/schema';
 import { checkStorageLimit, getPlan, getStorageUsed, limitsForAccount, refuseWhenLapsed } from '../lib/billing';
 import { json, notFound, paymentRequired, unauthorized } from '../lib/errors';
@@ -9,7 +10,6 @@ import { authPlugin } from '../plugins/auth';
 import { noWorkspace } from '../lib/workspace';
 import { dbPlugin } from '../plugins/db';
 
-export const MAX_ASSET_BYTES = 5 * 1024 * 1024;
 /** SVG is excluded on purpose: Gmail and Outlook strip it, so it would never
  *  render in a real email. */
 export const ASSET_MIME_TYPES = new Set(['image/jpeg', 'image/png', 'image/gif', 'image/webp']);
@@ -66,8 +66,8 @@ export const assetsRoutes = new Elysia()
     const file = ctx.body.file;
     // Cheapest check first: an oversized file is refused before its bytes
     // are ever read into memory.
-    if (file.size > MAX_ASSET_BYTES) {
-      return json({ status: 400, message: 'Images must be under 5 MB.', errors: ['Images must be under 5 MB.'] }, 400);
+    if (file.size > MAX_IMAGE_BYTES) {
+      return json({ status: 400, message: IMAGE_TOO_LARGE, errors: [IMAGE_TOO_LARGE] }, 400);
     }
     // The part's Content-Type and the filename are both written by the
     // client, so the accepted format is decided from the bytes, not either

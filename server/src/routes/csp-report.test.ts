@@ -16,8 +16,8 @@ const send = (body: unknown, type: string, address = '203.0.113.5') =>
 let warnings: string[];
 let warn: ReturnType<typeof spyOn>;
 
-beforeEach(() => {
-  app = createTestApp(createTestDb(), cspReportRoutes);
+beforeEach(async () => {
+  app = createTestApp(await createTestDb(), cspReportRoutes);
   warnings = [];
   warn = spyOn(console, 'warn').mockImplementation((line: string) => {
     warnings.push(line);

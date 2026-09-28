@@ -1,13 +1,20 @@
 # e2e
 
 Playwright, against a stack Playwright starts itself: a fakes server
-(Stripe, ImageKit, Resend), the API on a fresh SQLite, and the built client.
-The stack takes its own ports (client 9101, API 3101, fakes 3999, and 3998
-for Stripe, whose SDK takes a host and port but no base path) and builds
-the client into `client/.next-e2e` rather than `.next`, so a dev checkout
-on 9000/3001 is left alone, including the build it serves from. Stripe's
+(Stripe, ImageKit, Resend) and the built client, with the API running inside
+it as it does on Vercel. The stack takes its own ports (client 9300, fakes
+3999, and 3998 for Stripe, whose SDK takes a host and port but no base path)
+and builds the client into `client/.next-e2e` rather than `.next`, so a dev
+checkout on 9000 is left alone, including the build it serves from. Stripe's
 keys and price ids are fixed in `env.ts`, never read from `.env`, so a real
 key can never reach the stack.
+
+Each run gets a fresh, migrated Postgres database,
+`temply_e2e_<checkout>_<run id>`, on the server `E2E_POSTGRES_URL` names
+(default: `compose.yaml`'s, at `postgres://postgres:postgres@127.0.0.1:5432/postgres`).
+A run's database is left behind so a failure can be looked into, and the next
+run in the same checkout drops it; `database.ts` touches no other database on
+that server.
 
 ## Run
 
@@ -15,8 +22,10 @@ key can never reach the stack.
     bun run e2e -- --project=phone-chromium specs/editor-phone.e2e.ts
     bun run e2e:ui                                   # Playwright UI mode
 
-First time: `bun run --filter @temply/e2e install-browsers`, and create
-`e2e/.env` with the Clerk dev keys and the two test users:
+First time: `docker compose up -d` from the root (or point
+`E2E_POSTGRES_URL` at a Postgres of your own),
+`bun run --filter @temply/e2e install-browsers`, and create `e2e/.env` with
+the Clerk dev keys and the two test users:
 
     NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_…
     CLERK_SECRET_KEY=sk_test_…
@@ -58,10 +67,9 @@ playing Stripe's side: the app opens a real checkout against the fake,
 the stack's secret and goes through the Next proxy, and the app reads the
 subscription back from the fake, as it would from Stripe.
 
-The stack inherits the shell environment plus `server/.env` and
-`client/.env` (Bun and Next load them from their working directories);
-`stackEnv()` in `env.ts` overrides everything that has to agree between
-the API and the client.
+The stack inherits the shell environment plus `client/.env` (Next loads it
+from its working directory); `stackEnv()` in `env.ts` overrides everything
+that has to agree between the client, the API inside it and the fakes.
 
 Spec files end in `.e2e.ts`, not `.spec.ts`: Bun's own runner collects
 `*.spec.ts` from anywhere in the repo, and a Playwright file loaded that way
@@ -83,8 +91,11 @@ run before:
 ## CI
 
 `.github/workflows/ci.yml` runs the suite as the `Browser tests` job on
-pushes to `main` and `feature/**`, and on every pull request, alongside the
-typecheck-and-build job. It reads six repository secrets:
+pushes to `main`, `staging` and `feature/**`, and on every pull request,
+alongside the typecheck-and-test job. The job runs a `postgres:17` service
+on the port `compose.yaml` uses, so `E2E_POSTGRES_URL` stays unset there.
+Neither `main` nor `staging` deploys until it passes. It reads six repository
+secrets:
 
     E2E_CLERK_PUBLISHABLE_KEY
     E2E_CLERK_SECRET_KEY

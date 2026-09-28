@@ -1,6 +1,6 @@
 import { TEMPLATE_CONTENT_MAX_LENGTH } from '@temply/shared/plans';
 import { beforeEach, describe, expect, it } from 'bun:test';
-import { eq, sql } from 'drizzle-orm';
+import { eq } from 'drizzle-orm';
 import { brands, mails, orgPrefs, templateVersions } from '@temply/shared/schema';
 import { BRAND_PRESETS } from '@temply/shared/brand-presets';
 import { createTestApp, createTestDb, del, get, givePlan, lapse, post, type TestDb } from '../test/helpers';
@@ -12,8 +12,8 @@ let app: any;
 const OWNER = 'user_owner';
 const OTHER = 'user_other';
 
-beforeEach(() => {
-  db = createTestDb();
+beforeEach(async () => {
+  db = await createTestDb();
   app = createTestApp(db, templatesRoutes);
 });
 
@@ -86,7 +86,7 @@ describe('POST /api/v1/templates', () => {
   // as those routes would leave them.
   describe('a template made without a theme', () => {
     const warm = BRAND_PRESETS.find((p) => p.id === 'warm')!;
-    const stored = (id: string) => db.select().from(mails).where(eq(mails.id, id)).get()!;
+    const stored = async (id: string) => (await db.select().from(mails).where(eq(mails.id, id)))[0];
 
     it('starts on the first preset when no default was ever chosen', async () => {
       const template = await createTemplate(OWNER);
@@ -98,7 +98,7 @@ describe('POST /api/v1/templates', () => {
       const template = await createTemplate(OWNER);
       expect(JSON.parse(template.theme)).toEqual(warm.theme);
       // Published in the same request, so the API renders the brand at once.
-      expect(stored(template.id).published_theme).toBe(template.theme);
+      expect((await stored(template.id)).published_theme).toBe(template.theme);
     });
 
     it('starts on the workspace’s own default brand', async () => {
@@ -473,20 +473,20 @@ describe('share links', () => {
   });
 });
 
-describe('a legacy row from before publishing existed', () => {
-  it('is published as it stood, so the API keeps serving it', async () => {
-    // A row the way the old code wrote it: a single copy, nothing published.
+describe('a row another instance published', () => {
+  // Every instance keeps its own clock, and rows copied from SQLite carry
+  // its stamp format. A save that followed a publish must still stamp later,
+  // or the draft could share the published stamp and read as published.
+  it('saves with a later stamp even when that clock ran ahead of this one', async () => {
+    const ahead = new Date(Date.now() + 2_000).toISOString().replace('T', ' ').slice(0, 19);
     const id = crypto.randomUUID();
-    await db.insert(mails).values({ id, user_id: OWNER, org_id: OWNER, title: 'Old', content: '{"old":true}', short_code: 'tpl_legacy00', updated_at: '2024-01-01 00:00:00' });
+    await db.insert(mails).values({ id, user_id: OWNER, org_id: OWNER, title: 'Ahead', content: '{}', short_code: 'tpl_ahead000', updated_at: ahead, published_at: ahead, published_content: '{}' });
 
-    // The same statement initTables runs at startup.
-    await db.run(sql`UPDATE mails SET published_content = content, published_theme = theme, published_preview_text = preview_text, published_at = updated_at WHERE published_at IS NULL`);
+    await post(app, `/api/v1/templates/${id}`, { title: 'Ahead', content: '{"v":2}' }, OWNER);
 
-    const [row] = await db.select().from(mails).where(eq(mails.id, id));
-    expect(row.published_content).toBe('{"old":true}');
-    expect(row.published_at).toBe('2024-01-01 00:00:00');
     const { template } = await (await get(app, `/api/v1/templates/${id}`, OWNER)).json();
-    expect(template.has_unpublished_changes).toBe(false);
+    expect(Date.parse(template.updated_at)).toBeGreaterThan(Date.parse(`${ahead.replace(' ', 'T')}Z`));
+    expect(template.has_unpublished_changes).toBe(true);
   });
 });
 

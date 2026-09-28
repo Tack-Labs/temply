@@ -15,9 +15,9 @@ let stripe: FakeStripe;
 const OWNER = 'user_owner';
 const member = { 'x-org-id': OWNER, 'x-org-role': 'member' };
 
-beforeEach(() => {
+beforeEach(async () => {
   stripe = fakeStripe();
-  db = createTestDb();
+  db = await createTestDb();
   app = createTestApp(db, billingRoutes);
 });
 afterEach(() => stripe.restore());

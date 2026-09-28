@@ -1,4 +1,5 @@
 import { toast } from 'sonner';
+import { IMAGE_TOO_LARGE, MAX_IMAGE_BYTES } from '@temply/shared/plans';
 import { errorMessage, httpDelete, httpGet, httpPost } from './http';
 
 export type Asset = {
@@ -16,7 +17,6 @@ export type Asset = {
 
 export type AssetList = { assets: Asset[]; usedBytes: number; limitBytes: number | null };
 
-export const MAX_UPLOAD_BYTES = 5 * 1024 * 1024;
 // SVG is excluded on purpose: Gmail/Outlook strip inline SVG, so it never
 // renders in a real email. The server enforces the same list.
 export const UPLOAD_MIME_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
@@ -44,7 +44,10 @@ export type UploadResult = {
   duplicateName: boolean;
 };
 
+/** Refuses an oversized file here, before sending it: past 4.5 MB Vercel
+ *  answers with an error page of its own before the API can say why. */
 export async function uploadAsset(file: File): Promise<UploadResult> {
+  if (file.size > MAX_IMAGE_BYTES) throw new Error(IMAGE_TOO_LARGE);
   const form = new FormData();
   form.append('file', file);
   return httpPost<UploadResult>('/api/v1/assets', form as unknown as Record<string, unknown>);
@@ -77,13 +80,8 @@ export async function deleteAsset(id: string): Promise<void> {
  *  node shows its error state; the server's own sentence is the toast. */
 export function createEditorUploader(): (file: Blob) => Promise<string> {
   return async function onImageUpload(file: Blob): Promise<string> {
-    const named = file as File;
-    if (named.size > MAX_UPLOAD_BYTES) {
-      toast.error('Images must be under 5 MB.');
-      throw new Error('Image exceeds 5 MB');
-    }
     try {
-      const result = await uploadAsset(named);
+      const result = await uploadAsset(file as File);
       toastUploaded(result);
       return withTransform(result.asset.url, EMAIL_TRANSFORM);
     } catch (error) {

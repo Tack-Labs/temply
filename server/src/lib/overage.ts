@@ -1,4 +1,4 @@
-import * as Sentry from '@sentry/bun';
+import { captureException } from '@sentry/core';
 import { and, eq, gt, isNotNull } from 'drizzle-orm';
 import { orgUsage, subscriptions } from '@temply/shared/schema';
 import { INCLUDED } from '@temply/shared/plans';
@@ -77,7 +77,7 @@ export async function reportOverage(db: Db, now: Date = new Date(), send: (event
       } catch (error) {
         await db.update(orgUsage).set({ reported: row.reported }).where(and(here, eq(orgUsage.reported, overage)));
         console.error(`Overage for ${row.orgId} in ${period} was not reported:`, error instanceof Error ? error.message : error);
-        Sentry.captureException(error);
+        captureException(error);
       }
     }
   }
@@ -93,7 +93,7 @@ export function startOverageReporter(): () => void {
   const run = () =>
     void reportOverage(getDb()).catch((error) => {
       console.error('Overage report failed:', error);
-      Sentry.captureException(error);
+      captureException(error);
     });
   const timer = setInterval(run, EVERY);
   return () => clearInterval(timer);
