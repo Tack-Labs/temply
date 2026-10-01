@@ -44,4 +44,9 @@ export const stripeWebhookRoutes = new Elysia()
       await applySubscription(ctx.db, await stripe.subscriptions.retrieve(id), syncedAt);
     }
     return json({ received: true });
-  });
+  },
+  // The signature is over the body's exact bytes, so the handler reads it
+  // itself. Elysia must not read it first: it decides that from the
+  // handler's source, and in Next's minified build it guesses wrong.
+  { parse: 'none' },
+  );
