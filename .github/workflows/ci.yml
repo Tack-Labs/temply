@@ -66,9 +66,6 @@ jobs:
       - name: Lint
         run: bun run lint
 
-      - name: Deployment script syntax
-        run: bash -n deploy/railway/start.sh deploy/railway/deploy.sh deploy/railway/smoke.sh
-
       - name: Test
         run: bun test
 

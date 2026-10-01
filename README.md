@@ -243,8 +243,7 @@ must pass before a push to `main` deploys production, or a push to
 ## Building
 
 ```bash
-bun run build                # Next.js production build → client/.next, the API bundled in
-cd server && bun run build   # the standalone API → dist/, used only by the Railway image
+bun run build   # Next.js production build → client/.next, the API bundled in
 ```
 
 `next build` writes to the same `.next` the dev server uses and will
@@ -295,6 +294,21 @@ The job needs, in GitHub:
 
 Changing a `NEXT_PUBLIC_*` value needs a new build, not a redeploy of the
 old one.
+
+Keep the `E2E_*` repository secrets described in
+[e2e/README.md](e2e/README.md). They use the Clerk **development**
+instance, independently of the live keys. Use branch protection on `main`
+to require **Typecheck, test, design gates** and **Browser tests**. Pull
+requests and `feature/**` pushes run those two without deploying.
+
+After the first release, set Clerk's allowed production domain, register
+the webhooks at `https://<domain>/api/webhooks/clerk` and
+`https://<domain>/api/webhooks/stripe` with the events in *Setup*, and set
+up the live-mode meter, prices and customer portal the same way. Confirm
+the operator and contact details in `client/lib/legal.ts`.
+
+Logs are in the Vercel dashboard. `vercel logs <deployment url>` streams
+them live for up to five minutes.
 
 **Changing the schema.** Edit `shared/schema.ts`, run `bun run db:generate`,
 and commit the new file in `server/drizzle/` with the change; CI fails a
@@ -351,141 +365,6 @@ pg_restore --no-owner --no-privileges --single-transaction --exit-on-error \
 The dump carries the `drizzle` schema too, so `bun run db:migrate`
 afterwards applies only what came after it.
 
-## Production on Railway, until the cutover
-
-Production runs here until `handoff.md` §7 moves it to Vercel. This section
-stays until §9 deletes the Railway setup, because the cutover's final
-SQLite snapshot and any rollback during it follow it.
-
-One Railway service runs Next.js on `0.0.0.0:$PORT` and the Bun API on
-loopback `:3001`. Railway provides HTTPS; Next proxies `/api/*`, including
-both webhooks. `Dockerfile` builds the Next standalone runtime and the API;
-`deploy/railway/start.sh` supervises both processes and stops the container
-if either exits. `railway.json` sets one replica, restart policy and the
-`/api/health` deployment check, which exercises Next, the API and SQLite.
-
-The database lives at `/data/maily.db` on a Railway volume. Startup refuses
-to run on Railway without a volume mounted at `/data`. Migrations run on
-the first database request after the volume is mounted, including the
-health check; do not move them to a pre-deploy command, where Railway
-volumes are unavailable. Keep one replica: SQLite is a single writer here.
-A volume-backed service has a short interruption during replacement, so
-this setup does not promise zero-downtime releases.
-
-### One-time setup
-
-1. Create an empty Railway project and a service named `temply` in its
-   `production` environment. Deploy from the **repository root**, with
-   `/railway.json` as the config path and no custom build/start command.
-   Leave GitHub autodeploys disconnected: GitHub Actions owns deployment
-   and must finish its gates first.
-2. Attach a persistent volume to that service at **`/data`**. Enable daily,
-   weekly and monthly volume backups in the service's **Backups** tab.
-   Railway backs up the SQLite file and its WAL together. These settings
-   are managed in Railway, not by `railway.json`.
-3. Generate a Railway domain or attach your domain, targeting port **8080**.
-   Set service variables from `.env.example`, combining the two blocks into
-   one set with matching values. At minimum, set:
-
-   ```dotenv
-   NEXT_PUBLIC_APP_URL=https://your-domain.example
-   NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_live_...
-   CLERK_SECRET_KEY=sk_live_...
-   INTERNAL_API_SECRET=<a-random-64-character-hex-string>
-   ```
-
-   `PORT=8080`, `SQLITE_DB_PATH=/data/maily.db` and
-   `BACKUP_DIR=/data/backups` are image defaults. Leave `API_URL` unset;
-   startup supplies the loopback URL. Add the Clerk webhook secret, the
-   Stripe key, three prices, meter event (if not the default) and webhook
-   secret, and Resend and
-   ImageKit values for the features you use. Runtime secrets belong in
-   Railway, not the Dockerfile or GitHub build arguments.
-   `NEXT_PUBLIC_*` values are compiled into the client, so changing one
-   requires a new build. The Docker build deliberately uses no real Clerk
-   secret. Runtime Sentry reporting is supported; this container build
-   does not upload Sentry source maps.
-4. Create a Railway **project token scoped to the production environment**.
-   In the GitHub repository, create an Actions environment named
-   **`production`**, restricted to the `main` branch. Add its secret and
-   variables (repository-level values also work):
-
-   | Kind | Name | Value |
-   |---|---|---|
-   | Secret | `RAILWAY_TOKEN` | The environment-scoped Railway project token |
-   | Variable | `RAILWAY_SERVICE_ID` | The `temply` service ID from Railway settings |
-   | Variable | `RAILWAY_PUBLIC_URL` | The same HTTPS URL as `NEXT_PUBLIC_APP_URL` |
-
-   Keep the six existing `E2E_*` repository secrets described in
-   [e2e/README.md](e2e/README.md). They use the Clerk **development**
-   instance, independently of the live service keys.
-5. Push to `main`, or run **CI / CD → Run workflow** on `main` for the first
-   deployment. The pipeline runs typechecking, lint, the dependency audit,
-   unit tests, design gates, browser tests and container smoke checks.
-   Only after all pass does it upload that checkout to Railway. It waits
-   for the **specific deployment ID** to reach `SUCCESS`, then checks the
-   public `/api/health`. Failed builds, startup, database health or smoke
-   checks fail the workflow. Production runs are serialized and are not
-   cancelled halfway through a release.
-6. Set Clerk's allowed production domain and register the webhooks at
-   `https://<domain>/api/webhooks/clerk` and
-   `https://<domain>/api/webhooks/stripe`, using the events in *Setup*, and
-   set up the live-mode meter, prices and customer portal the same way.
-   Confirm the operator/contact details in `client/lib/legal.ts`.
-
-Use branch protection on `main` to require the three validation jobs:
-**Typecheck, test, design gates**, **Browser tests**, and
-**Production container**. Pull requests and `feature/**` pushes validate
-without deploying; production deploys only from `main`. Missing deployment
-credentials fail explicitly instead of silently skipping a release.
-
-This configuration follows Railway's [Dockerfile variable handling](https://docs.railway.com/builds/dockerfiles),
-[volume lifecycle](https://docs.railway.com/volumes) and
-[volume backups](https://docs.railway.com/volumes/backups).
-
-### Local container check and operations
-
-```bash
-docker build -t temply:ci \
-  --build-arg NEXT_PUBLIC_APP_URL=http://localhost:8080 \
-  --build-arg NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_ZXhhbXBsZS5jbGVyay5hY2NvdW50cy5kZXYk .
-bash deploy/railway/smoke.sh temply:ci
-```
-
-The smoke test uses disposable storage to verify the home page, static
-assets, proxy authentication, database health, persistence across container
-replacement, database snapshots and process shutdown. It requires Docker,
-Bash, curl and jq. No live credentials or database are used.
-
-For manual operations, install the pinned CLI with
-`bun add --global @railway/cli@5.30.1`, export the three `RAILWAY_*` values
-above, then use `make deploy` or `make logs`. `make deploy` uploads your
-current checkout; CI is the normal release path.
-
-For an additional consistent snapshot, run the existing backup script
-**inside the deployed container**, through `railway ssh`:
-`cd /app/server && bun scripts/backup-db.ts`. Do not use `railway run` for
-this: it runs locally and cannot access the mounted volume. Export useful
-snapshots off the volume and enable scheduled Railway volume backups.
-
-### Restoring data and rollback
-
-To seed a new Railway volume from a consistent SQLite snapshot, keep a
-separate copy of the snapshot. With the service stopped and the new volume
-attached, link the Railway CLI to the project/service/environment and use
-`railway volume files upload ./snapshot.db /maily.db` to seed the volume
-before its first application start. Do not overwrite a running SQLite
-file or mix it with another database's `-wal`/`-shm` files.
-
-Deploy, check `/api/health`, sign in and verify templates, brands, API keys
-and billing before opening the service to users.
-
-For a bad application release, redeploy the last working deployment in
-Railway. This preserves the current volume; a code rollback does not undo
-schema/data changes. Take a volume backup before a future schema change
-and check compatibility before rolling back code. Restore a volume backup
-only when a database rollback is intended.
-
 ## Layout worth knowing
 
 ```
@@ -507,7 +386,6 @@ shared/
 e2e/                    Playwright specs, the fakes, database.ts (a fresh database per run)
 compose.yaml            Postgres 17 for dev and e2e
 client/vercel.json      region, the overage cron, Git deploys off for main and staging
-deploy/railway/         container start, smoke test and deploy scripts (until the cutover)
 scripts/dev-public.ts   the tunnel workflow
 ```
 
