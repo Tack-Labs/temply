@@ -185,7 +185,12 @@ jobs:
       PROD_FLAG: ${{ github.ref == 'refs/heads/main' && '--prod' || '' }}
       APP_URL: ${{ vars.APP_URL }}
     steps:
+      # The whole history: `vercel build` runs here, and the sitemap it
+      # writes dates each page by the last commit that touched it. A depth-1
+      # clone would date them all at this deploy.
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: oven-sh/setup-bun@v2
         with:
           bun-version: 1.4.2
