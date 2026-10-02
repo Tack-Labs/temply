@@ -32,13 +32,26 @@ export const STRIPE_URL = `http://127.0.0.1:${PORTS.stripe}`;
  * What the stack's Stripe is set up with. Fixed rather than read from the
  * environment: the fake is the only Stripe this stack talks to, and a real
  * key copied into e2e/.env must never reach it. The prices only have to be
- * told apart — the app knows seats, overage and packs by these ids.
+ * told apart: the app finds them by lookup key and then knows them by id.
+ *
+ * `lookupKeys` are what `bun run stripe:setup` makes a real account's prices
+ * under. They are written out here, not imported from shared/plans.ts, because
+ * the fake plays Stripe: if the server's keys drift from the ones an account
+ * holds, the specs must fail rather than follow the change.
  */
 export const STRIPE = {
   secretKey: 'sk_test_e2e',
   webhookSecret: 'whsec_e2e',
   prices: { seat: 'price_e2e_seat', apiOverage: 'price_e2e_api_overage', templatePack: 'price_e2e_template_pack' },
+  lookupKeys: { seat: 'temply_seat', apiOverage: 'temply_api_overage', templatePack: 'temply_template_pack' },
 } as const;
+
+/** A price as Stripe embeds it in a subscription item: with the lookup key it
+ *  was made under, which is how the app tells which item is which. */
+export function stripePrice(id: string) {
+  const name = (Object.keys(STRIPE.prices) as (keyof typeof STRIPE.prices)[]).find((n) => STRIPE.prices[n] === id);
+  return { id, object: 'price' as const, lookup_key: name ? STRIPE.lookupKeys[name] : null };
+}
 
 const tmp = join(import.meta.dirname, '.tmp');
 mkdirSync(tmp, { recursive: true });
@@ -163,9 +176,6 @@ export function stackEnv(): Record<string, string> {
     STRIPE_SECRET_KEY: STRIPE.secretKey,
     STRIPE_WEBHOOK_SECRET: STRIPE.webhookSecret,
     STRIPE_API_BASE: STRIPE_URL,
-    STRIPE_PRICE_SEAT: STRIPE.prices.seat,
-    STRIPE_PRICE_API_OVERAGE: STRIPE.prices.apiOverage,
-    STRIPE_PRICE_TEMPLATE_PACK: STRIPE.prices.templatePack,
     IMAGEKIT_PUBLIC_KEY: 'public_e2e',
     IMAGEKIT_PRIVATE_KEY: 'private_e2e',
     IMAGEKIT_URL_ENDPOINT: `${FAKES_URL}/imagekit/cdn`,

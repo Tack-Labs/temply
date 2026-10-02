@@ -1,5 +1,6 @@
-import { afterEach, beforeEach, describe, expect, it } from 'bun:test';
+import { afterEach, beforeEach, describe, expect, it, spyOn } from 'bun:test';
 import { eq } from 'drizzle-orm';
+import { STRIPE_LOOKUP_KEYS } from '@temply/shared/plans';
 import { mails, orgUsage, subscriptions } from '@temply/shared/schema';
 import { ukMonthString } from '../lib/api-quota';
 import { cycleAnchor } from '../lib/stripe';
@@ -59,7 +60,7 @@ describe('GET /api/v1/billing', () => {
   });
 
   it('says when billing is not set up on this server', async () => {
-    delete process.env.STRIPE_PRICE_SEAT;
+    delete process.env.STRIPE_SECRET_KEY;
     expect((await (await get(app, '/api/v1/billing', OWNER)).json()).billingConfigured).toBe(false);
   });
 
@@ -84,7 +85,13 @@ describe('POST /api/v1/billing/checkout', () => {
     expect(res.status).toBe(200);
     expect((await res.json()).url).toMatch(/^https:\/\/checkout\.stripe\.test\//);
 
-    const [customer, checkout] = stripe.calls;
+    const [lookup, customer, checkout] = stripe.calls;
+    // The price IDs come from Stripe, by the lookup keys they were made under.
+    expect(lookup).toEqual({
+      method: 'GET',
+      path: '/v1/prices',
+      form: { 'lookup_keys[0]': STRIPE_LOOKUP_KEYS.seat, 'lookup_keys[1]': STRIPE_LOOKUP_KEYS.apiOverage, 'lookup_keys[2]': STRIPE_LOOKUP_KEYS.templatePack, active: 'true', limit: '3' },
+    });
     expect(customer).toMatchObject({ path: '/v1/customers', form: { 'metadata[orgId]': OWNER, 'metadata[userId]': OWNER } });
     expect(checkout.path).toBe('/v1/checkout/sessions');
     const anchor = cycleAnchor(new Date(before)).getTime() / 1000;
@@ -112,15 +119,15 @@ describe('POST /api/v1/billing/checkout', () => {
   it('starts the trial of a workspace that goes straight to checkout, and leaves out a pack line without packs', async () => {
     await post(app, '/api/v1/billing/checkout', {}, OWNER);
     expect((await row()).trial_ends_at).not.toBeNull();
-    expect(stripe.calls[1].form['line_items[2][price]']).toBeUndefined();
+    expect(stripe.calls.at(-1)?.form['line_items[2][price]']).toBeUndefined();
   });
 
   it('keeps the customer a workspace already has', async () => {
     await lapse(db, OWNER);
     await db.update(subscriptions).set({ stripe_customer_id: 'cus_kept' }).where(eq(subscriptions.org_id, OWNER));
     expect((await post(app, '/api/v1/billing/checkout', {}, OWNER)).status).toBe(200);
-    expect(stripe.calls.map((c) => c.path)).toEqual(['/v1/checkout/sessions']);
-    expect(stripe.calls[0].form.customer).toBe('cus_kept');
+    expect(stripe.calls.map((c) => c.path)).toEqual(['/v1/prices', '/v1/checkout/sessions']);
+    expect(stripe.calls[1].form.customer).toBe('cus_kept');
   });
 
   it('will not sell a second plan to a workspace that has one', async () => {
@@ -136,10 +143,24 @@ describe('POST /api/v1/billing/checkout', () => {
   });
 
   it('says so when billing is not set up', async () => {
-    delete process.env.STRIPE_PRICE_TEMPLATE_PACK;
+    delete process.env.STRIPE_SECRET_KEY;
     const res = await post(app, '/api/v1/billing/checkout', {}, OWNER);
     expect(res.status).toBe(500);
     expect((await res.json()).message).toBe('Billing is not configured on this server');
+  });
+
+  it('says so, and names the fix in the log, when the Stripe account has no price to sell', async () => {
+    stripe.prices.delete(STRIPE_LOOKUP_KEYS.templatePack);
+    const error = spyOn(console, 'error').mockImplementation(() => {});
+    const res = await post(app, '/api/v1/billing/checkout', {}, OWNER);
+    const logged = error.mock.calls.map((c) => String(c[0]));
+    error.mockRestore();
+    expect(res.status).toBe(500);
+    expect((await res.json()).message).toBe('Billing is not configured on this server');
+    expect(logged.some((m) => m.includes(STRIPE_LOOKUP_KEYS.templatePack) && m.includes('stripe:setup'))).toBe(true);
+    // No customer was made, and the workspace's trial clock did not start.
+    expect(stripe.calls.map((c) => c.path)).toEqual(['/v1/prices']);
+    expect(await row()).toBeUndefined();
   });
 });
 

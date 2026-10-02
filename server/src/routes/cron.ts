@@ -1,7 +1,7 @@
 import { Elysia } from 'elysia';
 import { json, unauthorized } from '../lib/errors';
 import { reportOverage } from '../lib/overage';
-import { stripePrices } from '../lib/stripe';
+import { billingConfigured } from '../lib/stripe';
 import { matchesSecret } from '../plugins/auth';
 import { dbPlugin } from '../plugins/db';
 
@@ -17,6 +17,6 @@ export const cronRoutes = new Elysia()
     if (!secret) return json({ status: 503, message: 'Cron is not configured' }, 503);
     if (!matchesSecret(request.headers.get('authorization'), `Bearer ${secret}`)) return unauthorized();
     // Billing not set up here has nothing to report, as in startOverageReporter.
-    if (!stripePrices()) return json({ reported: 0 });
+    if (!billingConfigured()) return json({ reported: 0 });
     return json({ reported: await reportOverage(db) });
   });

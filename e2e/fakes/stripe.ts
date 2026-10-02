@@ -1,3 +1,4 @@
+import { STRIPE, stripePrice } from '../env';
 import type { Received } from './index';
 
 /** A subscription item as Stripe returns one, cut to what the app reads.
@@ -5,7 +6,7 @@ import type { Received } from './index';
 export interface StripeSubscriptionItem {
   id: string;
   object: 'subscription_item';
-  price: { id: string; object: 'price' };
+  price: { id: string; object: 'price'; lookup_key: string | null };
   quantity?: number;
   /** Seconds since the epoch, as Stripe sends every time. */
   current_period_end: number;
@@ -118,6 +119,16 @@ export function stripeRoutes(origin: string, secretKey: string, record: (r: Rece
     if (req.headers.get('authorization') !== `Bearer ${secretKey}`) return stripeError(401, 'Invalid API Key provided');
     const now = Math.floor(Date.now() / 1000);
 
+    // The account as `bun run stripe:setup` leaves it: three active prices,
+    // each under its lookup key.
+    if (method === 'GET' && path === '/v1/prices') {
+      const wanted = Object.entries(form).filter(([k]) => k.startsWith('lookup_keys[')).map(([, v]) => v);
+      const data = (Object.keys(STRIPE.prices) as (keyof typeof STRIPE.prices)[])
+        .filter((name) => wanted.includes(STRIPE.lookupKeys[name]))
+        .map((name) => stripePrice(STRIPE.prices[name]));
+      return Response.json({ object: 'list', data, has_more: false, url: '/v1/prices' });
+    }
+
     if (method === 'POST' && path === '/v1/customers') return Response.json({ id: newId('cus'), object: 'customer' });
 
     if (method === 'POST' && path === '/v1/checkout/sessions') {
@@ -167,7 +178,7 @@ export function stripeRoutes(origin: string, secretKey: string, record: (r: Rece
       const item: StripeSubscriptionItem = {
         id: newId('si'),
         object: 'subscription_item',
-        price: { id: form.price, object: 'price' },
+        price: stripePrice(form.price),
         quantity: Number(form.quantity ?? 1),
         // Every item of a subscription shares its billing period.
         current_period_end: sub.items.data[0]?.current_period_end ?? now + 30 * 86_400,

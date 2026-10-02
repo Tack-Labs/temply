@@ -44,6 +44,22 @@ export const PRICES_USD = {
   templatePack: 5,
 } as const;
 
+/**
+ * How the three Stripe prices are found. Stripe gives every price an ID of
+ * its own per account and per mode, so none can be written down here; a
+ * lookup key is the one name a price carries that is the same in test and
+ * live. `bun run stripe:setup` creates the prices under these keys, and the
+ * server asks Stripe for the IDs behind them. Renaming a key strands the
+ * prices already created under the old one, and every subscription item
+ * with it.
+ */
+export const STRIPE_LOOKUP_KEYS = {
+  seat: 'temply_seat',
+  apiOverage: 'temply_api_overage',
+  templatePack: 'temply_template_pack',
+} as const;
+export type StripePriceName = keyof typeof STRIPE_LOOKUP_KEYS;
+
 /** What every workspace gets, on trial or paid. */
 export const INCLUDED = { apiCalls: 10_000, templates: 10, versionsPerTemplate: 10 } as const;
 

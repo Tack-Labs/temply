@@ -1,9 +1,10 @@
-import { afterEach, beforeEach, describe, expect, it } from 'bun:test';
+import { afterEach, beforeEach, describe, expect, it, spyOn } from 'bun:test';
 import { eq } from 'drizzle-orm';
+import { STRIPE_LOOKUP_KEYS } from '@temply/shared/plans';
 import { subscriptions } from '@temply/shared/schema';
 import { createTestDb, givePlan, type TestDb } from '../test/helpers';
 import { fakeStripe, PRICES, type FakeStripe } from '../test/fake-stripe';
-import { countMembers, cycleAnchor, setItemQuantity, syncSeats } from './stripe';
+import { billingConfigured, countMembers, cycleAnchor, setItemQuantity, stripePrices, syncSeats } from './stripe';
 
 let db: TestDb;
 let stripe: FakeStripe;
@@ -78,7 +79,7 @@ describe('syncSeats', () => {
   it('does nothing on a server without billing', async () => {
     const sub = stripe.subscription('cus_seats');
     await givePlan(db, ORG, 'team', 'active', { customer: 'cus_seats', subscription: sub.id });
-    delete process.env.STRIPE_PRICE_SEAT;
+    delete process.env.STRIPE_SECRET_KEY;
     await syncSeats(db, ORG);
     expect(stripe.calls).toHaveLength(0);
   });
@@ -87,16 +88,65 @@ describe('syncSeats', () => {
 describe('setItemQuantity', () => {
   it('reads the subscription and changes nothing when the number already matches', async () => {
     const sub = stripe.subscription('cus_seats', { seats: 4 });
-    await setItemQuantity(db, sub.id, PRICES.seat, 4);
+    await setItemQuantity(db, sub.id, 'seat', 4);
     expect(stripe.calls).toEqual([{ method: 'GET', path: `/v1/subscriptions/${sub.id}`, form: {} }]);
   });
 
   it('prorates a change and writes Stripe’s answer to the row', async () => {
     const sub = stripe.subscription('cus_seats', { seats: 1 });
     await givePlan(db, ORG, 'team', 'active', { customer: 'cus_seats', subscription: sub.id, seats: 1 });
-    await setItemQuantity(db, sub.id, PRICES.seat, 3);
+    await setItemQuantity(db, sub.id, 'seat', 3);
     const update = stripe.calls.find((c) => c.method === 'POST');
     expect(update?.form).toEqual({ quantity: '3', proration_behavior: 'create_prorations' });
     expect((await row()).seats).toBe(3);
+    // Changing an item goes by the item's own ID; no price is looked up.
+    expect(stripe.calls.some((c) => c.path === '/v1/prices')).toBe(false);
+  });
+
+  it('adds an item with the price the lookup key resolves to', async () => {
+    const sub = stripe.subscription('cus_seats');
+    await givePlan(db, ORG, 'team', 'active', { customer: 'cus_seats', subscription: sub.id });
+    await setItemQuantity(db, sub.id, 'templatePack', 2);
+    expect(stripe.calls.find((c) => c.method === 'POST')?.form).toEqual({ subscription: sub.id, price: PRICES.templatePack, quantity: '2', proration_behavior: 'create_prorations' });
+    expect((await row()).template_packs).toBe(2);
+  });
+
+  it('will not add an item for a price the account does not have, and changes nothing', async () => {
+    const sub = stripe.subscription('cus_seats');
+    stripe.prices.delete(STRIPE_LOOKUP_KEYS.templatePack);
+    const error = spyOn(console, 'error').mockImplementation(() => {});
+    await expect(setItemQuantity(db, sub.id, 'templatePack', 2)).rejects.toThrow(STRIPE_LOOKUP_KEYS.templatePack);
+    error.mockRestore();
+    expect(stripe.calls.some((c) => c.method === 'POST')).toBe(false);
+  });
+});
+
+describe('stripePrices', () => {
+  it('finds each price by its lookup key, asking for active prices only', async () => {
+    expect(await stripePrices()).toEqual(PRICES);
+    expect(stripe.calls).toEqual([
+      {
+        method: 'GET',
+        path: '/v1/prices',
+        form: { 'lookup_keys[0]': 'temply_seat', 'lookup_keys[1]': 'temply_api_overage', 'lookup_keys[2]': 'temply_template_pack', active: 'true', limit: '3' },
+      },
+    ]);
+  });
+
+  it('is null without a Stripe key, asking nothing', async () => {
+    delete process.env.STRIPE_SECRET_KEY;
+    expect(billingConfigured()).toBe(false);
+    expect(await stripePrices()).toBeNull();
+    expect(stripe.calls).toHaveLength(0);
+  });
+
+  it('is null, and logs every key it could not find with the fix, when the account was never set up', async () => {
+    stripe.prices.clear();
+    const error = spyOn(console, 'error').mockImplementation(() => {});
+    expect(await stripePrices()).toBeNull();
+    const logged = error.mock.calls.map((c) => String(c[0])).join('\n');
+    error.mockRestore();
+    for (const key of Object.values(STRIPE_LOOKUP_KEYS)) expect(logged).toContain(key);
+    expect(logged).toContain('bun run stripe:setup');
   });
 });

@@ -4,7 +4,7 @@ import { subscriptions } from '@temply/shared/schema';
 import { limitsFor, MAX_TEMPLATE_PACKS, overageCalls, overageUsd, serialiseLimits } from '@temply/shared/plans';
 import { ensureAccount, getPlan, getStorageUsed, getUsage, limitsForAccount } from '../lib/billing';
 import { getApiUsage, nextResetDate } from '../lib/api-quota';
-import { countMembers, cycleAnchor, getStripe, setItemQuantity, stripePrices } from '../lib/stripe';
+import { billingConfigured, countMembers, cycleAnchor, getStripe, setItemQuantity, stripePrices } from '../lib/stripe';
 import { json, unauthorized } from '../lib/errors';
 import { authPlugin } from '../plugins/auth';
 import { askAnAdmin, isAdmin, noWorkspace } from '../lib/workspace';
@@ -32,7 +32,7 @@ async function billingSummary(db: Db, orgId: string) {
     limits: serialiseLimits(limits),
     overage: { calls, usd: overageUsd(calls) },
     resetsOn: nextResetDate(),
-    billingConfigured: stripePrices() !== null,
+    billingConfigured: billingConfigured(),
   };
 }
 
@@ -49,13 +49,16 @@ export const billingRoutes = new Elysia()
     if (!ctx.userId) return unauthorized();
     if (!ctx.orgId) return noWorkspace();
     if (!isAdmin(ctx)) return askAnAdmin('subscribe');
-    const prices = stripePrices();
-    if (!prices) return notConfigured();
     // A second subscription would bill the workspace twice. The page offers
     // Subscribe only without a plan, but one loaded before the webhook
     // landed still shows it.
     const { plan } = await getPlan(ctx.db, ctx.orgId);
     if (plan === 'team' || plan === 'enterprise') return conflict('This workspace already has a plan. Change it from Manage billing.');
+
+    // Before ensureAccount: a server that cannot sell a plan must not start
+    // the workspace's trial clock on the way to saying so.
+    const prices = await stripePrices();
+    if (!prices) return notConfigured();
 
     await ensureAccount(ctx.db, ctx.orgId, ctx.userId);
     const [row] = await ctx.db.select().from(subscriptions).where(eq(subscriptions.org_id, ctx.orgId)).limit(1);
@@ -107,7 +110,7 @@ export const billingRoutes = new Elysia()
     if (!ctx.userId) return unauthorized();
     if (!ctx.orgId) return noWorkspace();
     if (!isAdmin(ctx)) return askAnAdmin('manage billing');
-    if (!stripePrices()) return notConfigured();
+    if (!billingConfigured()) return notConfigured();
     const [sub] = await ctx.db.select().from(subscriptions).where(eq(subscriptions.org_id, ctx.orgId)).limit(1);
     if (!sub?.stripe_customer_id) return json({ status: 400, message: 'This workspace has no billing account yet', errors: ['Bad Request'] }, 400);
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:9000';
@@ -119,8 +122,7 @@ export const billingRoutes = new Elysia()
     if (!ctx.userId) return unauthorized();
     if (!ctx.orgId) return noWorkspace();
     if (!isAdmin(ctx)) return askAnAdmin('change template packs');
-    const prices = stripePrices();
-    if (!prices) return notConfigured();
+    if (!billingConfigured()) return notConfigured();
     const { plan } = await getPlan(ctx.db, ctx.orgId);
     if (plan === 'enterprise') return conflict('Enterprise already has unlimited templates.');
     const [row] = await ctx.db.select().from(subscriptions).where(eq(subscriptions.org_id, ctx.orgId)).limit(1);
@@ -134,6 +136,6 @@ export const billingRoutes = new Elysia()
       const over = templates - cap;
       return conflict(`This workspace has ${templates} templates and ${quantity} pack${quantity === 1 ? '' : 's'} allow ${cap}. Delete ${over} template${over === 1 ? '' : 's'} first.`);
     }
-    await setItemQuantity(ctx.db, row.stripe_subscription_id, prices.templatePack, quantity);
+    await setItemQuantity(ctx.db, row.stripe_subscription_id, 'templatePack', quantity);
     return json(await billingSummary(ctx.db, ctx.orgId));
   }, { body: t.Object({ quantity: t.Integer({ minimum: 0, maximum: MAX_TEMPLATE_PACKS }) }) });

@@ -1,4 +1,5 @@
 import { createHmac } from 'node:crypto';
+import { STRIPE_LOOKUP_KEYS, type StripePriceName } from '@temply/shared/plans';
 
 export interface StripeCall {
   method: string;
@@ -10,7 +11,7 @@ export interface StripeCall {
 interface Item {
   id: string;
   object: 'subscription_item';
-  price: { id: string; object: 'price' };
+  price: { id: string; object: 'price'; lookup_key: string | null };
   quantity?: number;
   current_period_end: number;
 }
@@ -26,15 +27,20 @@ export interface FakeSubscription {
   items: { object: 'list'; data: Item[] };
 }
 
-export const PRICES = { seat: 'price_seat', apiOverage: 'price_overage', templatePack: 'price_pack' };
+/** The IDs of the prices the fake account holds, under the lookup keys the
+ *  server asks for. */
+export const PRICES: Record<StripePriceName, string> = { seat: 'price_seat', apiOverage: 'price_overage', templatePack: 'price_pack' };
+
+/** A price as an item embeds it: with the lookup key it was made under. */
+const priceObject = (priceId: string) => {
+  const name = (Object.keys(PRICES) as StripePriceName[]).find((n) => PRICES[n] === priceId);
+  return { id: priceId, object: 'price' as const, lookup_key: name ? STRIPE_LOOKUP_KEYS[name] : null };
+};
 
 /** Everything the server reads to talk to Stripe and Clerk, pointed at the fake. */
 export const STRIPE_ENV = {
   STRIPE_SECRET_KEY: 'sk_test_fake',
   STRIPE_WEBHOOK_SECRET: 'whsec_test_fake',
-  STRIPE_PRICE_SEAT: PRICES.seat,
-  STRIPE_PRICE_API_OVERAGE: PRICES.apiOverage,
-  STRIPE_PRICE_TEMPLATE_PACK: PRICES.templatePack,
   CLERK_SECRET_KEY: 'sk_clerk_fake',
   CLERK_API_URL: 'https://clerk.test',
   NEXT_PUBLIC_APP_URL: 'https://temply.test',
@@ -54,6 +60,9 @@ export function fakeStripe() {
   const subscriptions = new Map<string, FakeSubscription>();
   const members = new Map<string, number>();
   const meterEvents: Record<string, string>[] = [];
+  // Price ID by lookup key, as `stripe:setup` leaves an account. A test
+  // deletes one to play an account that was never set up.
+  const prices = new Map<string, string>((Object.keys(PRICES) as StripePriceName[]).map((name) => [STRIPE_LOOKUP_KEYS[name], PRICES[name]]));
   let next = 0;
   const id = (prefix: string) => `${prefix}_${++next}`;
 
@@ -87,6 +96,11 @@ export function fakeStripe() {
     if (url.hostname !== 'api.stripe.com') return new Response('not faked', { status: 599 });
     calls.push({ method, path, form });
 
+    if (method === 'GET' && path === '/v1/prices') {
+      const wanted = Object.entries(form).filter(([k]) => k.startsWith('lookup_keys[')).map(([, v]) => v);
+      const data = wanted.flatMap((key) => (prices.has(key) ? [{ id: prices.get(key), object: 'price', lookup_key: key }] : []));
+      return Response.json({ object: 'list', data, has_more: false, url: '/v1/prices' });
+    }
     if (method === 'POST' && path === '/v1/customers') return Response.json({ id: id('cus'), object: 'customer' });
     if (method === 'POST' && path === '/v1/checkout/sessions') {
       const session = id('cs');
@@ -109,7 +123,7 @@ export function fakeStripe() {
     if (method === 'POST' && path === '/v1/subscription_items') {
       const target = subscriptions.get(form.subscription);
       if (!target) return notFound('subscription');
-      const item: Item = { id: id('si'), object: 'subscription_item', price: { id: form.price, object: 'price' }, quantity: Number(form.quantity), current_period_end: PERIOD_END };
+      const item: Item = { id: id('si'), object: 'subscription_item', price: priceObject(form.price), quantity: Number(form.quantity), current_period_end: PERIOD_END };
       target.items.data.push(item);
       return Response.json(item);
     }
@@ -132,13 +146,14 @@ export function fakeStripe() {
     subscriptions,
     members,
     meterEvents,
+    prices,
     /** A Team subscription as Stripe would hold it after checkout. */
     subscription(customer: string, opts: { id?: string; seats?: number; packs?: number; status?: string; metadata?: Record<string, string>; cancelAt?: number | null; cancelAtPeriodEnd?: boolean } = {}) {
       const data: Item[] = [
-        { id: id('si'), object: 'subscription_item', price: { id: PRICES.seat, object: 'price' }, quantity: opts.seats ?? 1, current_period_end: PERIOD_END },
-        { id: id('si'), object: 'subscription_item', price: { id: PRICES.apiOverage, object: 'price' }, current_period_end: PERIOD_END },
+        { id: id('si'), object: 'subscription_item', price: priceObject(PRICES.seat), quantity: opts.seats ?? 1, current_period_end: PERIOD_END },
+        { id: id('si'), object: 'subscription_item', price: priceObject(PRICES.apiOverage), current_period_end: PERIOD_END },
       ];
-      if (opts.packs) data.push({ id: id('si'), object: 'subscription_item', price: { id: PRICES.templatePack, object: 'price' }, quantity: opts.packs, current_period_end: PERIOD_END });
+      if (opts.packs) data.push({ id: id('si'), object: 'subscription_item', price: priceObject(PRICES.templatePack), quantity: opts.packs, current_period_end: PERIOD_END });
       const made: FakeSubscription = {
         id: opts.id ?? id('sub'),
         object: 'subscription',

@@ -1,5 +1,6 @@
 import Stripe from 'stripe';
 import { and, eq, isNull, lte, notInArray, or, sql } from 'drizzle-orm';
+import { STRIPE_LOOKUP_KEYS, type StripePriceName } from '@temply/shared/plans';
 import { subscriptions } from '@temply/shared/schema';
 import type { Db } from '../plugins/db';
 
@@ -21,21 +22,48 @@ export function getStripe(): Stripe {
   });
 }
 
-export interface StripePrices {
-  /** Licensed, per member, $5. */
-  seat: string;
-  /** Metered through the billing meter, $1 per thousand calls. */
-  apiOverage: string;
-  /** Licensed, per pack, $5. */
-  templatePack: string;
+/** Whether this server has a Stripe account to bill through. Whether the
+ *  prices exist in it is only known by asking Stripe: see `stripePrices`. */
+export function billingConfigured(): boolean {
+  return Boolean(process.env.STRIPE_SECRET_KEY);
 }
 
-/** The three prices a Team subscription is made of; null when billing is
- *  not set up on this server. */
-export function stripePrices(): StripePrices | null {
-  const { STRIPE_SECRET_KEY, STRIPE_PRICE_SEAT, STRIPE_PRICE_API_OVERAGE, STRIPE_PRICE_TEMPLATE_PACK } = process.env;
-  if (!STRIPE_SECRET_KEY || !STRIPE_PRICE_SEAT || !STRIPE_PRICE_API_OVERAGE || !STRIPE_PRICE_TEMPLATE_PACK) return null;
-  return { seat: STRIPE_PRICE_SEAT, apiOverage: STRIPE_PRICE_API_OVERAGE, templatePack: STRIPE_PRICE_TEMPLATE_PACK };
+/**
+ * The IDs of the three prices a Team subscription is made of, by name:
+ * `seat` is licensed, per member; `apiOverage` is metered through the
+ * billing meter; `templatePack` is licensed, per pack.
+ */
+export type StripePrices = Record<StripePriceName, string>;
+
+/**
+ * Looks the three prices up by their lookup keys, which are the same in test
+ * and live mode where their IDs are not. Null when billing is not set up or
+ * the account lacks a price, which is logged with the fix: the prices are
+ * made once per Stripe account by `bun run stripe:setup`, not by a deploy.
+ */
+export async function stripePrices(): Promise<StripePrices | null> {
+  if (!billingConfigured()) return null;
+  const keys = Object.values(STRIPE_LOOKUP_KEYS);
+  const { data } = await getStripe().prices.list({ lookup_keys: [...keys], active: true, limit: keys.length });
+  const found: Partial<StripePrices> = {};
+  const missing: string[] = [];
+  for (const [name, key] of Object.entries(STRIPE_LOOKUP_KEYS) as [StripePriceName, string][]) {
+    const price = data.find((p) => p.lookup_key === key);
+    if (price) found[name] = price.id;
+    else missing.push(key);
+  }
+  if (missing.length > 0) {
+    console.error(`Stripe has no active price with the lookup key ${missing.join(', ')}. Run \`bun run stripe:setup\` against this Stripe account.`);
+    return null;
+  }
+  return found as StripePrices;
+}
+
+/** The item of a subscription that carries a named price, if it has one. A
+ *  subscription's items embed their price with its lookup key, so finding one
+ *  asks Stripe nothing. */
+function itemOf(sub: Stripe.Subscription, name: StripePriceName) {
+  return sub.items.data.find((item) => item.price.lookup_key === STRIPE_LOOKUP_KEYS[name]);
 }
 
 /** The meter's event name, as set on the meter in Stripe. */
@@ -109,9 +137,7 @@ export async function applySubscription(db: Db, sub: Stripe.Subscription, synced
   const customer = typeof sub.customer === 'string' ? sub.customer : sub.customer.id;
   const paid = PAYING_STATUSES.includes(sub.status);
   const ended = ENDED_STATUSES.includes(sub.status);
-  const prices = stripePrices();
-  const quantityOf = (price: string | undefined) =>
-    sub.items.data.find((item) => price && item.price.id === price)?.quantity ?? 0;
+  const quantityOf = (name: StripePriceName) => itemOf(sub, name)?.quantity ?? 0;
   const periodEnd = iso(sub.items.data[0]?.current_period_end);
   // The portal schedules a cancellation as cancel_at; the dashboard and
   // older API versions set cancel_at_period_end instead.
@@ -130,8 +156,8 @@ export async function applySubscription(db: Db, sub: Stripe.Subscription, synced
       stripe_synced_at: syncedAt,
       current_period_end: ended ? null : periodEnd,
       cancel_at: ended ? null : cancelAt,
-      seats: paid ? quantityOf(prices?.seat) : null,
-      template_packs: paid ? quantityOf(prices?.templatePack) : 0,
+      seats: paid ? quantityOf('seat') : null,
+      template_packs: paid ? quantityOf('templatePack') : 0,
       // Paying ends the trial, so a plan that later ends goes read-only
       // rather than back to a trial.
       ...(paid ? { trial_ends_at: sql`least(coalesce(${subscriptions.trial_ends_at}, ${now}), ${now})` } : {}),
@@ -157,17 +183,21 @@ export async function applySubscription(db: Db, sub: Stripe.Subscription, synced
  * before the webhook arrives. Zero removes the item. A change is prorated:
  * a member added mid-month is billed for what is left of it.
  */
-export async function setItemQuantity(db: Db, subscriptionId: string, price: string, quantity: number): Promise<void> {
+export async function setItemQuantity(db: Db, subscriptionId: string, name: StripePriceName, quantity: number): Promise<void> {
   const stripe = getStripe();
   const current = await stripe.subscriptions.retrieve(subscriptionId);
-  const item = current.items.data.find((i) => i.price.id === price);
+  const item = itemOf(current, name);
   if (item && item.quantity === quantity) return;
   if (item && quantity > 0) {
     await stripe.subscriptionItems.update(item.id, { quantity, proration_behavior: 'create_prorations' });
   } else if (item) {
     await stripe.subscriptionItems.del(item.id, { proration_behavior: 'create_prorations' });
   } else if (quantity > 0) {
-    await stripe.subscriptionItems.create({ subscription: subscriptionId, price, quantity, proration_behavior: 'create_prorations' });
+    // Only adding an item needs the price's ID; changing or removing one
+    // goes by the item's own.
+    const prices = await stripePrices();
+    if (!prices) throw new Error(`Stripe has no price for ${STRIPE_LOOKUP_KEYS[name]}`);
+    await stripe.subscriptionItems.create({ subscription: subscriptionId, price: prices[name], quantity, proration_behavior: 'create_prorations' });
   } else {
     return;
   }
@@ -180,9 +210,8 @@ export async function setItemQuantity(db: Db, subscriptionId: string, price: str
  * joins or leaves; a workspace that is not paying has nothing to change.
  */
 export async function syncSeats(db: Db, orgId: string, count: (orgId: string) => Promise<number> = countMembers): Promise<void> {
-  const prices = stripePrices();
-  if (!prices) return;
+  if (!billingConfigured()) return;
   const [row] = await db.select().from(subscriptions).where(and(eq(subscriptions.org_id, orgId), eq(subscriptions.plan, 'team'))).limit(1);
   if (!row?.stripe_subscription_id || !PAYING_STATUSES.includes(row.status)) return;
-  await setItemQuantity(db, row.stripe_subscription_id, prices.seat, await count(orgId));
+  await setItemQuantity(db, row.stripe_subscription_id, 'seat', await count(orgId));
 }

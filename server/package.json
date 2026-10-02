@@ -9,7 +9,8 @@
     "start": "bun src/index.ts",
     "typecheck": "tsc --noEmit",
     "db:generate": "drizzle-kit generate",
-    "db:migrate": "bun run scripts/migrate.ts"
+    "db:migrate": "bun run scripts/migrate.ts",
+    "stripe:setup": "bun run scripts/stripe-setup.ts"
   },
   "dependencies": {
     "@antfu/utils": "^9.2.0",

@@ -4,7 +4,7 @@ import { orgUsage, subscriptions } from '@temply/shared/schema';
 import { INCLUDED } from '@temply/shared/plans';
 import { getDb, type Db } from '../plugins/db';
 import { londonMonthStart, previousMonth, ukMonthString } from './api-quota';
-import { getStripe, meterEventName, stripePrices } from './stripe';
+import { billingConfigured, getStripe, meterEventName } from './stripe';
 
 export interface MeterEvent {
   customer: string;
@@ -89,7 +89,7 @@ const EVERY = 5 * 60_000;
 /** Reports overage every five minutes while this server runs; nothing when
  *  billing is not set up here. Returns the stop. */
 export function startOverageReporter(): () => void {
-  if (!stripePrices()) return () => {};
+  if (!billingConfigured()) return () => {};
   const run = () =>
     void reportOverage(getDb()).catch((error) => {
       console.error('Overage report failed:', error);

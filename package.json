@@ -15,6 +15,7 @@
     "build": "bun run --filter @temply/client build",
     "db:generate": "bun run --filter @temply/server db:generate",
     "db:migrate": "bun run --filter @temply/server db:migrate",
+    "stripe:setup": "bun run --filter @temply/server stripe:setup",
     "typecheck": "bun run --filter '*' typecheck",
     "test": "bun test",
     "e2e": "bun run --filter @temply/e2e test",

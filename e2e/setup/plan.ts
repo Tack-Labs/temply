@@ -1,5 +1,5 @@
 import type { APIRequestContext } from '@playwright/test';
-import { STRIPE } from '../env';
+import { STRIPE, stripePrice } from '../env';
 import type { fakes as Fakes } from '../fakes/client';
 import type { StripeForm, StripeSubscription, StripeSubscriptionItem } from '../fakes/stripe';
 
@@ -124,7 +124,7 @@ export async function completeCheckout(
       data: session.lineItems.map((item, i): StripeSubscriptionItem => ({
         id: `si_${id}_${i}`,
         object: 'subscription_item',
-        price: { id: item.price, object: 'price' },
+        price: stripePrice(item.price),
         ...(item.quantity === undefined ? {} : { quantity: item.quantity }),
         current_period_end: session.anchor,
       })),
@@ -166,7 +166,7 @@ export async function updateSubscription(request: APIRequestContext, fakes: Fake
     const item = items.find((i) => i.price.id === price);
     if (item && quantity > 0) item.quantity = quantity;
     else if (item) items.splice(items.indexOf(item), 1);
-    else if (quantity > 0) items.push({ id: `si_e2e_${suffix()}`, object: 'subscription_item', price: { id: price, object: 'price' }, quantity, current_period_end: periodEnd });
+    else if (quantity > 0) items.push({ id: `si_e2e_${suffix()}`, object: 'subscription_item', price: stripePrice(price), quantity, current_period_end: periodEnd });
   };
 
   if (patch.seats !== undefined) setQuantity(STRIPE.prices.seat, patch.seats);
