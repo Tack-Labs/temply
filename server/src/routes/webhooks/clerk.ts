@@ -61,4 +61,9 @@ export const clerkWebhookRoutes = new Elysia()
       }
     }
     return json({ received: true });
-  });
+  },
+  // verifyWebhook reads the body itself, to check the signature over its
+  // exact bytes. Elysia must not read it first: it decides that from the
+  // handler's source, and in Next's minified build it guesses wrong.
+  { parse: 'none' },
+  );

@@ -1,6 +1,6 @@
 # Handoff: moving to Vercel and Supabase
 
-**Status:** in progress. It replaces the Railway plan written on 2026-09-21 (`91501cf`), because Vercel + Supabase leaves less infrastructure for us to run. Phase 1 (§3) was done on 2026-09-23 and carries over unchanged. Phases 2 and 3 (§4, §5) and the code half of Phase 4 (`client/vercel.json`, the CI deploy job, the nightly backup) were done on `feature/vercel-supabase` on 2026-09-28, except the 5.0 spike, which needs a Vercel project. What's left is accounts and running things: §6 onwards, the spike, and the e2e run owed since Phase 1 (§12). On `main`, production still deploys with the Railway configuration in `Dockerfile`, `railway.json`, `deploy/railway/` and the Railway `deploy` job, so leave that configuration alone there. On the branch, CI already deploys to Vercel, which is one more reason it merges only at the cutover.
+**Status:** in progress. It replaces the Railway plan written on 2026-09-21 (`91501cf`), because Vercel + Supabase leaves less infrastructure for us to run. Phase 1 (§3) was done on 2026-09-23 and carries over unchanged. Phases 2 and 3 (§4, §5) and the code half of Phase 4 (`client/vercel.json`, the CI deploy job, the nightly backup) were done on `feature/vercel-supabase` on 2026-09-28, except the 5.0 spike, which needs a Vercel project. What's left is accounts and running things: §6 onwards, the spike, and the e2e run owed since Phase 1 (§12). The Railway configuration (`Dockerfile`, `railway.json`, `deploy/railway/`, the `make deploy` and `make logs` targets) was removed from the repository on 2026-10-01. Retiring the Railway service itself, and copying its SQLite data across (§7), are still open.
 **Written:** 2026-09-27, from `main` at `a29c624`.
 **For:** whoever picks this up next, whether a person or an agent session. Read §1–§2 first. Each phase after that is a unit of work you can ship on its own. The decisions still open are in §10, and §12 lists what to check before relying on it.
 
@@ -223,7 +223,7 @@ Replace the `container` and `deploy` jobs in `.github/workflows/ci.yml`. After `
 
 1. Run `vercel pull --yes --environment=production`, then `vercel build --prod`. A failed build stops here, before the database is touched.
 2. Run `bun run db:migrate` with the production `MIGRATION_DATABASE_URL`. If it fails, the deploy stops and the running release keeps serving.
-3. Run `vercel deploy --prebuilt --prod`, then check `https://<domain>/api/health` the way `deploy/railway/deploy.sh` checks Railway today.
+3. Run `vercel deploy --prebuilt --prod`, then check `https://<domain>/api/health` the way the `Health` step in `ci.yml` does.
 
 On the `staging` branch, the same job migrates `temply-staging`, deploys with `vercel deploy --prebuilt`, and runs `vercel alias` to point the staging domain at the result.
 
@@ -261,7 +261,7 @@ Otherwise, do it in one announced maintenance window, off-peak for UK users.
 
 **The window**
 1. [ ] Pause writes to the Railway service.
-2. [ ] Take and export a final consistent SQLite snapshot, following the README's Railway backup procedure.
+2. [ ] Take and export a final consistent SQLite snapshot. Run the backup script inside the deployed Railway container: `railway ssh`, then `cd /app/server && bun scripts/backup-db.ts`. The image still carries the script, though the repository no longer does. Don't use `railway run`: it runs locally and can't see the mounted volume.
 3. [ ] Run `sqlite-to-postgres.ts` against production Supabase over the session pooler. **Go / no-go:** every table count matches.
 4. [ ] Point the domain's DNS at Vercel and wait for its certificate.
 5. [ ] If the domain is unchanged, the Clerk and Stripe webhook URLs don't change either. If it changes, repoint both webhooks and update `CLERK_WEBHOOK_SIGNING_SECRET`. Edit the existing Stripe endpoint's URL rather than adding a new one. An edited endpoint keeps its signing secret. A new endpoint gets a new one, and `STRIPE_WEBHOOK_SECRET` would have to change with it.
@@ -300,9 +300,10 @@ Otherwise, do it in one announced maintenance window, off-peak for UK users.
 
 ## 9. Phase 6: tidy up
 
-- [ ] Delete the Railway setup: `Dockerfile`, `railway.json`, `deploy/railway/` (with `deploy.test.ts`), the `bash -n deploy/railway/...` step in the `check` job, the README's *Production on Railway* section, and the server's `build` script, which only the Dockerfile uses. The `container` job went with §6.4. Retire the Railway service once rollback is off the table.
-- [ ] `make deploy` runs the §6.4 steps by hand, and `make logs` becomes `vercel logs`.
-- [x] Rewrite the README's *Production* section for Vercel and Supabase, and add the expand-then-contract migration rule to `CLAUDE.md`. Done early, on the branch; the Railway section beside it goes with the first item.
+- [x] Delete the Railway setup from the repository, done 2026-10-01: `Dockerfile`, `.dockerignore`, `.railwayignore`, `railway.json`, `deploy/railway/` (with `deploy.test.ts`), the `bash -n deploy/railway/...` step in the `check` job, the README's *Production on Railway* section, `NEXT_OUTPUT=standalone` in `next.config.mjs`, and the server's `build` script, which only the Dockerfile used. The `container` job went with §6.4.
+- [ ] Retire the Railway service once rollback is off the table.
+- [x] The Railway `make deploy` and `make logs` are gone. CI is the release path, and the README points at `vercel logs`. Add a `make deploy` that runs the §6.4 steps by hand only if a release outside CI turns out to be needed.
+- [x] Rewrite the README's *Production* section for Vercel and Supabase, and add the expand-then-contract migration rule to `CLAUDE.md`. Done early, on the branch.
 - [ ] Use `VERCEL_GIT_COMMIT_SHA` as the Sentry release, so errors map to commits. `withSentryConfig` may already pick it up on Vercel, so check before adding it.
 - [ ] If nothing uses `dev:server` once dev runs in-process, delete the standalone server in `index.ts` and `HOST` with it.
 

@@ -81,9 +81,8 @@ function contentSecurityPolicy() {
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // Containers carry just the traced runtime. Local and Playwright builds
-  // still use `next start`; tracing includes our shared workspace in both.
-  output: process.env.NEXT_OUTPUT === 'standalone' ? 'standalone' : undefined,
+  // The API in server/ and shared/ sit outside client/, so tracing has to
+  // start at the repository root or the function ships without them.
   outputFileTracingRoot: fileURLToPath(new URL('..', import.meta.url)),
   // The e2e stack builds and serves the client while `next dev` is running
   // from `.next` on 9000; a build into the same directory knocks that dev
