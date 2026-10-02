@@ -28,6 +28,8 @@ export default clerkMiddleware(async (auth, req) => {
 // in from the client, which needs no middleware. Running Clerk on every
 // page cost a middleware pass per visit to the front page for nothing.
 export const config = {
+  // Vercel services do not support the default Edge middleware runtime.
+  runtime: 'nodejs',
   matcher: [
     '/dashboard/:path*',
     '/templates/:path*',

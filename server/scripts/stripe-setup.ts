@@ -1,4 +1,4 @@
-import type Stripe from 'stripe';
+import Stripe from 'stripe';
 import { PRICES_USD, STRIPE_LOOKUP_KEYS, type StripePriceName } from '@temply/shared/plans';
 import { billingConfigured, getStripe, meterEventName } from '../src/lib/stripe';
 
