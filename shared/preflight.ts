@@ -54,14 +54,14 @@ export function checkFields(subject: string, previewText: string): PreflightIssu
     issues.push({
       id: 'subject-empty',
       severity: 'error',
-      message: 'The subject is empty — the send needs one.',
+      message: 'Add a subject before sending.',
     });
   }
   if (!previewText.trim()) {
     issues.push({
       id: 'preview-text-empty',
       severity: 'warn',
-      message: 'No preview text — inboxes will show the first line of the email instead.',
+      message: 'Add preview text, or inboxes will show the first line of the email.',
     });
   }
   return issues;
@@ -230,7 +230,7 @@ export function collectContentFindings(content: unknown): PreflightIssue[] {
         issues.push({
           id: `image-alt-${counter++}`,
           severity: 'warn',
-          message: 'An image has no alt text — clients that block images show nothing in its place.',
+          message: 'Add alt text so readers can understand the image when it is blocked.',
           pos: at,
         });
       }
@@ -276,14 +276,14 @@ export function assessSize(bytes: number): PreflightIssue | null {
     return {
       id: 'size-over',
       severity: 'error',
-      message: `The email is ~${kb} KB — past the 102 KB mark where Gmail clips messages.`,
+      message: `The email is ~${kb} KB, above the 102 KB limit where Gmail clips messages.`,
     };
   }
   if (bytes >= SIZE_WARN_BYTES) {
     return {
       id: 'size-near',
       severity: 'warn',
-      message: `The email is ~${kb} KB — approaching the 102 KB mark where Gmail clips messages.`,
+      message: `The email is ~${kb} KB, close to the 102 KB limit where Gmail clips messages.`,
     };
   }
   return null;

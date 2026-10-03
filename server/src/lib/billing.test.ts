@@ -250,14 +250,14 @@ describe('checkStorageLimit', () => {
     await seed('u_trial', 99 * MB);
     expect(await checkStorageLimit(db, 'u_trial', 2 * MB)).toEqual({
       allowed: false,
-      message: 'Storage is full — 99 MB of 100 MB used. Delete images in your library, or subscribe for 1 GB.',
+      message: 'Storage is full: 99 MB of 100 MB used. Delete images in your library, or subscribe for 1 GB.',
     });
   });
 
   it('does not tell Team to subscribe', async () => {
     await givePlan(db, 'u_team', 'team');
     await seed('u_team', 1024 * MB);
-    expect((await checkStorageLimit(db, 'u_team', 1)).message).toBe('Storage is full — 1 GB of 1 GB used. Delete images in your library.');
+    expect((await checkStorageLimit(db, 'u_team', 1)).message).toBe('Storage is full: 1 GB of 1 GB used. Delete images in your library.');
   });
 
   it('never blocks enterprise', async () => {

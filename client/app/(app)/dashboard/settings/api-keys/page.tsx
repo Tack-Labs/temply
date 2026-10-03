@@ -221,7 +221,7 @@ export default function ApiKeysPage() {
                     </code>
                   </td>
                   <td className="px-3.5 py-2.5 text-muted tabular-nums">
-                    {formatDate(key.created_at) ?? '—'}
+                    {formatDate(key.created_at) ?? 'Unknown'}
                   </td>
                   <td className="px-3.5 py-2.5 text-muted tabular-nums">
                     {formatDate(key.last_used_at) ?? 'Never'}
@@ -260,7 +260,7 @@ export default function ApiKeysPage() {
           <h2 className="text-sm font-semibold text-ink">Using a key</h2>
           <p className="mt-1 text-sm text-muted">
             Send it as a bearer token when you call the public API. A live key renders the
-            published version of a template — edits wait in the draft until you publish. A
+            published version of a template. Draft edits become available when you publish. A
             test key renders the draft instead, is free on every plan, and stops at 1,000
             calls a month.{' '}
             <Link href="/docs#api" className="text-accent-ink underline-offset-4 hover:underline">

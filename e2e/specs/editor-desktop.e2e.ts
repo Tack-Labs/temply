@@ -1079,7 +1079,7 @@ test.describe('editor on the desktop', () => {
     // the role alone names two things here. The description is the half a
     // reader is given anyway — Radix points the trigger at the tooltip with
     // `aria-describedby`, and only while it is up.
-    await expect(handle).toHaveAccessibleDescription('Block actions — or press Ctrl+Shift+Space');
+    await expect(handle).toHaveAccessibleDescription('Block actions (press Ctrl+Shift+Space)');
 
     await add.click();
 

@@ -513,7 +513,7 @@ function TemplatePacks({ billing, isAdmin }: { billing: Billing; isAdmin: boolea
         open={confirmOpen}
         onOpenChange={setConfirmOpen}
         title="Remove all template packs?"
-        description={`Templates go back to ${INCLUDED.templates}, and each keeps its latest ${INCLUDED.versionsPerTemplate} versions — older ones are deleted the next time it’s published.`}
+        description={`Templates go back to ${INCLUDED.templates}, and each keeps its latest ${INCLUDED.versionsPerTemplate} versions. Older versions are deleted the next time the template is published.`}
         confirmLabel="Remove packs"
         confirmVariant="danger"
         onConfirm={save}
@@ -530,7 +530,7 @@ function CachingTip() {
         <p className="text-sm font-medium text-ink">Cache renders to make fewer calls</p>
         <p className="text-sm text-muted">
           Every live call counts, repeats included. Render a broadcast once and send the same HTML to everyone, and
-          keep renders under the template’s <code className="font-mono text-xs">updatedAt</code> — it only moves when
+          keep renders under the template’s <code className="font-mono text-xs">updatedAt</code>. It only changes when
           someone publishes.
         </p>
         <Link
@@ -605,7 +605,7 @@ function PlanContent() {
   if (isError || !data) {
     return (
       <ErrorState
-        description="We could not load your plan. Nothing has changed on your account — this is only a display problem."
+        description="We could not load your plan. Your account has not changed. Try again."
         onRetry={() => refetch()}
       />
     );

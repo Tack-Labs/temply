@@ -196,7 +196,7 @@ if (res.status === 422) {
 }
 if (res.status === 429 && res.headers.has("Retry-After")) {
   const seconds = Number(res.headers.get("Retry-After"));
-  // wait \`seconds\`, then try again — the call was not counted
+  // wait \`seconds\`, then try again; the call was not counted
 }
 if (res.status === 402) {
   throw new Error("The workspace has no plan; subscribe to resume live keys");
@@ -210,7 +210,7 @@ if res.status_code == 422:
     raise ValueError(f"Add these to data: {', '.join(missing)}")
 if res.status_code == 429 and "Retry-After" in res.headers:
     seconds = int(res.headers["Retry-After"])
-    # wait \`seconds\`, then try again — the call was not counted
+    # wait \`seconds\`, then try again; the call was not counted
 if res.status_code == 402:
     raise RuntimeError("The workspace has no plan; subscribe to resume live keys")
 res.raise_for_status()
@@ -222,7 +222,7 @@ when 422
   missing = JSON.parse(res.body)["missing"] # e.g. ["firstName"]
   raise "Add these to data: #{missing.join(", ")}"
 when 429
-  # Only with Retry-After: wait that long, then try again — the call was not
+  # Only with Retry-After: wait that long, then try again; the call was not
   # counted. Without it the month's calls are used up.
   raise "Monthly limit reached" unless res["Retry-After"]
   seconds = res["Retry-After"].to_i

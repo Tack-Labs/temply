@@ -128,7 +128,7 @@ export function MobileSheets({
           <p className="py-6 text-center text-sm text-muted">
             Nothing to fix
             {model.preflight.bytes !== null
-              ? ` — ~${Math.round(model.preflight.bytes / 1024)} KB of 102 KB.`
+              ? `. ~${Math.round(model.preflight.bytes / 1024)} KB of 102 KB.`
               : '.'}
           </p>
         ) : (

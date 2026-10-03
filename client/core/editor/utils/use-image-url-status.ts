@@ -74,7 +74,7 @@ export function imageUrlMessage(status: ImageUrlStatus): { tone: 'muted' | 'warn
     case 'insecure':
       return {
         tone: 'warn',
-        text: 'This is an http link. Many email clients block insecure images — use https.',
+        text: 'Use an https link. Many email clients block images loaded over http.',
       };
     case 'unreachable':
       return {

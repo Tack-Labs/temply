@@ -532,7 +532,7 @@ export function useTemplateEditor(props: EmailEditorSandboxProps): TemplateEdito
       severity: 'warn' as const,
       message: `${issue.subject} may be hard to read: ${issue.ratio}:1 against the background${
         issue.where === 'forced dark' ? ' once a client forces dark mode' : ''
-      } — aim for ${issue.required}:1.`,
+      }. Aim for ${issue.required}:1.`,
     }));
 
   /** One pass over the live document. Both the debounced effect and Send call
@@ -554,7 +554,7 @@ export function useTemplateEditor(props: EmailEditorSandboxProps): TemplateEdito
         return {
           id: `variable-${key}`,
           severity: 'warn' as const,
-          message: `{{${key}}} ${place} has no placeholder and no preview value — a test send needs one.`.replace('  ', ' '),
+          message: `Add a placeholder or preview value for {{${key}}} ${place} before sending a test.`.replace('  ', ' '),
           detail: at?.text || undefined,
         };
       }),
@@ -978,7 +978,7 @@ export function useTemplateEditor(props: EmailEditorSandboxProps): TemplateEdito
     // navigator.clipboard is undefined; the hook answers false there rather
     // than rejecting into a tick that never appears.
     if (!(await copyText(template.short_code))) {
-      toast.error('Could not copy — this browser blocks the clipboard here.');
+      toast.error('Could not copy. This browser blocks clipboard access.');
       return;
     }
     setShortCodeCopied(true);

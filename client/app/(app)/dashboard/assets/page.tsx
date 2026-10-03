@@ -215,7 +215,7 @@ export default function AssetsPage() {
         title={pendingDelete ? `Delete "${pendingDelete.asset.name}"?` : ''}
         description={
           pendingDelete && pendingDelete.templates > 0
-            ? `It is used in ${pendingDelete.templates} template${pendingDelete.templates === 1 ? '' : 's'} — those images will stop showing.`
+            ? `Used in ${pendingDelete.templates} template${pendingDelete.templates === 1 ? '' : 's'}. Deleting it will remove the image from those emails.`
             : 'This removes the file from your library.'
         }
         onConfirm={confirmDelete}

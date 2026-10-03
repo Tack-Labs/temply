@@ -70,13 +70,10 @@ export function DarkMode() {
       <FigureDarkMode />
 
       <P>
-        The declaration only reaches the first kind, and that is the point of
-        it. Those clients open a large share of most lists, and with it they show
-        the email you saw in the editor; without it they would guess from the
-        content, and the guess changes as the content does. Leaving the
-        declaration out would not make the other clients behave the same — each
-        recolours in its own way — it would only give up the one case that can
-        be exact.
+        Clients that respect the declaration show the colours you chose in
+        the editor. Without it, they may adjust colours based on the email’s
+        content. Other clients apply their own dark mode treatment regardless
+        of the declaration.
       </P>
       <P>
         For the clients that recolour anyway, Temply helps you see it coming.{' '}
@@ -92,10 +89,9 @@ export function DarkMode() {
         too.
       </P>
       <P>
-        Temply does not produce a second set of colours for dark mode — the{' '}
-        <Code>prefers-color-scheme</Code> styles some clients honour. One set of
-        colours, declared light, is what every recipient gets; what a dark inbox
-        makes of it is the table above. Two things help in every case: a logo
+        Temply uses one set of colours, declared light. It does not generate
+        separate dark mode styles with <Code>prefers-color-scheme</Code>.
+        The table above describes how clients treat those colours. Two things help in every case: a logo
         saved as a transparent PNG with a little padding, so it survives a dark
         background, and colours a comfortable distance from pure black and pure
         white, which inversion sends to their extremes.

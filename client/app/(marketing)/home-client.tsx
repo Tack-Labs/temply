@@ -98,23 +98,23 @@ const showcase: Array<{
 }> = [
   {
     stage: 'Build',
-    title: 'A block editor, not an HTML file',
+    title: 'Build emails with blocks',
     description:
-      'Point and click your way down the canvas — logo, heading, copy, button, divider. Temply writes the table-based HTML underneath, so you never open it.',
+      'Add your logo, headings, text, and buttons. Arrange them on the canvas, and Temply generates the email HTML.',
     visual: <EditorMock />,
   },
   {
     stage: 'Check',
     title: 'See it the way the inbox will',
     description:
-      'Preview a template as it renders across clients — including the ones that force dark mode on you — before you ship it.',
+      'Check your email before sending, including how it looks when an inbox forces dark mode.',
     visual: <PreviewMock />,
   },
   {
     stage: 'Ship',
     title: 'Pull it into your app with one request',
     description:
-      'Every template sits behind a clean API. Authenticate with a key, fetch the HTML by template id, and render it wherever your product needs it.',
+      'Send a template ID and your data to the API. Get back HTML and plain text, ready for your email provider.',
     visual: <ApiMock />,
     // The one row on the accent fill, so the page has a single loud moment and
     // it is the moment the product reaches the reader's own code.
@@ -498,7 +498,7 @@ export default function HomeContent() {
               Let&apos;s build something
             </h2>
             <p className="mt-4 max-w-md text-lg text-pretty text-muted">
-              Questions, enterprise plans, or feedback — we&apos;d love to hear from you.
+              Get in touch with questions, feedback, or to discuss an enterprise plan.
             </p>
           </div>
           <div className="min-w-0 max-w-xl">

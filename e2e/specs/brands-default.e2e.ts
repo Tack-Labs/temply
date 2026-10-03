@@ -44,7 +44,7 @@ test.describe('brand defaults', () => {
     await page.goto('/dashboard/brands');
     await page.getByRole('button', { name: `Delete ${brandName}` }).click();
     const dialog = page.getByRole('dialog', { name: 'Delete this brand?' });
-    await expect(dialog.getByText('It’s your default')).toBeVisible();
+    await expect(dialog.getByText('This is your default brand.')).toBeVisible();
     await dialog.getByRole('button', { name: 'Delete' }).click();
     await expect(page.getByText('Brand deleted')).toBeVisible();
     await expect(page.getByRole('button', { name: `Edit ${brandName}` })).toHaveCount(0);

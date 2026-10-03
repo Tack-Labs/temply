@@ -116,19 +116,14 @@ export function Introduction() {
     <section>
       <H2 id="introduction">Introduction</H2>
       <P>
-        Temply is a template builder for transactional email. You compose an
-        email out of blocks — a logo, a heading, some copy, a button — and
-        Temply writes the HTML underneath. That HTML is built from tables and
-        inline styles rather than divs and a stylesheet, because that is what
-        it takes to hold its shape in Outlook and the other clients that still
-        parse mail the way a browser did in 2005.
+        Temply helps you build transactional emails with blocks for text,
+        images, headings, and buttons. It generates HTML using tables and
+        inline styles for compatibility with Outlook and other email clients.
       </P>
       <P>
-        It is built for people who send email from their own product: a
-        developer wiring up a welcome mail or a receipt, and the designer or
-        marketer who wants to change the wording without opening a code editor.
-        You do not write HTML, and you do not hand your sending over to anyone
-        — Temply gives you the markup, your own system sends it.
+        Developers can connect templates to their app, while designers and
+        marketers edit the content visually. Temply generates the email;
+        your app sends it through your email provider.
       </P>
       <FigureAnatomy />
       <P>
@@ -136,10 +131,8 @@ export function Introduction() {
       </P>
       <P>
         <strong className="font-medium text-ink">Templates</strong> are the
-        emails themselves. A template holds its content — the blocks in order —
-        along with a name, a subject line, and its own copy of a look. You edit
-        one in the block editor and save it; it stays in your dashboard until
-        you change it again.
+        emails you build. Each template has content, a subject line, and its
+        own appearance settings. You can edit and save it from your dashboard.
       </P>
       <P>
         <strong className="font-medium text-ink">Brands</strong> are saved
@@ -153,7 +146,7 @@ export function Introduction() {
         finished email reaches your app. You request a template by id with an
         API key, send the data you want dropped into it, and get back rendered
         HTML ready to hand to your mail provider. The API serves what you last
-        published — edits stay in your draft until you press Publish.
+        published. Edits stay in your draft until you press Publish.
       </P>
     </section>
   );
@@ -166,7 +159,7 @@ const textBlocks: BlockRow[] = [
     icon: Text,
     name: 'Text',
     what: 'A plain paragraph.',
-    when: 'The default — start typing and you are already in one.',
+    when: 'Start typing to add a paragraph.',
   },
   {
     icon: Heading1,
@@ -184,13 +177,13 @@ const textBlocks: BlockRow[] = [
     icon: Heading3,
     name: 'Heading 3',
     what: 'A small heading.',
-    when: 'For a label above a short run of text, when Heading 2 is too loud.',
+    when: 'For a label or subheading above a short section.',
   },
   {
     icon: List,
     name: 'Bullet List',
     what: 'An unordered list.',
-    when: 'For items where the order does not matter — features, links, notes.',
+    when: 'For features, links, or notes where order does not matter.',
   },
   {
     icon: ListOrdered,
@@ -210,14 +203,14 @@ const componentBlocks: BlockRow[] = [
   {
     icon: PanelTopIcon,
     name: 'Headers',
-    what: 'Three designed openings: a logo with text stacked or side by side, or a logo over a cover image.',
-    when: 'To start an email the way most do, then change the words and the picture.',
+    what: 'Three header layouts: stacked logo and text, logo beside text, or logo above a cover image.',
+    when: 'Choose a layout, then replace the text and image.',
   },
   {
     icon: FootprintsIcon,
     name: 'Footers',
-    what: 'Three designed closings, in the smaller footer style: a copyright line, a feedback call to action, a company signature.',
-    when: 'For the address, the unsubscribe line and the legal small print — pick the nearest and edit it down.',
+    what: 'Three footer layouts: copyright, feedback, or company signature.',
+    when: 'For an address, unsubscribe link, or legal text. Choose a layout and edit it.',
   },
 ];
 
@@ -232,7 +225,7 @@ const mediaBlocks: BlockRow[] = [
     icon: ImageIcon,
     name: 'Logo',
     what: 'An image sized and aligned as a logo rather than as content.',
-    when: 'At the top of the email, where your mark belongs.',
+    when: 'For your company logo at the top of the email.',
   },
   {
     icon: ImageIcon,
@@ -244,7 +237,7 @@ const mediaBlocks: BlockRow[] = [
     icon: ArrowUpRightSquare,
     name: 'Link Card',
     what: 'A bordered card with a title, description, image, and link.',
-    when: 'To point at one thing — an article, a doc, a release — with more weight than a link.',
+    when: 'To highlight an article, document, or release with a card.',
   },
 ];
 
@@ -259,7 +252,7 @@ const layoutBlocks: BlockRow[] = [
     icon: RectangleHorizontal,
     name: 'Section',
     what: 'A container with its own background, padding, and border around the blocks inside it.',
-    when: 'To band off part of the email — a highlighted note, a coloured panel.',
+    when: 'To highlight a note or group content in a coloured panel.',
   },
   {
     icon: MoveVertical,
@@ -271,7 +264,7 @@ const layoutBlocks: BlockRow[] = [
     icon: Minus,
     name: 'Divider',
     what: 'A horizontal rule.',
-    when: 'To mark the seam between two parts of the email — usually before the footer.',
+    when: 'To separate parts of the email, such as the body and footer.',
   },
 ];
 
@@ -292,7 +285,7 @@ const advancedBlocks: BlockRow[] = [
     icon: CodeXmlIcon,
     name: 'Custom HTML',
     what: 'Raw HTML dropped into the email as written.',
-    when: 'Only when no block does what you need. Temply does not fix this markup for you, so it is on you to keep it email-safe.',
+    when: 'For content the other blocks cannot provide. Check that your HTML works in email clients.',
   },
 ];
 
@@ -310,9 +303,8 @@ export function Editor() {
         Press <Code>/</Code> where the next block should go and the slash menu
         opens. It lists every block; keep typing to filter it, and press Enter
         to insert the one you want. Select a block and a bubble menu appears with
-        the settings that belong to that block — alignment and colour for text,
-        the URL and label for a button, the source and width for an image.
-        Nothing is buried in a side panel that applies to everything.
+        its settings: alignment and colour for text, URL and label for a
+        button, or source and width for an image.
       </P>
 
       <DemoEditor />
@@ -332,9 +324,8 @@ export function Editor() {
       <div className="mt-12">
         <H3 id="shortcuts">Shortcuts</H3>
         <P>
-          The editor answers to more than its menus. Everything below works
-          while the cursor is in the canvas; the same list is a click away in
-          the editor itself, under the question mark beside the view switch.
+          These shortcuts work while the cursor is in the canvas. You can also
+          find them under the question mark beside the editor’s view switch.
         </P>
         <ShortcutTable />
       </div>
@@ -346,9 +337,9 @@ export function Editor() {
           list of the variables already in the template appears; pick one, or
           type a new name to create it. The variable sits in the copy as a pill
           you can click, which is also where you set a{' '}
-          <strong className="font-medium text-ink">Placeholder</strong> — the
-          words previews, thumbnails and test sends show in its place. A real
-          render never uses it: your data has to carry every value. Button
+          <strong className="font-medium text-ink">Placeholder</strong> for
+          previews, thumbnails, and test sends. API renders use the values
+          supplied in your data. Button
           labels and link URLs can be variables too.
         </P>
         <FigureVariable />
@@ -381,12 +372,9 @@ export function Editor() {
         <DemoShowIf />
 
         <P>
-          The key is a free-text name, not a value chosen from a fixed list. It
-          means whatever the template and the backend doing the sending agree it
-          means, so pick something your own code can answer —{' '}
-          <Code>isMember</Code>, <Code>hasUnpaidInvoice</Code>. One template
-          then covers several cases instead of splitting into near-identical
-          copies. Keys already used elsewhere in the template are offered as
+          Choose a key your app can supply as a boolean, such as{' '}
+          <Code>isMember</Code> or <Code>hasUnpaidInvoice</Code>. This lets one
+          template show different content for different recipients. Keys already used elsewhere in the template are offered as
           suggestions, and hovering one outlines every block that uses it.
         </P>
         <P>
@@ -397,7 +385,7 @@ export function Editor() {
         </P>
         <P>
           With a block gated on <Code>isMember</Code>, this request keeps it, and
-          the same request with <Code>false</Code> — or without the key — drops it:
+          the same request with <Code>false</Code> or without the key drops it:
         </P>
         <Block>{JSON.stringify({ data: { firstName: 'Ada', isMember: true } }, null, 2)}</Block>
       </div>
@@ -409,26 +397,22 @@ export function Editor() {
           list in your data into a run of blocks. Insert one from the slash menu,
           set <strong className="font-medium text-ink">Repeat over</strong> to the
           key that holds the list, and build one item inside it: a line, a card,
-          a row of columns. On render the block comes out once per item, and a
-          variable pill inside it reads the current item first — so{' '}
-          <Code>{'{{name}}'}</Code> is each item’s own name — and the top level of
-          your data when the item has no such field. Anything typed in plainly
-          repeats as written, so a Repeat is only as useful as the pills in it.
+          a row of columns. The block renders once per item. Variables read
+          the current item first, so <Code>{'{{name}}'}</Code> uses that item’s
+          name. If the field is missing, it reads from the top level of your
+          data. Plain text repeats unchanged.
         </P>
         <FigureRepeat />
         <P>
-          In the editor you edit one item, and the rows the list would add are
-          drawn faded beneath it — as many as the sample data says, two unless
-          you change it in the Data panel — so the rhythm of the repetition is
-          on the canvas while you write. The copies follow every keystroke and
-          take no typing of their own: click one and you are back in the row.
-          The marker in the margin carries the count. A Show if on a block
-          inside the repeat is answered by the item too, so one item can hide a
-          line the next one shows.
+          Edit the first item in the editor. Faded copies below it show how
+          the repeat will look and update as you type. The count comes from
+          your sample data, or defaults to two; change it in the Data panel.
+          Clicking a copy selects the editable item. Show if conditions inside
+          a Repeat also read from the current item.
         </P>
         <P>
           With <Code>Repeat over</Code> set to <Code>items</Code> and a line inside
-          reading <Code>{'{{name}} — {{price}}'}</Code>, this request renders two
+          reading <Code>{'{{name}}: {{price}}'}</Code>, this request renders two
           lines:
         </P>
         <Block>
@@ -465,11 +449,10 @@ export function CreatingATemplate() {
       <P>
         Open <strong className="font-medium text-ink">Templates</strong> in the
         dashboard and press{' '}
-        <strong className="font-medium text-ink">New template</strong>. There is
-        no dialog to fill in — a starter template called Untitled Template is
-        created and the editor opens on it, already holding a logo, a heading, a
-        few paragraphs and a button. Edit it into your own email, or delete the
-        blocks you do not want.
+        <strong className="font-medium text-ink">New template</strong>. The editor
+        opens with a starter called Untitled Template, containing a logo,
+        heading, paragraphs, and a button. Edit these blocks or delete any
+        you do not need.
       </P>
       <FigureFlow />
       <P>
@@ -478,8 +461,8 @@ export function CreatingATemplate() {
         The <strong className="font-medium text-ink">Subject</strong> field is
         both the subject line the recipient reads and the name the template
         goes by in your dashboard, so give it something you will recognise in a
-        list. The rest of that section — From name, To, Reply To, and Preview
-        Text — is the envelope around the email.
+        list. Use From name, To, Reply To, and Preview Text to set the other
+        email details.
       </P>
       <P>
         Pick a look in the{' '}
@@ -499,32 +482,29 @@ export function CreatingATemplate() {
         pane shows: Edit, Preview, and HTML.{' '}
         <strong className="font-medium text-ink">Preview</strong> renders the
         email exactly as it will be sent, under a mock inbox row so you can see
-        the subject and preview text the way a client lists them. Two controls
-        sit with it — the{' '}
+        the subject and preview text as they appear in an inbox. Use the{' '}
         <strong className="font-medium text-ink">Preview data</strong> panel,
         which fills your variables and lets you switch conditions on and off,
         and <strong className="font-medium text-ink">Forced dark</strong>, which
         redraws the preview the way a client that inverts every email would show
-        it. Neither is saved; both exist so you find the problem before a
-        recipient does.
+        it. These preview settings are not saved with the template.
       </P>
       <P>
         Edits save as you go, into a draft. Press{' '}
         <strong className="font-medium text-ink">Publish</strong> when it looks
-        right. Every publish keeps a version, on every plan — the last{' '}
-        {INCLUDED.versionsPerTemplate}, or the last{' '}
-        {TEMPLATE_PACK.versionsPerTemplate} once the workspace has a template
-        pack ({limitsFor('enterprise').maxVersions} on Enterprise) — so a
-        change you regret is recoverable from{' '}
-        <strong className="font-medium text-ink">History</strong>.
+        right. Every publish saves a version. You can restore previous
+        versions from <strong className="font-medium text-ink">History</strong>.
+        Temply keeps the last {INCLUDED.versionsPerTemplate} versions, or{' '}
+        {TEMPLATE_PACK.versionsPerTemplate} with a template pack
+        ({limitsFor('enterprise').maxVersions} on Enterprise).
       </P>
       <P>
         From there the email leaves Temply one of two ways. The{' '}
         <strong className="font-medium text-ink">HTML</strong> view shows the
         finished source with a{' '}
         <strong className="font-medium text-ink">Copy HTML</strong> button and a{' '}
-        <strong className="font-medium text-ink">Download</strong> button beside it —
-        take the file, drop it into whatever sends your mail, and fill the{' '}
+        <strong className="font-medium text-ink">Download</strong> button.
+        Use the HTML with your email provider and fill the{' '}
         <Code>{'{{placeholders}}'}</Code> yourself. The Text view saves the
         plain-text alternative the same way.
       </P>
@@ -564,14 +544,14 @@ export function CreatingATemplate() {
         included. When a trial or plan ends unpaid the workspace turns
         read-only, and its live keys answer <Code>402</Code> until someone
         subscribes. A <strong className="font-medium text-ink">test</strong> key
-        (<Code>tply_test_…</Code>) renders your current draft — published or
-        not — so staging always shows what you are working on. Test keys are
-        free on every plan, keep working when a workspace is read-only, and
+        (<Code>tply_test_…</Code>) renders your current draft, whether or not
+        it has been published. Use it to test your latest edits in staging. Test
+        keys are free on every plan, keep working when a workspace is read-only, and
         stop at {TEST_API_CALLS_PER_MONTH.toLocaleString('en-GB')} calls a month.
       </P>
       <P>
         Every call counts, repeats included, so render once and reuse the
-        result where the email is the same —{' '}
+        result where the email is the same.{' '}
         <a href="#caching" className="text-accent-ink underline-offset-4 hover:underline">
           Caching
         </a>{' '}
@@ -595,11 +575,9 @@ export function Caching() {
     <div className="mt-10">
       <H3 id="caching">Caching</H3>
       <P>
-        Every call counts toward the month — a list, a metadata call and a
-        render alike. Asking again for something that has not changed counts
-        the same as the first time; there is no free not-modified answer. What
-        keeps the bill down is calling less, and an email rarely changes between
-        sends.
+        List, metadata, and render requests all count toward your monthly
+        usage, including repeated requests. Cache results to reduce calls
+        when an email has not changed.
       </P>
       <P>
         <strong className="font-medium text-ink">Render a broadcast once.</strong>{' '}
@@ -612,10 +590,9 @@ export function Caching() {
         <strong className="font-medium text-ink">Cache on updatedAt.</strong>{' '}
         Keep each render under the template, the data you sent and the{' '}
         <Code>updatedAt</Code> that came back with it. <Code>updatedAt</Code>{' '}
-        moves only when the copy your key serves changes — on publish for a live
-        key, on save for a test key — so until it moves, the cached email is the
-        one Temply would give you. Check it with one list call on a schedule or
-        when you deploy, not before every send.
+        changes on publish for live keys and on save for test keys. You can
+        reuse the cached render while it stays the same. Check timestamps with
+        a list call on a schedule or when you deploy.
       </P>
       <Block>
         {`# 1. On a schedule, or when you deploy: one call dates every template
@@ -650,7 +627,7 @@ export function UsingBrands() {
         A brand is a saved look. It holds the page background behind the email,
         the card background the content sits on, the padding around both, the
         corner radius, the button background and label colour, and the link
-        colour. It holds no content — a brand never knows what your email says.
+        colour. Email content is stored in the template.
       </P>
 
       <DemoBrands />
@@ -664,8 +641,8 @@ export function UsingBrands() {
       </P>
       <P>
         One brand can be marked as your default, with{' '}
-        <strong className="font-medium text-ink">Set as default</strong> — a
-        preset works here as well as one of your own. A new template starts
+        <strong className="font-medium text-ink">Set as default</strong>.
+        You can choose a preset or one of your own brands. A new template starts
         from it: as long as you have not touched the look yet, opening the
         editor applies your default brand. Delete the brand that is currently
         the default and it moves to another of your brands, or back to Classic
@@ -681,30 +658,27 @@ export function UsingBrands() {
         That copy is also what <strong className="font-medium text-ink">Custom</strong>{' '}
         means. The brand selector shows the preset or brand whose settings the
         template exactly matches. Change any colour, corner, or spacing and it
-        no longer matches anything, so the selector reads Custom — the look now
-        belongs to that template alone. Custom is a state, not something you
-        can pick; it appears in the list only when it is already what you have.
-        Save it as a brand if you want it anywhere else.
+        no longer matches a saved brand, so the selector shows Custom.
+        This label appears automatically. Save the settings as a brand to
+        reuse them on other templates.
       </P>
       <P>
         Three knobs cover most of the work.{' '}
         <strong className="font-medium text-ink">Brand color</strong> sets the
         button and link colour together, and picks black or white for the
         button label depending on which is more readable on it.{' '}
-        <strong className="font-medium text-ink">Corner</strong> — Sharp, Soft,
-        or Round — sets the radius on the card and the buttons.{' '}
-        <strong className="font-medium text-ink">Density</strong> — Compact or
-        Comfortable — sets the padding inside the card and above and below the
-        email.
+        <strong className="font-medium text-ink">Corner</strong> sets the card
+        and button corners to Sharp, Soft, or Round.{' '}
+        <strong className="font-medium text-ink">Density</strong> sets Compact
+        or Comfortable padding inside the card and around the email.
       </P>
       <P>
         <strong className="font-medium text-ink">Advanced</strong> opens the
         fields underneath, grouped as Page, Card, and Buttons &amp; links. Here
-        you set each colour, padding, and radius on its own — a page background
-        that differs from the card, a button corner that differs from the card
-        corner. Temply flags a colour that would be hard to read against the
-        text it sits behind, including in the forced dark mode some clients
-        apply.
+        you can set each colour, padding, and radius separately, including
+        different backgrounds for the page and card or different corners for
+        the card and buttons. Temply flags colour combinations that may be hard
+        to read, including in forced dark mode.
       </P>
     </section>
   );

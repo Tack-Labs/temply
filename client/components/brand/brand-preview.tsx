@@ -42,8 +42,8 @@ export function BrandPreview({ theme }: { theme: RendererThemeOptions }) {
             Your subject line
           </div>
           <p className="mt-1.5 text-[11px] leading-relaxed" style={{ color: text, opacity: 0.7 }}>
-            This is how an email looks with this brand — the card, colours,
-            corners and spacing all come from these settings.
+            Preview this brand’s card, colours,
+            corners, and spacing.
           </p>
 
           <div className="mt-3.5">

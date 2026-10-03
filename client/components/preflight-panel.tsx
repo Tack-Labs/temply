@@ -147,7 +147,7 @@ export function PreflightPanel({
                           <span className="text-sm text-ink">
                             {issue.message}
                             {issue.detail ? (
-                              <span className="text-muted"> — “{issue.detail}”</span>
+                              <span className="text-muted"> (“{issue.detail}”)</span>
                             ) : null}
                           </span>
                         </>

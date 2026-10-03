@@ -90,7 +90,7 @@ export function RepeatMenuContent({ editor }: { editor: Editor }) {
         >
           <span className="mly:shrink-0 mly:text-xs mly:text-gray-500">Repeat over</span>
           <span className={valueClass}>
-            <span className="mly:truncate mly:font-mono">{eachKey || '—'}</span>
+            <span className="mly:truncate mly:font-mono">{eachKey || 'Not set'}</span>
             <Pencil className="mly:h-3 mly:w-3 mly:shrink-0 mly:stroke-[2.5]" />
           </span>
         </button>

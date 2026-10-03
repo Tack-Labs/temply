@@ -181,7 +181,7 @@ export default function BrandsPage() {
           <EmptyState
             icon={PaletteIcon}
             title="No custom brands yet"
-            description="Save a look — from a preset or your own colours — to reuse it across templates."
+            description="Save colours, spacing, and corners to reuse across templates."
             action={
               <Button onClick={openCreate} disabled={atLimit || readOnly}>
                 New brand
@@ -216,7 +216,7 @@ export default function BrandsPage() {
                         title="Delete this brand?"
                         description={
                           isDefault
-                            ? 'It’s your default — the default will move to another brand or a preset.'
+                            ? 'This is your default brand. Another brand or a preset will become the default.'
                             : 'Templates using it keep their own copy of the look.'
                         }
                         onConfirm={() => deleteBrand(brand.id)}

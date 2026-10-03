@@ -58,8 +58,8 @@ export function ApiReference() {
       <P>
         Two endpoints, both under <Code>{API_ORIGIN}/api/public/v1</Code>. One
         tells you about a template; the other turns it into the email you send.
-        Your app never holds HTML — it asks for the finished email with the data
-        for that one recipient, and hands the answer to your mail provider.
+        Your app requests the rendered email with data for the recipient,
+        then sends the result through your email provider.
       </P>
 
       <div className="mt-10">
@@ -82,15 +82,15 @@ export function ApiReference() {
       <div className="mt-10">
         <H3 id="api-templates">List templates</H3>
         <P>
-          <Code>GET /templates</Code> — every template this key can reach, newest
-          change first, so your app can find them rather than be handed codes by
-          hand. A live key lists what is published; a test key lists the drafts too.
+          <Code>GET /templates</Code> returns the templates this key can access,
+          sorted by most recently changed. A live key lists published templates; a
+          test key also lists drafts.
         </P>
         <Block>{listSnippet()}</Block>
         <Fields
           rows={[
-            ['templates', 'One entry per template: id, shortCode, title, previewText, publishedAt, updatedAt — the same fields as the single call.'],
-            ['mode', '"live" or "test" — which copies the list describes.'],
+            ['templates', 'One entry per template: id, shortCode, title, previewText, publishedAt, updatedAt. These match the fields returned for a single template.'],
+            ['mode', '"live" for published templates or "test" for drafts.'],
           ]}
         />
       </div>
@@ -98,9 +98,9 @@ export function ApiReference() {
       <div className="mt-10">
         <H3 id="api-template">Get a template</H3>
         <P>
-          <Code>GET /templates/:id</Code> — the id is the <Code>tpl_…</Code> code
-          shown at the top of the editor. It returns what your app needs to decide
-          whether to re-render: nothing about the content itself.
+          <Code>GET /templates/:id</Code> returns template metadata. Use the{' '}
+          <Code>tpl_…</Code> ID shown at the top of the editor. Check the timestamp
+          to decide whether to render again.
         </P>
         <Block>{metaSnippet(EXAMPLE)}</Block>
         <Fields
@@ -111,7 +111,7 @@ export function ApiReference() {
             ['previewText', 'The line inboxes show under the subject.'],
             ['publishedAt', 'When it was last published; null if never.'],
             ['updatedAt', 'When the copy this key serves last changed. Cache on this.'],
-            ['mode', '"live" or "test" — which copy the key is reading.'],
+            ['mode', '"live" for the published version or "test" for the draft.'],
           ]}
         />
       </div>
@@ -129,7 +129,7 @@ export function ApiReference() {
             ['html', 'The full email document, ready to hand to your provider.'],
             ['text', 'The same email with the markup stripped, for the multipart alternative.'],
             ['shortCode', 'Echoed back.'],
-            ['updatedAt', 'As on GET — when the served copy last changed.'],
+            ['updatedAt', 'When this version last changed, as returned by GET.'],
             ['mode', '"live" or "test".'],
           ]}
         />
@@ -140,14 +140,14 @@ export function ApiReference() {
         <P>
           Each key in <Code>data</Code> matches a variable in the template:{' '}
           <Code>{'{{firstName}}'}</Code> reads <Code>data.firstName</Code>. Every
-          variable in the template needs a value: a missing one is a 422 that lists
-          what to add, never a silent stand-in — the placeholder set in the editor
-          is for previews only. A pill marked optional renders as nothing when its
+          required variable needs a value. A missing value returns 422 with a
+          list of missing keys. Placeholders set in the editor are for previews only.
+          A pill marked optional renders as nothing when its
           value is missing. Booleans drive “Show if”: a block gated
           on <Code>isMember</Code> is dropped when <Code>data.isMember</Code> is false
           and kept when it is true or absent. Omit <Code>data</Code> entirely and you
-          get the email with every placeholder intact and every block showing — the
-          same thing the editor’s composing view shows.
+          get the email with placeholders intact and all conditional blocks
+          showing, as in the editor.
         </P>
         <FigureDataMap />
         <Block>{JSON.stringify({ data: { firstName: 'Ada', isMember: true } }, null, 2)}</Block>
@@ -184,16 +184,16 @@ export function ApiReference() {
           Temply stops at the finished email; your provider delivers it. The
           subject is the template’s <Code>title</Code>, from the metadata call, and
           the render’s <Code>html</Code> and <Code>text</Code> are the two parts of
-          one multipart message — send both, so inboxes that prefer plain text get
-          the same email. Resend is shown because it is what Temply itself sends
+          one multipart message. Send both to support inboxes that prefer
+          plain text. Resend is shown because it is what Temply itself sends
           through; any provider takes the same three things.
         </P>
         <CodeTabs languages={SNIPPET_LANGUAGES} snippets={sendSnippets(EXAMPLE)} />
         <P>
           Every call counts, so render once per email, not once per recipient,
           and cache on <Code>updatedAt</Code> rather than fetching metadata before
-          every send: it moves only when the copy your key serves changes — on
-          publish for a live key, on save for a test key.{' '}
+          every send. The timestamp changes on publish for live keys and on
+          save for test keys.{' '}
           <Anchor href="#caching">Caching</Anchor> shows the pattern.
         </P>
       </div>
@@ -209,17 +209,18 @@ export function ApiReference() {
         <Fields
           rows={[
             ['401', 'No key, an unknown key, or a revoked one.'],
-            ['404', 'No template with that id on this account — or, with a live key, one that has never been published.'],
-            ['422', 'Data was sent but a variable has no value — the body lists them under missing — or a Repeat’s key holds something other than a list.'],
+            ['404', 'The template does not exist in this account, or it has not been published and you are using a live key.'],
+            ['422', 'A required variable is missing from data, or a Repeat value is not a list. Missing variables are listed under missing in the response.'],
             ['402', 'The workspace’s trial or plan has ended, so its live keys are paused. Nothing is deleted, and the key works again once someone subscribes on the Plan page. Test keys are not affected.'],
-            ['429', `Either the key went past its per-minute burst — that answer carries a Retry-After header in seconds — or a workspace on the free trial has used its ${number(trial.maxApiCalls)} live calls for the month, which lasts until the month turns or someone subscribes. The message says which.`],
+            ['429', `The key exceeded its per-minute rate limit, or the trial workspace used its ${number(trial.maxApiCalls)} monthly live calls. Rate-limit responses include Retry-After in seconds. Trial limits reset next month or when someone subscribes. The message identifies the limit.`],
             ['500', 'The stored template could not be read. Open it in the editor and save.'],
           ]}
         />
         <P>
           Calls with a live key count toward a monthly total that resets on the first
-          of each month, UK time. Every call counts — lists, metadata and renders,
-          repeats included — so <Anchor href="#caching">cache</Anchor> what you can.
+          of each month, UK time. Lists, metadata, and renders all count,
+          including repeated requests. <Anchor href="#caching">Cache</Anchor> results
+          where you can.
           Test keys have their own{' '}
           {TEST_API_CALLS_PER_MONTH.toLocaleString('en-GB')} a month on every plan. On top of
           the month, one key may make {API_BURST_PER_MINUTE.live} calls a minute
@@ -231,9 +232,9 @@ export function ApiReference() {
           under <Code>missing</Code>, so the fix is in your data, not a retry. A 429
           with <Code>Retry-After</Code> is the burst: the refused call was not
           counted, so waiting that long and trying again costs nothing. A 429
-          without it — the trial’s month is used up — and a 402 do not clear on a
-          retry: someone has to subscribe, so stop and tell a person rather than
-          loop.
+          without that header means the trial’s monthly allowance is used up.
+          Stop automatic retries for this response or a 402 and ask a workspace
+          admin to subscribe.
         </P>
         <CodeTabs languages={SNIPPET_LANGUAGES} snippets={errorSnippets(EXAMPLE)} />
         <Fields

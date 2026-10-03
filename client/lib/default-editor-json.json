@@ -28,7 +28,7 @@
       "content": [
         {
           "type": "text",
-          "text": "This is your first template. Temply makes it easy to build responsive, beautiful emails using drag-and-drop blocks — no HTML required."
+          "text": "Build your first email with text, images, and buttons. Drag blocks to reorder them. Temply generates the HTML for you."
         }
       ]
     },

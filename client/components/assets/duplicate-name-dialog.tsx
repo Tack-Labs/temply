@@ -55,7 +55,7 @@ export function useDuplicateNameGuard(existing: Asset[]): {
       open={asking !== null}
       onOpenChange={(open) => { if (!open) settle(false); }}
       title={asking ? `"${asking}" already exists` : ''}
-      description="Adding it keeps both — they are separate images with their own links."
+      description="Both images will be kept, each with its own link."
       confirmLabel="Add anyway"
       confirmVariant="primary"
       onConfirm={() => settle(true)}

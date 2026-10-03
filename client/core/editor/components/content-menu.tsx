@@ -149,7 +149,7 @@ export function ContentMenu(props: ContentMenuProps) {
                 <Plus className="mly:size-3.5 mly:shrink-0" />
               </BaseButton>
             </TooltipTrigger>
-            <TooltipContent sideOffset={8}>Add a block below — or press /</TooltipContent>
+            <TooltipContent sideOffset={8}>Add a block below (press /)</TooltipContent>
           </Tooltip>
           <Popover open={menuOpen} onOpenChange={setMenuOpen}>
             <div className="mly:relative mly:flex mly:flex-col">
@@ -172,7 +172,7 @@ export function ContentMenu(props: ContentMenuProps) {
                   </BaseButton>
                 </TooltipTrigger>
                 <TooltipContent sideOffset={8}>
-                  Block actions — or press {formatKeys(selectBlock, isApple)}
+                  Block actions (press {formatKeys(selectBlock, isApple)})
                 </TooltipContent>
               </Tooltip>
               <PopoverTrigger className="mly:absolute mly:left-0 mly:top-0 mly:z-0 mly:h-5 mly:w-5" />

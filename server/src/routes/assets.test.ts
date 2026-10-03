@@ -158,7 +158,7 @@ describe('POST /api/v1/assets', () => {
     });
     const res = await upload(OWNER, 2 * 1024 * 1024);
     expect(res.status).toBe(402);
-    expect((await res.json()).message).toBe('Storage is full — 99 MB of 100 MB used. Delete images in your library, or subscribe for 1 GB.');
+    expect((await res.json()).message).toBe('Storage is full: 99 MB of 100 MB used. Delete images in your library, or subscribe for 1 GB.');
     expect(ik.uploads).toHaveLength(0);
   });
 

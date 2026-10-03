@@ -76,7 +76,7 @@ export function ThemeIssueHint({ issues }: { issues: ContrastIssue[] }) {
       <PopoverTrigger asChild>
         <button
           type="button"
-          aria-label="This colour may be hard to read — details"
+          aria-label="Details about low colour contrast"
           className={`inline-flex size-4 items-center justify-center rounded-full text-danger-ink hover:bg-danger-wash ${pressable}`}
         >
           <AlertTriangleIcon className="size-3" />

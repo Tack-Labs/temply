@@ -57,7 +57,7 @@ export async function uploadAsset(file: File): Promise<UploadResult> {
  *  already taken, so the user learns it once and in the same words. */
 export function toastUploaded({ asset, duplicateName }: UploadResult) {
   if (duplicateName) {
-    toast.warning(`Uploaded — you already have another image named "${asset.name}".`);
+    toast.warning(`Uploaded. You already have another image named "${asset.name}".`);
   } else {
     toast.success('Image uploaded');
   }

@@ -47,7 +47,7 @@ export function ContentPreview({
           <h4 className="truncate text-sm text-ink">{subject || 'No subject yet'}</h4>
           <p className="truncate text-sm text-muted">
             {previewText ||
-              'No preview text — inbox clients will show the opening line instead.'}
+              'No preview text. Inboxes will show the opening line instead.'}
           </p>
         </div>
       </div>

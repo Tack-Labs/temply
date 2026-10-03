@@ -41,9 +41,9 @@ export default function PrivacyPage() {
               details, which go to it directly and never reach us.
             </>,
             <>
-              <Strong>API use.</Strong> Which key was used, when, and a monthly count per workspace — enough to
-              enforce the plan, not the content of your calls. The data you pass to render a template is used for that
-              render and not stored.
+              <Strong>API use.</Strong> Which key was used, when, and a monthly count per workspace to
+              enforce your plan. We do not record the content of your calls. The data you pass to render a template
+              is used for that render and not stored.
             </>,
             <>
               <Strong>Test sends.</Strong> When you send a test email from the editor, the address you send it to
@@ -67,8 +67,8 @@ export default function PrivacyPage() {
       <Section id="why" title="3. Why, and on what basis">
         <List
           items={[
-            'To run the service you signed up for — storing your work, rendering it, serving your API calls, billing your plan. This is performance of our contract with you.',
-            'To keep the service safe — rate limits, abuse prevention, error monitoring. This is our legitimate interest in running a working product, balanced against yours.',
+            'To run the service: store and render your work, serve API calls, and bill your plan. This is performance of our contract with you.',
+            'To keep the service safe through rate limits, abuse prevention, and error monitoring. This is our legitimate interest in running a working product, balanced against yours.',
             'To answer when you write to us. Legitimate interest, and yours too.',
             'To meet legal obligations such as tax records for payments.',
           ]}
@@ -86,8 +86,7 @@ export default function PrivacyPage() {
             <>
               <a href={p.site} className="text-accent-ink underline-offset-4 hover:underline" rel="noreferrer">
                 {p.name}
-              </a>{' '}
-              — {p.purpose}.
+              </a>: {p.purpose}.
             </>
           ))}
         />
@@ -112,8 +111,8 @@ export default function PrivacyPage() {
 
       <Section id="rights" title="6. Your rights">
         <P>
-          You can see and change your account details in Settings, and take your templates out at any time — the
-          HTML view of every template has a download. You can delete templates, brands, images, keys, workspaces
+          You can see and change your account details in Settings, and export your templates at any time using
+          the download button in each template’s HTML view. You can delete templates, brands, images, keys, workspaces
           and your account yourself.
         </P>
         <P>

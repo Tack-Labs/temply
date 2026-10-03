@@ -122,8 +122,7 @@ export function FigureAnatomy() {
               {/* min-w-0 so a long label wraps inside the row rather than
                   widening the grid at 360px. */}
               <p className="min-w-0 text-base leading-relaxed text-pretty text-muted">
-                <strong className="font-medium text-ink">{callout.name}</strong>{' '}
-                — {callout.what}
+                <strong className="font-medium text-ink">{callout.name}</strong>: {callout.what}
               </p>
             </li>
           ))}

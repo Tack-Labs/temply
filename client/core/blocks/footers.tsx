@@ -73,7 +73,7 @@ export const footerCommunityFeedbackCta: BlockItem = {
             {
               type: 'text',
               marks: [{ type: 'textStyle', attrs: { color: '' } }],
-              text: "And, as always, we'd love your feedback – simply reply to the email or reach out via the Discord community!",
+              text: "Share your feedback by replying to this email or posting in the Discord community.",
             },
           ],
         },

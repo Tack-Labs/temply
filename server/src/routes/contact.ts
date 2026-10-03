@@ -46,7 +46,7 @@ export const contactRoutes = new Elysia()
           to,
           replyTo: email,
           subject: `Contact form: ${name}`,
-          text: `${message}\n\n— ${name} <${email}>`,
+          text: `${message}\n\nFrom: ${name} <${email}>`,
         });
       } catch (error) {
         console.error('contact form delivery failed', error);

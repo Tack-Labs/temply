@@ -119,7 +119,7 @@ describe('POST /api/v1/emails/send', () => {
     for (let i = 0; i < 20; i++) expect((await post(app, '/api/v1/emails/send', body(), USER)).status).toBe(200);
     const refused = await post(app, '/api/v1/emails/send', body(), USER);
     expect(refused.status).toBe(429);
-    expect((await refused.json()).message).toBe('Too many test sends — try again later.');
+    expect((await refused.json()).message).toBe('Too many test sends. Try again later.');
     expect(sent).toHaveLength(20);
     expect((await post(app, '/api/v1/emails/send', body(), 'user_other')).status).toBe(200);
   });

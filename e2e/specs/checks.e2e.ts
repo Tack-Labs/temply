@@ -18,8 +18,8 @@ const DOC = JSON.stringify({
 const DARK_CARD = JSON.stringify({ container: { backgroundColor: '#333333' } });
 
 const MESSAGES = {
-  alt: 'An image has no alt text — clients that block images show nothing in its place.',
-  variable: '{{name}} in a paragraph has no placeholder and no preview value — a test send needs one.',
+  alt: 'Add alt text so readers can understand the image when it is blocked.',
+  variable: 'Add a placeholder or preview value for {{name}} in a paragraph before sending a test.',
   button: 'A button has no URL yet.',
 };
 

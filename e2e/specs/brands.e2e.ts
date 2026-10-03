@@ -64,7 +64,7 @@ test.describe('brands', () => {
     await page.getByRole('textbox', { name: 'Link hex value' }).fill('#FFFFFF');
     await page.keyboard.press('Escape');
     await expect(page.getByRole('textbox', { name: 'Link hex value' })).toBeHidden();
-    await dialog.getByRole('button', { name: 'This colour may be hard to read — details' }).click();
+    await dialog.getByRole('button', { name: 'Details about low colour contrast' }).click();
     await expect(page.getByText('Hard to read with this colour')).toBeVisible();
     await expect(page.getByText(/^Links sit at/)).toBeVisible();
     await page.keyboard.press('Escape');

@@ -203,7 +203,7 @@ export function DemoBrands() {
       </div>
 
       <figcaption className="mt-3 text-sm text-muted">
-        One email under three of the presets — Classic, Warm, and Slate. The
+        One email with three presets: Classic, Warm, and Slate. The
         content never changes; the page and card colours, the button and link
         colour, the corner radius and the padding do. Applying a brand copies
         those settings onto the template, so the email keeps the look it was

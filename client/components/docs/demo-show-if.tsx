@@ -146,7 +146,7 @@ export function DemoShowIf() {
         <div className="docs-showif-stage bg-sunken" aria-hidden>
           <div className="docs-showif-canvas">
             <p className="docs-showif-para">
-              Thanks for reading — here is what shipped this month.
+              Here is what shipped this month.
             </p>
 
             <div className="docs-showif-slot">

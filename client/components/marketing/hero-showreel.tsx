@@ -629,7 +629,7 @@ export function HeroShowreel() {
 
             <div className="reel-row reel-row-para">
               <p className="reel-para">
-                Hi Sam — your <span className="reel-linkword">workspace</span> is
+                Hi Sam, your <span className="reel-linkword">workspace</span> is
                 ready. Everything you build here goes out looking exactly like
                 this.
               </p>

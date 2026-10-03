@@ -56,7 +56,7 @@ export const emailsRoutes = new Elysia()
       const { content, theme, previewText, payload, pretty, plainText } = body;
       const size = typeof content === 'string' ? content.length : JSON.stringify(content ?? null).length;
       if (size > TEMPLATE_CONTENT_MAX_LENGTH) {
-        const message = `This email is too large to render — the limit is ${Math.round(TEMPLATE_CONTENT_MAX_LENGTH / 1000)}K characters of content.`;
+        const message = `This email is too large to render. The content limit is ${Math.round(TEMPLATE_CONTENT_MAX_LENGTH / 1000)}K characters.`;
         return json({ status: 413, message, errors: [message] }, 413);
       }
       const contentJson = typeof content === 'string' ? JSON.parse(content) : content;
@@ -119,7 +119,7 @@ export const emailsRoutes = new Elysia()
       }
 
       if (!(await checkWindow(ctx.db, `sends:${userId}`, TEST_SENDS_PER_HOUR, HOUR_MS)).allowed) {
-        return json({ status: 429, message: 'Too many test sends — try again later.', errors: ['Rate limited'] }, 429);
+        return json({ status: 429, message: 'Too many test sends. Try again later.', errors: ['Rate limited'] }, 429);
       }
 
       const apiKey = process.env.RESEND_API_KEY;

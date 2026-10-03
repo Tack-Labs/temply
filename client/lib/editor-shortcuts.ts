@@ -22,7 +22,7 @@ export const EDITOR_SHORTCUTS: ShortcutGroup[] = [
   {
     title: 'Insert',
     items: [
-      { keys: '/', what: 'Open the block menu — every block, filtered as you type' },
+      { keys: '/', what: 'Open the block menu; type to filter' },
       { keys: '@', what: 'Insert a variable, in text, a button label or a URL' },
       { keys: '---', what: 'Turn the line into a divider' },
       { keys: 'Mod+Alt+C', what: 'Insert a Custom HTML block' },
@@ -31,11 +31,11 @@ export const EDITOR_SHORTCUTS: ShortcutGroup[] = [
   {
     title: 'Write',
     items: [
-      { keys: '# ', what: 'Heading 1 — ## and ### for the smaller ones' },
+      { keys: '# ', what: 'Heading 1 (## for Heading 2, ### for Heading 3)' },
       { keys: '- ', what: 'Start a bullet list' },
       { keys: '1. ', what: 'Start a numbered list' },
       { keys: '> ', what: 'Start a blockquote' },
-      { keys: '**text**', what: 'Bold — *text* italic, `text` code, ~~text~~ struck through' },
+      { keys: '**text**', what: 'Bold; *text* for italic, `text` for code, ~~text~~ for strikethrough' },
       { keys: 'Shift+Enter', what: 'A new line inside the block, without a new block’s spacing' },
     ],
   },
@@ -58,7 +58,7 @@ export const EDITOR_SHORTCUTS: ShortcutGroup[] = [
       { keys: 'Mod+U', what: 'Underline' },
       // The description is plain prose: only `keys` gets rewritten per
       // platform, so naming a combination here would leak "Mod" to the reader.
-      { keys: 'Mod+Z', what: 'Undo — hold Shift as well to redo' },
+      { keys: 'Mod+Z', what: 'Undo (add Shift to redo)' },
     ],
   },
 ];

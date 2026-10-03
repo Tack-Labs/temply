@@ -14,7 +14,7 @@ export const LEGAL = {
   contactEmail: CONTACT_EMAIL,
   governingLaw: 'England and Wales',
   /** ISO date; shown as "Last updated". Bump it when the text changes. */
-  updated: '2026-09-25',
+  updated: '2026-10-03',
 } as const;
 
 /** The services personal data passes through, named so the privacy policy

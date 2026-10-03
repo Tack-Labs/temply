@@ -52,7 +52,7 @@ export default function TermsPage() {
         <P>
           The templates, text, images and data you put into {LEGAL.product} are yours. We claim no rights in them
           beyond what is needed to store them, render them, show them to the people you share them with, and return
-          them through the API — that is, to run the service for you.
+          them through the API to run the service for you.
         </P>
         <P>You are responsible for what you build and send with it. You agree not to use {LEGAL.product} to:</P>
         <List

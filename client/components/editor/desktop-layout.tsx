@@ -174,9 +174,8 @@ export function DesktopEditorLayout({
             <PopoverContent align="end" className="w-72">
               <p className="text-sm font-medium text-ink">Using this template ID</p>
               <p className="mt-1 text-sm text-muted">
-                Render this template from your own code with an API key. Send the values
-                your variables and conditions read, and you get back the finished HTML —
-                always the current version, never a copy pasted into your app.
+                Render this template from your own code with an API key. Send data for
+                your variables and conditions to get back the rendered HTML.
               </p>
               <pre className="mt-2.5 overflow-x-auto rounded-sm border border-line bg-surface p-2 font-mono text-2xs text-ink">
 {`curl -X POST -H "Authorization: Bearer tply_..." \\

@@ -127,7 +127,7 @@ export function CopyHtmlButton({ html, label = 'Copy HTML' }: { html: string; la
       aria-label={copied ? 'Copied' : label}
       title={copied ? 'Copied' : label}
       onClick={async () => {
-        if (!(await copy(html))) toast.error('Could not copy — this browser blocks the clipboard here.');
+        if (!(await copy(html))) toast.error('Could not copy. This browser blocks clipboard access.');
       }}
       className={cn(copied && 'text-accent-ink hover:text-accent-ink')}
     >

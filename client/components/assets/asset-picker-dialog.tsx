@@ -87,7 +87,7 @@ export function AssetPickerDialog({
 
         <DialogHeader>
           <DialogTitle>Choose an image</DialogTitle>
-          <DialogDescription>Images you have uploaded before, ready to reuse — or drop a new one here.</DialogDescription>
+          <DialogDescription>Choose an image from your library or drop a new one here.</DialogDescription>
         </DialogHeader>
 
         <div className="flex items-center gap-2">

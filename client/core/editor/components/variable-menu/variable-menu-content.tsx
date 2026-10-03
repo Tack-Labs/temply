@@ -80,7 +80,7 @@ export function VariableMenuContent({ editor }: { editor: Editor }) {
         >
           <span className="mly:shrink-0 mly:text-xs mly:text-gray-500">Variable</span>
           <span className="mly:flex mly:min-w-0 mly:items-center mly:gap-2">
-            <span className="mly:truncate mly:font-mono">{id || '—'}</span>
+            <span className="mly:truncate mly:font-mono">{id || 'Not set'}</span>
             {!hideDefaultValue && fallback ? <span className="mly:truncate mly:text-gray-400">/ {fallback}</span> : null}
             <Pencil className="mly:h-3 mly:w-3 mly:shrink-0 mly:stroke-[2.5]" />
           </span>

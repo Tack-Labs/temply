@@ -225,7 +225,7 @@ describe('assessSize', () => {
   it('warns between the warn mark and the clip mark', () => {
     const issue = assessSize(95 * 1024);
     expect(issue?.severity).toBe('warn');
-    expect(issue?.message).toContain('approaching');
+    expect(issue?.message).toContain('close to');
     expect(issue?.message).toContain('95 KB');
   });
 

@@ -59,7 +59,7 @@ test.describe('billing', () => {
       for (let i = billing.usage.templates; i < 10; i++) await api.createTemplate({ title: name(`template ${i + 1}`) });
       await page.goto('/dashboard/templates');
       await expect(page.getByText("You've used all 10 templates in your trial.")).toBeVisible();
-      await expect(page.getByText('Subscribe, then add a template pack for 10 more — $5 a month each.')).toBeVisible();
+      await expect(page.getByText('Subscribe, then add a template pack for 10 more at $5 a month each.')).toBeVisible();
       await expect(page.getByRole('button', { name: 'New template' }).first()).toBeDisabled();
       const eleventh = await page.request.post('/api/v1/templates', { data: { title: name('eleventh'), content: '{"type":"doc","content":[]}' } });
       expect(eleventh.status()).toBe(402);

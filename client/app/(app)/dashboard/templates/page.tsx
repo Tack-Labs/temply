@@ -51,7 +51,7 @@ export default async function TemplatesPage() {
   // why, so the list only takes away the controls.
   const readOnly = billing?.plan === 'lapsed';
   const isAdmin = orgRole === 'org:admin';
-  const pack = `${TEMPLATE_PACK.templates} more — ${formatUsd(PRICES_USD.templatePack)} a month each`;
+  const pack = `${TEMPLATE_PACK.templates} more at ${formatUsd(PRICES_USD.templatePack)} a month each`;
   const limitBanner =
     !atLimit || readOnly
       ? null

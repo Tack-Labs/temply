@@ -175,7 +175,7 @@ export async function checkStorageLimit(db: Db, orgId: string, incomingBytes: nu
   if (!Number.isFinite(limit)) return { allowed: true };
   const used = await getStorageUsed(db, orgId);
   if (used + incomingBytes > limit) {
-    const full = `Storage is full — ${formatBytes(used)} of ${formatBytes(limit)} used.`;
+    const full = `Storage is full: ${formatBytes(used)} of ${formatBytes(limit)} used.`;
     const team = limitsFor('team').maxStorageBytes;
     return {
       allowed: false,
