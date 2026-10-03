@@ -25,6 +25,7 @@ export function ConfirmDialog({
   children,
   open: controlledOpen,
   onOpenChange,
+  onCloseAutoFocus,
 }: {
   title: string;
   description: string;
@@ -40,6 +41,7 @@ export function ConfirmDialog({
    *  async lookup (e.g. "used in 2 templates"). */
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
+  onCloseAutoFocus?: React.ComponentProps<typeof DialogContent>['onCloseAutoFocus'];
 }) {
   const [uncontrolledOpen, setUncontrolledOpen] = useState(false);
   const open = controlledOpen ?? uncontrolledOpen;
@@ -51,7 +53,7 @@ export function ConfirmDialog({
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       {children ? <DialogTrigger asChild>{children}</DialogTrigger> : null}
-      <DialogContent className="max-w-xs p-4">
+      <DialogContent className="max-w-xs p-4" onCloseAutoFocus={onCloseAutoFocus}>
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
           <DialogDescription>{description}</DialogDescription>

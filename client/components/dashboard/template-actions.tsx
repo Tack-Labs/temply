@@ -3,6 +3,7 @@
 import { useMutation } from '@tanstack/react-query';
 import { CopyIcon, Loader2Icon, Trash2Icon } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { useRef } from 'react';
 import { toast } from 'sonner';
 import { Button } from '~/components/ui/button';
 import { ConfirmDialog } from '~/components/ui/confirm-dialog';
@@ -36,6 +37,12 @@ export function TemplateActions({
   onDeleteStateChange,
 }: TemplateActionsProps) {
   const router = useRouter();
+  const confirmationClosing = useRef(false);
+  const deleteCompleted = useRef(false);
+  const finishDelete = () => {
+    onDeleteStateChange?.('deleted');
+    router.refresh();
+  };
   // “Delete template” stays the stem of the name: it is what the buttons were
   // called before they carried a title, and what the specs look for.
   const subject = templateTitle ? ` “${templateTitle}”` : '';
@@ -62,8 +69,11 @@ export function TemplateActions({
     onMutate: () => onDeleteStateChange?.('deleting'),
     onSuccess: () => {
       toast.success('Template deleted');
-      onDeleteStateChange?.('deleted');
-      router.refresh();
+      // A quick response can arrive while the modal still owns focus during
+      // its exit animation. Keep the row until that focus scope is released,
+      // so the list can hand focus to its neighbour before the refresh.
+      if (confirmationClosing.current) deleteCompleted.current = true;
+      else finishDelete();
     },
     onError: (error) => {
       onDeleteStateChange?.('idle');
@@ -92,7 +102,21 @@ export function TemplateActions({
       <ConfirmDialog
         title="Delete this template?"
         description="This cannot be undone."
-        onConfirm={() => deleteTemplate()}
+        onConfirm={() => {
+          confirmationClosing.current = true;
+          deleteCompleted.current = false;
+          deleteTemplate();
+        }}
+        onCloseAutoFocus={(event) => {
+          confirmationClosing.current = false;
+          if (deleteCompleted.current) {
+            // The list owns the handoff after deletion; restoring the old
+            // trigger would undo it just before that trigger disappears.
+            event.preventDefault();
+            deleteCompleted.current = false;
+            finishDelete();
+          }
+        }}
       >
         <Button variant="danger-quiet" size="icon-sm" touch disabled={busy} aria-label={`Delete template${subject}`}>
           {isDeleting ? <Loader2Icon className="animate-spin" /> : <Trash2Icon />}

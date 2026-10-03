@@ -1,6 +1,6 @@
 import { afterAll, afterEach, beforeEach, describe, expect, it, mock } from 'bun:test';
 import '../../core/editor/test/dom';
-import { cleanup, fireEvent, render, waitFor } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 // Bun shares one process, and one module registry, across test files, and
@@ -18,8 +18,10 @@ const realNavigation = { ...(await import('next/navigation')) };
 mock.module('next/navigation', () => ({ ...realNavigation, useRouter: () => ({ refresh }) }));
 
 // The confirmation is a Radix dialog in a portal, which a mounted test cannot
-// count on (see dialog.test.tsx). This stands in for it with the one thing the
-// actions depend on: a button that answers yes.
+// count on (see dialog.test.tsx). The stand-in lets the request finish on
+// either side of the dialog releasing focus, as a real exit animation can.
+let deferConfirmationClose = false;
+let finishConfirmationClose!: () => Event;
 const realConfirmDialog = { ...(await import('~/components/ui/confirm-dialog')) };
 mock.module('~/components/ui/confirm-dialog', () => ({
   ...realConfirmDialog,
@@ -27,17 +29,27 @@ mock.module('~/components/ui/confirm-dialog', () => ({
     title,
     description,
     onConfirm,
+    onCloseAutoFocus,
     children,
   }: {
     title: string;
     description: string;
     onConfirm: () => void;
+    onCloseAutoFocus?: (event: Event) => void;
     children?: React.ReactNode;
   }) => (
     <>
       {children}
       <p>{description}</p>
-      <button type="button" onClick={onConfirm}>
+      <button type="button" onClick={() => {
+        onConfirm();
+        finishConfirmationClose = () => {
+          const event = new Event('closeAutoFocus', { cancelable: true });
+          onCloseAutoFocus?.(event);
+          return event;
+        };
+        if (!deferConfirmationClose) finishConfirmationClose();
+      }}>
         {`Confirm: ${title}`}
       </button>
     </>
@@ -61,6 +73,7 @@ let requests: Array<{ url: string; method: string | undefined }> = [];
 // in between can be looked at.
 beforeEach(() => {
   refresh.mockClear();
+  deferConfirmationClose = false;
   requests = [];
   globalThis.fetch = mock((url: string | URL | Request, init?: RequestInit) => {
     requests.push({ url: String(url), method: init?.method });
@@ -153,6 +166,40 @@ describe('TemplateActions deleting', () => {
     // The row is told it is gone before the refresh takes it out of the list,
     // so it has a moment to close.
     expect(refresh).toHaveBeenCalledTimes(1);
+  });
+
+  it('waits for the modal to release focus when deletion finishes before it closes', async () => {
+    deferConfirmationClose = true;
+    const states: string[] = [];
+    const view = setup({ onDeleteStateChange: (state) => states.push(state) });
+    fireEvent.click(view.getByRole('button', { name: 'Confirm: Delete this template?' }));
+    await waitFor(() => expect(remove(view).disabled).toBe(true));
+
+    respond(ok());
+    await waitFor(() => expect(remove(view).disabled).toBe(false));
+    expect(states).toEqual(['deleting']);
+    expect(refresh).not.toHaveBeenCalled();
+
+    act(() => {
+      expect(finishConfirmationClose().defaultPrevented).toBe(true);
+    });
+    expect(states).toEqual(['deleting', 'deleted']);
+    expect(refresh).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps the dialog’s normal focus restoration when deletion fails before it closes', async () => {
+    deferConfirmationClose = true;
+    const states: string[] = [];
+    const view = setup({ onDeleteStateChange: (state) => states.push(state) });
+    fireEvent.click(view.getByRole('button', { name: 'Confirm: Delete this template?' }));
+    await waitFor(() => expect(states).toEqual(['deleting']));
+
+    respond(refused());
+    await waitFor(() => expect(states).toEqual(['deleting', 'idle']));
+    act(() => {
+      expect(finishConfirmationClose().defaultPrevented).toBe(false);
+    });
+    expect(refresh).not.toHaveBeenCalled();
   });
 
   it('reports the template back as idle when the server refuses, and does not refresh', async () => {

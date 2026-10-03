@@ -141,7 +141,7 @@ test.describe('billing', () => {
     // Still Team until the period paid for runs out; the badge says when,
     // where "Active" stood.
     await expect(planHeading(page, 'Team')).toBeVisible();
-    await expect(page.getByText(/^Ends .+$/)).toBeVisible();
+    await expect(page.getByRole('main').getByText(/^Ends .+$/)).toBeVisible();
     await expect(page.getByText('Active', { exact: true })).toHaveCount(0);
     await expect(page.getByText(/^The plan ends on .+, and the workspace turns read-only\./)).toBeVisible();
     await expect(page.getByRole('button', { name: 'Manage billing' })).toHaveCount(0);
