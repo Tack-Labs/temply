@@ -6,7 +6,7 @@ import { matchesSecret } from '../plugins/auth';
 import { dbPlugin } from '../plugins/db';
 
 /**
- * Vercel Cron calls this every five minutes (client/vercel.json), sending
+ * Vercel Cron calls this daily (root vercel.json), sending
  * `Authorization: Bearer <CRON_SECRET>`. A slow run can overlap the next,
  * which reportOverage's compare-and-set claim makes safe.
  */

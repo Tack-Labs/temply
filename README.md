@@ -113,7 +113,7 @@ in production. `server/.env` needs the same values only for `dev:server`.
 | `DATABASE_URL` | server | yes | The Postgres the API queries. Locally `compose.yaml`'s `temply` database; on Vercel, Supabase's transaction pooler (:6543). Nothing connects until the first query. |
 | `MIGRATION_DATABASE_URL` | `db:migrate` | to migrate | Where `bun run db:migrate` applies `server/drizzle/`. It runs from `server/`, so locally it is read from `server/.env`; in CI it is a GitHub environment secret holding Supabase's session pooler URL (:5432). |
 | `DB_POOL_MAX` | server | no | Connections one instance may hold, default 5. Lower it if the pooler refuses clients. |
-| `CRON_SECRET` | server | in production | The bearer token Vercel Cron presents to `/api/cron/overage`, which reports overage to Stripe every five minutes. Unset, the route answers 503. `dev:server` reports on its own timer instead. |
+| `CRON_SECRET` | server | in production | The bearer token Vercel Cron presents to `/api/cron/overage`, which reports overage to Stripe daily. Unset, the route answers 503. `dev:server` reports on its own five-minute timer instead. |
 | `API_URL` | client | no | Sends the proxy's calls to a standalone API (`bun run dev:server`, `http://127.0.0.1:3001`) instead of running it in-process. Unset everywhere else. |
 | `HOST` | server | no | The interface `dev:server` listens on, default `127.0.0.1`. The API trusts the identity the Next proxy forwards, so a standalone API must never be reachable from the internet. |
 | `STRIPE_SECRET_KEY` | server | for billing | Opens checkouts and portal sessions, changes seat and pack quantities, reports overage to the meter, and cancels the subscription of a deleted workspace. A test-mode key (`sk_test_…`) bills in test mode. |
@@ -352,9 +352,12 @@ leaves the schema as it is, which is the other reason migrations only add.
 - Vercel refuses a request body over 4.5 MB before the function runs, so
   images are capped at 4 MB (`shared/plans.ts`).
 - The API route runs for at most 60 s (`maxDuration` in the proxy route).
-- Overage goes to Stripe from Vercel Cron every five minutes
+- Overage goes to Stripe from Vercel Cron daily at midnight UTC
   (the root `vercel.json`), on production only, carrying `CRON_SECRET`.
-  Crons that often need the Pro plan.
+  This schedule works on Hobby, which can invoke it anytime from 00:00 to
+  00:59 UTC. Usage is counted as requests arrive; reports send the accumulated
+  difference, including late usage from the previous month. Reporting every
+  five minutes (`*/5 * * * *`) requires the Pro plan.
 - Vercel adds instances as traffic grows, so there are no replicas to
   set. Keep Spend Management on with a cap and an alert, so an integrator
   hammering the API cannot run up a bill unnoticed.
