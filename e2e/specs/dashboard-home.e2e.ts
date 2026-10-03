@@ -62,9 +62,8 @@ test.describe('the dashboard home', () => {
     // Nothing caps either, so there is no ceiling to draw a bar against.
     await expect(section.getByText('no limit')).toHaveCount(2);
     await expect(section.getByRole('progressbar')).toHaveCount(0);
-    // The plan page is for admins and Enterprise has no seats to count, so
-    // neither the members tile nor a price rides along.
-    await expect(section.getByText('Members')).toHaveCount(0);
+    // Membership is still a count even when the plan has no usage ceiling.
+    await expect(section.getByText('Members', { exact: true })).toBeVisible();
   });
 
   test('lists a new template with its status and when it was edited, and opens it', async ({ page, api, name }) => {
@@ -134,7 +133,7 @@ test.describe('the dashboard home', () => {
     // workspace the other specs have emptied may not have.
     await api.createTemplate({ title: name('viewall') });
     await page.goto('/dashboard');
-    await recent(page).getByRole('link', { name: 'View all' }).click();
+    await recent(page).getByRole('link', { name: 'View all', exact: true }).click();
     await expect(page).toHaveURL(/\/dashboard\/templates$/);
     await expect(page.getByRole('heading', { level: 1, name: 'Templates' })).toBeVisible();
   });
@@ -167,7 +166,7 @@ test.describe('the dashboard home', () => {
 
     for (const control of [
       page.locator('#main-content').getByRole('button', { name: 'New template' }).first(),
-      recent(page).getByRole('link', { name: 'View all' }),
+      recent(page).getByRole('link', { name: 'View all', exact: true }),
     ]) {
       await expect(control).toBeVisible();
       expect((await control.boundingBox())!.height).toBeGreaterThanOrEqual(44);

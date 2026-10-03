@@ -274,14 +274,13 @@ knock a running `next dev` over; restart it afterwards.
 ## Production on Vercel and Supabase
 
 One Vercel project, `temply`, serves the site and the API. Its Root
-Directory is `client`, with source files outside it included, because the
-build imports `server/` and `shared/`. Every `/api/*` request, both
-webhooks included, reaches the route `app/api/[[...path]]`, which hands it
-to the Elysia app in the same Node function (`client/lib/call-api.ts`).
-The API has no address of its own.
+Directory is the repository root. `vercel.json` defines a Next.js service
+in `client/` and an Elysia service in `server/`; `/api/*`, including both
+webhooks, routes directly to Elysia. Local development and browser tests
+use `app/api/[[...path]]` to call the same API in-process.
 
 Postgres is Supabase, in London beside the functions (`lhr1`, set in
-`client/vercel.json`). The app connects through the transaction pooler
+the root `vercel.json`). The app connects through the transaction pooler
 (:6543); migrations and backups use the session pooler (:5432), because
 the direct connection is IPv6-only and GitHub's runners have no IPv6.
 Supabase's Data API is off. Every table also has row level security on
@@ -296,12 +295,14 @@ nothing even if the Data API were turned back on.
 
 ### Releases
 
-The `deploy` job in `.github/workflows/ci.yml` runs once `check` and `e2e`
-have passed. It builds with `vercel build`, runs `bun run db:migrate`
+The `deploy` job in `.github/workflows/ci.yml` runs on pushes and manual
+runs of `main` or `staging`, once `check` and `e2e` have passed. It builds
+with `vercel build`, runs `bun run db:migrate`
 against that environment's database, releases with
 `vercel deploy --prebuilt`, and asks the public domain for `/api/health`,
-which queries the database. A failed build touches nothing; a failed
-migration leaves the running release serving. `client/vercel.json` turns
+which verifies that the application tables exist without reading customer
+data. A failed build touches nothing; a failed migration leaves the
+running release serving. The root `vercel.json` turns
 Vercel's Git deploys off for `main` and `staging`, so CI is the only way
 either is released.
 
@@ -352,7 +353,7 @@ leaves the schema as it is, which is the other reason migrations only add.
   images are capped at 4 MB (`shared/plans.ts`).
 - The API route runs for at most 60 s (`maxDuration` in the proxy route).
 - Overage goes to Stripe from Vercel Cron every five minutes
-  (`client/vercel.json`), on production only, carrying `CRON_SECRET`.
+  (the root `vercel.json`), on production only, carrying `CRON_SECRET`.
   Crons that often need the Pro plan.
 - Vercel adds instances as traffic grows, so there are no replicas to
   set. Keep Spend Management on with a cap and an alert, so an integrator
@@ -411,7 +412,8 @@ shared/
   schema.ts plans.ts theme.ts preflight.ts
 e2e/                    Playwright specs, the fakes, database.ts (a fresh database per run)
 compose.yaml            Postgres 17 for dev and e2e
-client/vercel.json      region, the overage cron, Git deploys off for main and staging
+vercel.json             services, region, cron, Git deploys off for main and staging
+client/vercel.json      client service install command
 scripts/dev-public.ts   the tunnel workflow
 ```
 

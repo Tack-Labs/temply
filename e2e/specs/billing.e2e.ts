@@ -45,7 +45,7 @@ test.describe('billing', () => {
     try {
       await page.goto(PLAN_PAGE);
       await expect(planHeading(page, 'Free trial')).toBeVisible();
-      await expect(page.getByText('14 days left', { exact: true })).toBeVisible();
+      await expect(page.getByRole('main').getByText('14 days left', { exact: true })).toBeVisible();
       await expect(page.getByRole('heading', { name: 'Subscribe to Team' })).toBeVisible();
       await expect(page.getByRole('button', { name: SUBSCRIBE })).toBeEnabled();
       await expect(page.getByRole('progressbar', { name: 'Live API calls this month' })).toHaveAttribute('aria-valuetext', '0 of 10,000');

@@ -168,7 +168,10 @@ test.describe('the mobile drawer', () => {
   test('is 44px to the touch: the opener, the close button, the links and the account button', async ({ page }) => {
     await page.goto('/dashboard/templates');
     const opener = page.getByRole('button', { name: 'Open navigation' });
-    const targets: [string, Locator][] = [['the opener', opener]];
+    const openerBox = await opener.boundingBox();
+    expect(openerBox?.height, 'the opener height').toBeGreaterThanOrEqual(44);
+    expect(openerBox?.width, 'the opener width').toBeGreaterThanOrEqual(44);
+    const targets: [string, Locator][] = [];
     await opener.click();
     const drawer = page.getByRole('dialog', { name: 'Navigation' });
     await expect(drawer).toBeVisible();

@@ -1,6 +1,16 @@
 import { FAKES_URL, RUN_ID, STRIPE, STRIPE_URL } from '../env';
 import { test, expect } from '../fixtures/test';
 
+test('an empty DELETE reaches its handler even with a JSON content type', async ({ page }) => {
+  const missing = `missing-${RUN_ID}`;
+  const headerVariants: Record<string, string>[] = [{}, { 'Content-Type': 'application/json' }];
+  for (const headers of headerVariants) {
+    const response = await page.request.delete(`/api/v1/assets/${missing}`, { headers });
+    expect(response.status()).toBe(404);
+    expect((await response.json()).message).toBe('Asset not found');
+  }
+});
+
 // Runs on the desktop project only (see playwright.config): the fakes are one
 // process shared by every worker, and what this test posts is found again by
 // the value it sent, not by counting what the fakes hold.

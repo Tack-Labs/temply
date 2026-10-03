@@ -164,12 +164,12 @@ jobs:
   # once the build has succeeded, and the release goes out only once the
   # migration has. The release still serving while it runs keeps working,
   # because a migration only ever adds (expand, then contract: CLAUDE.md).
-  # Git deploys of these two branches are off in client/vercel.json, so
+  # Git deploys of these two branches are off in the root vercel.json, so
   # this is the only way either is released.
   deploy:
     name: Deploy to Vercel
     needs: [check, e2e]
-    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/staging')
+    if: (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/staging')
     runs-on: ubuntu-latest
     timeout-minutes: 25
     environment:
@@ -195,12 +195,24 @@ jobs:
       - uses: oven-sh/setup-bun@v2
         with:
           bun-version: 1.4.2
+      - name: Validate release configuration
+        env:
+          MIGRATION_DATABASE_URL: ${{ secrets.MIGRATION_DATABASE_URL }}
+        run: |
+          missing=0
+          for setting in VERCEL_ORG_ID VERCEL_PROJECT_ID VERCEL_TOKEN APP_URL MIGRATION_DATABASE_URL; do
+            if [ -z "${!setting}" ]; then
+              echo "::error::$setting is missing from the GitHub release configuration. See README.md: Releases."
+              missing=1
+            fi
+          done
+          exit "$missing"
       - name: Install
         run: bun install --frozen-lockfile
       - name: Install Vercel CLI
         run: bun add --global vercel@60.1.3
-      # Run from the repository root: the project's Root Directory is
-      # client/, and the build imports server/ and shared/ from beside it.
+      # Run from the repository root: Vercel builds the client and server
+      # services together from the root vercel.json.
       - name: Build
         run: |
           vercel pull --yes --environment="$VERCEL_TARGET" --token="$VERCEL_TOKEN"

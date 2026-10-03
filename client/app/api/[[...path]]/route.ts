@@ -54,6 +54,10 @@ async function handleRequest(request: NextRequest, { params }: { params: Promise
   // decoding it as UTF-8 would corrupt every byte above 0x7f.
   const body = request.method !== 'GET' && request.method !== 'HEAD' ? await request.arrayBuffer() : undefined;
 
+  // Elysia parses a JSON content type even without a body. Empty DELETEs
+  // and POSTs must reach their handlers without asking it to parse JSON.
+  if (!body?.byteLength) delete headers['Content-Type'];
+
   const res = await callApi(apiPath, { method: request.method, headers, body });
 
   const data = await res.text();

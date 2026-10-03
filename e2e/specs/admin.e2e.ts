@@ -21,10 +21,13 @@ test('the Temply organisation admin can browse signups and loses access when its
 
   let adminId: string | undefined;
   let signupId: string | undefined;
-  const signupName = name('signup');
+  // Clerk rejects phone numbers in organisation names; GitHub's numeric
+  // run id must stay unique without looking like a number.
+  const organisationName = (what: string) => name(what).replace(/\d/g, (digit) => String.fromCharCode(97 + Number(digit)));
+  const signupName = organisationName('signup');
   try {
     adminId = (await clerk.organizations.createOrganization({
-      name: name('main'), createdBy: user.id, privateMetadata: { templyAdmin: true },
+      name: organisationName('main'), createdBy: user.id, privateMetadata: { templyAdmin: true },
     })).id;
     signupId = (await clerk.organizations.createOrganization({ name: signupName })).id;
     await activateWorkspace(page, adminId);

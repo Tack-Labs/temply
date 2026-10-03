@@ -54,7 +54,7 @@ export async function setupStripe(stripe: Stripe): Promise<SetupReport> {
   }
 
   const monthly = { interval: 'month' } as const;
-  const wanted: Record<StripePriceName, { nickname: string; unitAmount: number; create: Stripe.PriceCreateParams }> = {
+  const wanted: Record<StripePriceName, { nickname: string; unitAmount: number; create: Omit<Stripe.PriceCreateParams, 'currency'> }> = {
     seat: {
       nickname: 'Seat',
       unitAmount: cents(PRICES_USD.seat),
@@ -65,7 +65,7 @@ export async function setupStripe(stripe: Stripe): Promise<SetupReport> {
     apiOverage: {
       nickname: 'API overage',
       unitAmount: cents(PRICES_USD.overagePer1000Calls) / 1000,
-      create: { unit_amount_decimal: String(cents(PRICES_USD.overagePer1000Calls) / 1000), recurring: { ...monthly, usage_type: 'metered', meter: meter.id } },
+      create: { unit_amount_decimal: Stripe.Decimal.from(String(cents(PRICES_USD.overagePer1000Calls) / 1000)), recurring: { ...monthly, usage_type: 'metered', meter: meter.id } },
     },
     templatePack: {
       nickname: 'Template pack',

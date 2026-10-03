@@ -161,8 +161,8 @@ export function ApiMock() {
           reads the same in light and dark — which is what a terminal does. Its
           lowest text colour is rail-muted. */}
       <div className="overflow-hidden rounded-lg border border-rail-line bg-rail-bg">
-        <div className="flex items-center justify-between gap-3 border-b border-rail-line px-4 py-2.5 font-mono text-2xs">
-          <span className="tracking-wide text-rail-muted uppercase">GET /api/public/v1/templates/:id</span>
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-rail-line px-4 py-2.5 font-mono text-2xs">
+          <span className="min-w-0 break-all tracking-wide text-rail-muted uppercase">GET /api/public/v1/templates/:id</span>
           <span className="flex shrink-0 items-center gap-1.5 whitespace-nowrap text-rail-ok">
             <span aria-hidden className="size-1.5 rounded-full bg-current" />
             200 OK

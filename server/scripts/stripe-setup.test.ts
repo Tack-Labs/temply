@@ -33,7 +33,7 @@ function stubStripe() {
     prices: {
       list: async (params: { lookup_keys: string[] }) => ({ data: prices.filter((p) => params.lookup_keys.includes(p.lookup_key)) }),
       create: async (params: any) => {
-        const made = { id: id('price'), ...params, unit_amount_decimal: params.unit_amount_decimal ?? String(params.unit_amount) };
+        const made = { id: id('price'), ...params, unit_amount_decimal: String(params.unit_amount_decimal ?? params.unit_amount) };
         prices.push(made);
         return made;
       },

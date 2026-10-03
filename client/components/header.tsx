@@ -227,8 +227,8 @@ export function Header() {
       {/* The gutter stays 20px so the bar's edges line up with the page below.
           At 320px a signed-in visitor's wordmark and three 44px targets overrun
           the 280px inside it by 2px at a 12px gap between the groups, so below
-          `sm` the gap is 8px. */}
-      <div className="mx-auto flex h-full max-w-5xl items-center justify-between gap-2 px-5 sm:gap-3">
+          `sm` the gap is 6px. */}
+      <div className="mx-auto flex h-full max-w-5xl items-center justify-between gap-1.5 px-5 sm:gap-3">
         <div className="flex items-center gap-10">
           <Link href="/" className="-mx-1 flex min-h-11 items-center gap-2.5 rounded-md px-1">
             <BrandMark className="size-5.5 text-accent" />
