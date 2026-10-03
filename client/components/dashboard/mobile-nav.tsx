@@ -37,7 +37,7 @@ export function useCloseWhenWide(open: boolean, setOpen: (open: boolean) => void
  * stronger than hiding it: nothing in it can take focus or be read, and
  * Escape or the scrim returns focus to the button that opened it.
  */
-export function MobileNav() {
+export function MobileNav({ platformAdmin = false }: { platformAdmin?: boolean }) {
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
 
@@ -73,6 +73,7 @@ export function MobileNav() {
         >
           <DialogPrimitive.Title className="sr-only">Navigation</DialogPrimitive.Title>
           <Sidebar
+            platformAdmin={platformAdmin}
             onNavigate={() => setOpen(false)}
             headerAction={
               <DialogPrimitive.Close asChild>

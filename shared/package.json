@@ -4,6 +4,7 @@
   "main": "./schema.ts",
   "types": "./schema.ts",
   "exports": {
+    "./admin": "./admin.ts",
     "./schema": "./schema.ts",
     "./theme": "./theme.ts",
     "./contrast": "./contrast.ts",

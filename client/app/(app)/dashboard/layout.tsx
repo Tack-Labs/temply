@@ -1,4 +1,5 @@
 import { SettingsIcon } from 'lucide-react';
+import { auth } from '@clerk/nextjs/server';
 import Link from 'next/link';
 import { BillingBanner } from '~/components/dashboard/billing-banner';
 import { MobileNav } from '~/components/dashboard/mobile-nav';
@@ -15,12 +16,20 @@ export default async function DashboardLayout({
   // Rows made before organizations are claimed by the active one on every
   // visit. Idempotent and a handful of empty updates once done; a failure
   // here must not take the dashboard down, so it is swallowed.
-  await serverFetch('/api/v1/workspace/adopt', { method: 'POST', body: '{}' }).catch(() => undefined);
+  const { orgRole } = await auth();
+  const [, platformAdmin] = await Promise.all([
+    serverFetch('/api/v1/workspace/adopt', { method: 'POST', body: '{}' }).catch(() => undefined),
+    orgRole === 'org:admin'
+      ? serverFetch('/api/v1/admin/access', { cache: 'no-store' })
+          .then(async (response) => response.ok && (await response.json()).allowed === true)
+          .catch(() => false)
+      : Promise.resolve(false),
+  ]);
 
   return (
     <div className="flex h-screen overflow-hidden bg-surface">
       <div className="hidden w-60 shrink-0 md:block">
-        <Sidebar />
+        <Sidebar platformAdmin={platformAdmin} />
       </div>
 
       <div className="flex flex-1 flex-col overflow-hidden">
@@ -33,7 +42,7 @@ export default async function DashboardLayout({
             on a coarse pointer, where a 44px target needs the room for its
             focus ring, and the sidebar's header says the same. */}
         <header className="flex h-12 shrink-0 items-center justify-between gap-2 border-b border-line px-4 pointer-coarse:h-14 md:justify-end">
-          <MobileNav />
+          <MobileNav platformAdmin={platformAdmin} />
           <div className="flex items-center gap-2">
             <Button variant="secondary" size="icon" asChild>
               <Link href="/dashboard/settings" aria-label="Settings" title="Settings">

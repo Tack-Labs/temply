@@ -74,6 +74,28 @@ came from the Next.js proxy. Generate one:
 node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
 ```
 
+## Temply admin
+
+In the **production** Clerk dashboard, open **Organisations**, select the main
+Temply organisation, and merge this flag into its **Private metadata**:
+
+```json
+{ "templyAdmin": true }
+```
+
+Select that organisation in Temply while signed in as one of its admins. An
+**Admin** navigation link opens `/dashboard/admin`, listing all organisations
+in the same Clerk instance, member counts, the current London month's live
+and test API calls, templates, storage and subscription details. Search and
+pagination include organisations that have not opened a workspace yet.
+Member counts are per organisation, not a count of unique people across Temply.
+Subscription status comes from Temply's Stripe webhook records.
+
+Access checks read the private flag and the caller's membership from Clerk
+on every request. Customer organisation admins and members of the main
+organisation cannot use the platform endpoints. Remove the flag to revoke
+access. No session-token customisation or database migration is needed.
+
 ## Environment variables
 
 The full list, optional ones and their defaults included. *Side* says

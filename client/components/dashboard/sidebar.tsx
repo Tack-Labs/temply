@@ -45,9 +45,11 @@ export function WorkspaceSwitcher() {
 export function Sidebar({
   onNavigate,
   headerAction,
+  platformAdmin = false,
 }: {
   onNavigate?: () => void;
   headerAction?: React.ReactNode;
+  platformAdmin?: boolean;
 }) {
   return (
     <aside aria-label="Workspace" className="flex h-full flex-col border-r border-line bg-surface text-ink">
@@ -76,7 +78,7 @@ export function Sidebar({
       {/* The first and last links sit a full padding inside the scroll box, so
           their focus outlines are not clipped by it. */}
       <div className="flex-1 overflow-y-auto p-2.5">
-        <NavLinks onNavigate={onNavigate} />
+        <NavLinks onNavigate={onNavigate} platformAdmin={platformAdmin} />
       </div>
 
       <div className="space-y-2 border-t border-line p-2.5">

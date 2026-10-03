@@ -8,6 +8,7 @@ import {
   ImageIcon,
   LayoutDashboardIcon,
   PaletteIcon,
+  ShieldCheckIcon,
 } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -50,12 +51,15 @@ export const NAV_SECTIONS: NavSection[] = [
 
 /** Shared by the fixed sidebar and the narrow-viewport drawer, so the two can
  *  never drift apart. */
-export function NavLinks({ onNavigate }: { onNavigate?: () => void }) {
+export function NavLinks({ onNavigate, platformAdmin = false }: { onNavigate?: () => void; platformAdmin?: boolean }) {
   const pathname = usePathname();
+  const sections: NavSection[] = platformAdmin
+    ? [...NAV_SECTIONS, { label: 'Temply', items: [{ href: '/dashboard/admin', label: 'Admin', icon: ShieldCheckIcon }] }]
+    : NAV_SECTIONS;
 
   return (
     <nav aria-label="Dashboard">
-      {NAV_SECTIONS.map((section, index) => (
+      {sections.map((section, index) => (
         <div key={section.label ?? index}>
           {section.label ? (
             <div className="px-2.5 pt-4 pb-1 text-2xs font-medium tracking-wide text-muted uppercase">

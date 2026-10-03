@@ -19,6 +19,7 @@ import { authRoutes } from './routes/auth/logout';
 import { healthRoutes } from './routes/health';
 import { cspReportRoutes } from './routes/csp-report';
 import { cronRoutes } from './routes/cron';
+import { adminRoutes } from './routes/admin';
 
 /**
  * The whole API, started by nothing. On Vercel the Next.js catch-all route
@@ -49,6 +50,7 @@ export const app = new Elysia()
   .use(emailsRoutes)
   .use(publicRoutes)
   .use(workspaceRoutes)
+  .use(adminRoutes)
   .use(contactRoutes)
   .use(stripeWebhookRoutes)
   .use(clerkWebhookRoutes)

@@ -1,7 +1,32 @@
 'use client';
 
 import { CreateOrganization } from '@clerk/nextjs';
+import { useEffect, useState } from 'react';
 import { useTheme } from '~/components/theme-provider';
+import { Button } from '~/components/ui/button';
+import { CONTACT_EMAIL } from '~/lib/site';
+
+export function WorkspaceSetupFallback() {
+  const [unavailable, setUnavailable] = useState(false);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setUnavailable(true), 10_000);
+    return () => clearTimeout(timer);
+  }, []);
+
+  if (!unavailable) return <p role="status" className="text-center text-sm text-muted">Loading workspace setup...</p>;
+
+  return (
+    <div role="alert" className="space-y-3 rounded-lg border border-line bg-raised p-4 text-center">
+      <p className="text-sm text-ink">Workspace setup could not load.</p>
+      <p className="text-sm text-muted">
+        Try again or{' '}
+        <a href={`mailto:${CONTACT_EMAIL}`} className="text-accent-ink underline">contact support</a>.
+      </p>
+      <Button variant="secondary" onClick={() => window.location.reload()}>Try again</Button>
+    </div>
+  );
+}
 
 /**
  * Clerk's own form, dressed in our theme. It creates the organization and
@@ -19,8 +44,11 @@ export function CreateWorkspace() {
         </p>
       </div>
       <CreateOrganization
+        // This page has a separate invite route, so Clerk's substeps use the hash.
+        routing="hash"
         afterCreateOrganizationUrl="/onboarding/invite"
         skipInvitationScreen
+        fallback={<WorkspaceSetupFallback />}
         appearance={{
           ...clerkAppearance,
           elements: {

@@ -22,6 +22,14 @@ const current = (view: ReturnType<typeof render>) =>
   view.getAllByRole('link').filter((link) => link.getAttribute('aria-current') === 'page').map((link) => link.textContent);
 
 describe('NavLinks', () => {
+  it('shows Admin only when server authorization allows it', () => {
+    pathname = '/dashboard/admin';
+    expect(render(<NavLinks />).queryByRole('link', { name: 'Admin' })).toBeNull();
+    cleanup();
+    const view = render(<NavLinks platformAdmin />);
+    expect(view.getByRole('link', { name: 'Admin' }).getAttribute('href')).toBe('/dashboard/admin');
+    expect(current(view)).toEqual(['Admin']);
+  });
   it('keeps the labels and routes the specs and the muscle memory rely on', () => {
     pathname = '/dashboard';
     const view = render(<NavLinks />);

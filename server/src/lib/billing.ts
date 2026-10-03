@@ -34,12 +34,18 @@ export interface Account {
  * plan until its owner's next visit moves everything across.
  */
 export async function getPlan(db: Db, orgId: string, now: Date = new Date()): Promise<Account> {
-  const at = now.toISOString();
   const [sub] = await db
     .select()
     .from(subscriptions)
     .where(or(eq(subscriptions.org_id, orgId), and(eq(subscriptions.user_id, orgId), isNull(subscriptions.org_id))))
     .limit(1);
+
+  return accountFromSubscription(sub, now);
+}
+
+/** The same entitlement rules apply to a workspace and the platform directory. */
+export function accountFromSubscription(sub: SubscriptionRow | undefined, now: Date = new Date()): Account {
+  const at = now.toISOString();
 
   if (sub && paying(sub, at)) {
     return {
