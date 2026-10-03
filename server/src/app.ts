@@ -57,4 +57,7 @@ export const app = new Elysia()
   .use(cspReportRoutes)
   .use(cronRoutes);
 
+// Vercel's Elysia service loads this entrypoint through its default export.
+export default app;
+
 export type App = typeof app;

@@ -33,13 +33,18 @@ describe('the minified app', () => {
   it('leaves the body of a signed webhook for its handler to read', async () => {
     const built = await Bun.build({ entrypoints: [join(import.meta.dir, 'app.ts')], outdir: dir, target: 'node', minify: true });
     expect(built.success).toBe(true);
-    const { app } = (await import(join(dir, 'app.js'))) as { app: { handle(request: Request): Promise<Response> } };
+    const { app, default: entrypoint } = (await import(join(dir, 'app.js'))) as {
+      app: { handle(request: Request): Promise<Response> };
+      default: { fetch(request: Request): Promise<Response> };
+    };
+    expect(entrypoint).toBe(app);
+    expect(typeof entrypoint.fetch).toBe('function');
 
     const error = spyOn(console, 'error').mockImplementation(() => {});
     try {
       for (const path of ['/api/webhooks/stripe', '/api/webhooks/clerk']) {
         error.mockClear();
-        const res = await app.handle(
+        const res = await entrypoint.fetch(
           new Request(`http://api.internal${path}`, {
             method: 'POST',
             headers: {
