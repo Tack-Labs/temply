@@ -20,9 +20,9 @@ export function LegalPage({
     <div className="mx-auto max-w-2xl px-5 pt-16 pb-24 sm:pt-20">
       <header>
         <p className="font-mono text-2xs tracking-wide text-accent-ink uppercase">Legal</p>
-        <h1 className="mt-2 font-display text-3xl font-semibold tracking-tight text-ink">{title}</h1>
+        <h1 className="mt-2 font-display text-3xl font-semibold tracking-display text-ink">{title}</h1>
         <p className="mt-4 text-lg text-pretty text-muted">{intro}</p>
-        <p className="mt-3 text-sm text-faint">
+        <p className="mt-3 text-sm text-muted">
           Last updated {updated} ·{' '}
           <Link href={sibling.href} className="text-accent-ink underline-offset-4 hover:underline">
             {sibling.label}
@@ -36,8 +36,8 @@ export function LegalPage({
 
 export function Section({ id, title, children }: { id: string; title: string; children: ReactNode }) {
   return (
-    <section id={id} className="scroll-mt-20">
-      <h2 className="font-display text-xl font-semibold tracking-tight text-ink">{title}</h2>
+    <section id={id} className="scroll-mt-[calc(var(--header-h)+1.5rem)]">
+      <h2 className="font-display text-xl font-semibold tracking-display text-ink">{title}</h2>
       <div className="mt-3 space-y-3 text-base leading-relaxed text-muted">{children}</div>
     </section>
   );

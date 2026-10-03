@@ -12,18 +12,14 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '~/components/ui/dropdown-menu';
+import { cn } from '~/lib/classname';
 
 type UserMenuProps = {
   align?: 'start' | 'end' | 'center';
   showLabel?: boolean;
-  /** Which background the trigger sits on. The dashboard rail is graphite in
-   *  both themes, so it needs the rail palette; the marketing header sits on
-   *  the page surface and must follow the theme instead — rail colours there
-   *  meant a dark hover blotch in light mode. */
-  surface?: 'rail' | 'page';
 };
 
-export function UserMenu({ align = 'end', showLabel = true, surface = 'rail' }: UserMenuProps) {
+export function UserMenu({ align = 'end', showLabel = true }: UserMenuProps) {
   const { user, isSignedIn, isLoaded } = useUser();
   const { signOut } = useClerk();
 
@@ -35,22 +31,22 @@ export function UserMenu({ align = 'end', showLabel = true, surface = 'rail' }: 
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        {/* With the label the trigger is a rail row: the avatar sits on the
+        {/* With the label the trigger is a sidebar row: the avatar sits on the
             same 20px line as the nav icons and the workspace avatar above.
             Without it the trigger is a plain icon button. Either way it is
             named for what it opens, and with the label also for whom: the
             visible name has to be in the accessible name (WCAG 2.5.3), and
-            a reader of the rail learns who is signed in without opening
+            a reader of the sidebar learns who is signed in without opening
             the menu. An initial alone is no name; the address stays out of
             the name in both, which the menu repeats. */}
         <button
           type="button"
           aria-label={showLabel ? `Account: ${user?.fullName ?? 'User'}` : 'Account'}
-          className={`flex w-full items-center gap-2 rounded-md text-sm ${showLabel ? 'px-2.5 py-1.5' : 'p-1.5'} ${pressable} ${
-            surface === 'rail'
-              ? 'text-rail-ink hover:bg-rail-hover'
-              : 'text-ink hover:bg-hover'
-          }`}
+          className={cn(
+            'flex w-full items-center gap-2 rounded-md text-sm text-ink hover:bg-hover pointer-coarse:min-h-11',
+            showLabel ? 'px-2.5 py-1.5' : 'p-1.5 pointer-coarse:min-w-11',
+            pressable,
+          )}
         >
           <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-accent text-xs font-semibold text-white">
             {initials}
@@ -60,9 +56,7 @@ export function UserMenu({ align = 'end', showLabel = true, surface = 'rail' }: 
               <span className="w-full truncate text-sm leading-tight font-medium">
                 {user?.fullName ?? 'User'}
               </span>
-              <span
-                className={`w-full truncate text-xs ${surface === 'rail' ? 'text-rail-muted' : 'text-muted'}`}
-              >
+              <span className="w-full truncate text-xs text-muted">
                 {user?.emailAddresses?.[0]?.emailAddress ?? ''}
               </span>
             </span>

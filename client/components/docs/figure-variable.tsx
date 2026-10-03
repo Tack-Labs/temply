@@ -16,7 +16,7 @@ export function FigureVariable() {
         </Panel>
         <Panel title="2 · In the HTML">
           <div style={{ ...CANVAS.card, fontFamily: 'ui-monospace, monospace', fontSize: 11.5 }}>
-            Hi <span style={{ color: '#4338ca' }}>{'{{firstName}}'}</span>,
+            Hi <span style={{ color: 'var(--ds-canvas-accent-ink)' }}>{'{{firstName}}'}</span>,
           </div>
         </Panel>
         <Panel title="3 · In the inbox">

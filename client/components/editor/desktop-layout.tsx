@@ -37,7 +37,7 @@ import type { TemplateEditorModel } from './use-template-editor';
 
 // The app-wide input treatment; the global :focus-visible ring supplies focus.
 const inputClass =
-  'h-9 w-full rounded-md border border-line bg-raised px-3 text-sm text-ink placeholder:text-faint';
+  'h-9 w-full rounded-md border border-line bg-raised px-3 text-sm text-ink placeholder:text-muted';
 
 const labelClass = 'block text-sm font-medium text-ink';
 
@@ -60,7 +60,7 @@ export function DesktopEditorLayout({
     previewKeys, previewData, setPreviewData, hasPreviewData,
     previewHtml, isPreviewPending, htmlSource, textSource,
     preflight, preflightExpanded, setPreflightExpanded,
-    saveStatus, autosave, unpublished, publishedAt, publishedLabel,
+    saveStatus, autosave, unpublished, publishedLabel, publishStatus, publishBadge,
     isPublishing, publishArmed, handlePublish, sendArmed, handleSend, handleDiscarded, handleRestored,
     shortCodeCopied, copyShortCode,
   } = model;
@@ -76,13 +76,18 @@ export function DesktopEditorLayout({
         {/* The actions sit together; the state of the draft reads as one
             quiet line beside them rather than being threaded between. */}
         <div className="flex flex-wrap items-center gap-2">
+          {/* Armed means the first click found errors and opened the checks;
+              the second goes through, and wears the colour of what it
+              overrides. The label never takes a progress word, so the name a
+              reader or a spec finds the button by is the same in flight. */}
           <Button
-            variant="primary"
-            disabled={readOnly || isPublishing || (!unpublished && publishedAt !== null && !publishArmed)}
+            variant={publishArmed ? 'danger' : 'primary'}
+            disabled={readOnly || isPublishing || (publishStatus === 'published' && !publishArmed)}
+            aria-busy={isPublishing}
             onClick={handlePublish}
             title={publishedLabel ?? undefined}
           >
-            {isPublishing ? <Loader2Icon className="animate-spin" /> : <GlobeIcon />}
+            {isPublishing ? <Loader2Icon className="animate-spin motion-reduce:animate-none" /> : <GlobeIcon />}
             {publishArmed ? 'Publish anyway' : 'Publish'}
           </Button>
           {/* Preview lives in the Content header now, beside what it shows. */}
@@ -98,19 +103,25 @@ export function DesktopEditorLayout({
             delete and send stay up on the first row. The save status fades
             rather than unmounts and so keeps its width while hidden; it comes
             after the badge so that width never indents it. The row opens on a
-            phone once there is something to read, and the status never
-            returns to idle, so it never closes again. The card is a grid with
+            phone once there is something to read, and a template that has a
+            badge keeps one, so it never closes again. The card is a grid with
             no row gap so the closed row costs nothing; the padding inside the
-            clipped box is the spacing, and it grows in with the row. */}
+            clipped box is the spacing, and it grows in with the row. The
+            badge is keyed on the state so a change of state fades the new
+            word in rather than swapping it under the reader. */}
         <div
           className={cn(
             'col-span-2 grid transition-[grid-template-rows,opacity] duration-base ease-out motion-reduce:transition-none sm:row-start-1 sm:grid-rows-[1fr] sm:opacity-100 sm:[grid-column:2/3]',
-            unpublished || saveStatus !== 'idle' ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0',
+            publishBadge || saveStatus !== 'idle' ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0',
           )}
         >
           <div className="overflow-hidden">
             <div className="flex items-center gap-2 pt-3 sm:pt-0">
-              {unpublished ? <Badge tone="warn">Unpublished changes</Badge> : null}
+              {publishBadge ? (
+                <Badge key={publishStatus} tone={publishBadge.tone} className="fade-in-mount">
+                  {publishBadge.label}
+                </Badge>
+              ) : null}
               <SaveStatus status={saveStatus} onRetry={() => void autosave?.flush()} />
             </div>
           </div>
@@ -141,7 +152,7 @@ export function DesktopEditorLayout({
       {template?.short_code && (
         <div className="flex items-center gap-3 rounded-lg border border-line bg-raised p-3">
           <div className="flex items-center gap-1.5">
-            <span className="text-xs font-medium text-faint">Template ID</span>
+            <span className="text-xs font-medium text-muted">Template ID</span>
             <code className="rounded-md bg-hover px-2 py-1 text-sm font-mono text-ink">
               {template.short_code}
             </code>
@@ -173,7 +184,7 @@ export function DesktopEditorLayout({
   -d '{"data":{"firstName":"Ada","isMember":true}}' \\
   ${typeof window !== 'undefined' ? window.location.origin : ''}/api/public/v1/templates/${template.short_code}/render`}
               </pre>
-              <p className="mt-2 text-2xs text-faint">
+              <p className="mt-2 text-2xs text-muted">
                 Create a key under API keys first. Every render counts as a call, so
                 render a broadcast once and cache on the template&apos;s updatedAt.
               </p>
@@ -227,7 +238,7 @@ export function DesktopEditorLayout({
 
           <div className="flex flex-col gap-1.5">
             <Label className={labelClass} htmlFor="replyTo">
-              Reply To <span className="font-normal text-faint">(optional)</span>
+              Reply To <span className="font-normal text-muted">(optional)</span>
             </Label>
             <input
               className={inputClass}

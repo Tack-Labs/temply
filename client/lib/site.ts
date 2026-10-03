@@ -1,11 +1,11 @@
-/**
- * The one place the site knows its own address. Everything that prints a
- * URL — metadata, the sitemap, docs snippets, the legal pages — reads it
- * from here, so the domain is an environment variable, not a string to
- * hunt for. NEXT_PUBLIC_APP_URL is the same variable the API server uses
- * for image URLs and the checkout return URL; the two must agree.
- */
-export const SITE_URL = (process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:9000').replace(/\/$/, '');
+/** Canonical links always name the public host, including on previews. */
+export const PRODUCTION_SITE_URL = 'https://temply.tacklabs.co.uk';
+
+/** Local API examples and legal links follow the configured app address. */
+export const SITE_URL = (
+  process.env.NEXT_PUBLIC_APP_URL ||
+  (process.env.NODE_ENV === 'production' ? PRODUCTION_SITE_URL : 'http://localhost:9000')
+).replace(/\/$/, '');
 
 /** Hostname alone, for places that show an address rather than link it. */
 export const SITE_HOST = new URL(SITE_URL).host;

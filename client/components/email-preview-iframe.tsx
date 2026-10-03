@@ -103,9 +103,12 @@ export function EmailPreviewIFrame(props: EmailPreviewIFrameProps) {
     <div className={cn('relative', wrapperClassName)}>
       <iframe title="Email preview" {...defaultProps} sandbox="" srcDoc={document} />
 
+      {/* The button keeps Button's own height: 32px, and 44px on a coarse
+          pointer, where it covers 12px more of the frame's corner. The frame
+          scrolls, so nothing beneath it is out of reach. */}
       {showOpenInNewTab ? (
         <Button
-          className="absolute right-0 bottom-0 h-8 gap-1.5 rounded-none rounded-tl-md border-t border-l border-line text-sm font-normal"
+          className="absolute right-0 bottom-0 gap-1.5 rounded-none rounded-tl-md border-t border-l border-line text-sm font-normal"
           onClick={handleOpen}
           type="button"
           variant="secondary"

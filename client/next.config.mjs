@@ -107,6 +107,9 @@ const nextConfig = {
   // report-only: a wrong allow-list takes sign-in down, so it is watched
   // before it is enforced (see contentSecurityPolicy above).
   async headers() {
+    const noindexPaths = process.env.SITE_NOINDEX === '1' || (process.env.VERCEL_ENV && process.env.VERCEL_ENV !== 'production')
+      ? ['/(.*)']
+      : ['/dashboard/:path*', '/templates/:path*', '/onboarding/:path*', '/login/:path*', '/sign-up/:path*', '/p/:path*', '/api/:path*'];
     return [
       {
         source: '/(.*)',
@@ -123,11 +126,16 @@ const nextConfig = {
           { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=(), payment=()' },
         ],
       },
+      ...noindexPaths.map((source) => ({
+        source,
+        headers: [{ key: 'X-Robots-Tag', value: 'noindex, nofollow' }],
+      })),
     ];
   },
   // Billing and API keys moved under Settings. These catch bookmarks.
   async redirects() {
     return [
+      { source: '/og-image.png', destination: '/temply-email-editor.png', statusCode: 301 },
       { source: '/dashboard/billing', destination: '/dashboard/settings/plan', permanent: false },
       {
         source: '/dashboard/api-keys',

@@ -8,7 +8,7 @@ import { Mark } from './mark';
  * numbers are Next's way of linking more than one icon — a plain icon.svg
  * and icon.tsx shadow each other and only one reaches the page.
  */
-export const size = { width: 32, height: 32 };
+export const size = { width: 48, height: 48 };
 export const contentType = 'image/png';
 
 export default function Icon() {

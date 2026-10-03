@@ -11,7 +11,7 @@ const ADMIN = ['Everything a member does', 'Plan and billing', 'API keys', 'Who 
 function Role({ name, items, accent }: { name: string; items: string[]; accent?: boolean }) {
   return (
     <div className="min-w-0 rounded-md border border-line bg-raised p-3">
-      <p className="text-2xs font-medium tracking-wide text-faint uppercase">{name}</p>
+      <p className="text-2xs font-medium tracking-wide text-muted uppercase">{name}</p>
       <ul className="mt-2 space-y-1 text-sm text-muted">
         {items.map((item, index) => (
           <li key={item} className={accent && index > 0 ? 'text-ink' : undefined}>
@@ -31,7 +31,7 @@ export function FigureWorkspace() {
           <div className="flex items-center gap-2 border-b border-line px-3 py-1.5">
             <span className="flex size-5 items-center justify-center rounded-sm bg-accent-wash text-2xs font-medium text-accent-ink">A</span>
             <span className="text-2xs font-medium text-ink">Acme</span>
-            <span className="text-2xs text-faint">workspace</span>
+            <span className="text-2xs text-muted">workspace</span>
           </div>
           <div className="flex flex-wrap gap-1.5 p-3">
             {HOLDS.map((item) => (

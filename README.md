@@ -295,6 +295,10 @@ The job needs, in GitHub:
 Changing a `NEXT_PUBLIC_*` value needs a new build, not a redeploy of the
 old one.
 
+CI sets `SITE_NOINDEX=1` for staging builds and `0` for production. This
+keeps staging pages out of search even if the build has no `VERCEL_ENV`.
+For a preview built outside CI, set `SITE_NOINDEX=1` in its build environment.
+
 Keep the `E2E_*` repository secrets described in
 [e2e/README.md](e2e/README.md). They use the Clerk **development**
 instance, independently of the live keys. Use branch protection on `main`

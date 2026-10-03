@@ -1,10 +1,10 @@
 /**
  * The brand mark as an image response draws it: the same three bars on the
- * same indigo as public/brand/icon.svg, in boxes rather than paths, because
+ * same blue as public/brand/icon.svg, in boxes rather than paths, because
  * the icon routes render JSX to PNG with satori and satori draws boxes.
  * Every measure is a share of the edge so one drawing serves every size.
  */
-export const MARK_INDIGO = '#4F46E5';
+export const MARK_BLUE = '#0B5FFF';
 
 export function Mark({ size }: { size: number }) {
   const bar = (left: number, top: number, width: number) => (
@@ -27,7 +27,7 @@ export function Mark({ size }: { size: number }) {
         height: size,
         display: 'flex',
         position: 'relative',
-        background: MARK_INDIGO,
+        background: MARK_BLUE,
         borderRadius: size * 0.23,
       }}
     >

@@ -86,7 +86,7 @@ export function PreviewDataPanel({
             variables: { ...data.variables, [key]: event.target.value },
           })
         }
-        className="h-7 min-w-0 flex-1 rounded-xs border border-line bg-raised px-2 text-sm text-ink placeholder:text-faint"
+        className="h-7 min-w-0 flex-1 rounded-xs border border-line bg-raised px-2 text-sm text-ink placeholder:text-muted"
       />
     </label>
   );
@@ -106,7 +106,7 @@ export function PreviewDataPanel({
 
       {keys.conditions.length > 0 && (
         <div className="space-y-1.5">
-          <p className="text-2xs font-medium tracking-wide text-faint uppercase">Conditions</p>
+          <p className="text-2xs font-medium tracking-wide text-muted uppercase">Conditions</p>
           <div className="flex flex-wrap gap-x-4 gap-y-1.5">
             {keys.conditions.map((key) => (
               <label key={key} className="flex items-center gap-1.5 text-sm text-ink">
@@ -130,7 +130,7 @@ export function PreviewDataPanel({
 
       {topLevel.length > 0 && (
         <div className="space-y-1.5">
-          <p className="text-2xs font-medium tracking-wide text-faint uppercase">Variables</p>
+          <p className="text-2xs font-medium tracking-wide text-muted uppercase">Variables</p>
           <div className="grid gap-2">{topLevel.map(variableRow)}</div>
         </div>
       )}
@@ -140,19 +140,22 @@ export function PreviewDataPanel({
         return (
           <div key={list} className="space-y-1.5">
             <div className="flex items-center justify-between gap-3">
-              <p className="text-2xs font-medium tracking-wide text-faint uppercase">
+              <p className="text-2xs font-medium tracking-wide text-muted uppercase">
                 Repeat over <span className="font-mono normal-case tracking-normal">{list}</span>
               </p>
               {/* A count, not a list editor: the rows share one set of sample
-                  words, and what the preview answers is how N of them sit. */}
+                  words, and what the preview answers is how N of them sit.
+                  The steppers are tapped repeatedly with a label between them,
+                  so on a coarse pointer they take the full 44px and the row
+                  grows to fit rather than holding 28px. */}
               <div className="flex items-center gap-1">
-                <Button type="button" variant="ghost" size="icon" className="size-7" aria-label={`Fewer ${list}`} disabled={count <= 0} onClick={() => setCount(list, count - 1)}>
+                <Button type="button" variant="ghost" size="icon-sm" touch aria-label={`Fewer ${list}`} disabled={count <= 0} onClick={() => setCount(list, count - 1)}>
                   <MinusIcon />
                 </Button>
                 <span className="min-w-14 text-center text-xs text-ink tabular-nums" aria-live="polite">
                   {count === 1 ? '1 item' : `${count} items`}
                 </span>
-                <Button type="button" variant="ghost" size="icon" className="size-7" aria-label={`More ${list}`} disabled={count >= LIST_ITEMS_MAX} onClick={() => setCount(list, count + 1)}>
+                <Button type="button" variant="ghost" size="icon-sm" touch aria-label={`More ${list}`} disabled={count >= LIST_ITEMS_MAX} onClick={() => setCount(list, count + 1)}>
                   <PlusIcon />
                 </Button>
               </div>

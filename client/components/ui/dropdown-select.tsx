@@ -61,7 +61,9 @@ export function DropdownSelect({
   align?: 'start' | 'end';
   /** Sizes the trigger and the rows for a thumb. The menu renders in a portal,
    *  so a sheet cannot reach the rows with a wrapper class — it has to be asked
-   *  for here. Off by default: every desktop dropdown keeps its `size`. */
+   *  for here. Off by default: every desktop dropdown keeps its `size`. This
+   *  is set by the surface (the phone sheets), whatever the pointer is; it is
+   *  not Button's `touch`, which defers to the pointer media query. */
   touch?: boolean;
   /** Leaves focus where it is when the menu opens and closes. For a dropdown
    *  inside the editor's bubble menus: the menu opens on pointerdown and

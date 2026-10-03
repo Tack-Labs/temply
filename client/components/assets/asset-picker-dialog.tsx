@@ -18,7 +18,7 @@ import { cn } from '~/lib/classname';
 import { localId } from '~/lib/id';
 
 const inputClass =
-  'h-9 w-full rounded-md border border-line bg-raised px-3 text-sm text-ink placeholder:text-faint';
+  'h-9 w-full rounded-md border border-line bg-raised px-3 text-sm text-ink placeholder:text-muted';
 
 export function AssetPickerDialog({
   open,

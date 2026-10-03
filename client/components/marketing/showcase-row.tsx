@@ -1,8 +1,10 @@
 'use client';
 
 import type { CSSProperties, ReactNode } from 'react';
+import { Kicker } from '~/components/marketing/kicker';
 import { useParallax } from '~/hooks/use-parallax';
 import { useReveal } from '~/hooks/use-reveal';
+import { cn } from '~/lib/classname';
 
 interface ShowcaseRowProps {
   /** The stage of the workflow this row belongs to — Build, Check, Ship, Reuse.
@@ -15,9 +17,22 @@ interface ShowcaseRowProps {
   visual: ReactNode;
   /** Every other row flips, so the eye zig-zags down the page. */
   flipped?: boolean;
+  /** The row sits on the accent fill, so its text and pill are the on-accent
+   *  forms and the glow, which would be accent on accent, is left out. */
+  band?: boolean;
+  /** A call to action under the description. */
+  action?: ReactNode;
 }
 
-export function ShowcaseRow({ stage, title, description, visual, flipped = false }: ShowcaseRowProps) {
+export function ShowcaseRow({
+  stage,
+  title,
+  description,
+  visual,
+  flipped = false,
+  band = false,
+  action,
+}: ShowcaseRowProps) {
   const rowRef = useReveal();
   // Relative parallax: the panel lags the scroll by a few pixels as it crosses
   // the viewport. Small numbers on purpose — it should register as depth, not
@@ -44,33 +59,43 @@ export function ShowcaseRow({ stage, title, description, visual, flipped = false
           className="reveal-visual relative"
           style={{ '--reveal-from': flipped ? '28px' : '-28px' } as CSSProperties}
         >
-          {/* A whisper of the hero's indigo behind each panel, so the page
+          {/* A whisper of the hero's accent glow behind each panel, so the page
               keeps its atmosphere after the backdrop fades. The element's own
               transform makes it a stacking context, so -z-10 stays inside it
               instead of falling behind the page background. */}
-          <div
-            aria-hidden
-            className="pointer-events-none absolute -inset-x-16 -inset-y-10 -z-10 blur-2xl"
-            style={{
-              background:
-                'radial-gradient(ellipse at center, color-mix(in oklab, var(--ds-accent) 10%, transparent), transparent 70%)',
-            }}
-          />
+          {band ? null : (
+            <div
+              aria-hidden
+              className="pointer-events-none absolute -inset-x-16 -inset-y-10 -z-10 blur-2xl"
+              style={{
+                background:
+                  'radial-gradient(ellipse at center, color-mix(in oklab, var(--ds-accent) 10%, transparent), transparent 70%)',
+              }}
+            />
+          )}
           {visual}
         </div>
       </div>
 
       <div className="reveal-copy lg:w-[43%]">
-        <p className="flex items-center gap-2.5 font-mono text-2xs tracking-[0.16em] text-accent-ink uppercase">
-          <span aria-hidden className="h-px w-6 bg-accent-ink/45" />
-          {stage}
-        </p>
-        <h3 className="mt-4 font-display text-2xl font-semibold tracking-tight text-balance text-ink lg:text-3xl">
+        <Kicker onAccent={band}>{stage}</Kicker>
+        <h3
+          className={cn(
+            'mt-5 font-display text-2xl font-semibold tracking-display text-balance lg:text-3xl',
+            band ? 'text-on-accent' : 'text-ink',
+          )}
+        >
           {title}
         </h3>
-        <p className="mt-4 max-w-md text-lg leading-relaxed text-pretty text-muted">
+        <p
+          className={cn(
+            'mt-4 max-w-md text-lg leading-relaxed text-pretty',
+            band ? 'text-on-accent' : 'text-muted',
+          )}
+        >
           {description}
         </p>
+        {action ? <div className="mt-7">{action}</div> : null}
       </div>
     </div>
   );

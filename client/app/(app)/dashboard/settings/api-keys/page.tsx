@@ -192,7 +192,7 @@ export default function ApiKeysPage() {
           }
         />
       ) : (
-        <div className="overflow-x-auto rounded-lg border border-line bg-raised">
+        <div className="overflow-x-auto rounded-xl border border-line bg-raised">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-line">
@@ -241,7 +241,7 @@ export default function ApiKeysPage() {
                         confirmLabel="Revoke"
                         onConfirm={() => revokeKey(key.id)}
                       >
-                        <Button variant="danger-quiet" size="sm">
+                        <Button variant="danger-quiet" size="sm" touch>
                           <Trash2Icon />
                           Revoke
                         </Button>
@@ -369,7 +369,7 @@ curl -X POST -H "Authorization: Bearer tply_live_..." \\
             </label>
             <input
               id="api-key-name"
-              className="h-8 w-full rounded-sm border border-line bg-raised px-2.5 text-sm text-ink placeholder:text-faint"
+              className="h-8 w-full rounded-sm border border-line bg-raised px-2.5 text-sm text-ink placeholder:text-muted"
               placeholder="Production server"
               value={keyName}
               onChange={(e) => setKeyName(e.target.value)}

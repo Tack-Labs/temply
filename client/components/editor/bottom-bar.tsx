@@ -54,7 +54,10 @@ export function EditorBottomBar({
             <tab.icon className="size-5" />
             {tab.label}
             {tab.id === 'checks' && badge ? (
-              <span className={cn('absolute top-1.5 right-3 min-w-4 rounded-full px-1 text-center text-2xs font-semibold text-white', badge.tone === 'danger' ? 'bg-danger' : 'bg-warn')}>
+              // The Badge recipe, wash and ink: the warn fill never carries
+              // text (white on it is 3.2:1). The ring gives a pale wash an
+              // edge against the raised bar, which it has no contrast with.
+              <span className={cn('absolute top-1.5 right-3 min-w-4 rounded-full px-1 text-center text-2xs font-semibold ring-1 ring-inset', badge.tone === 'danger' ? 'bg-danger-wash text-danger-ink ring-danger' : 'bg-warn-wash text-warn-ink ring-warn')}>
                 {badge.n}
               </span>
             ) : null}

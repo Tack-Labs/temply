@@ -64,7 +64,7 @@ export function EditorCheatsheet({ className }: { className?: string }) {
         <div className="grid gap-x-8 gap-y-6 sm:grid-cols-2">
           {EDITOR_SHORTCUTS.map((group) => (
             <section key={group.title}>
-              <h3 className="text-2xs font-medium tracking-wide text-faint uppercase">
+              <h3 className="text-2xs font-medium tracking-wide text-muted uppercase">
                 {group.title}
               </h3>
               <dl className="mt-2 space-y-1.5">

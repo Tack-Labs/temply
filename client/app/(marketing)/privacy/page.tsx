@@ -1,11 +1,9 @@
-import type { Metadata } from 'next';
+import { JsonLd } from '~/components/json-ld';
+import { publicPageMetadata, publicPageSchema } from '~/lib/seo';
 import { LegalPage, List, P, Section, Strong } from '~/components/legal/legal-page';
 import { LEGAL, PROCESSORS } from '~/lib/legal';
 
-export const metadata: Metadata = {
-  title: 'Privacy policy',
-  description: 'What Temply collects, why, who else touches it, and how to get it back or deleted.',
-};
+export const metadata = publicPageMetadata('/privacy');
 
 export default function PrivacyPage() {
   return (
@@ -14,6 +12,7 @@ export default function PrivacyPage() {
       intro={`What ${LEGAL.product} collects about you, why, who else handles it, and how to see it, take it or delete it.`}
       sibling={{ href: '/terms', label: 'Terms of service' }}
     >
+      <JsonLd data={publicPageSchema('/privacy')} />
       <Section id="who" title="1. Who is responsible">
         <P>
           {LEGAL.operator} runs {LEGAL.product} and is the controller of the personal data described here. Reach us

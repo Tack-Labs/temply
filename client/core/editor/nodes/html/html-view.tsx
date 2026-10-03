@@ -69,8 +69,12 @@ export function HTMLCodeBlockView(props: NodeViewProps) {
             }
             const shadow = node.attachShadow({ mode: 'open' });
             const sheet = new CSSStyleSheet();
+            // Custom properties inherit through the shadow boundary, so the
+            // preview takes the canvas's own face. A literal 'Inter' cannot
+            // reach the loaded file: next/font registers it under a hashed
+            // family name (components/editor/canvas-font.ts).
             sheet.replaceSync(`
-              * { font-family: 'Inter', sans-serif; }
+              * { font-family: var(--mly-font-family, 'Inter', sans-serif); }
               blockquote, h1, h2, h3, img, li, ol, p, ul {
                 margin-top: 0;
                 margin-bottom: 0;

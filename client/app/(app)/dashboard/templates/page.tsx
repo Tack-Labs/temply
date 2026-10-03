@@ -1,10 +1,10 @@
 import { auth } from '@clerk/nextjs/server';
 import { redirect } from 'next/navigation';
-import { FileTextIcon } from 'lucide-react';
 import { NewTemplateButton } from '~/components/dashboard/new-template-button';
 import { PlanLimitBanner } from '~/components/dashboard/plan-limit-banner';
+import { RefreshErrorState } from '~/components/dashboard/refresh-error-state';
 import { TemplateList } from '~/components/dashboard/template-list';
-import { EmptyState, ErrorState, PageHeader } from '~/components/ui/surfaces';
+import { PageHeader } from '~/components/ui/surfaces';
 import { serverFetch } from '~/lib/server-fetch';
 import type { TemplateListItem } from '~/lib/template-search';
 import { PLAN_PAGE, type Billing } from '~/lib/billing';
@@ -19,15 +19,15 @@ export default async function TemplatesPage() {
 
   // A failed request used to be coerced into an empty list, which drew the
   // "no templates yet" screen — indistinguishable from an account that really
-  // is empty. Keep the two apart.
+  // is empty. Keep the two apart. A request that throws (the API unreachable,
+  // or past its timeout) is as much a failed load as one answered with an
+  // error, and gets the same retry rather than the app's error page.
   const [res, billingRes] = await Promise.all([
-    serverFetch('/api/v1/templates'),
+    serverFetch('/api/v1/templates').catch(() => null),
     serverFetch('/api/v1/billing').catch(() => null),
   ]);
-  const failed = !res.ok;
-  const { templates = [] }: { templates: TemplateListItem[] } = failed
-    ? { templates: [] }
-    : await res.json();
+  const failed = !res?.ok;
+  const { templates = [] }: { templates?: TemplateListItem[] } = res?.ok ? await res.json() : {};
 
   // The API returns full rows — content, theme, user_id and all. Project down
   // to the fields the list renders before the array crosses into the client
@@ -82,16 +82,16 @@ export default async function TemplatesPage() {
       {limitBanner ? <PlanLimitBanner {...limitBanner} /> : null}
 
       {failed ? (
-        <ErrorState description="We could not reach the server, so your templates are not shown. This is not a sign that they are gone." />
-      ) : list.length === 0 ? (
-        <EmptyState
-          icon={FileTextIcon}
-          title="No templates yet"
-          description="Start one and it will appear here, ready to edit or send."
-          action={<NewTemplateButton disabled={readOnly} />}
-        />
+        <RefreshErrorState description="We could not reach the server, so your templates are not shown. This is not a sign that they are gone." />
       ) : (
-        <TemplateList templates={list} canDuplicate={!atLimit && !readOnly} />
+        // The list draws the empty account's invitation itself rather than the
+        // page swapping it in: deleting the last template then empties a list
+        // that stays mounted, which is what lets it keep the reader's focus.
+        <TemplateList
+          templates={list}
+          canDuplicate={!atLimit && !readOnly}
+          emptyAction={<NewTemplateButton disabled={readOnly} />}
+        />
       )}
     </div>
   );

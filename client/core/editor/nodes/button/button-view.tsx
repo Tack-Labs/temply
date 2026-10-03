@@ -65,7 +65,10 @@ export function ButtonView(props: NodeViewProps) {
             <button
               type="button"
               className={cn(
-                'mly:inline-flex mly:items-center mly:justify-center mly:rounded-md mly:text-sm mly:font-medium mly:ring-offset-white mly:transition-colors mly:disabled:pointer-events-none mly:disabled:opacity-50',
+                // The base corner is the renderer's for any value it does not
+                // name (square), never the editor's radius scale: this button is
+                // email content, not chrome.
+                'mly:inline-flex mly:items-center mly:justify-center mly:rounded-none mly:text-sm mly:font-medium mly:ring-offset-white mly:transition-colors mly:disabled:pointer-events-none mly:disabled:opacity-50',
                 'mly:font-semibold mly:no-underline',
                 {
                   'mly:rounded-full!': _radius === 'round',

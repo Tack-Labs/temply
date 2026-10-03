@@ -8,8 +8,12 @@ import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { errorMessage, httpPost } from '~/lib/http';
 import { createAutosave, type AutosaveStatus } from '~/lib/autosave';
+import { CANVAS_FONT_FAMILY } from './canvas-font';
 import { captureThenFlush, captureThenLeave, createExitBeacon } from './exit-save';
 import { hasUnpublishedChanges } from '@temply/shared/publish';
+import type { TemplateStatus } from '~/lib/template-search';
+import { publishView, type PublishBadge } from './publish-state';
+import { useToday } from '~/hooks/use-today';
 import { clearDraft, PLAYGROUND_DRAFT_ID } from '~/lib/drafts';
 import { createEditorUploader } from '~/lib/assets';
 import { useCopyToClipboard } from '~/hooks/use-copy-to-clipboard';
@@ -133,6 +137,12 @@ export type TemplateEditorModel = {
   // save / publish / send
   saveStatus: AutosaveStatus; autosave: ReturnType<typeof createAutosave> | null;
   unpublished: boolean; publishedAt: string | null; publishedLabel: string | null;
+  /** Never published, published with edits waiting, or in sync. Publish is
+   *  only offered in the first two. */
+  publishStatus: TemplateStatus;
+  /** The status as the chrome words it; null until a published template's
+   *  stamp can be formatted in the reader's zone. */
+  publishBadge: PublishBadge | null;
   isPublishing: boolean; publishArmed: boolean; handlePublish: () => Promise<void>;
   sendArmed: boolean; handleSend: () => Promise<void>;
   handleDiscarded: (row: Mail) => void;
@@ -201,15 +211,18 @@ export function useTemplateEditor(props: EmailEditorSandboxProps): TemplateEdito
   /** The newest snapshot handed to the autosave — what a closing tab beacons. */
   const latestSnapshot = useRef<DraftSnapshot | null>(null);
   // The publish time is shown in the reader's locale and zone, which the
-  // server cannot know; rendering it only after mount keeps hydration clean.
-  const [publishedLabel, setPublishedLabel] = useState<string | null>(null);
-  useEffect(() => {
-    setPublishedLabel(
-      publishedAt
-        ? `Published ${new Date(publishedAt).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })}`
-        : 'Not published yet',
-    );
-  }, [publishedAt]);
+  // server cannot know, so it is worked out in render from the reader's day
+  // (null until hydrated, which keeps hydration clean) and not copied into
+  // state by an effect: a publish would then commit the new status a frame
+  // before its stamp. The day also re-words a stamp a tab outlives. The full
+  // label is the Publish button's tooltip, the stamp is the short form the
+  // status badge carries.
+  const today = useToday();
+  const {
+    status,
+    badge,
+    label: publishedLabel,
+  } = publishView(publishedAt, unpublished, today === null ? null : new Date());
   /** The state as last saved. Null until the editor exists to be read. */
   const savedFingerprint = useRef<string | null>(null);
 
@@ -933,6 +946,8 @@ export function useTemplateEditor(props: EmailEditorSandboxProps): TemplateEdito
       paddingRight: body.paddingRight ?? '16px',
       paddingBottom: body.paddingBottom ?? body.paddingTop ?? '0px',
       paddingLeft: body.paddingLeft ?? '16px',
+      // The canvas is set in the renderer's face, not the app's.
+      ['--mly-font-family' as string]: CANVAS_FONT_FAMILY,
       // Button and link colours are read inside the canvas via these vars.
       ['--mly-button-background-color' as string]: button.backgroundColor,
       ['--mly-button-text-color' as string]: button.color,
@@ -981,6 +996,7 @@ export function useTemplateEditor(props: EmailEditorSandboxProps): TemplateEdito
     previewHtml, isPreviewPending, htmlSource, textSource, previewError,
     preflight, preflightExpanded, setPreflightExpanded,
     saveStatus, autosave, unpublished, publishedAt, publishedLabel,
+    publishStatus: status, publishBadge: badge,
     isPublishing, publishArmed, handlePublish, sendArmed, handleSend, handleDiscarded, handleRestored,
     shortCodeCopied, copyShortCode,
   };

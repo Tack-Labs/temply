@@ -1,17 +1,29 @@
-import { beforeEach, describe, expect, test } from 'bun:test';
+import { afterAll, beforeAll, beforeEach, describe, expect, test } from 'bun:test';
 import { clearDraft, PLAYGROUND_DRAFT_ID } from './drafts';
 
 const store = new Map<string, string>();
 
 // bun's test environment has no DOM. The store only needs the two methods
-// the module calls, so a Map stands in for it.
-(globalThis as any).window = {
-  localStorage: {
-    getItem: (k: string) => store.get(k) ?? null,
-    setItem: (k: string, v: string) => void store.set(k, v),
-    removeItem: (k: string) => void store.delete(k),
-  },
-};
+// the module calls, so a Map stands in for it. Bun runs every test file in one
+// process, and a file that has registered happy-dom already owns `window`:
+// the stand-in is put up for this file's tests and the original put back
+// after, so the DOM tests that follow keep theirs.
+const original = Object.getOwnPropertyDescriptor(globalThis, 'window');
+
+beforeAll(() => {
+  (globalThis as any).window = {
+    localStorage: {
+      getItem: (k: string) => store.get(k) ?? null,
+      setItem: (k: string, v: string) => void store.set(k, v),
+      removeItem: (k: string) => void store.delete(k),
+    },
+  };
+});
+
+afterAll(() => {
+  if (original) Object.defineProperty(globalThis, 'window', original);
+  else delete (globalThis as any).window;
+});
 
 beforeEach(() => store.clear());
 

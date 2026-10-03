@@ -161,7 +161,7 @@ export function VersionHistoryDialog({
               confirmLabel="Discard"
               onConfirm={() => discardDraft()}
             >
-              <Button variant="danger-quiet" size="sm" disabled={isDiscarding || readOnly}>
+              <Button variant="danger-quiet" size="sm" touch disabled={isDiscarding || readOnly}>
                 {isDiscarding ? <Loader2Icon className="animate-spin" /> : <Undo2Icon />}
                 Discard changes
               </Button>
@@ -175,7 +175,7 @@ export function VersionHistoryDialog({
               <h3 className="text-sm font-medium text-ink">
                 Version {previewVersion.version_number}
               </h3>
-              <Button variant="ghost" size="sm" onClick={() => setPreviewVersion(null)}>
+              <Button variant="ghost" size="sm" touch onClick={() => setPreviewVersion(null)}>
                 &larr; Back to list
               </Button>
             </div>
@@ -226,6 +226,7 @@ export function VersionHistoryDialog({
                   <Button
                     variant="ghost"
                     size="sm"
+                    touch
                     onClick={() => restoreVersion(version.id)}
                     disabled={isRestoring || readOnly}
                     className="text-accent-ink hover:bg-accent-wash hover:text-accent-ink"

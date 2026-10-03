@@ -18,7 +18,7 @@ import type { TemplateEditorModel } from './use-template-editor';
 export type SheetId = 'details' | 'brand' | 'data' | 'checks' | 'eye' | null;
 
 const inputClass =
-  'h-11 w-full rounded-md border border-line bg-raised px-3 text-base text-ink placeholder:text-faint';
+  'h-11 w-full rounded-md border border-line bg-raised px-3 text-base text-ink placeholder:text-muted';
 
 function Field({
   id,

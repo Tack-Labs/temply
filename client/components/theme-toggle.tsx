@@ -13,7 +13,7 @@ export function ThemeToggle() {
       variant="secondary"
       size="icon"
       onClick={toggle}
-      aria-label={isDark ? 'Switch to light theme' : 'Switch to dark theme'}
+      aria-label="Dark theme"
       aria-pressed={isDark}
     >
       {isDark ? <SunIcon /> : <MoonIcon />}

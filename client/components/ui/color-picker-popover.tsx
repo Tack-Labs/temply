@@ -17,7 +17,7 @@ export function ColorPickerPopover({
   value,
   onChange,
   swatchClassName = 'size-6',
-  hexClassName = 'text-2xs text-faint',
+  hexClassName = 'text-2xs text-muted',
   touch = false,
 }: {
   id?: string;
@@ -30,7 +30,9 @@ export function ColorPickerPopover({
   /** Sizes the popover's own controls for a thumb. The popover body renders in
    *  a portal, so a sheet cannot reach it with a wrapper class — it has to be
    *  asked for here. Off by default: every desktop popover keeps the sizes it
-   *  has, and only the phone's Brand sheet passes it. */
+   *  has, and only the phone's Brand sheet passes it. It is set by the
+   *  surface, whatever the pointer is; it is not Button's `touch`, which
+   *  defers to the pointer media query. */
   touch?: boolean;
 }) {
   return (

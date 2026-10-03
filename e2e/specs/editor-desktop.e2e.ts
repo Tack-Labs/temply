@@ -616,6 +616,18 @@ test.describe('editor on the desktop', () => {
     await expect(status).toHaveText('Saved');
   });
 
+  test('the header trail names the page and leads back to the list', async ({ page, api, name }) => {
+    const t = await api.createTemplate({ title: name('breadcrumb') });
+    await openEditor(page, t.id);
+    const trail = page.getByRole('navigation', { name: 'Breadcrumb' });
+    // The page itself is the last crumb and says so; only the one before it
+    // is a link.
+    await expect(trail.getByText('Editor')).toHaveAttribute('aria-current', 'page');
+    await expect(trail.getByRole('link')).toHaveCount(1);
+    await trail.getByRole('link', { name: 'Templates' }).click();
+    await expect(page).toHaveURL(/\/dashboard\/templates$/);
+  });
+
   test('the cheatsheet lists what the editor answers to', async ({ page, api, name }) => {
     const t = await api.createTemplate({ title: name('cheatsheet') });
     await openEditor(page, t.id);

@@ -45,7 +45,7 @@ export function InviteTeammates() {
   return (
     <div className="space-y-4">
       <div className="text-center">
-        <h1 className="font-display text-xl font-semibold tracking-tight text-ink">Invite your team</h1>
+        <h1 className="font-display text-xl font-semibold tracking-display text-ink">Invite your team</h1>
         <p className="mt-1 text-sm text-muted">
           They can build and publish emails with you. You can do this later from Settings → Team.
         </p>
@@ -60,7 +60,7 @@ export function InviteTeammates() {
           onChange={(event) => setRaw(event.target.value)}
           placeholder="ada@example.com, grace@example.com"
           rows={3}
-          className="w-full rounded-sm border border-line bg-raised px-2.5 py-2 text-sm text-ink placeholder:text-faint"
+          className="w-full rounded-sm border border-line bg-raised px-2.5 py-2 text-sm text-ink placeholder:text-muted"
         />
         {invalid.length > 0 ? (
           <p className="text-xs text-danger-ink">Not an email address: {invalid.join(', ')}</p>

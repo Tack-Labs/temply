@@ -19,9 +19,12 @@
  *    8.4  the bubble leaves and the finished canvas holds
  *    9.6  the content dissolves, and the loop starts over
  *
- * Canvas contents use literal hex, like the hero showreel and the showcase
- * visuals: a mail client paints the canvas white in both themes, so what sits
- * on it cannot follow ours.
+ * Two sources of colour, as in the hero showreel. The canvas and what is
+ * written on it are painted from the `--ds-canvas-*` tokens, because a mail
+ * client paints the canvas the same way in both themes. The slash menu and the
+ * bubble are the editor's own furniture, so they follow the app's tokens, as
+ * they do over the real canvas in dark mode. The one literal hex is the colour
+ * the bubble restyles the button to, which depicts a customer's brand colour.
  */
 
 /* An inline <style> rather than globals.css on purpose: these keyframes belong
@@ -44,10 +47,10 @@ const ANIMATION_CSS = `
   max-width: 320px;
   margin-inline: auto;
   border-radius: 10px;
-  background-color: #ffffff;
+  background-color: var(--ds-canvas);
   box-shadow: var(--ds-shadow-canvas);
   padding: var(--pad) var(--pad) 24px;
-  color: #12141a;
+  color: var(--ds-canvas-ink);
   font-size: 13px;
   line-height: 1.45;
 }
@@ -71,7 +74,7 @@ const ANIMATION_CSS = `
   bottom: -3px;
   left: 0;
   right: 0;
-  background-color: #ffffff;
+  background-color: var(--ds-canvas);
   transform-origin: 100% 50%;
   transform: scaleX(1);
 }
@@ -87,7 +90,7 @@ const ANIMATION_CSS = `
   top: -1px;
   bottom: -1px;
   width: 1.5px;
-  background-color: #4f46e5;
+  background-color: var(--ds-accent);
 }
 
 .docs-editor-menu {
@@ -97,8 +100,8 @@ const ANIMATION_CSS = `
   width: 168px;
   padding: 6px;
   border-radius: 8px;
-  background-color: #ffffff;
-  box-shadow: 0 8px 22px rgb(18 20 26 / 0.14), 0 0 0 1px #e8eaee;
+  background-color: var(--ds-raised);
+  box-shadow: var(--ds-shadow-lg), 0 0 0 1px var(--ds-line);
   opacity: 0;
   z-index: 2;
 }
@@ -112,7 +115,7 @@ const ANIMATION_CSS = `
   width: 100%;
   height: var(--row-menu);
   border-radius: 6px;
-  background-color: #eef0fe;
+  background-color: var(--ds-accent-wash);
   opacity: 0;
 }
 
@@ -124,10 +127,10 @@ const ANIMATION_CSS = `
   height: var(--row-menu);
   padding: 0 8px;
   font-size: 11.5px;
-  color: #4a5160;
+  color: var(--ds-muted);
 }
 
-.docs-editor-slash { font-family: var(--font-mono); color: #4f46e5; }
+.docs-editor-slash { font-family: var(--font-mono); color: var(--ds-accent-ink); }
 
 .docs-editor-btn-wrap {
   display: inline-flex;
@@ -142,7 +145,7 @@ const ANIMATION_CSS = `
   height: 32px;
   padding: 0 16px;
   border-radius: 7px;
-  background-color: #4f46e5;
+  background-color: var(--ds-accent);
   font-size: 12px;
   font-weight: 500;
 }
@@ -153,11 +156,11 @@ const ANIMATION_CSS = `
   position: absolute;
   inset: 0;
   border-radius: 7px;
-  background-color: #c2653d;
+  background-color: #b85a33;
   opacity: 0;
 }
 
-.docs-editor-btn-label { position: relative; color: #ffffff; }
+.docs-editor-btn-label { position: relative; color: var(--ds-canvas-on-accent); }
 
 .docs-editor-bubble {
   position: absolute;
@@ -168,15 +171,15 @@ const ANIMATION_CSS = `
   gap: 8px;
   padding: 6px 9px;
   border-radius: 999px;
-  background-color: #ffffff;
-  box-shadow: 0 6px 16px rgb(18 20 26 / 0.14), 0 0 0 1px #e8eaee;
+  background-color: var(--ds-raised);
+  box-shadow: var(--ds-shadow-md), 0 0 0 1px var(--ds-line);
   opacity: 0;
   z-index: 3;
 }
 
 .docs-editor-dot { display: block; width: 11px; height: 11px; border-radius: 999px; }
-.docs-editor-dot-indigo { background-color: #4f46e5; }
-.docs-editor-dot-mid { background-color: #c2653d; }
+.docs-editor-dot-brand { background-color: var(--ds-accent); }
+.docs-editor-dot-mid { background-color: #b85a33; }
 .docs-editor-dot-teal { background-color: #0f766e; }
 .docs-editor-dot-slot { position: relative; display: flex; }
 
@@ -184,7 +187,7 @@ const ANIMATION_CSS = `
   position: absolute;
   inset: -4px;
   border-radius: 999px;
-  border: 1.5px solid #c2653d;
+  border: 1.5px solid #b85a33;
   opacity: 0;
 }
 
@@ -349,7 +352,7 @@ export function DemoEditor() {
             </div>
 
             <div className="docs-editor-bubble">
-              <span className="docs-editor-dot docs-editor-dot-indigo" />
+              <span className="docs-editor-dot docs-editor-dot-brand" />
               <span className="docs-editor-dot-slot">
                 <span className="docs-editor-dot-ring" />
                 <span className="docs-editor-dot docs-editor-dot-mid" />

@@ -50,7 +50,7 @@ export function BillingNotice({
         <div className="flex shrink-0 items-center gap-1.5">
           {action}
           {onDismiss ? (
-            <Button variant="ghost" size="icon-sm" aria-label="Dismiss" onClick={onDismiss}>
+            <Button variant="ghost" size="icon-sm" touch aria-label="Dismiss" onClick={onDismiss}>
               <XIcon />
             </Button>
           ) : null}
@@ -62,7 +62,7 @@ export function BillingNotice({
 
 function SubscribeLink() {
   return (
-    <Button variant="primary" size="sm" asChild>
+    <Button variant="primary" size="sm" touch asChild>
       <Link href={PLAN_PAGE}>Subscribe</Link>
     </Button>
   );
@@ -88,7 +88,7 @@ export function ReadOnlyNotice() {
 function UpdateCardButton() {
   const portal = usePortal();
   return (
-    <Button variant="primary" size="sm" onClick={() => portal.mutate()} disabled={portal.isPending}>
+    <Button variant="primary" size="sm" touch onClick={() => portal.mutate()} disabled={portal.isPending}>
       {portal.isPending ? <Loader2Icon className="animate-spin" /> : null}
       Update card
     </Button>

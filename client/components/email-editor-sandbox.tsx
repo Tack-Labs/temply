@@ -1,17 +1,20 @@
 'use client';
 
 import {
+  AlertTriangleIcon,
   CheckIcon,
   CopyIcon,
   DownloadIcon,
+  Loader2Icon,
 } from 'lucide-react';
-import { useRef, useSyncExternalStore } from 'react';
+import { useRef } from 'react';
 import { toast } from 'sonner';
 import type { AutosaveStatus } from '~/lib/autosave';
 import { useCopyToClipboard } from '~/hooks/use-copy-to-clipboard';
 import { cn } from '~/lib/classname';
 import { Button } from './ui/button';
 import { PageLoading } from './ui/page-loading';
+import { useHydrated } from '~/hooks/use-hydrated';
 import { useMediaQuery } from '~/hooks/use-media-query';
 import { DesktopEditorLayout } from './editor/desktop-layout';
 import { MobileEditorLayout } from './editor/mobile-layout';
@@ -20,13 +23,11 @@ import { useTemplateEditor, type EmailEditorSandboxProps } from './editor/use-te
 export type { EmailEditorSandboxProps };
 
 /**
- * The autosave's one word. Idle and dirty say nothing — the pause is short
- * and a flicker of "unsaved" on every keystroke is noise; the word appears
- * once a save is under way and stays as "Saved". A failure is the only state
- * that asks for anything, and it asks with a button.
- */
-/**
- * What the autosave has to say, and nothing when it has nothing.
+ * What the autosave has to say, and nothing when it has nothing. Idle and
+ * dirty say nothing — the pause is short and a flicker of "unsaved" on every
+ * keystroke is noise; the word appears once a save is under way and stays as
+ * "Saved". A failure is the only state that asks for anything, and it asks
+ * with a button.
  *
  * The word and the announcement are two elements on purpose. A live region is
  * read whatever its opacity, so the one that used to carry both said "Saved"
@@ -35,20 +36,36 @@ export type { EmailEditorSandboxProps };
  * fade, so the strip leaves rather than blinking out, and is `aria-hidden`
  * because the live region beside it is the half a reader hears; Retry sits
  * outside both, being a control rather than a status.
+ *
+ * The icon is the same three-way split so the states read at a glance: a
+ * spinner while it works, a check in the success colour once it has landed,
+ * an alert in the danger colour when it has not. They share one box and
+ * cross-fade, so the strip never changes width as the state turns over.
  */
 export function SaveStatus({ status, onRetry }: { status: AutosaveStatus; onRetry: () => void }) {
   const visible = status === 'saving' || status === 'saved' || status === 'error';
   const word = status === 'error' ? 'Not saved' : status === 'saving' ? 'Saving…' : 'Saved';
+  const icon =
+    'absolute inset-0 size-3.5 transition-opacity duration-base ease-out motion-reduce:transition-none';
   return (
     <span className="flex items-center gap-1 text-xs">
       <span
         aria-hidden
         className={cn(
-          'transition-opacity duration-base ease-out motion-reduce:transition-none',
+          'flex items-center gap-1 transition-opacity duration-base ease-out motion-reduce:transition-none',
           visible ? 'opacity-100' : 'opacity-0',
           status === 'error' ? 'text-danger-ink' : 'text-muted',
         )}
       >
+        <span className="relative size-3.5 shrink-0">
+          <Loader2Icon
+            className={cn(icon, status === 'saving' ? 'animate-spin opacity-100 motion-reduce:animate-none' : 'opacity-0')}
+          />
+          <CheckIcon
+            className={cn(icon, 'text-success-ink', status === 'saved' || status === 'idle' ? 'opacity-100' : 'opacity-0')}
+          />
+          <AlertTriangleIcon className={cn(icon, status === 'error' ? 'opacity-100' : 'opacity-0')} />
+        </span>
         {word}
       </span>
       {status === 'error' ? (
@@ -117,12 +134,6 @@ export function CopyHtmlButton({ html, label = 'Copy HTML' }: { html: string; la
       {copied ? <CheckIcon /> : <CopyIcon />}
     </Button>
   );
-}
-
-/** False on the server and during hydration, true from the first client
- *  render after it. */
-function useHydrated(): boolean {
-  return useSyncExternalStore(() => () => {}, () => true, () => false);
 }
 
 export function EmailEditorSandbox(props: EmailEditorSandboxProps) {

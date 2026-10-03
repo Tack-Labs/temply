@@ -108,7 +108,7 @@ export function ShareLinkPopover({
                 confirmLabel="Turn off"
                 onConfirm={() => removeLink()}
               >
-                <Button variant="danger-quiet" size="sm" disabled={isRemoving}>
+                <Button variant="danger-quiet" size="sm" touch disabled={isRemoving}>
                   {isRemoving ? <Loader2Icon className="animate-spin" /> : null}
                   Turn off link
                 </Button>

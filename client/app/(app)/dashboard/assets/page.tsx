@@ -24,7 +24,7 @@ import { localId } from '~/lib/id';
 import { useMinimumDisplay } from '~/hooks/use-minimum-display';
 
 const inputClass =
-  'h-9 w-full max-w-xs rounded-md border border-line bg-raised px-3 text-sm text-ink placeholder:text-faint';
+  'h-9 w-full max-w-xs rounded-md border border-line bg-raised px-3 text-sm text-ink placeholder:text-muted';
 
 export default function AssetsPage() {
   const { query, upload, remove } = useAssets();

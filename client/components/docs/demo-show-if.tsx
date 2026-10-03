@@ -14,9 +14,9 @@
  *    5.2  the tick returns and the block unfolds
  *    6.0  the canvas holds with it, and the loop starts over
  *
- * Canvas contents use literal hex, like the hero showreel and the showcase
- * visuals: a mail client paints the canvas white in both themes, so what sits
- * on it cannot follow ours.
+ * The canvas is painted from the `--ds-canvas-*` tokens, like the hero
+ * showreel and the showcase visuals: a mail client paints the canvas white in
+ * both themes, so what sits on it cannot follow the app's own tokens.
  */
 
 /* An inline <style> rather than globals.css on purpose: these keyframes belong
@@ -33,15 +33,15 @@ const ANIMATION_CSS = `
   max-width: 320px;
   margin-inline: auto;
   border-radius: 10px;
-  background-color: #ffffff;
+  background-color: var(--ds-canvas);
   box-shadow: var(--ds-shadow-canvas);
   padding: 20px;
-  color: #12141a;
+  color: var(--ds-canvas-ink);
   font-size: 12.5px;
   line-height: 1.5;
 }
 
-.docs-showif-para { margin: 0; color: #4a5160; }
+.docs-showif-para { margin: 0; color: var(--ds-canvas-body); }
 
 /* Fixed height, so the block folding away leaves its space behind instead of
    pulling the footer up. */
@@ -50,7 +50,7 @@ const ANIMATION_CSS = `
 .docs-showif-block {
   height: 100%;
   border-radius: 7px;
-  background-color: #eef0fe;
+  background-color: var(--ds-canvas-accent-wash);
   padding: 10px 12px;
   transform-origin: 50% 0%;
   transform: scaleY(1);
@@ -61,7 +61,7 @@ const ANIMATION_CSS = `
   display: block;
   font-size: 11px;
   font-weight: 600;
-  color: #4338ca;
+  color: var(--ds-canvas-accent-ink);
 }
 
 .docs-showif-block-line {
@@ -70,13 +70,13 @@ const ANIMATION_CSS = `
   height: 6px;
   width: 72%;
   border-radius: 999px;
-  background-color: #c3c8f0;
+  background-color: var(--ds-canvas-accent-bar);
 }
 
 .docs-showif-footer {
   margin: 12px 0 0;
   font-size: 11px;
-  color: #8a919e;
+  color: var(--ds-canvas-quiet);
 }
 
 .docs-showif-box {

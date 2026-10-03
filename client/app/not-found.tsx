@@ -12,7 +12,7 @@ export default function NotFound() {
   return (
     <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-surface px-6 text-center">
       <BrandMark className="size-6 text-accent" />
-      <h1 className="font-display text-xl font-semibold text-ink">There is nothing here</h1>
+      <h1 className="font-display text-xl font-semibold tracking-display text-ink">There is nothing here</h1>
       <p className="max-w-sm text-sm text-muted">
         The address may be mistyped, or the page has moved.
       </p>

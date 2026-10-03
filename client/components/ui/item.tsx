@@ -173,7 +173,9 @@ export function Row({
   actions,
   selected,
   busy,
+  leaving,
   className,
+  bodyClassName,
   href,
   onClick,
   primaryLabel,
@@ -181,25 +183,32 @@ export function Row({
   Primary & {
     /** A thumbnail or icon at the left edge, sized by the caller. */
     leading?: React.ReactNode;
+    /**
+     * Extra classes for the primary target's flex row, for a caller whose
+     * `meta` has to drop under the title on a narrow container and sit
+     * trailing on a wide one (`flex-wrap`, then `nowrap` from a breakpoint).
+     * Row itself stays a single line unless it is told otherwise.
+     */
+    bodyClassName?: string;
+    /**
+     * Opt in to closing the row up when its entity goes: pass `false` while it
+     * stays and `true` once it has been removed, and it fades and shrinks to
+     * nothing instead of snapping out from under the rows below. Leave it
+     * unset for a row that never goes and the markup is exactly what it was.
+     * Once set, keep it set: the row gains wrapper elements, and switching
+     * between set and unset would remount everything inside it.
+     */
+    leaving?: boolean;
   }) {
   const interactive = !busy && Boolean(href || onClick);
 
-  return (
-    <li
-      aria-busy={busy || undefined}
-      className={cn(
-        'group flex items-center item-motion',
-        interactive && 'hover:bg-hover active:bg-active',
-        selected && 'bg-accent-wash',
-        busy && 'opacity-80',
-        className,
-      )}
-    >
+  const content = (
+    <>
       <PrimaryTarget
         href={busy ? undefined : href}
         onClick={busy ? undefined : onClick}
         label={primaryLabel}
-        className="flex min-w-0 flex-1 items-center gap-3 px-3 py-2 text-left"
+        className={cn('flex min-w-0 flex-1 items-center gap-3 px-3 py-2 text-left', bodyClassName)}
       >
         {leading ? <div className="shrink-0">{leading}</div> : null}
         <div className="min-w-0 flex-1">
@@ -217,6 +226,40 @@ export function Row({
         {meta}
       </PrimaryTarget>
       {actions ? <div className="flex shrink-0 items-center gap-0.5 pr-2">{actions}</div> : null}
+    </>
+  );
+
+  return (
+    <li
+      aria-busy={busy || undefined}
+      className={cn(
+        leaving === undefined ? 'group flex items-center item-motion' : 'group item-motion',
+        interactive && 'hover:bg-hover active:bg-active',
+        selected && 'bg-accent-wash',
+        busy && 'opacity-80',
+        leaving && 'opacity-0',
+        className,
+      )}
+    >
+      {leaving === undefined ? (
+        content
+      ) : (
+        // The height runs from its content to nothing through the grid track,
+        // the way Reveal does; inert keeps a row on its way out out of the tab
+        // order and the accessibility tree. The overflow clip leaves room for
+        // a focus outline because the buttons sit well inside the row's own
+        // padding.
+        <div
+          className={cn(
+            'grid transition-[grid-template-rows] duration-base ease-out motion-reduce:transition-none',
+            leaving ? 'grid-rows-[0fr]' : 'grid-rows-[1fr]',
+          )}
+        >
+          <div className="min-h-0 overflow-hidden" aria-hidden={leaving} inert={leaving}>
+            <div className="flex items-center">{content}</div>
+          </div>
+        </div>
+      )}
     </li>
   );
 }

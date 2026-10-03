@@ -1,13 +1,11 @@
-import type { Metadata } from 'next';
+import { JsonLd } from '~/components/json-ld';
+import { publicPageMetadata, publicPageSchema } from '~/lib/seo';
 import Link from 'next/link';
 import { LegalPage, List, P, Section, Strong } from '~/components/legal/legal-page';
 import { LEGAL } from '~/lib/legal';
 import { formatUsd, INCLUDED, PRICES_USD, TEST_API_CALLS_PER_MONTH, TRIAL_DAYS } from '@temply/shared/plans';
 
-export const metadata: Metadata = {
-  title: 'Terms of service',
-  description: 'The agreement between you and Temply when you use the product.',
-};
+export const metadata = publicPageMetadata('/terms');
 
 export default function TermsPage() {
   return (
@@ -16,6 +14,7 @@ export default function TermsPage() {
       intro={`These terms are the agreement between you and ${LEGAL.operator} when you use ${LEGAL.product}. They are written to be read; if anything is unclear, ask.`}
       sibling={{ href: '/privacy', label: 'Privacy policy' }}
     >
+      <JsonLd data={publicPageSchema('/terms')} />
       <Section id="agreement" title="1. The agreement">
         <P>
           By creating an account or using {LEGAL.product} you agree to these terms. If you are using it on behalf of a

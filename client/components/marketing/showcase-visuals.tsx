@@ -4,25 +4,21 @@
  * a bench slab with a mono spec line across the top. The frame is the constant
  * so the thing inside it can be the variable.
  *
- * Anything drawn on the white email canvas uses literal hex, for the same
- * reason the hero showreel does: a mail client renders the canvas white in both
- * themes, so its contents cannot follow ours.
+ * What sits on the white email canvas is painted from the `canvas-*` tokens
+ * and the forced-dark repaint from `canvas-dark-*`: a mail client renders the
+ * canvas white in both themes, so its contents cannot follow ours, and the
+ * frame around it (the bench slab, the panel) does. The only literals left are
+ * the swatches of other companies' brands, which are theirs to choose.
  */
 
 import type { ReactNode } from 'react';
 import { PUBLIC_API_URL, SITE_HOST } from '~/lib/site';
 import { GripVerticalIcon } from 'lucide-react';
 
-/* Canvas palette — theme-invariant, matching what a mail client actually paints. */
-const CANVAS_INK = '#12141a';
-const CANVAS_BAR = '#dcdfe5';
-const CANVAS_LINE = '#e8eaee';
-const CANVAS_ACCENT = '#4f46e5';
-
 function Panel({ spec, meta, children }: { spec: string; meta?: string; children: ReactNode }) {
   return (
     <div className="rounded-xl border border-line bg-raised p-4 shadow-lg sm:p-6">
-      <div className="mb-3 flex items-center justify-between gap-4 px-1 font-mono text-2xs text-faint">
+      <div className="mb-3 flex items-center justify-between gap-4 px-1 font-mono text-2xs text-muted">
         <span className="tracking-wide uppercase">{spec}</span>
         {meta ? <span className="truncate">{meta}</span> : null}
       </div>
@@ -39,26 +35,15 @@ function Block({ children, selected = false }: { children: ReactNode; selected?:
     <div className="relative">
       <GripVerticalIcon
         aria-hidden
-        className="absolute top-1/2 -left-5 size-3.5 -translate-y-1/2"
-        style={{ color: selected ? CANVAS_ACCENT : '#c3c8d1' }}
+        className={`absolute top-1/2 -left-5 size-3.5 -translate-y-1/2 ${selected ? 'text-accent' : 'text-canvas-mark'}`}
       />
-      <div
-        // Selection hugs the block it is on, which for a button is the pill —
-        // a full-bleed outline round a 144px pill reads as an empty box.
-        className={selected ? 'w-fit rounded-xs' : 'rounded-xs'}
-        style={
-          selected
-            ? { outline: `2px solid ${CANVAS_ACCENT}`, outlineOffset: '6px' }
-            : undefined
-        }
-      >
+      {/* Selection hugs the block it is on, which for a button is the pill —
+          a full-bleed outline round a 144px pill reads as an empty box. */}
+      <div className={selected ? 'w-fit rounded-xs outline-2 outline-offset-6 outline-accent' : 'rounded-xs'}>
         {children}
       </div>
       {selected && (
-        <span
-          className="absolute -top-2 left-0 -translate-y-full rounded-xs px-1.5 py-0.5 font-mono text-2xs text-white"
-          style={{ backgroundColor: CANVAS_ACCENT }}
-        >
+        <span className="absolute -top-2 left-0 -translate-y-full rounded-xs bg-accent px-1.5 py-0.5 font-mono text-2xs text-canvas-on-accent">
           Button
         </span>
       )}
@@ -70,40 +55,34 @@ export function EditorMock() {
   return (
     <Panel spec="Editor canvas">
       <div className="rounded-lg bg-sunken p-3 sm:p-6">
-        <div
-          className="mx-auto w-full max-w-[420px] rounded-md bg-canvas px-7 py-7 shadow-canvas"
-          style={{ color: CANVAS_INK }}
-        >
+        <div className="mx-auto w-full max-w-[420px] rounded-md bg-canvas px-7 py-7 text-canvas-ink shadow-canvas">
           <div className="space-y-7">
             <Block>
-              <div className="size-7 rounded-md" style={{ backgroundColor: CANVAS_INK }} />
+              <div className="size-7 rounded-md bg-canvas-ink" />
             </Block>
 
             <Block>
-              <div className="h-3.5 w-3/5 rounded-xs" style={{ backgroundColor: CANVAS_INK }} />
+              <div className="h-3.5 w-3/5 rounded-xs bg-canvas-ink" />
             </Block>
 
             <Block>
               <div className="space-y-2">
-                <div className="h-2 w-full rounded-full" style={{ backgroundColor: CANVAS_BAR }} />
-                <div className="h-2 w-[92%] rounded-full" style={{ backgroundColor: CANVAS_BAR }} />
-                <div className="h-2 w-3/4 rounded-full" style={{ backgroundColor: CANVAS_BAR }} />
+                <div className="h-2 w-full rounded-full bg-canvas-bar" />
+                <div className="h-2 w-[92%] rounded-full bg-canvas-bar" />
+                <div className="h-2 w-3/4 rounded-full bg-canvas-bar" />
               </div>
             </Block>
 
             <div className="pt-1">
               <Block selected>
-                <div
-                  className="flex h-9 w-36 items-center justify-center rounded-md text-xs font-medium text-white"
-                  style={{ backgroundColor: CANVAS_ACCENT }}
-                >
+                <div className="flex h-9 w-36 items-center justify-center rounded-md bg-accent text-xs font-medium text-canvas-on-accent">
                   Open the dashboard
                 </div>
               </Block>
             </div>
 
             <Block>
-              <div className="h-px w-full" style={{ backgroundColor: CANVAS_LINE }} />
+              <div className="h-px w-full bg-canvas-line" />
             </Block>
           </div>
         </div>
@@ -114,40 +93,44 @@ export function EditorMock() {
 
 /* ------------------------------------------------------------------ 2. Check */
 
+/** The paint of one pictured email, as classes so each stays a token. */
+type Paint = { frame: string; ink: string; bar: string; line: string; accent: string };
+
+const AS_BUILT: Paint = {
+  frame: 'border-canvas-line bg-canvas',
+  ink: 'bg-canvas-ink',
+  bar: 'bg-canvas-bar',
+  line: 'bg-canvas-line',
+  accent: 'bg-accent',
+};
+
+const FORCED_DARK: Paint = {
+  frame: 'border-canvas-dark-line bg-canvas-dark',
+  ink: 'bg-canvas-dark-ink',
+  bar: 'bg-canvas-dark-bar',
+  line: 'bg-canvas-dark-line',
+  accent: 'bg-canvas-dark-accent',
+};
+
 /** One miniature email, painted twice: as the client renders it, and as a client
- *  that forces dark mode repaints it. */
-function MiniEmail({
-  caption,
-  bg,
-  ink,
-  bar,
-  line,
-  accent,
-}: {
-  caption: string;
-  bg: string;
-  ink: string;
-  bar: string;
-  line: string;
-  accent: string;
-}) {
+ *  that forces dark mode repaints it. The slow emphasis (`mk-alt`) is on the
+ *  frame alone: the caption beneath is 11px muted text at 4.5:1, which has no
+ *  room to fade, so it sits outside the thing that dims. */
+function MiniEmail({ caption, paint, late = false }: { caption: string; paint: Paint; late?: boolean }) {
   return (
     <div>
-      <div
-        className="rounded-md border p-4 shadow-canvas"
-        style={{ backgroundColor: bg, borderColor: line }}
-      >
-        <div className="size-5 rounded-sm" style={{ backgroundColor: ink }} />
-        <div className="mt-4 h-2.5 w-4/5 rounded-xs" style={{ backgroundColor: ink }} />
+      <div className={`mk-alt rounded-md border p-4 shadow-canvas ${late ? 'mk-alt-late ' : ''}${paint.frame}`}>
+        <div className={`size-5 rounded-sm ${paint.ink}`} />
+        <div className={`mt-4 h-2.5 w-4/5 rounded-xs ${paint.ink}`} />
         <div className="mt-3 space-y-1.5">
-          <div className="h-1.5 w-full rounded-full" style={{ backgroundColor: bar }} />
-          <div className="h-1.5 w-[85%] rounded-full" style={{ backgroundColor: bar }} />
+          <div className={`h-1.5 w-full rounded-full ${paint.bar}`} />
+          <div className={`h-1.5 w-[85%] rounded-full ${paint.bar}`} />
         </div>
-        <div className="mt-4 h-6 w-24 rounded-sm" style={{ backgroundColor: accent }} />
-        <div className="mt-4 h-px w-full" style={{ backgroundColor: line }} />
-        <div className="mt-3 h-1.5 w-2/3 rounded-full" style={{ backgroundColor: bar }} />
+        <div className={`mt-4 h-6 w-24 rounded-sm ${paint.accent}`} />
+        <div className={`mt-4 h-px w-full ${paint.line}`} />
+        <div className={`mt-3 h-1.5 w-2/3 rounded-full ${paint.bar}`} />
       </div>
-      <p className="mt-2.5 text-center font-mono text-2xs tracking-wide text-faint uppercase">
+      <p className="mt-2.5 text-center font-mono text-2xs tracking-wide text-muted uppercase">
         {caption}
       </p>
     </div>
@@ -160,28 +143,10 @@ export function PreviewMock() {
       <div className="grid grid-cols-2 gap-3 rounded-lg bg-sunken p-3 sm:gap-5 sm:p-6">
         {/* The two renderings trade a slow, quiet emphasis — the eye is walked
             from one client to the other without anything demanding attention. */}
-        <div className="mk-alt">
-          <MiniEmail
-            caption="As built"
-            bg="#ffffff"
-            ink={CANVAS_INK}
-            bar={CANVAS_BAR}
-            line={CANVAS_LINE}
-            accent={CANVAS_ACCENT}
-          />
-        </div>
+        <MiniEmail caption="As built" paint={AS_BUILT} />
         {/* The repaint a forced-dark client applies — inverted surface, lifted
             accent, and the same geometry, which is the point of the check. */}
-        <div className="mk-alt mk-alt-late">
-          <MiniEmail
-            caption="Forced dark"
-            bg="#1b1c20"
-            ink="#f3f3f2"
-            bar="#3d3e45"
-            line="#2f3036"
-            accent="#6366f1"
-          />
-        </div>
+        <MiniEmail caption="Forced dark" paint={FORCED_DARK} late />
       </div>
     </Panel>
   );
@@ -192,12 +157,13 @@ export function PreviewMock() {
 export function ApiMock() {
   return (
     <Panel spec="Fetch a template" meta={SITE_HOST}>
-      {/* The graphite rail tokens are theme-independent, so a terminal built from
-          them reads the same in light and dark — which is what a terminal does. */}
+      {/* The rail tokens are theme-independent, so a terminal built from them
+          reads the same in light and dark — which is what a terminal does. Its
+          lowest text colour is rail-muted. */}
       <div className="overflow-hidden rounded-lg border border-rail-line bg-rail-bg">
         <div className="flex items-center justify-between gap-3 border-b border-rail-line px-4 py-2.5 font-mono text-2xs">
-          <span className="tracking-wide text-rail-faint uppercase">GET /api/public/v1/templates/:id</span>
-          <span className="flex items-center gap-1.5" style={{ color: '#5fd3a0' }}>
+          <span className="tracking-wide text-rail-muted uppercase">GET /api/public/v1/templates/:id</span>
+          <span className="flex shrink-0 items-center gap-1.5 whitespace-nowrap text-rail-ok">
             <span aria-hidden className="size-1.5 rounded-full bg-current" />
             200 OK
           </span>
@@ -207,28 +173,28 @@ export function ApiMock() {
             hidden horizontal scroll on a block that only exists to be read. */}
         <div className="overflow-x-auto px-4 py-4 font-mono text-xs leading-relaxed">
           <pre className="whitespace-pre-wrap text-rail-muted [overflow-wrap:anywhere] sm:whitespace-pre">
-            <span className="text-rail-faint">$ </span>
+            <span className="text-rail-muted">$ </span>
             <span className="text-rail-ink">curl </span>
-            <span style={{ color: '#a5b4fc' }}>{PUBLIC_API_URL}/templates/tpl_welcome_01</span>
+            <span className="text-rail-accent">{PUBLIC_API_URL}/templates/tpl_welcome_01</span>
             {' \\\n'}
-            <span className="text-rail-faint">    -H </span>
-            <span style={{ color: '#a5b4fc' }}>&quot;Authorization: Bearer tply_live_8f2c…9d41&quot;</span>
+            <span className="text-rail-muted">    -H </span>
+            <span className="text-rail-accent">&quot;Authorization: Bearer tply_live_8f2c…9d41&quot;</span>
             {'\n\n'}
             {'{\n'}
             {'  '}
             <span className="text-rail-ink">&quot;id&quot;</span>
             {': '}
-            <span style={{ color: '#a5b4fc' }}>&quot;tpl_welcome_01&quot;</span>
+            <span className="text-rail-accent">&quot;tpl_welcome_01&quot;</span>
             {',\n  '}
             <span className="text-rail-ink">&quot;subject&quot;</span>
             {': '}
-            <span style={{ color: '#a5b4fc' }}>&quot;Your API key is ready&quot;</span>
+            <span className="text-rail-accent">&quot;Your API key is ready&quot;</span>
             {',\n  '}
             <span className="text-rail-ink">&quot;html&quot;</span>
             {': '}
-            <span style={{ color: '#a5b4fc' }}>&quot;&lt;!doctype html&gt;&lt;html&gt;…&lt;/html&gt;&quot;</span>
+            <span className="text-rail-accent">&quot;&lt;!doctype html&gt;&lt;html&gt;…&lt;/html&gt;&quot;</span>
             {'\n}\n\n'}
-            <span className="text-rail-faint">$ </span>
+            <span className="text-rail-muted">$ </span>
             {/* The prompt came back: a live terminal blinks. */}
             <span aria-hidden className="mk-caret" />
           </pre>
@@ -251,8 +217,10 @@ const placeholders = [
 
 // Each brand is a ramp rather than a base plus a near-black: a near-black
 // swatch vanishes into the surface in dark mode and the trio reads as a pair.
+// Temply's ramp is the product's own tokens; the other two are literal because
+// they are other companies' colours, which no token of ours speaks for.
 const brands = [
-  { name: 'Temply', swatches: ['#4f46e5', '#818cf8', '#eef0fe'] },
+  { name: 'Temply', swatches: ['var(--ds-accent)', 'var(--ds-canvas-dark-accent)', 'var(--ds-canvas-accent-wash)'] },
   { name: 'Northwind', swatches: ['#0f766e', '#2dd4bf', '#ccfbf1'] },
   { name: 'Beacon', swatches: ['#b45309', '#f59e0b', '#fef3c7'] },
 ];
@@ -261,7 +229,7 @@ export function VariablesMock() {
   return (
     <Panel spec="Variables & brands" meta="resolved per request">
       <div className="rounded-lg bg-sunken p-4 sm:p-6">
-        <p className="font-mono text-2xs tracking-wide text-faint uppercase">Placeholders</p>
+        <p className="font-mono text-2xs tracking-wide text-muted uppercase">Placeholders</p>
         <ul className="mt-3 flex flex-wrap gap-1.5">
           {placeholders.map((placeholder) => (
             <li
@@ -275,7 +243,7 @@ export function VariablesMock() {
 
         <div className="my-5 h-px bg-line" />
 
-        <p className="font-mono text-2xs tracking-wide text-faint uppercase">Saved brands</p>
+        <p className="font-mono text-2xs tracking-wide text-muted uppercase">Saved brands</p>
         <div className="mt-3 flex flex-wrap gap-2">
           {brands.map((brand) => (
             <div

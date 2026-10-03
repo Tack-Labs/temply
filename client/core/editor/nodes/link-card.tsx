@@ -33,13 +33,16 @@ export function LinkCardComponent(props: NodeViewProps) {
               editor.commands.setNodeSelection(pos);
             }}
           >
-            <div className="mly:no-prose mly:flex mly:flex-col mly:rounded-lg mly:border mly:border-gray-300">
+            {/* The card is canvas, not chrome: its corners are literals that
+                match the email (10px card and image, 8px badge in
+                render/engine.tsx), not the editor's radius scale. */}
+            <div className="mly:no-prose mly:flex mly:flex-col mly:rounded-[10px] mly:border mly:border-gray-300">
               {image && (
                 <div className="mly:relative mly:mb-1.5 mly:w-full mly:shrink-0">
                   <img
                     src={image}
                     alt="link-card"
-                    className="mly:no-prose mly:mb-0! mly:h-full mly:w-full mly:rounded-t-lg"
+                    className="mly:no-prose mly:mb-0! mly:h-full mly:w-full mly:rounded-t-[10px]"
                     draggable={editor.isEditable}
                   />
                 </div>
@@ -51,12 +54,12 @@ export function LinkCardComponent(props: NodeViewProps) {
                       {title}
                     </h2>
                     {badgeText && (
-                      <span className="!mly:font-base mly:rounded-md mly:bg-yellow-200 mly:px-2 mly:py-1 mly:font-semibold mly:leading-none text-xs">
+                      <span className="!mly:font-base mly:rounded-[8px] mly:bg-yellow-200 mly:px-2 mly:py-1 mly:font-semibold mly:leading-none text-xs">
                         {badgeText}
                       </span>
                     )}{' '}
                     {subTitle && !badgeText && (
-                      <span className="!mly:font-base mly:font-regular mly:rounded-md mly:leading-none mly:text-gray-400 text-xs">
+                      <span className="!mly:font-base mly:font-regular mly:leading-none mly:text-gray-400 text-xs">
                         {subTitle}
                       </span>
                     )}

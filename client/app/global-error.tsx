@@ -22,15 +22,15 @@ export default function GlobalError({ error, reset }: { error: Error & { digest?
           alignItems: 'center',
           justifyContent: 'center',
           fontFamily: 'system-ui, sans-serif',
-          background: '#f7f7f5',
-          color: '#18181b',
+          background: '#f5f7fa',
+          color: '#0b1220',
           textAlign: 'center',
           padding: '0 1.5rem',
         }}
       >
         <div>
           <h1 style={{ fontSize: '1.25rem', fontWeight: 600, margin: '0 0 0.5rem' }}>Temply could not start</h1>
-          <p style={{ fontSize: '0.875rem', color: '#6b6b70', maxWidth: '24rem', margin: '0 auto 1rem' }}>
+          <p style={{ fontSize: '0.875rem', color: '#5b6478', maxWidth: '24rem', margin: '0 auto 1rem' }}>
             Reload the page. If it keeps happening, the reference is {error.digest ?? 'unavailable'}.
           </p>
           <button
@@ -41,7 +41,7 @@ export default function GlobalError({ error, reset }: { error: Error & { digest?
               padding: '0 0.75rem',
               borderRadius: '0.375rem',
               border: 0,
-              background: '#4f46e5',
+              background: '#0b5fff',
               color: '#fff',
               fontSize: '0.875rem',
               fontWeight: 500,

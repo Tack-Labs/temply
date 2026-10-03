@@ -32,3 +32,83 @@ export function filterTemplates(
     ),
   );
 }
+
+/**
+ * Where a template stands against what the public API serves. A new template
+ * is born published (the create route stamps both copies), so `draft` is only
+ * a row from before that: never published, answering 404 on the public API.
+ * `unpublished-changes` is the common working state: live, with a newer draft
+ * behind it. The row badge and the Drafts filter both read this, so the label
+ * on a row and the tab it is counted under cannot disagree.
+ */
+export type TemplateStatus = 'published' | 'unpublished-changes' | 'draft';
+
+export function templateStatus(
+  template: Pick<TemplateListItem, 'published_at' | 'has_unpublished_changes'>,
+): TemplateStatus {
+  // Checked first: the flag is only ever set on a row that has been published,
+  // but a never-published row must not read as live whatever the flag says.
+  // `== null` on purpose: a row that omits the field has no publish stamp
+  // either, and `undefined` must not read as live.
+  if (template.published_at == null) return 'draft';
+  return template.has_unpublished_changes ? 'unpublished-changes' : 'published';
+}
+
+/**
+ * How each status is named and toned. Three states get three looks:
+ * `warn` for changes waiting (the live copy is out of date and deserves a
+ * look), `success` for in sync, and the quiet `neutral` for a row that has
+ * never gone live at all.
+ */
+export const TEMPLATE_STATUS_BADGE: Record<
+  TemplateStatus,
+  { label: string; tone: 'success' | 'warn' | 'neutral' }
+> = {
+  published: { label: 'Published', tone: 'success' },
+  'unpublished-changes': { label: 'Unpublished changes', tone: 'warn' },
+  draft: { label: 'Draft', tone: 'neutral' },
+};
+
+/** `drafts` is everything that is not cleanly published, so the three counts add up. */
+export type TemplateFilter = 'all' | 'published' | 'drafts';
+
+export function matchesTemplateFilter(
+  template: Pick<TemplateListItem, 'published_at' | 'has_unpublished_changes'>,
+  filter: TemplateFilter,
+): boolean {
+  if (filter === 'all') return true;
+  const published = templateStatus(template) === 'published';
+  return filter === 'published' ? published : !published;
+}
+
+export type TemplateView = {
+  /** What the list draws: the search, then the filter, in the API's order. */
+  rows: TemplateListItem[];
+  /**
+   * Taken after the search and before the filter, so each option states what
+   * choosing it would show right now. A count that ignored the search would
+   * promise rows the search has already removed.
+   */
+  counts: Record<TemplateFilter, number>;
+  /** The workspace's whole list, the denominator of "3 of 12". */
+  total: number;
+};
+
+export function browseTemplates(
+  templates: TemplateListItem[],
+  { query, filter }: { query: string; filter: TemplateFilter },
+): TemplateView {
+  const searched = filterTemplates(templates, query);
+  const published = searched.filter((template) => matchesTemplateFilter(template, 'published')).length;
+  return {
+    rows: filter === 'all' ? searched : searched.filter((template) => matchesTemplateFilter(template, filter)),
+    counts: { all: searched.length, published, drafts: searched.length - published },
+    total: templates.length,
+  };
+}
+
+/** "12 templates", or "3 of 12 templates" while a search or filter hides some. */
+export function templateCountLabel(shown: number, total: number): string {
+  const noun = total === 1 ? 'template' : 'templates';
+  return shown === total ? `${total} ${noun}` : `${shown} of ${total} ${noun}`;
+}

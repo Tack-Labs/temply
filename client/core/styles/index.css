@@ -79,12 +79,15 @@
   --color-red-500: var(--ds-danger);
   --color-red-600: var(--ds-danger-ink);
 
-  /* Radii, so a panel corner in the editor matches a card corner in the shell. */
+  /* The shell's --radius-* scale in app/globals.css, as literals: this sheet
+     compiles on its own and keeps no reference into the app's. Keep them
+     equal, so a button in the editor chrome and the same button in the
+     dashboard share a corner. */
   --radius-xs: 4px;
   --radius-sm: 6px;
-  --radius-md: 6px;
-  --radius-lg: 10px;
-  --radius-xl: 14px;
+  --radius-md: 10px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
 }
 
 /* The app's hover and line tokens are tuned for its own surfaces; on the
@@ -96,8 +99,8 @@
   --mly-chrome-line: var(--ds-line);
 }
 .dark {
-  --mly-chrome-hover: #34363c;
-  --mly-chrome-line: #36373d;
+  --mly-chrome-hover: #28354f;
+  --mly-chrome-line: #303d5a;
 }
 
 /*

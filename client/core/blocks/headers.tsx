@@ -2,6 +2,7 @@ import { LogoWithCoverImageIcon } from '@/editor/components/icons/logo-with-cove
 import { BlockItem } from './types';
 import { LogoWithTextHorizonIcon } from '@/editor/components/icons/logo-with-text-horizon';
 import { LogoWithTextVerticalIcon } from '@/editor/components/icons/logo-with-text-vertical';
+import { PRODUCTION_SITE_URL } from '~/lib/site';
 
 export const headerLogoWithTextHorizontal: BlockItem = {
   title: 'Logo with Text (Horizontal)',
@@ -127,11 +128,11 @@ export const headerLogoWithCoverImage: BlockItem = {
         {
           type: 'image',
           attrs: {
-            src: 'https://maily.to/og-image.png',
-            alt: null,
+            src: `${PRODUCTION_SITE_URL}/temply-email-editor.webp`,
+            alt: 'Temply visual email editor',
             title: null,
             width: 600,
-            height: 314,
+            height: 315,
             alignment: 'center',
             externalLink: null,
             isExternalLinkVariable: false,

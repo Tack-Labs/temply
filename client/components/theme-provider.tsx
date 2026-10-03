@@ -1,32 +1,9 @@
 'use client';
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import { PALETTE } from '~/lib/clerk-palette';
 
 export type Theme = 'light' | 'dark';
-
-/**
- * The palette Clerk needs as concrete values. Clerk renders its own DOM and
- * cannot read our CSS variables, so the two must be kept in step here — these
- * are the same hexes declared in app/globals.css.
- */
-const PALETTE: Record<Theme, Record<string, string>> = {
-  light: {
-    surface: '#f7f7f4',
-    raised: '#ffffff',
-    ink: '#191a1e',
-    muted: '#595c66',
-    accent: '#4f46e5',
-    danger: '#c0304a',
-  },
-  dark: {
-    surface: '#161719',
-    raised: '#1d1e21',
-    ink: '#f3f3f2',
-    muted: '#a3a4ad',
-    accent: '#4f46e5',
-    danger: '#c0304a',
-  },
-};
 
 type ThemeContextValue = {
   theme: Theme;
@@ -37,6 +14,17 @@ type ThemeContextValue = {
 };
 
 const ThemeContext = createContext<ThemeContextValue | null>(null);
+
+// Clerk paints link-like text from colorPrimary and error text from
+// colorDanger. Those are the concrete hexes in lib/clerk-palette.ts, and they
+// are fixed hues: the blue measures 3.35:1 on the dark card and the red 2.95:1,
+// under the 4.5:1 text needs. The -ink tokens are the same hues tuned per
+// theme, and a var() reads the live `.dark` class, so one object serves both.
+// The hover goes to ink rather than Clerk's own darker shade of the primary,
+// which on the dark card is darker still. These are style objects, not
+// classes, because Clerk's stylesheet outranks a utility class on its element.
+const LINK_TEXT = { color: 'var(--ds-accent-ink)', '&:hover': { color: 'var(--ds-ink)' } };
+const ERROR_TEXT = { color: 'var(--ds-danger-ink)' };
 
 function applyTheme(next: Theme) {
   document.documentElement.classList.toggle('dark', next === 'dark');
@@ -119,11 +107,21 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
           colorInputText: p.ink,
           colorDanger: p.danger,
           borderRadius: '6px',
-          fontFamily: 'var(--font-geist)',
+          fontFamily: 'var(--font-figtree)',
         },
         elements: {
           card: 'shadow-none border border-line',
           footer: 'hidden',
+          formFieldAction: LINK_TEXT,
+          formResendCodeLink: LINK_TEXT,
+          footerActionLink: LINK_TEXT,
+          headerBackLink: LINK_TEXT,
+          backLink: LINK_TEXT,
+          identityPreviewEditButton: LINK_TEXT,
+          profileSectionPrimaryButton: LINK_TEXT,
+          formFieldErrorText: ERROR_TEXT,
+          otpCodeFieldErrorText: ERROR_TEXT,
+          alertText__danger: ERROR_TEXT,
         },
       },
     };

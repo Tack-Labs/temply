@@ -1,56 +1,49 @@
-import type { Metadata } from 'next';
-import { Geist, Geist_Mono, Space_Grotesk } from 'next/font/google';
+import { Bricolage_Grotesque, Figtree, JetBrains_Mono } from 'next/font/google';
 import { GoogleAnalytics } from '~/components/google-analytics';
 import { Providers } from './providers';
-import { SITE_URL } from '~/lib/site';
+import { PRODUCTION_SITE_URL } from '~/lib/site';
+import { PUBLIC_PAGES, publicPageMetadata } from '~/lib/seo';
 import '../core/styles/index.css';
 import './globals.css';
 
-const geistSans = Geist({
+// Both proportional faces are variable: Google serves one file covering the
+// whole weight range, and next/font cannot narrow it, so the 400-700 the UI
+// uses costs the same as the full axis. Bricolage's optical-size axis is
+// what lets the same file draw a 12px label and a 52px hero differently;
+// browsers drive it from font-size.
+const figtree = Figtree({
   subsets: ['latin'],
-  weight: ['400', '500', '600'],
-  variable: '--font-geist',
+  variable: '--font-figtree',
   display: 'swap',
 });
 
-const geistMono = Geist_Mono({
+const bricolage = Bricolage_Grotesque({
   subsets: ['latin'],
-  weight: ['400', '500'],
-  variable: '--font-geist-mono',
+  axes: ['opsz'],
+  variable: '--font-bricolage',
   display: 'swap',
 });
 
-const spaceGrotesk = Space_Grotesk({
+// Code is a minority of the text, so the file is fetched when something first
+// uses it rather than preloaded. That means a small mono label near the top
+// of a page (the eyebrows on /docs and the legal pages) can paint in the
+// fallback and swap when the face arrives. Weight is left off, as for
+// Figtree: a variable file covers the whole axis, and a listed weight only
+// adds a rule per value and leaves anything heavier as faux bold.
+const jetbrainsMono = JetBrains_Mono({
   subsets: ['latin'],
-  weight: ['500', '600', '700'],
-  variable: '--font-space-grotesk',
+  variable: '--font-jetbrains-mono',
   display: 'swap',
+  preload: false,
 });
 
-export const metadata: Metadata = {
-  // Every relative URL below — the OG image, canonical links — resolves
-  // against this, so the domain lives in one environment variable.
-  metadataBase: new URL(SITE_URL),
-  // Sub-pages name themselves and the template adds the brand, so "— Temply"
-  // is written once and cannot be misspelt on the ninth page.
-  title: { default: 'Temply — write the email, we handle the HTML', template: '%s — Temply' },
-  description:
-    'A block editor for transactional email. Build it without code, send it from your own app.',
-  twitter: {
-    card: 'summary_large_image',
-    title: 'Temply — write the email, we handle the HTML',
-    description:
-      'A block editor for transactional email. Build it without code, send it from your own app.',
-    images: ['/og-image.png'],
-  },
-  openGraph: {
-    siteName: 'Temply',
-    title: 'Temply — write the email, we handle the HTML',
-    description:
-      'A block editor for transactional email. Build it without code, send it from your own app.',
-    images: ['/og-image.png'],
-  },
-  robots: 'index, follow',
+const homeMetadata = publicPageMetadata('/');
+
+export const metadata = {
+  ...homeMetadata,
+  metadataBase: new URL(PRODUCTION_SITE_URL),
+  title: { default: `${PUBLIC_PAGES['/'].title} | Temply`, template: '%s | Temply' },
+  alternates: {},
 };
 
 export default function RootLayout({
@@ -64,7 +57,7 @@ export default function RootLayout({
           className hands it to React, which then reconciles it on hydration and
           strips the `dark` class the blocking script below just added — so a
           full page load would drop the user's chosen theme. */}
-      <html lang="en" suppressHydrationWarning>
+      <html lang="en-GB" suppressHydrationWarning>
         <head>
           <GoogleAnalytics />
           <script
@@ -82,7 +75,7 @@ export default function RootLayout({
             }}
           />
         </head>
-        <body className={`${geistSans.variable} ${geistMono.variable} ${spaceGrotesk.variable}`}>
+        <body className={`${figtree.variable} ${bricolage.variable} ${jetbrainsMono.variable}`}>
           {/* First focusable element on the page. Lets a keyboard user jump the
               header and sidebar straight to the content. */}
           <a href="#main-content" className="skip-link">

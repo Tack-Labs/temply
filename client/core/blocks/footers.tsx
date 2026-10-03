@@ -4,6 +4,7 @@ import {
   RectangleHorizontalIcon,
 } from 'lucide-react';
 import { BlockItem } from './types';
+import { PRODUCTION_SITE_URL } from '~/lib/site';
 
 export const footerCopyrightText: BlockItem = {
   title: 'Footer Copyright',
@@ -131,7 +132,7 @@ export const footerCompanySignature: BlockItem = {
                 {
                   type: 'link',
                   attrs: {
-                    href: 'https://maily.to',
+                    href: PRODUCTION_SITE_URL,
                     target: '_blank',
                     rel: 'noopener noreferrer nofollow',
                     class: 'mly:no-underline',
@@ -154,7 +155,7 @@ export const footerCompanySignature: BlockItem = {
                 {
                   type: 'link',
                   attrs: {
-                    href: 'https://maily.to',
+                    href: `${PRODUCTION_SITE_URL}/docs`,
                     target: '_blank',
                     rel: 'noopener noreferrer nofollow',
                     class: 'mly:no-underline',
@@ -164,7 +165,7 @@ export const footerCompanySignature: BlockItem = {
                 { type: 'textStyle', attrs: { color: '#64748b' } },
                 { type: 'underline' },
               ],
-              text: 'VISIT OUR BLOG',
+              text: 'DOCUMENTATION',
             },
             {
               type: 'text',
@@ -177,7 +178,7 @@ export const footerCompanySignature: BlockItem = {
                 {
                   type: 'link',
                   attrs: {
-                    href: 'https://maily.to',
+                    href: PRODUCTION_SITE_URL,
                     target: '_blank',
                     rel: 'noopener noreferrer nofollow',
                     class: 'mly:no-underline',

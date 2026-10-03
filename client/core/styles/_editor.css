@@ -217,7 +217,7 @@
    desktop editable layout: a touchscreen laptop, or a tablet, with a mouse
    still the primary expectation. There the selected block wears an outline
    instead of the wash a mouse gets from the hover-revealed drag handle. One
-   treatment at a time — a blue fill inside an indigo ring is the state
+   treatment at a time — a blue fill inside an accent ring is the state
    every single tap would draw — so the wash goes here, and there is no
    radius of its own: an outline follows the element's, and a 4px one
    reshaped sections and buttons while they were selected. `--ds-accent` is
@@ -236,6 +236,10 @@
 
 #mly-editor .ProseMirror {
   position: relative;
+  /* The email's face, not the app's: the sandbox sets --mly-font-family on the
+     canvas pane to the loaded Inter, so the canvas never inherits the body
+     font the shell sets for itself. */
+  font-family: var(--mly-font-family);
   word-wrap: break-word;
   white-space: pre-wrap;
   white-space: break-spaces;

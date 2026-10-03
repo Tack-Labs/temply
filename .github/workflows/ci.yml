@@ -182,6 +182,7 @@ jobs:
       VERCEL_PROJECT_ID: ${{ vars.VERCEL_PROJECT_ID }}
       VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
       VERCEL_TARGET: ${{ github.ref == 'refs/heads/main' && 'production' || 'preview' }}
+      SITE_NOINDEX: ${{ github.ref == 'refs/heads/main' && '0' || '1' }}
       PROD_FLAG: ${{ github.ref == 'refs/heads/main' && '--prod' || '' }}
       APP_URL: ${{ vars.APP_URL }}
     steps:

@@ -131,13 +131,13 @@ function PlanSummary({ billing, isAdmin }: { billing: Billing; isAdmin: boolean 
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0 space-y-1.5">
           <div className="flex flex-wrap items-center gap-2">
-            <h2 className="font-display text-lg font-semibold text-ink">{PLAN_LABELS[plan]}</h2>
+            <h2 className="font-display text-lg font-semibold tracking-display text-ink">{PLAN_LABELS[plan]}</h2>
             {badge}
           </div>
           {plan === 'team' ? (
             <div>
               <p className="flex items-baseline gap-1">
-                <span className="font-display text-2xl font-semibold tabular-nums text-ink">
+                <span className="font-display text-2xl font-semibold tracking-display tabular-nums text-ink">
                   {formatUsd(monthlyUsd(seats, packs))}
                 </span>
                 <span className="text-sm text-muted">a month</span>
@@ -172,6 +172,7 @@ function PackStepper({
       <Button
         variant="ghost"
         size="icon-sm"
+        touch
         aria-label="Remove a pack"
         disabled={disabled || value <= 0}
         onClick={() => onChange(value - 1)}
@@ -184,6 +185,7 @@ function PackStepper({
       <Button
         variant="ghost"
         size="icon-sm"
+        touch
         aria-label="Add a pack"
         disabled={disabled || value >= MAX_TEMPLATE_PACKS}
         onClick={() => onChange(value + 1)}
@@ -246,7 +248,7 @@ function SubscribePanel({ billing, isAdmin }: { billing: Billing; isAdmin: boole
       <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-line pt-4">
         <div>
           <p className="flex items-baseline gap-1">
-            <span className="font-display text-2xl font-semibold tabular-nums text-ink">{formatUsd(total)}</span>
+            <span className="font-display text-2xl font-semibold tracking-display tabular-nums text-ink">{formatUsd(total)}</span>
             <span className="text-sm text-muted">a month</span>
           </p>
           <p className="text-xs text-muted">Charged today for the rest of the month, then on the 1st.</p>
@@ -488,12 +490,13 @@ function TemplatePacks({ billing, isAdmin }: { billing: Billing; isAdmin: boolea
             </p>
           )}
           <div className="flex gap-2">
-            <Button variant="ghost" size="sm" onClick={() => setDraft(current)} disabled={setPacks.isPending}>
+            <Button variant="ghost" size="sm" touch onClick={() => setDraft(current)} disabled={setPacks.isPending}>
               Cancel
             </Button>
             <Button
               variant="primary"
               size="sm"
+              touch
               disabled={toDelete > 0 || setPacks.isPending}
               onClick={() => (current > 0 && draft === 0 ? setConfirmOpen(true) : save())}
             >

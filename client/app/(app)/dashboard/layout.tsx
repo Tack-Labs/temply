@@ -19,7 +19,7 @@ export default async function DashboardLayout({
 
   return (
     <div className="flex h-screen overflow-hidden bg-surface">
-      <div className="hidden w-56 shrink-0 md:block">
+      <div className="hidden w-60 shrink-0 md:block">
         <Sidebar />
       </div>
 
@@ -27,8 +27,12 @@ export default async function DashboardLayout({
         {/* Carries the drawer trigger on narrow viewports; on wide ones the
             sidebar owns navigation and this bar only holds the account
             shortcuts. The gutter matches the main column below so the
-            trigger glyph lines up with the page title. */}
-        <header className="flex h-12 shrink-0 items-center justify-between gap-2 border-b border-line px-4 md:justify-end">
+            trigger glyph lines up with the page title, whatever the size of
+            the trigger's box (see MobileNav). The bar is as tall as the
+            sidebar's header, so the line under them runs on unbroken: 56px
+            on a coarse pointer, where a 44px target needs the room for its
+            focus ring, and the sidebar's header says the same. */}
+        <header className="flex h-12 shrink-0 items-center justify-between gap-2 border-b border-line px-4 pointer-coarse:h-14 md:justify-end">
           <MobileNav />
           <div className="flex items-center gap-2">
             <Button variant="secondary" size="icon" asChild>

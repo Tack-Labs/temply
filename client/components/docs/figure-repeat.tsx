@@ -7,7 +7,7 @@ import { CANVAS, Panel } from './figure-canvas';
  */
 export function FigureRepeat() {
   const row = (name: string, price: string) => (
-    <div key={name} style={{ display: 'flex', justifyContent: 'space-between', gap: 12, padding: '4px 0', borderBottom: '1px solid #eceef3' }}>
+    <div key={name} style={{ display: 'flex', justifyContent: 'space-between', gap: 12, padding: '4px 0', borderBottom: '1px solid var(--ds-canvas-line)' }}>
       <span>{name}</span>
       <span style={CANVAS.muted}>{price}</span>
     </div>

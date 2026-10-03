@@ -58,7 +58,7 @@ export function NavLinks({ onNavigate }: { onNavigate?: () => void }) {
       {NAV_SECTIONS.map((section, index) => (
         <div key={section.label ?? index}>
           {section.label ? (
-            <div className="px-2.5 pt-4 pb-1 text-2xs font-medium tracking-wide text-rail-muted uppercase">
+            <div className="px-2.5 pt-4 pb-1 text-2xs font-medium tracking-wide text-muted uppercase">
               {section.label}
             </div>
           ) : null}
@@ -79,17 +79,17 @@ export function NavLinks({ onNavigate }: { onNavigate?: () => void }) {
                   aria-current={isActive ? 'page' : undefined}
                   {...(item.external ? { target: '_blank', rel: 'noreferrer' } : {})}
                   className={cn(
-                    'flex h-9 items-center gap-2.5 rounded-md px-2.5 text-sm',
+                    'flex h-9 items-center gap-2.5 rounded-md px-2.5 text-sm pointer-coarse:h-11',
                     pressable,
                     isActive
-                      ? 'bg-rail-active-bg font-medium text-rail-active-ink'
-                      : 'text-rail-muted hover:bg-rail-hover hover:text-rail-ink',
+                      ? 'bg-accent-wash font-medium text-accent-ink'
+                      : 'text-muted hover:bg-hover hover:text-ink',
                   )}
                 >
                   <Icon className="size-4 shrink-0" />
                   {item.label}
                   {item.external ? (
-                    <ArrowUpRightIcon className="ml-auto size-3 shrink-0 opacity-60" />
+                    <ArrowUpRightIcon className="ml-auto size-3 shrink-0" />
                   ) : null}
                 </Link>
               );

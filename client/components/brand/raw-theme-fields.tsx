@@ -99,7 +99,7 @@ function NumberField({
           onChange={(event) => onChange(`${event.target.value || 0}px`)}
           className="h-7 w-14 shrink-0 rounded-xs border border-line bg-raised px-1.5 text-right text-sm tabular-nums text-ink"
         />
-        <span className="text-2xs text-faint">px</span>
+        <span className="text-2xs text-muted">px</span>
       </div>
     </div>
   );
@@ -122,7 +122,7 @@ export function RawThemeFields({
   return (
     <div className="grid gap-x-6 gap-y-2.5 sm:grid-cols-2 lg:grid-cols-3">
       <div className="space-y-2.5">
-        <p className="text-2xs font-medium tracking-wide text-faint uppercase">Page</p>
+        <p className="text-2xs font-medium tracking-wide text-muted uppercase">Page</p>
         <ColorField
           touch={touch}
           label="Background"
@@ -142,7 +142,7 @@ export function RawThemeFields({
       </div>
 
       <div className="space-y-2.5">
-        <p className="text-2xs font-medium tracking-wide text-faint uppercase">Card</p>
+        <p className="text-2xs font-medium tracking-wide text-muted uppercase">Card</p>
         <ColorField
           touch={touch}
           label="Background"
@@ -184,7 +184,7 @@ export function RawThemeFields({
       </div>
 
       <div className="space-y-2.5">
-        <p className="text-2xs font-medium tracking-wide text-faint uppercase">Buttons & links</p>
+        <p className="text-2xs font-medium tracking-wide text-muted uppercase">Buttons & links</p>
         <ColorField
           touch={touch}
           label="Button"

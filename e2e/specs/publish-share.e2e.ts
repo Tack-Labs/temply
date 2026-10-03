@@ -14,8 +14,9 @@ async function open(page: Page, id: string) {
 
 test.describe('publish and share', () => {
   test('publishing clears the draft badge', async ({ page, api, name }) => {
-    // A template made through the API is already published, so the badge
-    // is absent until the subject edit below.
+    // A template made through the API is already published, so it reads
+    // "Published" with a time rather than "Unpublished changes" until the
+    // subject edit below.
     const { id } = await api.createTemplate({ title: name('publish') });
     const edited = name('publish edited');
     await open(page, id);
@@ -35,6 +36,36 @@ test.describe('publish and share', () => {
     const tile = page.getByRole('listitem').filter({ has: page.getByRole('link', { name: edited }) });
     await expect(tile.getByText(/^Published/)).toBeVisible();
     await expect(tile.getByText('Draft', { exact: true })).toHaveCount(0);
+  });
+
+  test('the status reads Published with a time, then Unpublished changes, then Published again', async ({ page, api, name }) => {
+    const { id } = await api.createTemplate({ title: name('status') });
+    await open(page, id);
+    // The bare word is the toast's, so the badge carries when as well. Both
+    // shells hold the badge — the toolbar on desktop, the ⋯ menu's header on
+    // the phone — so the menu is opened where there is one.
+    const synced = page.getByText(/^Published \S/);
+    await openMore(page);
+    await expect(synced).toBeVisible();
+    await expect(page.getByText('Unpublished changes')).toHaveCount(0);
+    // Nothing to publish while the draft matches the live copy.
+    if (onPhone()) await expect(page.getByRole('menuitem', { name: 'Publish', exact: true })).toHaveAttribute('aria-disabled', 'true');
+    else await expect(page.getByRole('button', { name: 'Publish', exact: true })).toBeDisabled();
+    if (onPhone()) await page.keyboard.press('Escape');
+
+    await (await subjectField(page)).fill(name('status edited'));
+    if (onPhone()) await page.getByRole('dialog', { name: 'Email details' }).getByRole('button', { name: 'Close' }).click();
+    await openMore(page);
+    await expect(page.getByText('Unpublished changes')).toBeVisible();
+    await expect(synced).toHaveCount(0);
+    if (onPhone()) await page.keyboard.press('Escape');
+    else await expect(page.getByRole('button', { name: 'Publish', exact: true })).toBeEnabled();
+
+    await publish(page);
+    await expect(page.getByText('Published', { exact: true })).toBeVisible();
+    await openMore(page);
+    await expect(synced).toBeVisible();
+    await expect(page.getByText('Unpublished changes')).toHaveCount(0);
   });
 
   test('a review link shows the draft to a visitor until it is turned off', async ({ page, api, name, browser }) => {

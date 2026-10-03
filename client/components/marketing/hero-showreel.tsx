@@ -1,5 +1,3 @@
-'use client';
-
 /**
  * The hero, as a fourteen-and-a-half-second film. The previous hero handed you
  * the controls; nobody used them, and an editor you have to be taught is a bad
@@ -37,9 +35,13 @@
  * styles below describe the *finished* frame (image loaded, blocks in place);
  * the timeline is the only thing that ever hides anything.
  *
- * Canvas contents use literal hex, like the rest of the marketing visuals: a
- * mail client paints the canvas white in both themes, so what sits on it cannot
- * follow ours.
+ * Colour comes from two places. The email on the canvas is painted from the
+ * `--ds-canvas-*` tokens (and `--ds-canvas-dark-*` for the forced-dark beat): a
+ * mail client paints it white in both themes, so it cannot follow ours. The
+ * editor's own furniture over it, the slash chips and the swatch pill, is app
+ * chrome and follows the app tokens, as it does in the real editor. The only
+ * literals are the terracotta, teal and photograph, which are a customer's
+ * choices; the guard test in scripts/marketing-colour.test.ts names each one.
  */
 
 const ANIMATION_CSS = `
@@ -64,12 +66,14 @@ const ANIMATION_CSS = `
   --top-img: calc(var(--top-para) + var(--h-para));
   --top-btn: calc(var(--top-img) + var(--h-img));
 
-  --canvas-ink: #12141a;
-  --canvas-body: #4a5160;
-  --canvas-line: #e8eaee;
-  --indigo: #4f46e5;
-  --terracotta: #c2653d;
-  --teal: #0f766e;
+  --canvas-ink: var(--ds-canvas-ink);
+  --canvas-body: var(--ds-canvas-body);
+  --canvas-line: var(--ds-canvas-line);
+  /* The brand the film starts with is Temply's own accent; the restyle takes
+     it to terracotta, a customer's colour. */
+  --brand: var(--ds-accent);
+  --terracotta: #b85a33; /* a customer's brand colour; 4.6:1 under a white label */
+  --teal: #0f766e; /* a customer's brand colour: the third swatch */
 
   /* Where the cursor stops. X in cqw so the path survives a narrow canvas,
      Y in row arithmetic so it lands on the right block at any width. The three
@@ -110,7 +114,7 @@ const ANIMATION_CSS = `
 .reel-canvas {
   overflow: hidden;
   border-radius: 12px;
-  background-color: #ffffff;
+  background-color: var(--ds-canvas);
   box-shadow: var(--ds-shadow-canvas);
   padding: var(--pad-t) var(--pad-x);
   color: var(--canvas-ink);
@@ -130,8 +134,8 @@ const ANIMATION_CSS = `
   width: 36px;
   height: 36px;
   border-radius: 9px;
-  background-color: var(--indigo);
-  color: #ffffff;
+  background-color: var(--brand);
+  color: var(--ds-canvas-on-accent);
   font-size: 15px;
   font-weight: 600;
   line-height: 1;
@@ -155,12 +159,12 @@ const ANIMATION_CSS = `
 /* The word that becomes a hyperlink mid-scene. The base styles are the
    finished frame (linked, accent-coloured); the timeline holds it as plain
    body text until the cursor clicks it, then walks the colour through
-   indigo → terracotta → the lighter terracotta the dark preview needs. */
+   the accent → terracotta → the lighter terracotta the dark preview needs. */
 .reel-linkword {
-  color: var(--indigo);
+  color: var(--brand);
   text-decoration: underline;
   text-underline-offset: 3px;
-  text-decoration-color: var(--indigo);
+  text-decoration-color: var(--brand);
 }
 
 /* The image block. Grey plate and glyph underneath, a drawn photograph on top;
@@ -172,7 +176,7 @@ const ANIMATION_CSS = `
   height: calc(var(--h-img) - 16px);
   border-radius: 8px;
   overflow: hidden;
-  background-color: #eef0f3;
+  background-color: var(--ds-canvas-well);
 }
 
 .reel-img-glyph {
@@ -181,13 +185,14 @@ const ANIMATION_CSS = `
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #aeb5bf;
+  color: var(--ds-canvas-mark);
   opacity: 0;
 }
 
 .reel-img-photo {
   position: absolute;
   inset: 0;
+  /* A photograph: its pixels are the same in every theme and client. */
   background: linear-gradient(180deg, #c7daf0 0%, #dde5ee 44%, #ead9c8 72%, #e4cdb6 100%);
 }
 
@@ -199,7 +204,7 @@ const ANIMATION_CSS = `
   height: 26px;
   border-radius: 999px;
   background-color: #f2b45c;
-  box-shadow: 0 0 22px rgb(242 180 92 / 0.65);
+  box-shadow: 0 0 22px color-mix(in srgb, #f2b45c 65%, transparent);
 }
 
 .reel-img-ridge {
@@ -216,7 +221,7 @@ const ANIMATION_CSS = `
   position: absolute;
   inset: 0;
   border-radius: 8px;
-  box-shadow: 0 14px 26px rgb(18 20 26 / 0.22), 0 3px 8px rgb(18 20 26 / 0.12);
+  box-shadow: 0 14px 26px color-mix(in srgb, var(--canvas-ink) 22%, transparent), 0 3px 8px color-mix(in srgb, var(--canvas-ink) 12%, transparent);
   opacity: 0;
 }
 
@@ -227,8 +232,8 @@ const ANIMATION_CSS = `
   height: 40px;
   padding: 0 22px;
   border-radius: 8px;
-  background-color: var(--indigo);
-  color: #ffffff;
+  background-color: var(--brand);
+  color: var(--ds-canvas-on-accent);
   font-size: 14px;
   font-weight: 500;
 }
@@ -244,10 +249,10 @@ const ANIMATION_CSS = `
   height: 24px;
   padding: 0 9px;
   border-radius: 6px;
-  background-color: #ffffff;
-  box-shadow: 0 4px 12px rgb(18 20 26 / 0.1), 0 0 0 1px var(--canvas-line);
+  background-color: var(--ds-raised);
+  box-shadow: var(--ds-shadow-md), 0 0 0 1px var(--ds-line);
   font-size: 11px;
-  color: var(--canvas-body);
+  color: var(--ds-muted);
   white-space: nowrap;
   opacity: 0;
 }
@@ -258,7 +263,7 @@ const ANIMATION_CSS = `
 /* The link chip floats directly above the word it is about to mark. */
 .reel-chip-link { left: calc(var(--pad-x) + 64px); top: calc(var(--top-para) - 10px); }
 
-.reel-slash { font-family: var(--font-mono); color: var(--indigo); }
+.reel-slash { font-family: var(--font-mono); color: var(--ds-accent-ink); }
 
 /* The accent picker only exists for the two seconds the cursor needs it. */
 .reel-swatches {
@@ -270,13 +275,13 @@ const ANIMATION_CSS = `
   gap: 8px;
   padding: 8px;
   border-radius: 999px;
-  background-color: #ffffff;
-  box-shadow: 0 8px 20px rgb(18 20 26 / 0.14), 0 0 0 1px rgb(18 20 26 / 0.06);
+  background-color: var(--ds-raised);
+  box-shadow: var(--ds-shadow-lg), 0 0 0 1px var(--ds-line);
   opacity: 0;
 }
 
 .reel-dot { display: block; width: 12px; height: 12px; border-radius: 999px; }
-.reel-dot-indigo { background-color: var(--indigo); }
+.reel-dot-brand { background-color: var(--brand); }
 .reel-dot-mid { background-color: var(--terracotta); }
 .reel-dot-teal { background-color: var(--teal); }
 .reel-dot-slot { position: relative; display: flex; }
@@ -302,7 +307,7 @@ const ANIMATION_CSS = `
   font-size: 10px;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: #8f95a3;
+  color: var(--ds-canvas-dark-quiet);
   opacity: 0;
 }
 
@@ -310,7 +315,7 @@ const ANIMATION_CSS = `
   width: 7px;
   height: 7px;
   border-radius: 999px;
-  border: 1.5px solid #8f95a3;
+  border: 1.5px solid var(--ds-canvas-dark-quiet);
   border-top-color: transparent;
   transform: rotate(45deg);
 }
@@ -336,7 +341,7 @@ const ANIMATION_CSS = `
   width: 26px;
   height: 26px;
   border-radius: 999px;
-  border: 1.5px solid rgb(18 20 26 / 0.32);
+  border: 1.5px solid color-mix(in srgb, var(--canvas-ink) 32%, transparent);
   opacity: 0;
 }
 
@@ -442,12 +447,13 @@ const ANIMATION_CSS = `
 }
 
 /* Plain body text until the click at ~3.0s, a link from then on, and the link
-   colour follows the brand: indigo, then terracotta after the restyle, then a
-   step lighter so it still reads on the forced-dark canvas. */
+   colour follows the brand: the accent, then terracotta after the restyle, then
+   a step lighter so it still reads on the forced-dark canvas. */
 @keyframes reel-linkword {
   0%, 21% { color: var(--canvas-body); text-decoration-color: transparent; }
-  23%, 76.3% { color: var(--indigo); text-decoration-color: var(--indigo); }
+  23%, 76.3% { color: var(--brand); text-decoration-color: var(--brand); }
   81.2%, 89.2% { color: var(--terracotta); text-decoration-color: var(--terracotta); }
+  /* Terracotta lifted the way a forced-dark client lifts a link. */
   91%, 96.8% { color: #d98a63; text-decoration-color: #d98a63; }
   99.2%, 100% { color: var(--canvas-body); text-decoration-color: transparent; }
 }
@@ -503,9 +509,9 @@ const ANIMATION_CSS = `
 }
 
 @keyframes reel-accent {
-  0%, 76.3% { background-color: #4f46e5; }
-  81.2%, 99.2% { background-color: #c2653d; }
-  99.6%, 100% { background-color: #4f46e5; }
+  0%, 76.3% { background-color: var(--brand); }
+  81.2%, 99.2% { background-color: var(--terracotta); }
+  99.6%, 100% { background-color: var(--brand); }
 }
 
 @keyframes reel-swatches {
@@ -535,14 +541,14 @@ const ANIMATION_CSS = `
    happening, and the restore back to white is folded into the loop's dissolve
    so the seam stays invisible. */
 @keyframes reel-darkcanvas {
-  0%, 89.2% { background-color: #ffffff; color: var(--canvas-ink); }
-  91%, 96.8% { background-color: #171a21; color: #f2f3f5; }
-  99.2%, 100% { background-color: #ffffff; color: var(--canvas-ink); }
+  0%, 89.2% { background-color: var(--ds-canvas); color: var(--canvas-ink); }
+  91%, 96.8% { background-color: var(--ds-canvas-dark); color: var(--ds-canvas-dark-ink); }
+  99.2%, 100% { background-color: var(--ds-canvas); color: var(--canvas-ink); }
 }
 
 @keyframes reel-darkpara {
   0%, 89.2% { color: var(--canvas-body); }
-  91%, 96.8% { color: #a2a8b4; }
+  91%, 96.8% { color: var(--ds-canvas-dark-body); }
   99.2%, 100% { color: var(--canvas-body); }
 }
 
@@ -618,7 +624,7 @@ export function HeroShowreel() {
             </div>
 
             <div className="reel-row reel-row-head">
-              <h3 className="reel-head">Welcome to Temply</h3>
+              <div className="reel-head">Welcome to Temply</div>
             </div>
 
             <div className="reel-row reel-row-para">
@@ -699,7 +705,7 @@ export function HeroShowreel() {
         </span>
 
         <span className="reel-swatches">
-          <span className="reel-dot reel-dot-indigo" />
+          <span className="reel-dot reel-dot-brand" />
           <span className="reel-dot-slot">
             <span className="reel-dot-ring" />
             <span className="reel-dot reel-dot-mid" />
@@ -724,8 +730,7 @@ export function HeroShowreel() {
           >
             <path
               d="M1 1 L1 11.4 L3.7 8.9 L5.6 12.8 L7.6 11.9 L5.7 8.1 L9.4 8.1 Z"
-              fill="#12141a"
-              stroke="#ffffff"
+              className="fill-canvas-ink stroke-canvas"
               strokeWidth="1.1"
               strokeLinejoin="round"
             />

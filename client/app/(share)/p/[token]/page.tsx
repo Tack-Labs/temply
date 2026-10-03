@@ -17,16 +17,11 @@ async function loadPreview(token: string): Promise<Preview | null> {
   return res.json();
 }
 
-export async function generateMetadata({ params }: { params: Promise<{ token: string }> }): Promise<Metadata> {
-  const { token } = await params;
-  const preview = await loadPreview(token);
-  return {
-    // The email's own title, as the author wrote it, with no brand after it:
-    // a reviewer was sent one email, not the product.
-    title: preview ? { absolute: `${preview.title} — preview` } : 'Preview',
-    robots: 'noindex',
-  };
-}
+// Email titles can contain customer data and appear in browser history.
+export const metadata: Metadata = {
+  title: 'Email preview',
+  robots: { index: false, follow: false },
+};
 
 /**
  * What a review link opens: the email as the author's draft stands, in a

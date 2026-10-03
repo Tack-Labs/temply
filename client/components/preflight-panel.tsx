@@ -86,7 +86,9 @@ export function PreflightPanel({
                   : 'flex w-full items-center justify-between gap-3 px-3.5 py-2.5 text-left'
               }
             >
-              <span className="flex min-w-0 items-center gap-2.5">
+              {/* The badges do not wrap their own text, so on a phone they have to
+                  wrap as a row or the second one is clipped by the card. */}
+              <span className="flex min-w-0 flex-wrap items-center gap-x-2.5 gap-y-1">
                 <AlertTriangleIcon
                   className={cn(
                     'size-4 shrink-0',

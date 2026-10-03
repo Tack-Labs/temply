@@ -1,5 +1,6 @@
 import * as React from 'react';
 import { cn } from '~/lib/classname';
+import { Button } from './button';
 
 /**
  * How a surface answers the pointer when the whole of it is a target: it
@@ -27,7 +28,7 @@ export function Card({
   return (
     <div
       className={cn(
-        'rounded-lg border border-line bg-raised shadow-sm',
+        'rounded-xl border border-line bg-raised shadow-sm',
         inset && 'p-4',
         interactive && lift,
         className,
@@ -49,7 +50,7 @@ export function PageHeader({
   return (
     <div className="flex flex-wrap items-start justify-between gap-3">
       <div className="min-w-0">
-        <h1 className="font-display text-xl font-semibold tracking-tight text-ink">{title}</h1>
+        <h1 className="font-display text-xl font-semibold tracking-display text-ink">{title}</h1>
         {description ? <p className="mt-0.5 text-sm text-muted">{description}</p> : null}
       </div>
       {actions ? <div className="flex shrink-0 items-center gap-2">{actions}</div> : null}
@@ -59,7 +60,9 @@ export function PageHeader({
 
 /**
  * An empty screen is an invitation to act, so the action is part of the state
- * rather than something the page has to remember to put nearby.
+ * rather than something the page has to remember to put nearby. It and
+ * ErrorState take Card's radius because they stand where a Card would, and
+ * a page that swaps one for the other should not change its corners.
  */
 export function EmptyState({
   icon: Icon,
@@ -73,7 +76,7 @@ export function EmptyState({
   action?: React.ReactNode;
 }) {
   return (
-    <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-line px-6 py-14 text-center">
+    <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-line px-6 py-14 text-center">
       <Icon className="size-5 text-faint" />
       <p className="mt-3 text-base font-medium text-ink">{title}</p>
       <p className="mt-1 max-w-sm text-sm text-muted">{description}</p>
@@ -98,22 +101,22 @@ export function ErrorState({
   onRetry?: () => void;
 }) {
   return (
-    <div className="flex flex-col items-center justify-center rounded-lg border border-line bg-danger-wash px-6 py-14 text-center">
+    <div className="flex flex-col items-center justify-center rounded-xl border border-line bg-danger-wash px-6 py-14 text-center">
       <p className="text-base font-medium text-danger-ink">{title}</p>
       <p className="mt-1 max-w-sm text-sm text-muted">{description}</p>
       {onRetry ? (
-        <button
-          type="button"
-          onClick={onRetry}
-          className="mt-4 h-8 rounded-sm border border-line bg-raised px-3 text-sm font-medium text-ink transition-colors hover:bg-hover"
-        >
+        <Button onClick={onRetry} className="mt-4">
           Try again
-        </button>
+        </Button>
       ) : null}
     </div>
   );
 }
 
+/**
+ * A pill, so it never wraps: a status label that broke onto two lines would
+ * turn into a rounded blob. Keep the text to a word or a count.
+ */
 export function Badge({
   tone = 'neutral',
   className,
@@ -132,7 +135,7 @@ export function Badge({
   return (
     <span
       className={cn(
-        'inline-flex items-center rounded-xs px-1.5 py-0.5 text-2xs font-medium',
+        'inline-flex items-center rounded-full px-2 py-0.5 text-2xs font-medium whitespace-nowrap',
         tones[tone],
         className,
       )}
@@ -189,8 +192,8 @@ export function StatTile({
   return (
     <Card className={cn('p-3.5', className)} interactive={interactive}>
       <p className="text-xs text-muted">{label}</p>
-      <p className="mt-1 font-display text-2xl font-semibold tabular-nums text-ink">{value}</p>
-      {hint ? <p className="mt-0.5 text-xs text-faint">{hint}</p> : null}
+      <p className="mt-1 font-display text-2xl font-semibold tracking-display tabular-nums text-ink">{value}</p>
+      {hint ? <p className="mt-0.5 text-xs text-muted">{hint}</p> : null}
     </Card>
   );
 }

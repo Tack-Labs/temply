@@ -119,8 +119,10 @@ export const TemplyKit = Extension.create<TemplyKitOptions>({
       StarterKit.configure({
         code: {
           HTMLAttributes: {
+            // Canvas, not chrome: the radius is a literal because it has to be
+            // the email's 6px (render/engine.tsx), not the editor's scale.
             class:
-              'mly:px-1 mly:relative mly:py-0.5 mly:bg-[#efefef] mly:text-sm mly:rounded-md mly:tracking-normal mly:font-normal',
+              'mly:px-1 mly:relative mly:py-0.5 mly:bg-[#efefef] mly:text-sm mly:rounded-[6px] mly:tracking-normal mly:font-normal',
           },
         },
         blockquote: {

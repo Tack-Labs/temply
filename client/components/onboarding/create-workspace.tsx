@@ -13,7 +13,7 @@ export function CreateWorkspace() {
   return (
     <div className="space-y-4">
       <div className="text-center">
-        <h1 className="font-display text-xl font-semibold tracking-tight text-ink">Name your workspace</h1>
+        <h1 className="font-display text-xl font-semibold tracking-display text-ink">Name your workspace</h1>
         <p className="mt-1 text-sm text-muted">
           Your templates, brands and API keys live here. Usually your company's name.
         </p>

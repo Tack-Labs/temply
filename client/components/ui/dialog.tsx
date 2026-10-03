@@ -45,8 +45,13 @@ const DialogContent = React.forwardRef<
       {...props}
     >
       {children}
+      {/* On a coarse pointer the close grows to 44px and moves 8px in from
+          the corner, so its left edge is 52px from the dialog's edge. The
+          title has to end short of that: DialogHeader's coarse padding adds
+          48px to whatever the dialog pads itself with (p-5 by default, p-4
+          in the compact ones), which keeps 12px or more clear of it. */}
       <DialogPrimitive.Close asChild>
-        <Button variant="ghost" size="icon-sm" className="absolute top-4 right-4">
+        <Button variant="ghost" size="icon-sm" touch className="absolute top-4 right-4 pointer-coarse:top-2 pointer-coarse:right-2">
           <X />
           <span className="sr-only">Close</span>
         </Button>
@@ -63,7 +68,9 @@ function DialogHeader({
   return (
     <div
       className={cn(
-        'flex flex-col gap-1 pr-8',
+        // 32px clears the 28px close button on a fine pointer; the 44px one a
+        // coarse pointer gets needs 48px, as explained beside the button.
+        'flex flex-col gap-1 pr-8 pointer-coarse:pr-12',
         className
       )}
       {...props}

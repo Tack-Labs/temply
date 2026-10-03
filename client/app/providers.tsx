@@ -17,8 +17,10 @@ export function Providers({ children }: { children: React.ReactNode }) {
             maximum z-index, and every toast — save, upload, delete — was
             drawn underneath it. Colours come from the toast block in
             globals.css, not from classNames — Sonner's own selectors
-            outrank a utility class. */}
-        <Toaster position="top-center" />
+            outrank a utility class. The font is the one exception: Sonner
+            sets a system stack on its own list, so it is overridden inline
+            there, where `--font-sans` (declared on <body>) resolves. */}
+        <Toaster position="top-center" style={{ fontFamily: 'var(--font-sans)' }} />
         <NavigationLoadingBar />
       </ThemeProvider>
     </QueryClientProvider>

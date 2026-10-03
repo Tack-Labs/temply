@@ -1,5 +1,8 @@
+import type { Metadata } from 'next';
 import Link from 'next/link';
 import { Clerk } from '~/components/clerk';
+
+export const metadata: Metadata = { robots: { index: false, follow: false } };
 
 /**
  * The shell both auth screens share: the brand above the card, the terms
@@ -12,7 +15,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
   return (
     <Clerk>
       <main className="flex min-h-screen flex-col items-center justify-center gap-6 bg-surface px-4">
-        <Link href="/" className="text-lg font-semibold tracking-tight text-ink">
+        <Link href="/" className="font-display text-lg font-semibold tracking-display text-ink">
           Temply
         </Link>
         {children}

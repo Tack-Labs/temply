@@ -1,116 +1,100 @@
 import { auth, currentUser } from '@clerk/nextjs/server';
-import Link from 'next/link';
+import { isLimitReached } from '@temply/shared/plans';
 import { redirect } from 'next/navigation';
-import { FileTextIcon } from 'lucide-react';
 import { NewTemplateButton } from '~/components/dashboard/new-template-button';
-import { Button } from '~/components/ui/button';
-import { List, Row } from '~/components/ui/item';
-import { Badge, EmptyState, ErrorState, PageHeader, StatTile } from '~/components/ui/surfaces';
+import { RecentTemplates } from '~/components/dashboard/recent-templates';
+import { UsageSection } from '~/components/dashboard/usage-section';
+import { PageHeader } from '~/components/ui/surfaces';
+import type { Billing } from '~/lib/billing';
 import { serverFetch } from '~/lib/server-fetch';
 import type { TemplateListItem } from '~/lib/template-search';
 
 export const dynamic = 'force-dynamic';
 
+/** How many templates the home shows; the rest are one "View all" away. */
+const RECENT_COUNT = 5;
+
+/** The body of an answer that was ok, or null for anything else, a throw and an unreadable body included. */
+async function readJson<T>(res: Response | null): Promise<T | null> {
+  if (!res?.ok) return null;
+  try {
+    return (await res.json()) as T;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * The billing body when it has what the page and its tiles read without a
+ * look first, null when it does not. An answer that is ok and lacks them (a
+ * proxy's placeholder, a body from a version that has moved on) is a failed
+ * load, which the usage section says for itself; left to be read, it would
+ * throw past the section into the app's error page.
+ */
+function readBilling(body: Partial<Billing> | null): Billing | null {
+  return body?.usage && body.limits && body.overage ? (body as Billing) : null;
+}
+
 export default async function DashboardPage() {
-  const { userId } = await auth();
+  const { userId, orgRole } = await auth();
 
   if (!userId) redirect('/login');
 
-  const user = await currentUser();
-
-  const [templatesRes, billingRes] = await Promise.all([
-    serverFetch('/api/v1/templates'),
-    serverFetch('/api/v1/billing').catch(() => null),
+  // Each read can fail on its own, and the page says which one did: a failed
+  // templates fetch is not an empty account, and a failed billing fetch is
+  // not a free plan. Neither takes the other's half of the page down. The
+  // greeting needs only the user, so all three are started together: asked in
+  // turn, a Clerk round trip would be added to every load's first byte.
+  const [user, templatesBody, billingBody] = await Promise.all([
+    currentUser(),
+    serverFetch('/api/v1/templates')
+      .catch(() => null)
+      .then((res) => readJson<{ templates?: TemplateListItem[] }>(res)),
+    serverFetch('/api/v1/billing')
+      .catch(() => null)
+      .then((res) => readJson<Partial<Billing>>(res)),
   ]);
+  const billing = readBilling(billingBody);
 
-  // Track the failure rather than folding it into an empty result: "we could
-  // not reach the server" and "you have nothing yet" are different messages.
-  const templatesFailed = !templatesRes.ok;
-  const { templates = [] }: { templates: TemplateListItem[] } = templatesFailed
-    ? { templates: [] }
-    : await templatesRes.json();
-  const billing = billingRes?.ok ? await billingRes.json() : null;
+  const templatesFailed = templatesBody === null;
+  // The API returns full rows, content and theme included. Project down to
+  // what a row renders before they cross into the client component, so
+  // nothing else rides along in the RSC payload.
+  const recent = (templatesBody?.templates ?? []).slice(0, RECENT_COUNT).map(
+    (template): TemplateListItem => ({
+      id: template.id,
+      title: template.title,
+      preview_text: template.preview_text ?? null,
+      short_code: template.short_code ?? null,
+      updated_at: template.updated_at ?? null,
+      published_at: template.published_at ?? null,
+      has_unpublished_changes: template.has_unpublished_changes ?? false,
+    }),
+  );
 
-  const recentTemplates = templates.slice(0, 5);
+  const atLimit = billing ? isLimitReached(billing.usage.templates, billing.limits.maxTemplates) : false;
+  // A read-only workspace can't make anything; the dashboard's banner says
+  // why, so the page only takes away the controls.
+  const readOnly = billing?.plan === 'lapsed';
 
   return (
-    <div className="space-y-5">
+    // The heading stays "Welcome back" plus the first name rather than a
+    // greeting for the time of day: it is the one h1 the sign-in specs and the
+    // workspace switch wait for, and the server does not know the reader's hour.
+    <div className="fade-in-mount space-y-6 motion-reduce:transition-none">
       <PageHeader
         title={`Welcome back${user?.firstName ? `, ${user.firstName}` : ''}`}
         description="Where your templates and usage stand today."
+        actions={<NewTemplateButton disabled={atLimit || readOnly} />}
       />
 
-      {/* The tiles are the navigation: each one opens the page it summarises. */}
-      <div className="grid gap-3 sm:grid-cols-3">
-        <Link href="/dashboard/templates">
-          <StatTile
-            label="Templates"
-            value={templatesFailed ? '—' : templates.length}
-            interactive
-          />
-        </Link>
-        <Link href="/dashboard/settings/api-keys">
-          <StatTile
-            label="API keys"
-            value={billing?.usage?.apiKeys ?? '—'}
-            interactive
-          />
-        </Link>
-        <Link href="/dashboard/settings/plan">
-          <StatTile
-            label="Plan"
-            value={<span className="capitalize">{billing?.plan ?? '—'}</span>}
-            hint={billing ? undefined : 'Usage could not be loaded'}
-            className="h-full"
-            interactive
-          />
-        </Link>
-      </div>
+      <UsageSection billing={billing} isAdmin={orgRole === 'org:admin'} />
 
-      <section className="space-y-2.5">
-        <div className="flex items-center justify-between">
-          <h2 className="font-display text-sm font-semibold text-ink">Recent templates</h2>
-          {!templatesFailed && templates.length > 0 ? (
-            <Button variant="link" size="sm" asChild className="px-0">
-              <Link href="/dashboard/templates">View all</Link>
-            </Button>
-          ) : null}
-        </div>
-
-        {templatesFailed ? (
-          <ErrorState description="We could not reach the server, so your templates are not shown. This is not a sign that they are gone." />
-        ) : recentTemplates.length === 0 ? (
-          <EmptyState
-            icon={FileTextIcon}
-            title="No templates yet"
-            description="Start one and it will appear here, ready to edit or send."
-            action={<NewTemplateButton />}
-          />
-        ) : (
-          <List>
-            {recentTemplates.map((template) => (
-              <Row
-                key={template.id}
-                href={`/templates/${template.id}`}
-                title={template.title}
-                subtitle={template.preview_text || 'No preview text'}
-                meta={
-                  template.has_unpublished_changes ? (
-                    <Badge tone="warn">Draft</Badge>
-                  ) : template.published_at ? (
-                    <span className="hidden shrink-0 text-xs text-muted tabular-nums sm:block">
-                      {new Date(template.published_at).toLocaleDateString(undefined, {
-                        day: 'numeric',
-                        month: 'short',
-                      })}
-                    </span>
-                  ) : null
-                }
-              />
-            ))}
-          </List>
-        )}
-      </section>
+      <RecentTemplates
+        templates={recent}
+        failed={templatesFailed}
+        emptyAction={<NewTemplateButton disabled={readOnly} />}
+      />
     </div>
   );
 }

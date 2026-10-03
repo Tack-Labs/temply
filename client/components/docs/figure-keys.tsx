@@ -13,7 +13,7 @@ export function FigureKeys() {
   return (
     <figure className="mt-8 max-w-2xl">
       <div className="overflow-hidden rounded-md border border-line bg-raised" aria-hidden>
-        <div className="grid grid-cols-[1fr_1.5rem_1fr] border-b border-line text-2xs font-medium tracking-wide text-faint uppercase">
+        <div className="grid grid-cols-[1fr_1.5rem_1fr] border-b border-line text-2xs font-medium tracking-wide text-muted uppercase">
           <div className="px-3 py-1.5">Your template</div>
           <div />
           <div className="px-3 py-1.5">Your keys</div>

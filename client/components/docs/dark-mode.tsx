@@ -49,7 +49,7 @@ export function DarkMode() {
             as a list of syllables. The wrapper scrolls it instead. */}
         <table className="w-full min-w-[36rem] text-sm">
           <thead>
-            <tr className="border-b border-line text-left text-2xs font-medium tracking-wide text-faint uppercase">
+            <tr className="border-b border-line text-left text-2xs font-medium tracking-wide text-muted uppercase">
               <th className="px-4 py-2.5 font-medium">The client</th>
               <th className="px-4 py-2.5 font-medium">In dark mode</th>
               <th className="px-4 py-2.5 font-medium">For example</th>

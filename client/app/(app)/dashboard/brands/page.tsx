@@ -309,7 +309,7 @@ export default function BrandsPage() {
                 </label>
                 <input
                   id="brand-name"
-                  className="h-8 w-full rounded-sm border border-line bg-raised px-2.5 text-sm text-ink placeholder:text-faint"
+                  className="h-8 w-full rounded-sm border border-line bg-raised px-2.5 text-sm text-ink placeholder:text-muted"
                   placeholder="Your brand name"
                   value={name}
                   onChange={(e) => setName(e.target.value)}

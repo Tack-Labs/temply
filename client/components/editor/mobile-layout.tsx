@@ -176,12 +176,14 @@ export function MobileEditorLayout({
           <DropdownMenuContent align="end" className="w-64">
             {/* The save status fades rather than unmounts, so with nothing
                 to report the row would open as an empty line above a rule. */}
-            {template?.id && (model.unpublished || model.saveStatus !== 'idle') ? (
+            {template?.id && (model.publishBadge || model.saveStatus !== 'idle') ? (
               <>
                 <DropdownMenuLabel>
                   <span className="flex items-center justify-between gap-2">
                     <SaveStatus status={model.saveStatus} onRetry={() => void model.autosave?.flush()} />
-                    {model.unpublished ? <Badge tone="warn">Unpublished changes</Badge> : null}
+                    {model.publishBadge ? (
+                      <Badge tone={model.publishBadge.tone}>{model.publishBadge.label}</Badge>
+                    ) : null}
                   </span>
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
@@ -194,11 +196,11 @@ export function MobileEditorLayout({
             {template?.id ? (
               <>
                 <DropdownMenuItem
-                  className={touchTarget}
-                  disabled={model.readOnly || model.isPublishing || (!model.unpublished && model.publishedAt !== null && !model.publishArmed)}
+                  className={cn(touchTarget, model.publishArmed && 'text-danger-ink [&_svg]:text-danger-ink')}
+                  disabled={model.readOnly || model.isPublishing || (model.publishStatus === 'published' && !model.publishArmed)}
                   onSelect={model.handlePublish}
                 >
-                  {model.isPublishing ? <Loader2Icon className="animate-spin" /> : <GlobeIcon />}
+                  {model.isPublishing ? <Loader2Icon className="animate-spin motion-reduce:animate-none" /> : <GlobeIcon />}
                   {model.publishArmed ? 'Publish anyway' : 'Publish'}
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />

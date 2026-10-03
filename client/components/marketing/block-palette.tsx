@@ -32,10 +32,10 @@ export function BlockPalette() {
       {/* The query line. `/` is shown as typed, with a caret after it. */}
       <div className="flex items-center gap-2.5 border-b border-line px-4 py-3">
         <span className="font-mono text-base text-accent-ink">/</span>
-        <span className="text-base text-faint">Insert a block</span>
+        <span className="text-base text-muted">Insert a block</span>
         <span
           aria-hidden
-          className="ml-auto rounded-xs border border-line bg-surface px-1.5 py-0.5 font-mono text-2xs text-faint"
+          className="ml-auto rounded-xs border border-line bg-surface px-1.5 py-0.5 font-mono text-2xs text-muted"
         >
           esc
         </span>
@@ -67,7 +67,7 @@ export function BlockPalette() {
               {active ? (
                 <CornerDownLeftIcon aria-hidden className="ml-auto size-3.5 text-accent-ink" />
               ) : (
-                <span className="ml-auto font-mono text-2xs tracking-wide text-faint uppercase">
+                <span className="ml-auto font-mono text-2xs tracking-wide text-muted uppercase">
                   {row.group}
                 </span>
               )}
@@ -76,7 +76,7 @@ export function BlockPalette() {
         })}
       </ul>
 
-      <div className="border-t border-line px-4 py-2.5 font-mono text-2xs text-faint">
+      <div className="border-t border-line px-4 py-2.5 font-mono text-2xs text-muted">
         16 blocks · filter by typing
       </div>
     </div>

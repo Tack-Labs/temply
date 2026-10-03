@@ -42,13 +42,13 @@ import { ShortcutTable } from '~/components/docs/shortcut-table';
 
 /* --------------------------------------------------------------- primitives */
 
-/** A section heading. `scroll-mt-20` clears the sticky h-12 header when the
- *  table of contents jumps here. */
+/** A section heading. Its scroll margin is the sticky header's height plus a
+ *  little air, so the table of contents lands it clear of the bar. */
 export function H2({ id, children }: { id: string; children: ReactNode }) {
   return (
     <h2
       id={id}
-      className="scroll-mt-20 font-display text-2xl font-semibold tracking-tight text-balance text-ink lg:text-3xl"
+      className="scroll-mt-[calc(var(--header-h)+1.5rem)] font-display text-2xl font-semibold tracking-display text-balance text-ink lg:text-3xl"
     >
       {children}
     </h2>
@@ -59,7 +59,7 @@ export function H3({ id, children }: { id: string; children: ReactNode }) {
   return (
     <h3
       id={id}
-      className="scroll-mt-20 font-display text-lg font-semibold tracking-tight text-ink"
+      className="scroll-mt-[calc(var(--header-h)+1.5rem)] font-display text-lg font-semibold tracking-display text-ink"
     >
       {children}
     </h3>
@@ -74,7 +74,7 @@ function BlockGroup({ id, title, blocks }: { id: string; title: string; blocks: 
     <div className="mt-10">
       <h3
         id={id}
-        className="scroll-mt-20 font-mono text-2xs tracking-[0.16em] text-accent-ink uppercase"
+        className="scroll-mt-[calc(var(--header-h)+1.5rem)] font-mono text-2xs tracking-[0.16em] text-accent-ink uppercase"
       >
         {title}
       </h3>

@@ -1,5 +1,5 @@
-import type { Metadata } from 'next';
-import Link from 'next/link';
+import { JsonLd } from '~/components/json-ld';
+import { publicPageMetadata, publicPageSchema } from '~/lib/seo';
 import { DocsNav } from '~/components/docs/docs-nav';
 import { ApiReference } from '~/components/docs/api-reference';
 import { DarkMode } from '~/components/docs/dark-mode';
@@ -11,11 +11,7 @@ import {
   UsingBrands,
 } from '~/components/docs/docs-content';
 
-export const metadata: Metadata = {
-  title: 'Documentation',
-  description:
-    'How Temply builds email that survives the clients that still parse HTML like it is 2005.',
-};
+export const metadata = publicPageMetadata('/docs');
 
 // The ids the headings in docs-content carry. The nav highlights whichever of
 // these the reader is in, so the two lists have to stay in step.
@@ -64,13 +60,14 @@ const sections = [
 export default function DocsPage() {
   return (
     <div className="overflow-x-clip">
+      <JsonLd data={publicPageSchema('/docs')} />
       <div className="mx-auto max-w-5xl px-5 pt-16 pb-24 sm:pt-20">
         <header className="max-w-2xl">
           <p className="font-mono text-2xs tracking-[0.16em] text-accent-ink uppercase">
             Documentation
           </p>
-          <h1 className="mt-4 font-display text-3xl font-semibold tracking-tight text-balance text-ink lg:text-4xl">
-            How Temply works
+          <h1 className="mt-4 font-display text-3xl font-semibold tracking-display text-balance text-ink lg:text-4xl">
+            Email template API documentation
           </h1>
           <p className="mt-4 max-w-xl text-lg text-pretty text-muted">
             What the editor gives you, how a template goes from empty to sent,
@@ -83,8 +80,8 @@ export default function DocsPage() {
             a phone wants to see the shape of the page before the prose. At lg
             the same source order becomes the left rail. */}
         <div className="mt-14 grid gap-12 lg:grid-cols-[minmax(0,13rem)_minmax(0,1fr)] lg:gap-16">
-          {/* top-16 clears the sticky h-12 header with a little air. */}
-          <div className="lg:sticky lg:top-16 lg:self-start">
+          {/* Sticks a little below the header's own height. */}
+          <div className="lg:sticky lg:top-[calc(var(--header-h)+1rem)] lg:self-start">
             <DocsNav sections={sections} />
           </div>
 
@@ -102,14 +99,6 @@ export default function DocsPage() {
         </div>
       </div>
 
-      <footer className="border-t border-line">
-        <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-3 px-5 py-6 text-sm text-muted">
-          <p>&copy; {new Date().getFullYear()} Temply</p>
-          <Link href="/playground" className="text-accent-ink underline-offset-4 hover:underline">
-            Try the editor
-          </Link>
-        </div>
-      </footer>
     </div>
   );
 }

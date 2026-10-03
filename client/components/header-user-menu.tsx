@@ -25,7 +25,7 @@ export default function HeaderUserMenu({ onSignedOut }: { onSignedOut: () => voi
   return (
     <Clerk>
       <Resolved onSignedOut={onSignedOut} />
-      <UserMenu align="end" showLabel={false} surface="page" />
+      <UserMenu align="end" showLabel={false} />
     </Clerk>
   );
 }

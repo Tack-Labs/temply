@@ -11,8 +11,10 @@
  *
  * The colours are read out of `shared/brand-presets.ts` rather than retyped, so
  * the figure cannot drift from the presets a reader will actually pick from.
- * They are literal values on the card because a mail client paints the canvas
- * the same way in both themes, so what sits on it cannot follow ours.
+ * They are the preset's own values on the card because a mail client paints
+ * the canvas the same way in both themes, so what sits on it cannot follow
+ * ours. A preset field left unset falls back to the `--ds-canvas-*` tokens, so
+ * no colour in this file is its own.
  *
  * Same construction as the hero showreel: one 12s timeline, infinite, `opacity`
  * only.
@@ -37,12 +39,12 @@ function look(id: string, name: string) {
   return {
     id,
     name,
-    page: theme?.body?.backgroundColor ?? '#f4f4f5',
-    card: theme?.container?.backgroundColor ?? '#ffffff',
-    text: theme?.colors?.text ?? '#18181b',
-    button: theme?.button?.backgroundColor ?? '#18181b',
-    buttonInk: theme?.button?.color ?? '#ffffff',
-    link: theme?.link?.color ?? '#2563eb',
+    page: theme?.body?.backgroundColor ?? 'var(--ds-canvas-well)',
+    card: theme?.container?.backgroundColor ?? 'var(--ds-canvas)',
+    text: theme?.colors?.text ?? 'var(--ds-canvas-ink)',
+    button: theme?.button?.backgroundColor ?? 'var(--ds-canvas-ink)',
+    buttonInk: theme?.button?.color ?? 'var(--ds-canvas-on-accent)',
+    link: theme?.link?.color ?? 'var(--ds-canvas-accent-ink)',
     radius: theme?.container?.borderRadius ?? '6px',
     cardPad: px(theme?.container?.paddingTop, 40),
     pagePad: px(theme?.body?.paddingTop, 50),
