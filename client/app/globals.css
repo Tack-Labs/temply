@@ -729,7 +729,18 @@ html[data-reveal-ready] [data-reveal][data-revealed='true'] .reveal-copy {
    block as colour tokens. */
 html {
   --header-h: 4.5rem;
-  scroll-behavior: smooth;
+}
+
+/* Smooth scrolling is the page's to switch on once it has loaded
+   (smooth-scroll.tsx), not a given from the first byte. A link followed into
+   the page (`/docs#caching`) would otherwise ease to where its target was
+   before the fonts swapped in, and the swap moves the target out from under
+   an ease that is already travelling — the heading lands under the bar. At
+   rest the browser jumps, and keeps the target in place through the swap. */
+@media (prefers-reduced-motion: no-preference) {
+  html[data-smooth-scroll] {
+    scroll-behavior: smooth;
+  }
 }
 
 /* Anchors sit under the sticky header, so give them room to clear it. */
@@ -738,10 +749,6 @@ html {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  html {
-    scroll-behavior: auto;
-  }
-
   /* The global reduce block only shortens durations, so the entrance would
      still flash its 0% frame; removing the animation removes that too. */
   .hero-enter {

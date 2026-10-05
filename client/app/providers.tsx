@@ -3,6 +3,7 @@
 import { QueryClientProvider } from '@tanstack/react-query';
 import { Toaster } from 'sonner';
 import { NavigationLoadingBar } from '~/components/navigation-loader';
+import { SmoothScroll } from '~/components/smooth-scroll';
 import { ThemeProvider } from '~/components/theme-provider';
 import { queryClient } from '~/lib/query-client';
 import React from 'react';
@@ -22,6 +23,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
             there, where `--font-sans` (declared on <body>) resolves. */}
         <Toaster position="top-center" style={{ fontFamily: 'var(--font-sans)' }} />
         <NavigationLoadingBar />
+        <SmoothScroll />
       </ThemeProvider>
     </QueryClientProvider>
   );

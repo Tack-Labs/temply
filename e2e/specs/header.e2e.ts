@@ -153,6 +153,31 @@ test.describe('the bar', () => {
     }
   });
 
+  test('keeps a deep link clear of the header when the fonts arrive after it has been followed', async ({ page }) => {
+    // The fallback faces are close to the real ones but not the same, and the
+    // swap moves everything under it — the target included. A link that eased
+    // to where the heading was before the swap lands short of where it is
+    // after, under the bar. Held back, the fonts arrive part-way through what
+    // would have been a long ease.
+    await page.route('**/*.woff2', async (route) => {
+      await new Promise((resolve) => setTimeout(resolve, 600));
+      await route.continue();
+    });
+    await page.goto('/docs#caching');
+    const heading = page.locator('h3#caching');
+    // The reading that matters is the one after the swap, so it is waited for
+    // rather than assumed to have come before the first stable reading.
+    await expect.poll(() => page.evaluate(() => {
+      let arrived = 0;
+      document.fonts.forEach((face) => {
+        if (face.status === 'loaded') arrived += 1;
+      });
+      return document.fonts.status === 'loaded' && arrived > 0;
+    })).toBe(true);
+    await expect.poll(settled(page, heading), { intervals: [150] }).toBeGreaterThanOrEqual(0);
+    await expect.poll(settled(page, heading), { intervals: [150] }).toBeLessThanOrEqual(48);
+  });
+
   test('keeps the docs contents rail clear of itself while it sticks', async ({ page }) => {
     test.skip((page.viewportSize()?.width ?? 0) < 1024, 'the rail only sticks from lg');
     await page.goto('/docs');
