@@ -3,9 +3,7 @@
 import { SignIn, useAuth } from '@clerk/nextjs';
 import { useEffect, useRef } from 'react';
 import { useTheme } from '~/components/theme-provider';
-
-/** Where the login page sends someone who is already signed in. */
-export const SIGNED_IN_HOME = '/dashboard/templates';
+import { SIGNED_IN_HOME } from '~/lib/routes';
 
 const BOUNCE_KEY = 'temply:login-bounce';
 const BOUNCE_WINDOW_MS = 15_000;

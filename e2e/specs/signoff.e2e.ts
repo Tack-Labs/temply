@@ -85,9 +85,10 @@ test.describe('staging and sign-off', () => {
     expect((await page.request.post(`/api/v1/templates/${id}/stage`)).ok()).toBe(true);
     expect((await page.request.post(`/api/v1/templates/${id}/request-signoff`)).ok()).toBe(true);
     await page.goto(`/templates/${id}/review`);
-    const opener = page.getByRole('button', { name: 'Send back', exact: true });
-    await opener.click();
-    await expect(opener).toHaveText('Cancel');
+    await page.getByRole('button', { name: 'Send back', exact: true }).click();
+    // The opener becomes "Cancel" as the note opens, so it is found by that
+    // name; "Send back" now names the button inside the note.
+    await expect(page.getByRole('button', { name: 'Cancel', exact: true })).toHaveAttribute('aria-expanded', 'true');
     await page.getByRole('textbox', { name: 'Note for the author (optional)' }).fill('Check the footer link.');
     await page.getByRole('button', { name: 'Send back', exact: true }).click();
     await page.getByRole('dialog', { name: 'Send this copy back?' }).getByRole('button', { name: 'Send back', exact: true }).click();

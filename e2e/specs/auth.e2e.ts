@@ -55,6 +55,14 @@ test.describe('auth', () => {
     expect(visited.filter((url) => /\/login/.test(url)), 'the button went by way of login').toEqual([]);
   });
 
+  test('someone who is already signed in is taken from the login page to the dashboard', async ({ page }) => {
+    // The page redirects on the server for a session it can read, and the
+    // card does it in the browser for one it cannot; either way the visitor
+    // ends on the dashboard, never on a card with nothing drawn in it.
+    await page.goto('/login');
+    await expect(page).toHaveURL(/\/dashboard\/templates$/);
+  });
+
   test('the signed-in user lands on the dashboard', async ({ page }) => {
     await page.goto('/dashboard');
     // DashboardPage's h1 is "Welcome back[, name]" — the one heading that

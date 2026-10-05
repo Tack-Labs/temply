@@ -104,7 +104,6 @@ export function TemplateWorkflowPanel({ model, children }: { model: TemplateEdit
       {/* Below `sm` the editor is a fixed frame over the page, so a card here
           would sit underneath it: the phone reaches this from the ⋯ menu. */}
       <Card className="space-y-4 max-sm:hidden">
-        <nav aria-label="Template breadcrumb" className="break-words text-xs text-muted"><Link href="/dashboard/templates" className="text-accent-ink hover:underline">Templates</Link> / {model.subject || 'Untitled template'}</nav>
         <TemplateWorkflowControls model={model} copy={shown} onCopy={choose} />
       </Card>
       <div hidden={shown !== 'draft'}>{children}</div>

@@ -1,6 +1,7 @@
 import { TEST_USER_2 } from '../env';
 import { test, expect } from '../fixtures/test';
 import { makeApi } from '../fixtures/api';
+import { templateLink } from '../fixtures/list';
 import { onPhone } from '../fixtures/project';
 import { clerkLoaded, signInAs } from '../fixtures/session';
 import { readWorkspaces } from '../fixtures/workspaces';
@@ -16,12 +17,12 @@ test.describe('team', () => {
     const memberApi = makeApi(member.page.request);
     try {
       await member.page.goto('/dashboard/templates');
-      await expect(member.page.getByRole('link', { name: byAdmin })).toBeVisible();
+      await expect(templateLink(member.page, byAdmin)).toBeVisible();
 
       const byMember = name('by member');
       await memberApi.createTemplate({ title: byMember });
       await page.goto('/dashboard/templates');
-      await expect(page.getByRole('link', { name: byMember })).toBeVisible();
+      await expect(templateLink(page, byMember)).toBeVisible();
 
       // Each page is judged only once Clerk has told it the role: what is
       // asserted here is the absence of the admin's tabs and the presence of

@@ -10,6 +10,7 @@ import { ThemeToggle } from '~/components/theme-toggle';
 import { Button } from '~/components/ui/button';
 import { Skeleton } from '~/components/ui/skeleton';
 import { cn } from '~/lib/classname';
+import { SIGNED_IN_HOME } from '~/lib/routes';
 
 // The landing page sections these point at. Smooth scrolling and the offset that
 // keeps a heading clear of this sticky bar (`--header-h`) are both handled in
@@ -274,7 +275,7 @@ export function Header() {
                   sent to the login page. A Link would also prefetch that
                   redirect and keep it. */}
               <Button asChild className="sm:min-w-24">
-                <a href="/dashboard/templates">Dashboard</a>
+                <a href={SIGNED_IN_HOME}>Dashboard</a>
               </Button>
               <div className="hidden sm:block">
                 <HeaderUserMenu onSignedOut={() => setSignedIn(false)} />

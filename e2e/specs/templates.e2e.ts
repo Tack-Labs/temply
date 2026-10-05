@@ -1,6 +1,7 @@
 import type { Page } from '@playwright/test';
 import { EMPTY_DOC } from '../fixtures/api';
 import { renameTo, subjectField } from '../fixtures/editor';
+import { templateLink } from '../fixtures/list';
 import { test, expect } from '../fixtures/test';
 
 test.describe('templates', () => {
@@ -59,8 +60,8 @@ test.describe('templates', () => {
     await doomed.getByRole('button', { name: /^Delete template/ }).click();
     const dialog = page.getByRole('dialog', { name: 'Delete this template?' });
     await dialog.getByRole('button', { name: 'Delete', exact: true }).click();
-    await expect(page.getByRole('link', { name: `${stem} two` })).toHaveCount(0);
-    await expect(page.getByRole('link', { name: `${stem} one` })).toBeFocused();
+    await expect(templateLink(page, `${stem} two`)).toHaveCount(0);
+    await expect(templateLink(page, `${stem} one`)).toBeFocused();
   });
 
   test('search narrows the list to what matches', async ({ page, api, name }) => {
@@ -71,8 +72,8 @@ test.describe('templates', () => {
     await page.goto('/dashboard/templates');
     const search = page.getByRole('searchbox', { name: 'Search templates' });
     await search.fill(needle);
-    await expect(page.getByRole('link', { name: needle })).toBeVisible();
-    await expect(page.getByRole('link', { name: other })).toHaveCount(0);
+    await expect(templateLink(page, needle)).toBeVisible();
+    await expect(templateLink(page, other)).toHaveCount(0);
     await search.fill('zzzz-nothing-is-called-this');
     await expect(page.getByText('No templates match')).toBeVisible();
     // Two ways out of the no-match state, and they used to share a name —
@@ -82,7 +83,7 @@ test.describe('templates', () => {
     // is after.
     await expect(page.getByRole('button', { name: 'Clear search' })).toHaveCount(1);
     await page.getByRole('button', { name: 'Show all templates' }).click();
-    await expect(page.getByRole('link', { name: other })).toBeVisible();
+    await expect(templateLink(page, other)).toBeVisible();
   });
 
   test('duplicating makes a copy named after the original', async ({ page, api, name }) => {
@@ -94,7 +95,7 @@ test.describe('templates', () => {
     await page.getByRole('searchbox', { name: 'Search templates' }).fill(title);
     await page.getByRole('button', { name: 'Duplicate template' }).click();
     await expect(page.getByText('Template duplicated')).toBeVisible();
-    const copy = page.getByRole('link', { name: `[DUPLICATE] ${title}` });
+    const copy = templateLink(page, `[DUPLICATE] ${title}`);
     await expect(copy).toBeVisible();
     api.track((await copy.getAttribute('href'))!.split('/').pop()!);
   });
@@ -171,8 +172,8 @@ test.describe('templates', () => {
 
       await filterOf(page).getByRole('radio', { name: /^Drafts/ }).click();
       await page.getByRole('searchbox', { name: 'Search templates' }).fill(stem);
-      await expect(page.getByRole('link', { name: changed })).toBeVisible();
-      await expect(page.getByRole('link', { name: live })).toHaveCount(0);
+      await expect(templateLink(page, changed)).toBeVisible();
+      await expect(templateLink(page, live)).toHaveCount(0);
       await expect(countOf(page)).toHaveText(/^1 of \d+ templates$/);
 
       // The search is cleared and the filter stays: the × undoes one thing.
@@ -192,13 +193,13 @@ test.describe('templates', () => {
       await filter.getByRole('radio', { name: /^Drafts/ }).click();
       await expect(page.getByText('No templates match')).toBeVisible();
       await expect(page.getByText(/Nothing under Drafts matches/)).toBeVisible();
-      await expect(page.getByRole('link', { name: `${stem} one` })).toHaveCount(0);
+      await expect(templateLink(page, `${stem} one`)).toHaveCount(0);
       await expect(page.getByRole('button', { name: 'Clear search' })).toHaveCount(1);
 
       await page.getByRole('button', { name: 'Show all templates' }).click();
       await expect(filter.getByRole('radio', { name: /^All/ })).toBeChecked();
       await expect(page.getByRole('searchbox', { name: 'Search templates' })).toHaveValue('');
-      await expect(page.getByRole('link', { name: `${stem} one` })).toBeVisible();
+      await expect(templateLink(page, `${stem} one`)).toBeVisible();
     });
   });
 });

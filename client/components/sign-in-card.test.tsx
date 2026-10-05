@@ -18,7 +18,8 @@ afterAll(() => {
   mock.module('~/components/theme-provider', () => realTheme);
 });
 
-const { SignInCard, SIGNED_IN_HOME } = await import('./sign-in-card');
+const { SignInCard } = await import('./sign-in-card');
+const { SIGNED_IN_HOME } = await import('~/lib/routes');
 
 const STAMP = 'temply:login-bounce';
 
