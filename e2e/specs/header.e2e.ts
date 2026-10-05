@@ -316,10 +316,17 @@ test.describe('the menu on a phone', () => {
   });
 
   test('closes when a link in it is followed, and when the page changes under it', async ({ page }) => {
-    await page.emulateMedia({ reducedMotion: 'reduce' });
     await page.goto('/');
     const button = menuButton(page);
+    // The button is in the server's HTML, and a press before React has
+    // attached its handler is dropped without a trace, leaving a panel that
+    // never opens. The reveal flag is raised in the hydration commit, so it is
+    // the sign the page is live; reduced motion withholds it, so that is asked
+    // for after, and it is what lets the anchor below jump rather than ease.
+    await expect(page.locator('html')).toHaveAttribute('data-reveal-ready', '');
+    await page.emulateMedia({ reducedMotion: 'reduce' });
     await button.click();
+    await expect(button).toHaveAttribute('aria-expanded', 'true');
     await panelLinks(page).filter({ hasText: 'Blocks' }).click();
     await expect(page).toHaveURL(/#blocks$/);
     await expect(button).toHaveAttribute('aria-expanded', 'false');

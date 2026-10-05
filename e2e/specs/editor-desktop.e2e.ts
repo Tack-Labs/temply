@@ -1102,6 +1102,13 @@ test.describe('editor on the desktop', () => {
       ],
     });
     const t = await api.createTemplate({ title: name('dismiss section'), content: doc });
+    // Radix shuts a tooltip, and drops the open timer it was waiting on, at
+    // any scroll that moves its trigger. Placing the caret in the Section
+    // eases the window to it (`scroll-behavior: smooth`), and on a loaded
+    // runner that is still in flight when the pointer arrives on the control,
+    // after which the tooltip will not re-arm while the pointer rests there.
+    // At rest the window jumps, so the hover finds the page already still.
+    await page.emulateMedia({ reducedMotion: 'reduce' });
     const pm = await openEditor(page, t.id);
     // Autofocus landing is what says the menu has had its chance — tiptap
     // raises one in a timeout after that — and the Section's own text is what
