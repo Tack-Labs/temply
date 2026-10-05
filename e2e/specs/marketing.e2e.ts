@@ -40,7 +40,7 @@ test.describe('marketing', () => {
     // browser takes, the manifest and the sitemap answer, and the front
     // page says what it is in schema.org's vocabulary.
     await page.goto('/');
-    await expect(page).toHaveTitle('Email templates your team can edit and your app can use | Temply');
+    await expect(page).toHaveTitle('Email templates your team can edit | Temply');
     const graph = await page.locator('script[type="application/ld+json"]').first().textContent();
     expect(JSON.parse(graph!)['@graph'].map((n: { '@type': string }) => n['@type'])).toEqual(['WebSite', 'Organization', 'SoftwareApplication']);
     await expect(page.locator('link[rel="icon"][type="image/png"]')).toHaveCount(1);

@@ -6,8 +6,8 @@ export const SITE_NOINDEX = process.env.SITE_NOINDEX === '1' || IS_PREVIEW;
 
 export const PUBLIC_PAGES = {
   '/': {
-    title: 'Email templates your team can edit and your app can use',
-    description: 'Create receipts, welcome emails and password resets without code. Add personal details, preview, publish and connect your app to get finished HTML and plain text.',
+    title: 'Email templates your team can edit',
+    description: 'Create receipts, welcome emails and password resets without code. Add personal details, preview, publish, then connect your app for HTML and plain text.',
     sources: ['app/(marketing)/page.tsx', 'app/(marketing)/home-client.tsx', 'components/marketing'],
   },
   '/playground': {
