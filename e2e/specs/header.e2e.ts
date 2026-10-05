@@ -38,6 +38,23 @@ async function clearance(page: Page, target: Locator) {
   return page.evaluate(([b, t]) => t.getBoundingClientRect().top - b.getBoundingClientRect().bottom, [bar, el] as const);
 }
 
+/**
+ * A poll function for `clearance` that only reports a reading once the one
+ * before it, an interval earlier, agrees: NaN while the smooth scroll is still
+ * moving. The browser drops a fragment link followed while the last one is
+ * still easing in, so a loop over several links has to see each one stop, and
+ * the first reading inside the range is the tail of the scroll, not its end.
+ */
+function settled(page: Page, target: Locator) {
+  let last = Number.NaN;
+  return async () => {
+    const now = await clearance(page, target);
+    const held = now === last;
+    last = now;
+    return held ? now : Number.NaN;
+  };
+}
+
 /** What a bar wider than its screen leaves behind: the page scrolling sideways, or a control sitting past an edge. */
 async function overflow(page: Page) {
   return page.evaluate(() => {
@@ -131,8 +148,8 @@ test.describe('the bar', () => {
     for (const [path, target] of [['/docs#caching', 'h3#caching'], ['/docs#api-render', 'h3#api-render'], ['/docs#api-versions', 'h3#api-versions'], ['/terms#plans', 'section#plans']] as const) {
       await page.goto(path);
       const heading = page.locator(target);
-      await expect.poll(() => clearance(page, heading), { message: path }).toBeGreaterThanOrEqual(0);
-      await expect.poll(() => clearance(page, heading), { message: path }).toBeLessThanOrEqual(48);
+      await expect.poll(settled(page, heading), { message: path, intervals: [150] }).toBeGreaterThanOrEqual(0);
+      await expect.poll(settled(page, heading), { message: path, intervals: [150] }).toBeLessThanOrEqual(48);
     }
   });
 

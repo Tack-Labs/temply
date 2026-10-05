@@ -9,6 +9,15 @@ const fileName = (what: string) => `${what}.png`;
  *  for the user, and a test hands it files directly. */
 const fileInput = (page: Page) => page.locator('input[type=file]');
 
+/** Opens the library once the page is live. The file input is in the server's
+ *  HTML, and a file handed to it before React has attached its handler is
+ *  dropped without a request. The list is fetched only once the page has
+ *  hydrated, so its loading state going is the sign to wait for. */
+async function openLibrary(page: Page) {
+  await page.goto('/dashboard/assets');
+  await expect(page.getByRole('status').filter({ hasText: 'Loading your images' })).toHaveCount(0);
+}
+
 /** The fake ImageKit serves an upload from `/cdn/<fileId>/<name>`, so the
  *  file the API must delete is named by the asset's own URL. */
 const imagekitFileId = (url: string) => url.match(/\/cdn\/([^/]+)\//)?.[1];
@@ -16,7 +25,7 @@ const imagekitFileId = (url: string) => url.match(/\/cdn\/([^/]+)\//)?.[1];
 test.describe('assets', () => {
   test('an upload lands in the library', async ({ page, api, fakes, name }) => {
     const file = fileName(name('upload'));
-    await page.goto('/dashboard/assets');
+    await openLibrary(page);
     // The upload is what the case is about, and under a full parallel run
     // it can take longer than a toast's own timeout — so the response is
     // waited for by name, and the toast is read once it has arrived.
@@ -70,7 +79,7 @@ test.describe('assets', () => {
   });
 
   test('the wrong kind of file and an oversized one are refused', async ({ page, name }) => {
-    await page.goto('/dashboard/assets');
+    await openLibrary(page);
     // The server decides the type from the bytes, not from the name or the
     // MIME the browser sends.
     await fileInput(page).setInputFiles({ name: fileName(name('text')), mimeType: 'image/png', buffer: Buffer.from('not a picture') });

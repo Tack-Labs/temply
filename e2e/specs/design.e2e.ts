@@ -353,8 +353,16 @@ test.describe('themes', () => {
     // A guard is only as good as what it can see. A box pushed past the edge
     // inside the home page's clipping wrapper leaves `scrollWidth` alone, and
     // that is the case the walk exists for.
-    await page.emulateMedia({ reducedMotion: 'reduce' });
+    //
+    // React deletes a node it did not render when it hydrates the parent, and
+    // `open` returns on the server's HTML in the light theme, so on a slow
+    // runner the panel is removed under the case. The reveal flag is raised in
+    // the layout effect of the hydration commit, which makes it the sign the
+    // page is done; reduced motion withholds it, so that is asked for after,
+    // and the stylesheet lays a page that already raised it at rest.
     await open(page, '/', 'light');
+    await expect(page.locator('html')).toHaveAttribute('data-reveal-ready', '');
+    await page.emulateMedia({ reducedMotion: 'reduce' });
     await page.setViewportSize({ width: 390, height: 844 });
     await page.evaluate(() => {
       const wide = document.createElement('div');
