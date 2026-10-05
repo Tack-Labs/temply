@@ -1,6 +1,5 @@
 'use client';
 
-import Link from 'next/link';
 import { useEffect } from 'react';
 import { BrandMark } from '~/components/brand-mark';
 import { Button } from '~/components/ui/button';
@@ -35,7 +34,8 @@ export default function ErrorPage({ error, reset }: { error: Error & { digest?: 
           Try again
         </Button>
         <Button asChild>
-          <Link href="/dashboard">Open the dashboard</Link>
+          {/* A full page load, so an expired session is renewed on the way. */}
+          <a href="/dashboard">Open the dashboard</a>
         </Button>
       </div>
     </div>

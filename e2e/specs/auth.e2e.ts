@@ -38,6 +38,23 @@ test.describe('auth', () => {
     await context.close();
   });
 
+  test('the Dashboard button works once the session cookie has expired, without a trip through login', async ({ page, context }) => {
+    // The front page loads no Clerk, so nothing renews the minute-long
+    // session cookie while a visitor reads, and by the click it is usually
+    // gone. Clerk's middleware renews it with a handshake on a full page
+    // request; a client-side navigation is read as signed out and sent to
+    // /login, where the card draws nothing for someone it knows.
+    await page.goto('/');
+    await context.clearCookies({ name: /^__session/ });
+    const visited: string[] = [];
+    page.on('framenavigated', (frame) => {
+      if (frame === page.mainFrame()) visited.push(frame.url());
+    });
+    await page.getByRole('link', { name: 'Dashboard' }).click();
+    await expect(page).toHaveURL(/\/dashboard\/templates/);
+    expect(visited.filter((url) => /\/login/.test(url)), 'the button went by way of login').toEqual([]);
+  });
+
   test('the signed-in user lands on the dashboard', async ({ page }) => {
     await page.goto('/dashboard');
     // DashboardPage's h1 is "Welcome back[, name]" — the one heading that

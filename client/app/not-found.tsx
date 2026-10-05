@@ -18,7 +18,8 @@ export default function NotFound() {
       </p>
       <div className="mt-2 flex items-center gap-2">
         <Button variant="primary" asChild>
-          <Link href="/dashboard">Open the dashboard</Link>
+          {/* A full page load, so an expired session is renewed on the way. */}
+          <a href="/dashboard">Open the dashboard</a>
         </Button>
         <Button asChild>
           <Link href="/">Home</Link>

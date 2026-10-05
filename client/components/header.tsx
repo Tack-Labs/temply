@@ -266,8 +266,15 @@ export function Header() {
             <>
               {/* Both buttons share a minimum width, so the one swapped for
                   the other once the cookie is read takes the same room. */}
+              {/* A plain anchor, not a Link, because this page loads no Clerk:
+                  nothing renews the session cookie, which lasts about a
+                  minute, so by the click it has usually expired. Clerk's
+                  middleware renews it with a handshake only a full page
+                  request can follow; a Link's fetch is read as signed out and
+                  sent to the login page. A Link would also prefetch that
+                  redirect and keep it. */}
               <Button asChild className="sm:min-w-24">
-                <Link href="/dashboard/templates">Dashboard</Link>
+                <a href="/dashboard/templates">Dashboard</a>
               </Button>
               <div className="hidden sm:block">
                 <HeaderUserMenu onSignedOut={() => setSignedIn(false)} />
