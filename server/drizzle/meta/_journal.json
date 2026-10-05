@@ -22,6 +22,13 @@
       "when": 1791186389157,
       "tag": "0002_version_pinning",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1791191404025,
+      "tag": "0003_version_tags",
+      "breakpoints": true
     }
   ]
 }

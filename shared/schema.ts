@@ -123,6 +123,7 @@ export const templateVersions = pgTable('template_versions', {
    *  before this column existed — "unknown", not "no theme". */
   theme: text('theme'),
   version_number: integer('version_number').notNull(),
+  tag: text('tag'),
   created_at: text('created_at').default(now),
   /** When an API call last pinned this version, as an ISO timestamp, written
    *  at most once a day. Publishing prunes to the plan's newest versions but

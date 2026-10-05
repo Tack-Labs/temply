@@ -2,10 +2,7 @@
 
 import type { FocusPosition } from '@tiptap/core';
 import {
-  CheckIcon,
-  CopyIcon,
   GlobeIcon,
-  InfoIcon,
   LayoutTemplateIcon,
   Loader2Icon,
   MailIcon,
@@ -13,6 +10,7 @@ import {
   SendIcon,
   SlidersHorizontalIcon,
 } from 'lucide-react';
+import Link from 'next/link';
 import { cn } from '~/lib/classname';
 import { EMAIL_TRANSFORM, isLibraryUrl, UPLOAD_MIME_TYPES, withTransform } from '~/lib/assets';
 import { Button } from '../ui/button';
@@ -35,6 +33,7 @@ import { ShareLinkPopover } from '../share-link-popover';
 import { TemplateThemePanel } from '../template-theme-panel';
 import { CopyHtmlButton, DownloadButton, SaveStatus, fileSlug } from '../email-editor-sandbox';
 import type { TemplateEditorModel } from './use-template-editor';
+import { BlockLibrary } from './block-library';
 
 // The app-wide input treatment; the global :focus-visible ring supplies focus.
 const inputClass =
@@ -63,7 +62,6 @@ export function DesktopEditorLayout({
     preflight, preflightExpanded, setPreflightExpanded,
     saveStatus, autosave, unpublished, publishedLabel, publishStatus, publishBadge,
     isPublishing, publishArmed, sendArmed, handleSend, handleDiscarded, handleRestored,
-    shortCodeCopied, copyShortCode,
   } = model;
 
   return (
@@ -144,266 +142,250 @@ export function DesktopEditorLayout({
             {/* "Send anyway" must be readable to mean anything, so the
                 armed label stays visible even where "Send" would hide. */}
             <span className={sendArmed ? undefined : 'hidden sm:inline'}>
-              {sendArmed ? 'Send anyway' : 'Send'}
+              {sendArmed ? 'Send anyway' : 'Send a test'}
             </span>
           </Button>
         </div>
       </div>
       )}
 
-      {/* Template ID */}
-      {template?.short_code && (
-        <div className="flex items-center gap-3 rounded-lg border border-line bg-raised p-3">
-          <div className="flex items-center gap-1.5">
-            <span className="text-xs font-medium text-muted">Template ID</span>
-            <code className="rounded-md bg-hover px-2 py-1 text-sm font-mono text-ink">
-              {template.short_code}
-            </code>
-          </div>
-          <Button variant="ghost" size="sm" onClick={copyShortCode}>
-            {shortCodeCopied ? (
-              <><CheckIcon /> Copied</>
-            ) : (
-              <><CopyIcon /> Copy</>
-            )}
-          </Button>
-
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button variant="ghost" size="icon-sm" className="ml-auto" aria-label="What is the template ID for?">
-                <InfoIcon />
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent align="end" className="w-72">
-              <p className="text-sm font-medium text-ink">Using this template ID</p>
-              <p className="mt-1 text-sm text-muted">
-                Render this template from your own code with an API key. Send data for
-                your variables and conditions to get back the rendered HTML.
-              </p>
-              <pre className="mt-2.5 overflow-x-auto rounded-sm border border-line bg-surface p-2 font-mono text-2xs text-ink">
-{`curl -X POST -H "Authorization: Bearer tply_..." \\
-  -H "Content-Type: application/json" \\
-  -d '{"data":{"firstName":"Ada","isMember":true}}' \\
-  ${typeof window !== 'undefined' ? window.location.origin : ''}/api/public/v1/templates/${template.short_code}/render`}
-              </pre>
-              <p className="mt-2 text-2xs text-muted">
-                Create a key under API keys first. Every render counts as a call, so
-                render a broadcast once and cache on the template&apos;s updatedAt.
-              </p>
-            </PopoverContent>
-          </Popover>
+      <div className="grid items-start gap-4 lg:grid-cols-[190px_minmax(0,1fr)_280px] xl:grid-cols-[210px_minmax(0,1fr)_300px]">
+        <div className="lg:sticky lg:top-4">
+          <BlockLibrary editor={model.editor} disabled={readOnly || mode !== 'edit'} />
         </div>
-      )}
-
-      {/* Email fields card — same section/header shape as the Brand panel */}
-      <section className="overflow-hidden rounded-lg border border-line bg-raised">
-        <header className="flex items-center gap-1.5 border-b border-line px-3.5 py-2">
-          <MailIcon className="size-4 text-faint" />
-          <h2 className="text-sm font-medium text-ink">Email details</h2>
-        </header>
-        <div className="p-3.5">
-        <div className="grid gap-4 sm:grid-cols-2">
-          <div className="flex flex-col gap-1.5">
-            <Label className={labelClass} htmlFor="subject">Subject</Label>
-            <input
-              className={inputClass}
-              id="subject"
-              readOnly={readOnly}
-              onChange={(e) => setSubject(e.target.value)}
-              placeholder="Your email subject"
-              value={subject}
-            />
+        <div className="min-w-0 space-y-3">
+          <div className="rounded-lg bg-accent-wash px-4 py-3 text-sm text-accent-ink">
+            Click the email to change its words. Select text or a block to see its formatting options.
           </div>
-
-          <div className="flex flex-col gap-1.5">
-            <Label className={labelClass} htmlFor="fromName">From name</Label>
-            <input
-              className={inputClass}
-              id="fromName"
-              onChange={(e) => setFromName(e.target.value)}
-              placeholder="Your name or brand"
-              value={fromName}
-            />
-          </div>
-
-          <div className="flex flex-col gap-1.5">
-            <Label className={labelClass} htmlFor="to">To</Label>
-            <input
-              className={inputClass}
-              id="to"
-              onChange={(e) => setTo(e.target.value)}
-              placeholder="to@example.com"
-              type="email"
-              value={to}
-            />
-          </div>
-
-          <div className="flex flex-col gap-1.5">
-            <Label className={labelClass} htmlFor="replyTo">
-              Reply To <span className="font-normal text-muted">(optional)</span>
-            </Label>
-            <input
-              className={inputClass}
-              id="replyTo"
-              onChange={(e) => setReplyTo(e.target.value)}
-              placeholder="replyto@example.com"
-              type="email"
-              value={replyTo}
-            />
-          </div>
-        </div>
-
-        <div className="mt-4 flex flex-col gap-1.5">
-          <label className={labelClass} htmlFor="previewText">
-            Preview Text
-          </label>
-          <input
-            className={inputClass}
-            id="previewText"
-            readOnly={readOnly}
-            onChange={(e) => setPreviewText(e.target.value)}
-            placeholder="Preview text shown in inbox..."
-            value={previewText}
-          />
-        </div>
-        </div>
-      </section>
-
-      {/* Subject and preview text are the template's; the rest of Email
-          details only addresses a test send, which a read-only workspace can
-          still make. The brand is all the template's, so all of it locks. */}
-      <fieldset disabled={readOnly} className="m-0 min-w-0 border-0 p-0">
-        <TemplateThemePanel theme={theme} onChange={setTheme} />
-      </fieldset>
-
-      {/* Editor — same section/header shape as Email details and Brand */}
-      <section className="overflow-hidden rounded-lg border border-line bg-raised">
-        <header className="flex items-center justify-between gap-2 border-b border-line px-3.5 py-2">
-          <h2 className="flex items-center gap-1.5 text-sm font-medium text-ink">
-            <LayoutTemplateIcon className="size-4 text-faint" />
-            Content
-            {mode !== 'edit' && (
-              <span className="font-normal text-muted">
-                ({mode === 'preview' ? 'Preview' : mode === 'html' ? 'HTML' : 'Text'})
-              </span>
-            )}
-          </h2>
-
-          <div className="flex items-center gap-2">
-            <ContentModeSwitch
-              mode={mode}
-              pending={pendingMode}
-            onModeChange={changeMode}
-            viewControls={
-              mode === 'html' || mode === 'text' ? (
-                <>
-                  <CopyHtmlButton html={mode === 'html' ? htmlSource : textSource} />
-                  <DownloadButton
-                    content={mode === 'html' ? htmlSource : textSource}
-                    filename={`${fileSlug(subject)}.${mode === 'html' ? 'html' : 'txt'}`}
-                    mimeType={mode === 'html' ? 'text/html' : 'text/plain'}
-                    label={mode === 'html' ? 'Download HTML' : 'Download text'}
-                  />
-                </>
-              ) : mode === 'preview' ? (
-              <>
-                {hasPreviewData && (
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button variant="ghost" size="icon-sm" aria-label="Preview data" title="Preview data">
-                        <SlidersHorizontalIcon />
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent align="end" className="w-80 p-3">
-                      <PreviewDataPanel
-                        keys={previewKeys}
-                        data={previewData}
-                        onChange={setPreviewData}
-                      />
-                    </PopoverContent>
-                  </Popover>
+          {/* Editor — same section/header shape as Email details and Brand */}
+          <section className="overflow-hidden rounded-lg border border-line bg-raised">
+            <header className="flex items-center justify-between gap-2 border-b border-line px-3.5 py-2">
+              <h2 className="flex items-center gap-1.5 text-sm font-medium text-ink">
+                <LayoutTemplateIcon className="size-4 text-faint" />
+                Your email
+                {mode !== 'edit' && (
+                  <span className="font-normal text-muted">
+                    ({mode === 'preview' ? 'Preview' : mode === 'html' ? 'HTML' : 'Text'})
+                  </span>
                 )}
-                <Button
-                  variant="ghost"
-                  size="icon-sm"
-                  aria-label="Preview as a client that forces dark mode"
-                  aria-pressed={forceDark}
-                  title="Forced dark"
-                  onClick={() => setForceDark((current) => !current)}
-                  className={cn(forceDark && 'bg-accent-wash text-accent-ink hover:bg-accent-wash hover:text-accent-ink')}
-                >
-                  <MoonIcon />
-                </Button>
-              </>
-              ) : null
-              }
+              </h2>
+
+              <div className="flex items-center gap-2">
+                <ContentModeSwitch
+                  mode={mode}
+                  pending={pendingMode}
+                onModeChange={changeMode}
+                viewControls={
+                  mode === 'html' || mode === 'text' ? (
+                    <>
+                      <CopyHtmlButton html={mode === 'html' ? htmlSource : textSource} />
+                      <DownloadButton
+                        content={mode === 'html' ? htmlSource : textSource}
+                        filename={`${fileSlug(subject)}.${mode === 'html' ? 'html' : 'txt'}`}
+                        mimeType={mode === 'html' ? 'text/html' : 'text/plain'}
+                        label={mode === 'html' ? 'Download HTML' : 'Download text'}
+                      />
+                    </>
+                  ) : mode === 'preview' ? (
+                  <>
+                    {hasPreviewData && (
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button variant="ghost" size="icon-sm" aria-label="Preview data" title="Preview data">
+                            <SlidersHorizontalIcon />
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent align="end" className="w-80 p-3">
+                          <PreviewDataPanel
+                            keys={previewKeys}
+                            data={previewData}
+                            onChange={setPreviewData}
+                          />
+                        </PopoverContent>
+                      </Popover>
+                    )}
+                    <Button
+                      variant="ghost"
+                      size="icon-sm"
+                      aria-label="Preview as a client that forces dark mode"
+                      aria-pressed={forceDark}
+                      title="Forced dark"
+                      onClick={() => setForceDark((current) => !current)}
+                      className={cn(forceDark && 'bg-accent-wash text-accent-ink hover:bg-accent-wash hover:text-accent-ink')}
+                    >
+                      <MoonIcon />
+                    </Button>
+                  </>
+                  ) : null
+                  }
+                />
+
+                {/* Not floating in a corner: the bottom right already carries
+                    toasts and, in development, Clerk's own badge. */}
+                <EditorCheatsheet />
+              </div>
+            </header>
+
+            <PreflightPanel
+              issues={preflight.issues}
+              bytes={preflight.bytes}
+              expanded={preflightExpanded}
+              onToggle={() => setPreflightExpanded((current) => !current)}
             />
 
-            {/* Not floating in a corner: the bottom right already carries
-                toasts and, in development, Clerk's own badge. */}
-            <EditorCheatsheet />
-          </div>
-        </header>
+            {/* The editor is hidden rather than unmounted: it holds the caret,
+                the selection and the undo history, and previewing is a glance. */}
+            {/* In dark mode the canvas is dimmed a touch to take the glare off —
+                comfort only, the theme's colours still hold: recipients get them
+                at full brightness, and so does the preview. The dim is a veil
+                over the canvas rather than a filter on it: a filter would also
+                dim the bubble menus drawn inside, leaving them a shade darker
+                than the menus that float on the page. */}
+            <div
+              ref={editorPaneRef}
+              className={cn(mode !== 'edit' ? 'hidden' : paneClass, 'relative')}
+              style={pageStyle}
+            >
+              <div
+                aria-hidden="true"
+                className="pointer-events-none absolute inset-0 z-10 hidden rounded-[inherit] bg-black/10 dark:block"
+              />
+              <div style={cardStyle}>
+                <EmailEditor
+                  allowedMimeTypes={UPLOAD_MIME_TYPES}
+                  autofocus={autofocus}
+                  defaultContent={editorContent}
+                  editable={!readOnly}
+                  onImageUpload={imageUploads && !readOnly ? imageUploader : undefined}
+                  onPickImage={imageUploads && !readOnly ? pickFromLibrary : undefined}
+                  isLibraryImage={isLibraryUrl}
+                  setEditor={setEditor}
+                />
+              </div>
+            </div>
 
-        <PreflightPanel
-          issues={preflight.issues}
-          bytes={preflight.bytes}
-          expanded={preflightExpanded}
-          onToggle={() => setPreflightExpanded((current) => !current)}
-        />
+            {mode === 'preview' && (
+              <ContentPreview
+                className={paneClass}
+                minHeight={paneHeight}
+                html={previewHtml}
+                isPending={isPreviewPending}
+                forceDark={forceDark}
+                subject={subject}
+                previewText={previewText}
+                from={fromName}
+              />
+            )}
 
-        {/* The editor is hidden rather than unmounted: it holds the caret,
-            the selection and the undo history, and previewing is a glance. */}
-        {/* In dark mode the canvas is dimmed a touch to take the glare off —
-            comfort only, the theme's colours still hold: recipients get them
-            at full brightness, and so does the preview. The dim is a veil
-            over the canvas rather than a filter on it: a filter would also
-            dim the bubble menus drawn inside, leaving them a shade darker
-            than the menus that float on the page. */}
-        <div
-          ref={editorPaneRef}
-          className={cn(mode !== 'edit' ? 'hidden' : paneClass, 'relative')}
-          style={pageStyle}
-        >
-          <div
-            aria-hidden="true"
-            className="pointer-events-none absolute inset-0 z-10 hidden rounded-[inherit] bg-black/10 dark:block"
-          />
-          <div style={cardStyle}>
-            <EmailEditor
-              allowedMimeTypes={UPLOAD_MIME_TYPES}
-              autofocus={autofocus}
-              defaultContent={editorContent}
-              editable={!readOnly}
-              onImageUpload={imageUploads && !readOnly ? imageUploader : undefined}
-              onPickImage={imageUploads && !readOnly ? pickFromLibrary : undefined}
-              isLibraryImage={isLibraryUrl}
-              setEditor={setEditor}
-            />
-          </div>
+            {mode === 'html' && (
+              <ContentSource className={paneClass} minHeight={paneHeight} source={htmlSource} />
+            )}
+
+            {mode === 'text' && (
+              <ContentSource className={paneClass} minHeight={paneHeight} source={textSource} wrap />
+            )}
+          </section>
+
         </div>
+        <aside aria-label="Email settings" className="min-w-0 space-y-4">
+          <div className="px-1">
+            <h2 className="font-display text-base font-semibold text-ink">Make it yours</h2>
+            <p className="mt-1 text-xs text-muted">Set the inbox details and the look of your email.</p>
+          </div>
+          {/* Email fields card — same section/header shape as the Brand panel */}
+          <section className="overflow-hidden rounded-lg border border-line bg-raised">
+            <header className="flex items-center gap-1.5 border-b border-line px-3.5 py-2">
+              <MailIcon className="size-4 text-faint" />
+              <h2 className="text-sm font-medium text-ink">Email details</h2>
+            </header>
+            <div className="p-3.5">
+            <p className="mb-4 text-xs leading-relaxed text-muted">The subject and preview text appear in the inbox. From name, To and Reply to are used for your test email.</p>
+            <div className="grid grid-cols-1 gap-4">
+              <div className="flex flex-col gap-1.5">
+                <Label className={labelClass} htmlFor="subject">Subject</Label>
+                <input
+                  className={inputClass}
+                  id="subject"
+                  readOnly={readOnly}
+                  onChange={(e) => setSubject(e.target.value)}
+                  placeholder="Your email subject"
+                  value={subject}
+                />
+              </div>
 
-        {mode === 'preview' && (
-          <ContentPreview
-            className={paneClass}
-            minHeight={paneHeight}
-            html={previewHtml}
-            isPending={isPreviewPending}
-            forceDark={forceDark}
-            subject={subject}
-            previewText={previewText}
-            from={fromName}
-          />
-        )}
+              <div className="flex flex-col gap-1.5">
+                <Label className={labelClass} htmlFor="fromName">From name</Label>
+                <input
+                  className={inputClass}
+                  id="fromName"
+                  onChange={(e) => setFromName(e.target.value)}
+                  placeholder="Your name or brand"
+                  value={fromName}
+                />
+              </div>
 
-        {mode === 'html' && (
-          <ContentSource className={paneClass} minHeight={paneHeight} source={htmlSource} />
-        )}
+              <div className="flex flex-col gap-1.5">
+                <Label className={labelClass} htmlFor="to">To</Label>
+                <input
+                  className={inputClass}
+                  id="to"
+                  onChange={(e) => setTo(e.target.value)}
+                  placeholder="to@example.com"
+                  type="email"
+                  value={to}
+                />
+              </div>
 
-        {mode === 'text' && (
-          <ContentSource className={paneClass} minHeight={paneHeight} source={textSource} wrap />
-        )}
-      </section>
+              <div className="flex flex-col gap-1.5">
+                <Label className={labelClass} htmlFor="replyTo">
+                  Reply to <span className="font-normal text-muted">(optional)</span>
+                </Label>
+                <input
+                  className={inputClass}
+                  id="replyTo"
+                  onChange={(e) => setReplyTo(e.target.value)}
+                  placeholder="replyto@example.com"
+                  type="email"
+                  value={replyTo}
+                />
+              </div>
+            </div>
+
+            <div className="mt-4 flex flex-col gap-1.5">
+              <label className={labelClass} htmlFor="previewText">
+                Inbox preview text
+              </label>
+              <input
+                className={inputClass}
+                id="previewText"
+                readOnly={readOnly}
+                onChange={(e) => setPreviewText(e.target.value)}
+                placeholder="Preview text shown in inbox..."
+                value={previewText}
+              />
+            </div>
+            </div>
+          </section>
+
+          {/* Subject and preview text are the template's; the rest of Email
+              details only addresses a test send, which a read-only workspace can
+              still make. The brand is all the template's, so all of it locks. */}
+          <fieldset disabled={readOnly} className="m-0 min-w-0 border-0 p-0">
+            <TemplateThemePanel theme={theme} onChange={setTheme} />
+          </fieldset>
+
+          {template?.short_code ? <div className="rounded-xl border border-line bg-raised p-4 text-sm">
+            <p className="font-medium text-ink">Ready to use this email?</p>
+            <p className="mt-1 text-xs text-muted">Publish your changes, then follow the steps to connect it to your app.</p>
+            <Button asChild variant="link" size="sm" className="mt-2 px-0">
+              <Link href={`/templates/${template.id}/connect`} onClick={async (event) => {
+                event.preventDefault();
+                if (await model.beforeStage()) window.location.assign(`/templates/${template.id}/connect`);
+              }}>Connect your app →</Link>
+            </Button>
+          </div> : null}
+        </aside>
+      </div>
 
       {imageUploads && !readOnly && (
         <AssetPickerDialog

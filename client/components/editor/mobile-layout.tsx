@@ -5,6 +5,7 @@ import { useEditorState } from '@tiptap/react';
 import { useEffect, useState } from 'react';
 import {
   AlertTriangleIcon,
+  BracesIcon,
   ArrowLeftIcon,
   CheckIcon,
   CopyIcon,
@@ -14,6 +15,7 @@ import {
   Loader2Icon,
   MoreHorizontalIcon,
   PencilLineIcon,
+  PlugIcon,
   SendIcon,
   Share2Icon,
   Trash2Icon,
@@ -200,6 +202,15 @@ export function MobileEditorLayout({
             </DropdownMenuItem>
             {template?.id ? (
               <>
+                <DropdownMenuItem asChild className={touchTarget}>
+                  <Link href={`/templates/${template.id}/variables`}><BracesIcon />Variables</Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild className={touchTarget}>
+                  <Link href={`/templates/${template.id}/versions`}><HistoryIcon />Versions & tags</Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild className={touchTarget}>
+                  <Link href={`/templates/${template.id}/connect`}><PlugIcon />Connect your app</Link>
+                </DropdownMenuItem>
                 <DropdownMenuItem className={touchTarget} onSelect={() => setSheet('workflow')}>
                   <WorkflowIcon />
                   Staging and sign-off

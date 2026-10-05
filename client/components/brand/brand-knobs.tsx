@@ -12,7 +12,8 @@ const DENSITIES: { v: BrandKnobs['density']; label: string }[] = [
 
 export function BrandKnobsControl({ value, onChange, touch }: { value: BrandKnobs; onChange: (k: BrandKnobs) => void; /** Passed to the colour popover, which is portalled out of any sheet. */ touch?: boolean }) {
   return (
-    <div className="grid gap-3 sm:grid-cols-3">
+    <div className="@container">
+    <div className="grid gap-3 @xl:grid-cols-3">
       <div className="space-y-1.5">
         <span className="block text-xs font-medium text-ink">Brand color</span>
         <ColorPickerPopover
@@ -42,6 +43,7 @@ export function BrandKnobsControl({ value, onChange, touch }: { value: BrandKnob
           ))}
         </div>
       </div>
+    </div>
     </div>
   );
 }

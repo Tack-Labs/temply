@@ -120,7 +120,8 @@ export function RawThemeFields({
   const patch = (part: Partial<Theme>) => onChange({ ...theme, ...part });
 
   return (
-    <div className="grid gap-x-6 gap-y-2.5 sm:grid-cols-2 lg:grid-cols-3">
+    <div className="@container">
+    <div className="grid gap-x-6 gap-y-2.5 @lg:grid-cols-2 @3xl:grid-cols-3">
       <div className="space-y-2.5">
         <p className="text-2xs font-medium tracking-wide text-muted uppercase">Page</p>
         <ColorField
@@ -221,6 +222,7 @@ export function RawThemeFields({
           hint={<ThemeIssueHint issues={issuesForField(theme, 'link')} />}
         />
       </div>
+    </div>
     </div>
   );
 }

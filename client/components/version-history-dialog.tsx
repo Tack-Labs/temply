@@ -11,6 +11,7 @@ import { useBilling } from '~/lib/billing';
 import { Button } from '~/components/ui/button';
 import { ErrorState } from '~/components/ui/surfaces';
 import { storedDocument } from '~/core/editor/utils/replace-deprecated';
+import { TemplateVersionPreview } from './template-version-preview';
 import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
 import {
@@ -185,9 +186,7 @@ export function VersionHistoryDialog({
                 description="Its saved content is damaged, so there is nothing to preview and nothing to restore. Your other versions are unaffected."
               />
             ) : (
-              <div className="max-h-80 overflow-auto rounded-lg border border-line bg-surface p-3">
-                <pre className="whitespace-pre-wrap text-xs text-ink">{previewJson}</pre>
-              </div>
+              <TemplateVersionPreview templateId={templateId} versionId={previewVersion.id} />
             )}
             <div className="flex justify-end gap-2">
               <Button variant="secondary" onClick={() => setPreviewVersion(null)}>

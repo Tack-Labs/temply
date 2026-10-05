@@ -8,6 +8,7 @@ import {
   ImageIcon,
   LayoutDashboardIcon,
   PaletteIcon,
+  PlugIcon,
   ShieldCheckIcon,
 } from 'lucide-react';
 import Link from 'next/link';
@@ -38,6 +39,7 @@ export const NAV_SECTIONS: NavSection[] = [
       { href: '/dashboard/templates', label: 'Templates', icon: FileTextIcon },
       { href: '/dashboard/brands', label: 'Brands', icon: PaletteIcon },
       { href: '/dashboard/assets', label: 'Assets', icon: ImageIcon },
+      { href: '/dashboard/connect', label: 'Connect your app', icon: PlugIcon },
     ],
   },
   {

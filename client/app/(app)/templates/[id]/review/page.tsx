@@ -1,6 +1,7 @@
 import { auth } from '@clerk/nextjs/server';
 import { redirect } from 'next/navigation';
 import { TemplateReview } from '~/components/template-review';
+import { TemplateNavigation } from '~/components/template-navigation';
 import { RefreshErrorState } from '~/components/dashboard/refresh-error-state';
 import { serverFetch } from '~/lib/server-fetch';
 
@@ -18,6 +19,6 @@ export default async function ReviewPage({ params }: { params: Promise<{ id: str
   if (!res?.ok) return <RefreshErrorState description="We could not load this template for sign-off. Try again." />;
   const { template } = await res.json();
   const billing = billingRes?.ok ? await billingRes.json() : null;
-  return <TemplateReview key={`${id}:${template.staged_at ?? template.published_at}`} template={template}
-    isAdmin={orgRole === 'org:admin'} userId={userId} readOnly={billing?.plan === 'lapsed'} />;
+  return <div className="space-y-6"><TemplateNavigation id={id} title={template.title} /><div className="mx-auto max-w-5xl"><TemplateReview key={`${id}:${template.staged_at ?? template.published_at}`} template={template}
+    isAdmin={orgRole === 'org:admin'} userId={userId} readOnly={billing?.plan === 'lapsed'} /></div></div>;
 }

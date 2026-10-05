@@ -3,6 +3,7 @@ import { isLimitReached } from '@temply/shared/plans';
 import { redirect } from 'next/navigation';
 import { NewTemplateButton } from '~/components/dashboard/new-template-button';
 import { RecentTemplates } from '~/components/dashboard/recent-templates';
+import { GetStarted } from '~/components/dashboard/get-started';
 import { UsageSection } from '~/components/dashboard/usage-section';
 import { PageHeader } from '~/components/ui/surfaces';
 import type { Billing } from '~/lib/billing';
@@ -84,17 +85,18 @@ export default async function DashboardPage() {
     <div className="fade-in-mount space-y-6 motion-reduce:transition-none">
       <PageHeader
         title={`Welcome back${user?.firstName ? `, ${user.firstName}` : ''}`}
-        description="Where your templates and usage stand today."
+        description="Your emails, your team, and a clear next step."
         actions={<NewTemplateButton disabled={atLimit || readOnly} />}
       />
 
-      <UsageSection billing={billing} isAdmin={orgRole === 'org:admin'} />
+      {!templatesFailed ? <GetStarted template={templatesBody?.templates?.[0]} /> : null}
 
       <RecentTemplates
         templates={recent}
         failed={templatesFailed}
         emptyAction={<NewTemplateButton disabled={readOnly} />}
       />
+      <UsageSection billing={billing} isAdmin={orgRole === 'org:admin'} />
     </div>
   );
 }

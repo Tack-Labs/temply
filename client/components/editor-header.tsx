@@ -2,6 +2,7 @@
 
 import { ChevronRightIcon } from 'lucide-react';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { ThemeToggle } from '~/components/theme-toggle';
 import { UserMenu } from '~/components/dashboard/user-menu';
 
@@ -14,6 +15,9 @@ import { UserMenu } from '~/components/dashboard/user-menu';
  * has room for the 44px target that gives it.
  */
 export function EditorHeader() {
+  const pathname = usePathname();
+  const section = pathname.endsWith('/variables') ? 'Variables' : pathname.endsWith('/versions') ? 'Versions'
+    : pathname.endsWith('/connect') ? 'Connect your app' : pathname.endsWith('/review') ? 'Review & release' : 'Editor';
   return (
     <header className="flex h-12 items-center justify-between border-b border-line bg-raised px-4">
       <nav aria-label="Breadcrumb">
@@ -31,7 +35,7 @@ export function EditorHeader() {
           </li>
           <li>
             <span aria-current="page" className="px-2 font-medium text-ink">
-              Editor
+              {section}
             </span>
           </li>
         </ol>

@@ -6,19 +6,19 @@
  */
 export const PALETTE: Record<'light' | 'dark', Record<string, string>> = {
   light: {
-    surface: '#f5f7fa',
+    surface: '#f7f6fc',
     raised: '#ffffff',
-    ink: '#0b1220',
-    muted: '#5b6478',
-    accent: '#0b5fff',
+    ink: '#2b2547',
+    muted: '#625b7b',
+    accent: '#5b45e0',
     danger: '#c2271d',
   },
   dark: {
-    surface: '#0d1424',
-    raised: '#131b2d',
-    ink: '#eaf0fa',
-    muted: '#a3aec4',
-    accent: '#0b5fff',
+    surface: '#151323',
+    raised: '#1e1a30',
+    ink: '#f0ecff',
+    muted: '#b6adc9',
+    accent: '#5b45e0',
     danger: '#c2271d',
   },
 };

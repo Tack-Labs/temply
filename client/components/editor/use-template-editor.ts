@@ -891,7 +891,7 @@ export function useTemplateEditor(props: EmailEditorSandboxProps): TemplateEdito
     if (!autosave) return false;
     await captureThenFlush(() => captureRef.current(), autosave);
     if (autosave.pending()) {
-      toast.error('The draft could not be saved, so it was not staged.');
+      toast.error('Your draft could not be saved. Retry the save before continuing.');
       return false;
     }
     return true;

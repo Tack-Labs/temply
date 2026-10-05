@@ -164,7 +164,7 @@ test.describe('the hero headline', () => {
       };
     });
 
-  async function expectInItsColumn(page: Page, { twoLines }: { twoLines: boolean }) {
+  async function expectInItsColumn(page: Page, { threeLines }: { threeLines: boolean }) {
     for (const width of HEADLINE_WIDTHS) {
       await page.setViewportSize({ width, height: 900 });
       const { column, overflows, stacked, first, second } = await headline(page);
@@ -176,15 +176,15 @@ test.describe('the hero headline', () => {
       }
       expect(stacked, `the second sentence does not start on a new line ${at}`).toBe(true);
       // From `lg` the column is a fixed 31rem, and the headline is set to fill
-      // it in two lines with the display face in place.
-      if (twoLines && width >= 1024) expect(first.count + second.count, `the headline wraps ${at}`).toBe(2);
+      // it in three lines with the display face in place.
+      if (threeLines && width >= 1024) expect(first.count + second.count, `the headline wraps ${at}`).toBe(3);
     }
   }
 
-  test('stays inside its column from a phone to a wide screen, in two lines from lg up', async ({ page }) => {
+  test('stays inside its column from a phone to a wide screen, in three lines from lg up', async ({ page }) => {
     await page.goto('/');
     await expectLoaded(page, BRICOLAGE);
-    await expectInItsColumn(page, { twoLines: true });
+    await expectInItsColumn(page, { threeLines: true });
   });
 
   test('stays inside its column when no font file arrives', async ({ page }) => {
@@ -195,7 +195,7 @@ test.describe('the hero headline', () => {
     await page.evaluate(() => document.fonts.ready);
     // next/font's `* Fallback` faces are local() and count as loaded at once.
     expect((await loadedFaces(page)).filter((name) => !/fallback/i.test(name)), 'a font file loaded despite the block').toEqual([]);
-    await expectInItsColumn(page, { twoLines: false });
+    await expectInItsColumn(page, { threeLines: false });
   });
 });
 
@@ -325,7 +325,7 @@ test.describe('themes', () => {
         expect(seen.button, 'the header has a Sign in button').not.toBeNull();
         expect(seen.button).toBe(seen.accent);
 
-        // One blue: it reads as blue whatever its exact value is.
+        // One violet accent with a strong blue channel in both themes.
         const [r, g, b] = channels(seen.accent);
         expect(b, `${seen.accent} is not blue`).toBeGreaterThan(r + 100);
         expect(b).toBeGreaterThan(g + 100);
@@ -389,10 +389,10 @@ test.describe('themes', () => {
     });
   }
 
-  test('the accent is the same blue in both themes', async ({ context }) => {
+  test('the accent is the same violet in both themes', async ({ context }) => {
     // The editor canvas reads `--ds-accent` for its selection outline and
     // ignores dark mode, so a fill that changed with the theme would show up
-    // there as two different blues.
+    // there as two different fills.
     const accents: string[] = [];
     for (const theme of THEMES) {
       // A page of its own per theme: an init script stays on its page, and
@@ -429,8 +429,8 @@ test.describe('primitives', () => {
   };
 
   const heroButtons = (page: Page) => {
-    const row = page.locator('div.hero-enter').filter({ has: page.getByRole('link', { name: /^Try the editor/ }) });
-    return { primary: row.getByRole('link', { name: /^Try the editor/ }), other: row.getByRole('link', { name: 'Read the docs' }) };
+    const row = page.locator('div.hero-enter').filter({ has: page.getByRole('link', { name: /^Start your free trial/ }) });
+    return { primary: row.getByRole('link', { name: /^Start your free trial/ }), other: row.getByRole('link', { name: 'Try the editor, no account' }) };
   };
 
   test('the "After the trial" badge is a pill', async ({ page }) => {

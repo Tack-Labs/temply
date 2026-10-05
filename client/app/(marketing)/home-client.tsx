@@ -184,37 +184,36 @@ export default function HomeContent() {
                 </Badge>
                 {TRIAL_DAYS} days, no card needed
               </p>
-              {/* Two lines by construction, so the break falls after the full
-                  stop and not wherever the width happens to put it. The space
+              {/* Each sentence starts on its own line, so the break falls after
+                  the full stop. Each sentence can wrap at smaller widths. The space
                   after the first is real, so the heading still reads, and
                   indexes, as one sentence. */}
               <h1
                 className="hero-enter mt-6 font-display text-4xl font-semibold tracking-display text-ink lg:text-5xl"
                 style={enterAt(70)}
               >
-                <span className="block text-balance">Write the email. </span>
-                <span className="block text-balance">We handle the HTML.</span>
+                <span className="block text-balance">Emails that feel like you. </span>
+                <span className="block text-balance">Ready for your app.</span>
               </h1>
               <p
                 className="hero-enter mt-6 max-w-md text-xl text-pretty text-muted"
                 style={enterAt(150)}
               >
-                Build transactional email templates with a visual block editor.
-                Preview the responsive HTML, then render it from your app with the Temply API.
+                Create receipts, welcome emails and password resets with simple building blocks. Your team can update the words, and your app fills in each customer’s details and sends the finished email.
               </p>
               <div
                 className="hero-enter mt-9 flex flex-wrap items-center gap-3"
                 style={enterAt(230)}
               >
                 <Button asChild variant="primary" size="lg">
-                  <Link href="/playground">Try the editor<ArrowRightIcon /></Link>
+                  <Link href="/sign-up">Start your free trial<ArrowRightIcon /></Link>
                 </Button>
                 <Button asChild variant="secondary" size="lg">
-                  <Link href="/docs">Read the docs</Link>
+                  <Link href="/playground">Try the editor, no account</Link>
                 </Button>
               </div>
               <p className="hero-enter mt-4 max-w-md text-base text-balance text-muted" style={enterAt(310)}>
-                No account needed to try it. Create one when you want to keep your work.
+                14 days free, then $5 per person a month. Your app keeps the email provider you already use.
               </p>
             </div>
 
@@ -237,11 +236,10 @@ export default function HomeContent() {
           <RevealSection className="max-w-2xl">
             <Kicker>The workflow</Kicker>
             <h2 className="mt-5 font-display text-3xl font-semibold tracking-display text-balance text-ink lg:text-4xl">
-              Everything you need to build emails
+              A clear path from idea to inbox
             </h2>
             <p className="mt-4 max-w-xl text-lg text-pretty text-muted">
-              A block editor that outputs table-based HTML, and an API that hands it
-              to your app exactly as you built it.
+              Build the email, try it with example details, then publish a version your app can use. Changes stay in your draft until you’re ready to share them.
             </p>
           </RevealSection>
 

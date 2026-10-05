@@ -30,9 +30,7 @@ test.describe('marketing', () => {
   test('the home page loads and links to the docs', async ({ page }) => {
     await page.goto('/');
     await expect(page).toHaveTitle(/Temply/);
-    // The hero's link to the docs page reads "Read the docs": a verb for the
-    // thing it does, where the header's own link is the bare noun.
-    await page.getByRole('link', { name: 'Read the docs' }).first().click();
+    await page.getByRole('link', { name: 'Docs', exact: true }).first().click();
     await expect(page).toHaveURL(/\/docs/);
     await expect(page.getByRole('heading', { name: 'Introduction' })).toBeVisible();
   });
@@ -42,7 +40,7 @@ test.describe('marketing', () => {
     // browser takes, the manifest and the sitemap answer, and the front
     // page says what it is in schema.org's vocabulary.
     await page.goto('/');
-    await expect(page).toHaveTitle('Visual email editor and template API | Temply');
+    await expect(page).toHaveTitle('Email templates your team can edit and your app can use | Temply');
     const graph = await page.locator('script[type="application/ld+json"]').first().textContent();
     expect(JSON.parse(graph!)['@graph'].map((n: { '@type': string }) => n['@type'])).toEqual(['WebSite', 'Organization', 'SoftwareApplication']);
     await expect(page.locator('link[rel="icon"][type="image/png"]')).toHaveCount(1);
@@ -115,7 +113,7 @@ test.describe('marketing', () => {
     // The phone shell reads the demo rather than editing it, and says so
     // under the header — that banner is the mark that the editor mounted.
     if (onPhone()) await expect(page.getByText('Open on a desktop to try the editor.')).toBeVisible();
-    else await expect(page.getByRole('heading', { name: 'Content', exact: true })).toBeVisible();
+    else await expect(page.getByRole('heading', { name: 'Your email', exact: true })).toBeVisible();
     await expect(page.locator('.ProseMirror')).toContainText('Welcome to Temply');
     await context.close();
   });
@@ -261,7 +259,7 @@ test.describe('marketing', () => {
     await expect(page.locator('main')).toHaveCount(1);
     await expect(page.locator('h1')).toHaveCount(1);
     // The break the hero is built around does not change what the heading says.
-    await expect(page.locator('h1')).toHaveText('Write the email. We handle the HTML.');
+    await expect(page.locator('h1')).toHaveText('Emails that feel like you. Ready for your app.');
   });
 
   test('the hero, a price, the call to action and the contact heading are on the page without scripts', async ({ browser }) => {
@@ -272,7 +270,7 @@ test.describe('marketing', () => {
     const context = await browser.newContext({ javaScriptEnabled: false, storageState: { cookies: [], origins: [] } });
     const page = await context.newPage();
     await page.goto('/');
-    await expect(page.getByRole('heading', { level: 1 })).toHaveText('Write the email. We handle the HTML.');
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText('Emails that feel like you. Ready for your app.');
     // Not merely arrived by now: with scripts off the entrance never starts,
     // so there is no first frame at zero for a renderer that snapshots early.
     await expect(page.getByRole('heading', { level: 1 })).toHaveCSS('animation-name', 'none');
@@ -290,7 +288,7 @@ test.describe('marketing', () => {
     await context.route('**/_next/static/**/*.js', (route) => route.abort());
     const page = await context.newPage();
     await page.goto('/');
-    await expect(page.getByRole('heading', { level: 1 })).toHaveText('Write the email. We handle the HTML.');
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText('Emails that feel like you. Ready for your app.');
     await expect(page.locator('html'), 'a flag was raised with nothing to lift it').not.toHaveAttribute('data-reveal-ready', /.*/);
 
     const pricing = page.locator('#pricing');

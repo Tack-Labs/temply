@@ -18,7 +18,7 @@ export default function EditorLayout({
           brand panel ran edge to edge. Match the dashboard's gutter and
           measure. */}
       <div className="flex-1 overflow-auto">
-        <div className="mx-auto max-w-5xl sm:p-4 lg:p-6">{children}</div>
+        <div className="mx-auto max-w-[1600px] p-4 lg:p-6">{children}</div>
       </div>
     </div>
   );

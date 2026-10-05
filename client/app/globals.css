@@ -19,30 +19,30 @@
 --------------------------------------------------------------------------- */
 
 :root {
-  --ds-surface: #f5f7fa;
+  --ds-surface: #f7f6fc;
   --ds-raised: #ffffff;
-  --ds-sunken: #eef1f6;
+  --ds-sunken: #f0edf8;
   --ds-canvas: #ffffff;
   /* The canvas never changes with the theme, so neither can its foreground.
      Chrome drawn on top of the canvas uses this, not `ink`. */
   --ds-canvas-ink: #12141a;   /* 18.4:1 on canvas, in both themes */
 
-  --ds-ink: #0b1220;
-  --ds-muted: #5b6478;
-  --ds-faint: #7d879e;        /* marks only, 3:1 on surface, raised and sunken; never text */
+  --ds-ink: #2b2547;
+  --ds-muted: #625b7b;
+  --ds-faint: #827796;        /* marks only, 3:1 on surface, raised and sunken; never text */
 
-  --ds-line: #e3e8f0;
-  --ds-line-strong: #c9d1df;
-  --ds-hover: #eef1f6;
-  --ds-active: #e3e8f0;
+  --ds-line: #e7e3f5;
+  --ds-line-strong: #cfc7e4;
+  --ds-hover: #f0edf8;
+  --ds-active: #e7e3f5;
 
-  /* One accent, and the fill is the same blue in both themes: the editor
+  /* One accent, and the fill is the same violet in both themes: the editor
      canvas reads it for its selection ring and may not follow the app. Only
      the text-coloured variant moves. */
-  --ds-accent: #0b5fff;       /* fill; white text on it */
-  --ds-accent-ink: #0a58f0;   /* accent as text on surface/raised/wash */
-  --ds-accent-hover: #0a4dd2;
-  --ds-accent-wash: #edf3ff;
+  --ds-accent: #5b45e0;       /* fill; white text on it */
+  --ds-accent-ink: #5840cf;   /* accent as text on surface/raised/wash */
+  --ds-accent-hover: #4b36c9;
+  --ds-accent-wash: #f0edff;
   /* The label on an accent fill. Declared only here because the fill is the same
      blue in both themes, so what sits on it cannot move either; check:contrast
      holds it to 4.5:1 on `accent` and `accent-hover`. */
@@ -53,7 +53,7 @@
   --ds-danger-wash: #fdecea;
 
   --ds-warn: #d97706;         /* fill only — never carries text */
-  --ds-warn-ink: #9a5700;     /* 5.2:1 on surface, 4.6:1 on a pressed row */
+  --ds-warn-ink: #975300;     /* 5.2:1 on surface, 4.6:1 on a pressed row */
   --ds-warn-wash: #fff4e0;
 
   --ds-success-ink: #0b6b42;  /* 6.1:1 on surface */
@@ -131,30 +131,30 @@
 }
 
 .dark {
-  --ds-surface: #0d1424;
-  --ds-raised: #131b2d;
-  --ds-sunken: #090e1b;
+  --ds-surface: #151323;
+  --ds-raised: #1e1a30;
+  --ds-sunken: #110e1c;
   --ds-canvas: #ffffff;       /* unchanged on purpose — see note above */
   --ds-canvas-ink: #12141a;   /* likewise unchanged */
 
-  --ds-ink: #eaf0fa;
-  --ds-muted: #a3aec4;
-  --ds-faint: #6b7690;        /* marks only, 3:1 on surface, raised and sunken; never text */
+  --ds-ink: #f0ecff;
+  --ds-muted: #b6adc9;
+  --ds-faint: #837796;        /* marks only, 3:1 on surface, raised and sunken; never text */
 
-  --ds-line: #1e2841;
-  --ds-line-strong: #2e3b59;
-  --ds-hover: #1a2540;
-  --ds-active: #232f4b;
+  --ds-line: #322b45;
+  --ds-line-strong: #443959;
+  --ds-hover: #282239;
+  --ds-active: #342c48;
 
-  /* The fill is the light theme's blue, untouched; the text-coloured variant
+  /* The fill is the light theme's violet, untouched; the text-coloured variant
      lightens to clear the dark surfaces. The hover fill lifts rather than
      darkens, as dark surfaces conventionally do, and stays dark enough to
      carry a white label. The washes below are about a 14% tint of their hue
      over `surface`. */
-  --ds-accent: #0b5fff;       /* fill; white text on it */
-  --ds-accent-ink: #7fa8ff;   /* accent as text on surface/raised/wash */
-  --ds-accent-hover: #1966ff; /* white on it = 4.8:1 */
-  --ds-accent-wash: #0d1f43;
+  --ds-accent: #5b45e0;       /* fill; white text on it */
+  --ds-accent-ink: #b6a5ff;   /* accent as text on surface/raised/wash */
+  --ds-accent-hover: #6750e6; /* white on it = 4.8:1 */
+  --ds-accent-wash: #2c234b;
 
   /* The fill stays dark enough to carry a white label in either theme; only the
      text-coloured variant lightens. */

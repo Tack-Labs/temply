@@ -593,8 +593,36 @@ export const templatesRoutes = new Elysia()
   .get('/api/v1/templates/:id/versions', async (ctx) => {
     if (!ctx.userId) return unauthorized();
     if (!ctx.orgId) return noWorkspace();
-    const versions = await ctx.db.select({ id: templateVersions.id, version_number: templateVersions.version_number, title: templateVersions.title, created_at: templateVersions.created_at }).from(templateVersions).where(and(eq(templateVersions.template_id, ctx.params.id), eq(templateVersions.org_id, ctx.orgId))).orderBy(desc(templateVersions.version_number));
+    const versions = await ctx.db.select({ id: templateVersions.id, version_number: templateVersions.version_number, title: templateVersions.title, tag: templateVersions.tag, created_at: templateVersions.created_at }).from(templateVersions).where(and(eq(templateVersions.template_id, ctx.params.id), eq(templateVersions.org_id, ctx.orgId))).orderBy(desc(templateVersions.version_number));
     return json({ versions });
+  })
+
+  .post('/api/v1/templates/:id/versions/:versionId/tag', async (ctx) => {
+    if (!ctx.userId) return unauthorized();
+    if (!ctx.orgId) return noWorkspace();
+    if (!isAdmin(ctx)) return askAnAdmin('tag versions');
+    const [version] = await ctx.db.update(templateVersions)
+      .set({ tag: ctx.body.tag.trim() || null })
+      .where(and(eq(templateVersions.id, ctx.params.versionId), eq(templateVersions.template_id, ctx.params.id), eq(templateVersions.org_id, ctx.orgId)))
+      .returning();
+    if (!version) return notFound('Version not found');
+    return json({ version });
+  }, { body: t.Object({ tag: t.String({ maxLength: 48 }) }) })
+
+  .get('/api/v1/templates/:id/versions/:versionId/preview', async (ctx) => {
+    if (!ctx.userId) return unauthorized();
+    if (!ctx.orgId) return noWorkspace();
+    const [version] = await ctx.db.select().from(templateVersions)
+      .where(and(eq(templateVersions.id, ctx.params.versionId), eq(templateVersions.template_id, ctx.params.id), eq(templateVersions.org_id, ctx.orgId))).limit(1);
+    if (!version) return notFound('Version not found');
+    let content: JSONContent;
+    try { content = JSON.parse(version.content); }
+    catch { return badRequest('This version’s saved content cannot be opened. Choose another version.'); }
+    let theme: EngineConfig['theme'];
+    try { theme = version.theme ? JSON.parse(version.theme) : undefined; }
+    catch { theme = undefined; }
+    const html = await render(content, { theme, preview: version.preview_text ?? undefined, showPlaceholders: true });
+    return json({ html });
   })
 
   .get('/api/v1/templates/:id/versions/:versionId', async (ctx) => {

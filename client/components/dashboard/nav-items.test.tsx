@@ -40,6 +40,7 @@ describe('NavLinks', () => {
       ['Templates', '/dashboard/templates'],
       ['Brands', '/dashboard/brands'],
       ['Assets', '/dashboard/assets'],
+      ['Connect your app', '/dashboard/connect'],
       ['Landing', '/'],
       ['Documentation', '/docs'],
     ]);

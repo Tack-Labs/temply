@@ -20,6 +20,7 @@ import { DesktopEditorLayout } from './editor/desktop-layout';
 import { MobileEditorLayout } from './editor/mobile-layout';
 import { useTemplateEditor, type EmailEditorSandboxProps } from './editor/use-template-editor';
 import { TemplateWorkflowPanel } from './template-workflow-panel';
+import { TemplateNavigation } from './template-navigation';
 
 export type { EmailEditorSandboxProps };
 
@@ -168,7 +169,9 @@ export function EmailEditorSandbox(props: EmailEditorSandboxProps) {
   // is still on the way. The wrapper stays after hydration, as `contents`,
   // so lifting the class does not remount the desktop shell.
   return (
-    <TemplateWorkflowPanel model={model}>
+    <div className="space-y-5">
+      {model.template ? <TemplateNavigation id={model.template.id} title={model.subject} beforeNavigate={model.beforeStage} /> : null}
+      <TemplateWorkflowPanel model={model}>
       <div className={hydrated ? 'contents' : 'contents max-sm:hidden'}>
         <DesktopEditorLayout model={model} autofocus={autofocus} imageUploads={imageUploads} />
       </div>
@@ -177,6 +180,7 @@ export function EmailEditorSandbox(props: EmailEditorSandboxProps) {
           <PageLoading label="Loading the editor…" />
         </div>
       )}
-    </TemplateWorkflowPanel>
+      </TemplateWorkflowPanel>
+    </div>
   );
 }

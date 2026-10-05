@@ -1,7 +1,7 @@
 import { TEMPLATE_CONTENT_MAX_LENGTH } from '@temply/shared/plans';
 import { beforeEach, describe, expect, it } from 'bun:test';
 import { eq } from 'drizzle-orm';
-import { brands, mails, orgPrefs, templateVersions } from '@temply/shared/schema';
+import { brands, mails, orgPrefs, subscriptions, templateVersions } from '@temply/shared/schema';
 import { BRAND_PRESETS } from '@temply/shared/brand-presets';
 import { createTestApp, createTestDb, del, get, givePlan, lapse, post, type TestDb } from '../test/helpers';
 import { templatesRoutes } from './templates';
@@ -532,6 +532,52 @@ describe('version history', () => {
     const { versions } = await (await get(app, `/api/v1/templates/${template.id}/versions`, OWNER)).json();
     return { template, versions };
   }
+
+  it('saves, lists and clears a tag without changing the published snapshot', async () => {
+    const { template, versions } = await publishedTwice('First email', 'Second email');
+    const id = versions[1].id;
+    const before = (await get(app, `/api/v1/templates/${template.id}/versions/${id}`, OWNER)).json();
+    const tagged = await post(app, `/api/v1/templates/${template.id}/versions/${id}/tag`, { tag: '  Approved copy  ' }, OWNER);
+    expect(tagged.status).toBe(200);
+    const { versions: listed } = await (await get(app, `/api/v1/templates/${template.id}/versions`, OWNER)).json();
+    expect(listed.find((version: { id: string }) => version.id === id).tag).toBe('Approved copy');
+    const { version: original } = await before;
+    const { version: after } = await (await get(app, `/api/v1/templates/${template.id}/versions/${id}`, OWNER)).json();
+    expect({ ...after, tag: null }).toEqual(original);
+    await post(app, `/api/v1/templates/${template.id}/versions/${id}/tag`, { tag: '' }, OWNER);
+    const { version: cleared } = await (await get(app, `/api/v1/templates/${template.id}/versions/${id}`, OWNER)).json();
+    expect(cleared.tag).toBeNull();
+  });
+
+  it('allows only an active workspace admin to tag its own versions', async () => {
+    const { template, versions } = await publishedTwice('First email', 'Second email');
+    const path = `/api/v1/templates/${template.id}/versions/${versions[0].id}/tag`;
+    expect((await post(app, path, { tag: 'Wrong workspace' }, OTHER)).status).toBe(404);
+    expect((await post(app, path, { tag: 'Member edit' }, OWNER, { 'x-org-role': 'member' })).status).toBe(403);
+    expect((await post(app, path, { tag: 'x'.repeat(49) }, OWNER)).status).toBe(400);
+    expect((await post(app, path, { tag: 'Signed out' })).status).toBe(401);
+    await db.update(subscriptions).set({ status: 'canceled' }).where(eq(subscriptions.org_id, OWNER));
+    expect((await post(app, path, { tag: 'Read only' }, OWNER)).status).toBe(402);
+  });
+
+  it('previews the saved email and theme after the draft has changed, scoped to its workspace', async () => {
+    const content = JSON.stringify({ type: 'doc', content: [{ type: 'paragraph', content: [{ type: 'text', text: 'Saved email words' }] }] });
+    const template = await createTemplate(OWNER, 'Preview test');
+    await post(app, `/api/v1/templates/${template.id}`, { title: 'Preview test', content, theme: '{"container":{"backgroundColor":"#ffeedd"}}' }, OWNER);
+    await post(app, `/api/v1/templates/${template.id}/publish`, {}, OWNER);
+    const { versions } = await (await get(app, `/api/v1/templates/${template.id}/versions`, OWNER)).json();
+    await post(app, `/api/v1/templates/${template.id}`, { title: 'Changed draft', content: '{"type":"doc"}', theme: '{}' }, OWNER);
+    const path = `/api/v1/templates/${template.id}/versions/${versions[0].id}/preview`;
+    const response = await get(app, path, OWNER);
+    expect(response.status).toBe(200);
+    const { html } = await response.json();
+    expect(html).toContain('Saved email words');
+    expect(html).toContain('#ffeedd');
+    expect((await get(app, path, OTHER)).status).toBe(404);
+    expect((await get(app, path)).status).toBe(401);
+    await db.update(templateVersions).set({ content: 'broken' }).where(eq(templateVersions.id, versions[0].id));
+    expect((await get(app, path, OWNER)).status).toBe(400);
+  });
 
   it('numbers each publish and lists the newest ten, newest first, however fast they land', async () => {
     await givePlan(db, OWNER, 'team');
