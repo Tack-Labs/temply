@@ -19,6 +19,7 @@ import { useMediaQuery } from '~/hooks/use-media-query';
 import { DesktopEditorLayout } from './editor/desktop-layout';
 import { MobileEditorLayout } from './editor/mobile-layout';
 import { useTemplateEditor, type EmailEditorSandboxProps } from './editor/use-template-editor';
+import { TemplateWorkflowPanel } from './template-workflow-panel';
 
 export type { EmailEditorSandboxProps };
 
@@ -157,6 +158,8 @@ export function EmailEditorSandbox(props: EmailEditorSandboxProps) {
     model.flushContent();
   }
   if (phone) {
+    // The phone shell is a fixed frame that covers the page, so the workflow
+    // lives inside it, in a sheet, rather than in a card around it.
     return <MobileEditorLayout model={model} autofocus={autofocus} imageUploads={imageUploads} />;
   }
   // Until the client has hydrated, only CSS knows the width: the server's
@@ -165,7 +168,7 @@ export function EmailEditorSandbox(props: EmailEditorSandboxProps) {
   // is still on the way. The wrapper stays after hydration, as `contents`,
   // so lifting the class does not remount the desktop shell.
   return (
-    <>
+    <TemplateWorkflowPanel model={model}>
       <div className={hydrated ? 'contents' : 'contents max-sm:hidden'}>
         <DesktopEditorLayout model={model} autofocus={autofocus} imageUploads={imageUploads} />
       </div>
@@ -174,6 +177,6 @@ export function EmailEditorSandbox(props: EmailEditorSandboxProps) {
           <PageLoading label="Loading the editor…" />
         </div>
       )}
-    </>
+    </TemplateWorkflowPanel>
   );
 }

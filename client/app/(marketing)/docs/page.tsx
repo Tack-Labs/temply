@@ -34,6 +34,7 @@ const sections = [
       { id: 'api-template', label: 'Get a template' },
       { id: 'api-render', label: 'Render a template' },
       { id: 'api-data', label: 'The data object' },
+      { id: 'api-versions', label: 'Pin a version' },
       { id: 'caching', label: 'Caching' },
       { id: 'api-errors', label: 'Errors and limits' },
     ],

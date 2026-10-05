@@ -43,9 +43,12 @@ describe('one organization, two people', () => {
     expect(templates).toEqual([]);
   });
 
-  it('a member can publish; only an admin can touch keys and billing', async () => {
+  it('only an admin can publish, or touch keys and billing', async () => {
     const { template } = await (await post(app, '/api/v1/templates', { title: 'Welcome', content: '{"type":"doc"}' }, ALICE, inAcme())).json();
-    expect((await post(app, `/api/v1/templates/${template.id}/publish`, {}, BOB, inAcme('member'))).status).toBe(200);
+    const refused = await post(app, `/api/v1/templates/${template.id}/publish`, {}, BOB, inAcme('member'));
+    expect(refused.status).toBe(403);
+    expect((await refused.json()).code).toBe('admin-only');
+    expect((await post(app, `/api/v1/templates/${template.id}/publish`, {}, ALICE, inAcme())).status).toBe(200);
 
     const key = await post(app, '/api/v1/api-keys', { name: 'Staging', mode: 'test' }, BOB, inAcme('member'));
     expect(key.status).toBe(403);

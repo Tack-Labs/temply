@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from 'bun:test';
 import { eq } from 'drizzle-orm';
-import { apiKeysTable, orgUsage, mails } from '@temply/shared/schema';
+import { apiKeysTable, orgUsage, mails, templateVersions } from '@temply/shared/schema';
 import { generateApiKey, generateShortCode } from '../lib/codes';
 import { API_BURST_PER_MINUTE } from '@temply/shared/plans';
 import { createTestApp, createTestDb, get, givePlan, type TestDb } from '../test/helpers';
@@ -62,7 +62,7 @@ const CONDITIONAL_DOC = JSON.stringify({
   ],
 });
 
-function renderTemplate(shortCode: string, apiKey?: string, data?: unknown) {
+function renderTemplate(shortCode: string, apiKey?: string, data?: unknown, version?: unknown) {
   return app.handle(
     new Request(`http://localhost/api/public/v1/templates/${shortCode}/render`, {
       method: 'POST',
@@ -70,7 +70,10 @@ function renderTemplate(shortCode: string, apiKey?: string, data?: unknown) {
         'content-type': 'application/json',
         ...(apiKey ? { authorization: `Bearer ${apiKey}` } : {}),
       },
-      body: JSON.stringify(data === undefined ? {} : { data }),
+      body: JSON.stringify({
+        ...(data === undefined ? {} : { data }),
+        ...(version === undefined ? {} : { version }),
+      }),
     }),
   );
 }
@@ -126,7 +129,7 @@ describe('GET /api/public/v1/templates', () => {
     const body = await res.json();
     expect(body.mode).toBe('live');
     expect(body.templates.map((t: { shortCode: string }) => t.shortCode)).toEqual([mine]);
-    expect(Object.keys(body.templates[0]).sort()).toEqual(['id', 'previewText', 'publishedAt', 'shortCode', 'title', 'updatedAt']);
+    expect(Object.keys(body.templates[0]).sort()).toEqual(['id', 'previewText', 'publishedAt', 'shortCode', 'title', 'updatedAt', 'version']);
     expect(body.templates[0].updatedAt).toBe('2026-01-01T00:00:00.000Z');
   });
 
@@ -308,6 +311,189 @@ describe('GET /api/public/v1/templates/:shortCode', () => {
     await db.update(apiKeysTable).set({ last_used_at: stale }).where(eq(apiKeysTable.id, id));
     await fetchTemplate(shortCode, fullKey);
     expect((await db.select().from(apiKeysTable).where(eq(apiKeysTable.id, id)))[0].last_used_at).not.toBe(stale);
+  });
+});
+
+/** A document of one paragraph, so a render shows which copy it came from. */
+const words = (text: string) => JSON.stringify({ type: 'doc', content: [{ type: 'paragraph', content: [{ type: 'text', text }] }] });
+
+/** What publishing leaves behind: one row per copy that went live, numbered in order. */
+async function seedVersion(shortCode: string, versionNumber: number, text: string, { createdAt = '2026-01-01 00:00:00', pinnedAt = null as string | null } = {}) {
+  const [template] = await db.select().from(mails).where(eq(mails.short_code, shortCode));
+  await db.insert(templateVersions).values({
+    id: crypto.randomUUID(),
+    template_id: template.id,
+    user_id: OWNER, org_id: OWNER,
+    title: 'Welcome email',
+    preview_text: 'Hello there',
+    content: words(text),
+    version_number: versionNumber,
+    created_at: createdAt,
+    pinned_at: pinnedAt,
+  });
+}
+
+const pinnedAtOf = async (versionNumber: number) =>
+  (await db.select().from(templateVersions).where(eq(templateVersions.version_number, versionNumber)))[0].pinned_at;
+
+describe('pinning a version', () => {
+  const dayMs = 86_400_000;
+
+  /** Live is v3; v1 and v2 are earlier copies that went live before it. */
+  async function threeVersions(mode: 'live' | 'test' = 'live') {
+    await givePlan(db, OWNER, 'team');
+    const { fullKey } = await seedKey(OWNER, { mode });
+    const shortCode = await seedTemplate(OWNER, words('Live words'));
+    await seedVersion(shortCode, 1, 'First words');
+    await seedVersion(shortCode, 2, 'Second words', { createdAt: '2026-02-03 04:05:06' });
+    await seedVersion(shortCode, 3, 'Live words');
+    return { fullKey, shortCode };
+  }
+
+  it('renders the version it is given, not the live copy', async () => {
+    const { fullKey, shortCode } = await threeVersions();
+
+    const res = await renderTemplate(shortCode, fullKey, undefined, 2);
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.html).toContain('Second words');
+    expect(body.html).not.toContain('Live words');
+    expect(body.text).toContain('Second words');
+    expect(body.version).toBe(2);
+    // The moment that version went live, in the same format as every other stamp.
+    expect(body.updatedAt).toBe('2026-02-03T04:05:06.000Z');
+    expect(body.mode).toBe('live');
+  });
+
+  it('serves the live copy without one, and says which version that is', async () => {
+    const { fullKey, shortCode } = await threeVersions();
+
+    const body = await (await renderTemplate(shortCode, fullKey)).json();
+    expect(body.html).toContain('Live words');
+    expect(body.version).toBe(3);
+    expect((await (await fetchTemplate(shortCode, fullKey)).json()).version).toBe(3);
+    expect((await (await listTemplates(fullKey)).json()).templates[0].version).toBe(3);
+  });
+
+  it('applies the data to the pinned version, so an app can move to a changed template at its own pace', async () => {
+    await givePlan(db, OWNER, 'team');
+    const { fullKey } = await seedKey(OWNER);
+    const shortCode = await seedTemplate(OWNER, words('Live words'));
+    const withName = JSON.stringify({ type: 'doc', content: [{ type: 'paragraph', content: [{ type: 'variable', attrs: { id: 'firstName', fallback: 'there' } }] }] });
+    const [template] = await db.select().from(mails).where(eq(mails.short_code, shortCode));
+    await db.insert(templateVersions).values({ id: crypto.randomUUID(), template_id: template.id, user_id: OWNER, org_id: OWNER, title: 'Welcome email', content: words('Before the variable'), version_number: 1 });
+    await db.insert(templateVersions).values({ id: crypto.randomUUID(), template_id: template.id, user_id: OWNER, org_id: OWNER, title: 'Welcome email', content: withName, version_number: 2 });
+    await db.update(mails).set({ published_content: withName }).where(eq(mails.id, template.id));
+
+    // Version 2 added a required variable. The old payload is refused on it...
+    const refused = await renderTemplate(shortCode, fullKey, { plan: 'pro' });
+    expect(refused.status).toBe(422);
+    expect((await refused.json()).missing).toEqual(['firstName']);
+    // ...and still renders on the version it was written for.
+    const pinned = await renderTemplate(shortCode, fullKey, { plan: 'pro' }, 1);
+    expect(pinned.status).toBe(200);
+    expect((await pinned.json()).html).toContain('Before the variable');
+  });
+
+  it('works on a test key too, which still serves the draft when it names no version', async () => {
+    const { fullKey, shortCode } = await threeVersions('test');
+    await db.update(mails).set({ content: words('Draft words') }).where(eq(mails.short_code, shortCode));
+
+    const pinned = await (await renderTemplate(shortCode, fullKey, undefined, 1)).json();
+    expect(pinned.html).toContain('First words');
+    expect(pinned.version).toBe(1);
+    expect(pinned.mode).toBe('test');
+    const unpinned = await (await renderTemplate(shortCode, fullKey)).json();
+    expect(unpinned.html).toContain('Draft words');
+    expect(unpinned.version).toBeNull();
+  });
+
+  it('404s for a version that was never made, and names the newest', async () => {
+    const { fullKey, shortCode } = await threeVersions();
+
+    const res = await renderTemplate(shortCode, fullKey, undefined, 9);
+    expect(res.status).toBe(404);
+    expect((await res.json()).message).toBe('Version 9 does not exist. The newest is 3.');
+  });
+
+  it('410s for a version that was removed, and still serves the ones kept', async () => {
+    const { fullKey, shortCode } = await threeVersions();
+    await db.delete(templateVersions).where(eq(templateVersions.version_number, 1));
+
+    const res = await renderTemplate(shortCode, fullKey, undefined, 1);
+    expect(res.status).toBe(410);
+    expect((await res.json()).message).toContain('Version 1 was removed');
+    expect((await renderTemplate(shortCode, fullKey, undefined, 2)).status).toBe(200);
+  });
+
+  it('404s on a template that has never been published, whatever the version', async () => {
+    const { fullKey } = await seedKey(OWNER, { mode: 'test' });
+    const shortCode = await seedTemplate(OWNER, words('Draft only'), { published: false });
+
+    const res = await renderTemplate(shortCode, fullKey, undefined, 1);
+    expect(res.status).toBe(404);
+    expect((await res.json()).message).toBe('This template has not been published yet');
+  });
+
+  it('never reaches another account’s versions', async () => {
+    await givePlan(db, OWNER, 'team');
+    const { fullKey } = await seedKey(OWNER);
+    const strangers = await seedTemplate('user_stranger', words('Not yours'));
+    await seedVersion(strangers, 1, 'Not yours');
+
+    expect((await renderTemplate(strangers, fullKey, undefined, 1)).status).toBe(404);
+  });
+
+  it('refuses a version that is not a whole number from one up', async () => {
+    const { fullKey, shortCode } = await threeVersions();
+
+    for (const bad of [0, -1, 1.5, 'two', null]) {
+      expect((await renderTemplate(shortCode, fullKey, undefined, bad)).status).toBe(400);
+    }
+  });
+
+  it('counts a pinned render as a call, and a refused version as none', async () => {
+    const { fullKey, shortCode } = await threeVersions();
+
+    await renderTemplate(shortCode, fullKey, undefined, 9);
+    await renderTemplate(shortCode, fullKey, undefined, 0);
+    expect(await db.select().from(orgUsage)).toHaveLength(0);
+    await renderTemplate(shortCode, fullKey, undefined, 2);
+    expect((await db.select().from(orgUsage))[0].count).toBe(1);
+  });
+
+  describe('keeping what an app pins', () => {
+    it('stamps the version it served, and no other', async () => {
+      const { fullKey, shortCode } = await threeVersions();
+
+      const before = Date.now();
+      await renderTemplate(shortCode, fullKey, undefined, 2);
+      expect(Date.parse((await pinnedAtOf(2))!)).toBeGreaterThanOrEqual(before);
+      expect(await pinnedAtOf(1)).toBeNull();
+      expect(await pinnedAtOf(3)).toBeNull();
+    });
+
+    it('does not stamp for the live copy, which pruning never takes', async () => {
+      const { fullKey, shortCode } = await threeVersions();
+
+      await renderTemplate(shortCode, fullKey);
+      expect(await pinnedAtOf(3)).toBeNull();
+    });
+
+    it('writes at most once a day, and again after a day', async () => {
+      const { fullKey, shortCode } = await threeVersions();
+      const recent = new Date(Date.now() - dayMs / 2).toISOString();
+      await db.update(templateVersions).set({ pinned_at: recent }).where(eq(templateVersions.version_number, 2));
+
+      await renderTemplate(shortCode, fullKey, undefined, 2);
+      expect(await pinnedAtOf(2)).toBe(recent);
+
+      const stale = new Date(Date.now() - 2 * dayMs).toISOString();
+      await db.update(templateVersions).set({ pinned_at: stale }).where(eq(templateVersions.version_number, 2));
+      await renderTemplate(shortCode, fullKey, undefined, 2);
+      expect(await pinnedAtOf(2)).not.toBe(stale);
+      expect(Date.now() - Date.parse((await pinnedAtOf(2))!)).toBeLessThan(dayMs);
+    });
   });
 });
 

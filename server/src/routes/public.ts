@@ -1,7 +1,7 @@
 import { Elysia, t } from 'elysia';
 import type { JSONContent } from '@tiptap/core';
-import { eq, and, desc, isNull, isNotNull } from 'drizzle-orm';
-import { mails, apiKeysTable } from '@temply/shared/schema';
+import { eq, and, desc, isNull, isNotNull, sql } from 'drizzle-orm';
+import { mails, apiKeysTable, templateVersions } from '@temply/shared/schema';
 import { hashApiKey } from '../lib/codes';
 import { checkApiQuota, recordApiCall } from '../lib/api-quota';
 import { ensureAccount, getPlan } from '../lib/billing';
@@ -9,7 +9,8 @@ import { checkBurst } from '../lib/rate-limit';
 import { render } from '../render/render';
 import { MissingVariablesError, RepeatNotListError } from '../render/engine';
 import type { EngineConfig } from '../render/engine';
-import { json, notFound, paymentRequired, tooManyRequests, unauthorized, unprocessable } from '../lib/errors';
+import { gone, json, notFound, paymentRequired, tooManyRequests, unauthorized, unprocessable } from '../lib/errors';
+import { liveVersion, liveVersionOf, notePin } from '../lib/versions';
 import { authPlugin } from '../plugins/auth';
 import { PUBLIC_PREVIEW_ROUTE, PUBLIC_RENDER_ROUTE, PUBLIC_TEMPLATE_ROUTE, PUBLIC_TEMPLATES_ROUTE } from '@temply/shared/api';
 import { dbPlugin, type Db } from '../plugins/db';
@@ -21,9 +22,11 @@ type Served = { content: string; theme: string | null; previewText: string | nul
 
 type Key = { id: string; user_id: string; org_id: string | null; mode: 'live' | 'test'; last_used_at: string | null };
 
+/** `version` is the number the served copy went live as; null for a draft,
+ *  and for a live copy from before versions were snapshotted. */
 type Resolved =
   | { error: Response }
-  | { key: Key; template: Row; served: Served };
+  | { key: Key; template: Row; served: Served; version: number | null };
 
 /**
  * The key behind a request, with its fuse and its quota checked: what every
@@ -94,13 +97,47 @@ async function recordUse(db: Db, key: Key) {
   await recordApiCall(db, key.org_id ?? key.user_id, now, key.mode);
 }
 
+/** A version's created_at is the database's `YYYY-MM-DD HH:MM:SS` in UTC;
+ *  every other stamp the API gives is ISO. */
+function versionStamp(created: string | null): string | null {
+  if (created === null) return null;
+  const ms = Date.parse(`${created.replace(' ', 'T')}Z`);
+  return Number.isNaN(ms) ? created : new Date(ms).toISOString();
+}
+
+/**
+ * A version an app asked for by number, as it was when it went live, whatever
+ * the key's mode. A version that was never made is a 404; one below the newest
+ * was made and has since been pruned, which is a 410: asking again will not
+ * help, and the app should move to a newer one. A version's theme is null when
+ * it was snapshotted before themes were captured, and renders unthemed.
+ */
+async function pinnedCopy(db: Db, template: Row, number: number): Promise<{ error: Response } | { served: Served }> {
+  const [found] = await db
+    .select()
+    .from(templateVersions)
+    .where(and(eq(templateVersions.template_id, template.id), eq(templateVersions.version_number, number)))
+    .limit(1);
+  if (!found) {
+    const newest = await liveVersion(db, template.id);
+    if (newest === null) return { error: notFound('This template has not been published yet') };
+    // Numbers are handed out one after another, so a gap below the newest is a prune.
+    if (number < newest) {
+      return { error: gone(`Version ${number} was removed to make room for newer ones. Pin a newer version, or leave version out to get the live copy.`) };
+    }
+    return { error: notFound(`Version ${number} does not exist. The newest is ${newest}.`) };
+  }
+  await notePin(db, found);
+  return { served: { content: found.content, theme: found.theme, previewText: found.preview_text, stamp: versionStamp(found.created_at) } };
+}
+
 /**
  * Everything the single-template endpoints need: the key, and a template
  * **belonging to that key's owner**. The lookup used to match on the short
  * code alone, so any valid key could read any account's template by
  * guessing one.
  */
-async function resolve(ctx: { request: Request; params: { shortCode: string }; db: Db }): Promise<Resolved> {
+async function resolve(ctx: { request: Request; params: { shortCode: string }; db: Db }, pin?: number): Promise<Resolved> {
   const resolved = await resolveKey(ctx);
   if ('error' in resolved) return resolved;
   const { key } = resolved;
@@ -115,19 +152,29 @@ async function resolve(ctx: { request: Request; params: { shortCode: string }; d
   // published is the author's, not the integrator's, and a template whose
   // draft is mid-edit keeps serving what was last published. A test key is
   // the staging view — it sees the draft, published or not.
+  // An app that names a version gets that one on either key, which is what
+  // lets it move to a changed template on its own schedule.
   let served: Served;
-  if (key.mode === 'test') {
+  let version: number | null;
+  if (pin !== undefined) {
+    const copy = await pinnedCopy(ctx.db, template, pin);
+    if ('error' in copy) return copy;
+    served = copy.served;
+    version = pin;
+  } else if (key.mode === 'test') {
     served = { content: template.content, theme: template.theme, previewText: template.preview_text, stamp: template.updated_at };
+    version = null;
   } else {
     if (template.published_at === null || template.published_content === null) {
       return { error: notFound('This template has not been published yet') };
     }
     served = { content: template.published_content, theme: template.published_theme, previewText: template.published_preview_text, stamp: template.published_at };
+    version = await liveVersion(ctx.db, template.id);
   }
 
   await recordUse(ctx.db, key);
 
-  return { key, template, served };
+  return { key, template, served, version };
 }
 
 export const publicRoutes = new Elysia()
@@ -183,6 +230,7 @@ export const publicRoutes = new Elysia()
         published_preview_text: mails.published_preview_text,
         published_at: mails.published_at,
         updated_at: mails.updated_at,
+        version: liveVersionOf(sql`${mails}.id`),
       })
       .from(mails)
       .where(live ? and(scopeOf(key), isNotNull(mails.published_at)) : scopeOf(key))
@@ -197,6 +245,7 @@ export const publicRoutes = new Elysia()
         title: row.title,
         previewText: live ? row.published_preview_text : row.preview_text,
         publishedAt: row.published_at,
+        version: live ? row.version : null,
         updatedAt: live ? row.published_at : row.updated_at,
       })),
       mode: key.mode,
@@ -206,17 +255,19 @@ export const publicRoutes = new Elysia()
   .get(PUBLIC_TEMPLATE_ROUTE, async (ctx) => {
     const resolved = await resolve(ctx);
     if ('error' in resolved) return resolved.error;
-    const { template, served, key } = resolved;
+    const { template, served, key, version } = resolved;
 
     // updatedAt is the time the served copy last changed: the publish time
     // on a live key, the draft's on a test key. It is the field an
     // integrator caches on, so it moves with the content, not the typing.
+    // version is the number to pin the live copy as.
     return json({
       id: template.id,
       shortCode: template.short_code,
       title: template.title,
       previewText: served.previewText,
       publishedAt: template.published_at,
+      version,
       updatedAt: served.stamp,
       mode: key.mode,
     });
@@ -231,9 +282,9 @@ export const publicRoutes = new Elysia()
   .post(
     PUBLIC_RENDER_ROUTE,
     async (ctx) => {
-      const resolved = await resolve(ctx);
+      const resolved = await resolve(ctx, ctx.body?.version);
       if ('error' in resolved) return resolved.error;
-      const { template, served, key } = resolved;
+      const { template, served, key, version } = resolved;
 
       let content: unknown;
       try {
@@ -261,7 +312,7 @@ export const publicRoutes = new Elysia()
         // multipart message needs it, and generating it here keeps the two in
         // step — writing the text version by hand is how they drift.
         const text = await render(content as JSONContent, { ...renderOptions, plainText: true });
-        return json({ html, text, shortCode: template.short_code, updatedAt: served.stamp, mode: key.mode });
+        return json({ html, text, shortCode: template.short_code, version, updatedAt: served.stamp, mode: key.mode });
       } catch (error) {
         // Data was sent but a variable has no value. The placeholder in the
         // editor is for previews; mailing it would put wrong words in front
@@ -275,5 +326,5 @@ export const publicRoutes = new Elysia()
         throw error;
       }
     },
-    { body: t.Optional(t.Object({ data: t.Optional(t.Any()) })) },
+    { body: t.Optional(t.Object({ data: t.Optional(t.Any()), version: t.Optional(t.Integer({ minimum: 1 })) })) },
   );

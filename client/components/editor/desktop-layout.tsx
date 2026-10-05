@@ -30,6 +30,7 @@ import { PreflightPanel } from '../preflight-panel';
 import { Label } from '../ui/label';
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
 import { VersionHistoryDialog } from '../version-history-dialog';
+import { ConfirmPublish } from '../confirm-publish';
 import { ShareLinkPopover } from '../share-link-popover';
 import { TemplateThemePanel } from '../template-theme-panel';
 import { CopyHtmlButton, DownloadButton, SaveStatus, fileSlug } from '../email-editor-sandbox';
@@ -61,7 +62,7 @@ export function DesktopEditorLayout({
     previewHtml, isPreviewPending, htmlSource, textSource,
     preflight, preflightExpanded, setPreflightExpanded,
     saveStatus, autosave, unpublished, publishedLabel, publishStatus, publishBadge,
-    isPublishing, publishArmed, handlePublish, sendArmed, handleSend, handleDiscarded, handleRestored,
+    isPublishing, publishArmed, sendArmed, handleSend, handleDiscarded, handleRestored,
     shortCodeCopied, copyShortCode,
   } = model;
 
@@ -80,16 +81,18 @@ export function DesktopEditorLayout({
               the second goes through, and wears the colour of what it
               overrides. The label never takes a progress word, so the name a
               reader or a spec finds the button by is the same in flight. */}
-          <Button
-            variant={publishArmed ? 'danger' : 'primary'}
-            disabled={readOnly || isPublishing || (publishStatus === 'published' && !publishArmed)}
-            aria-busy={isPublishing}
-            onClick={handlePublish}
-            title={publishedLabel ?? undefined}
-          >
-            {isPublishing ? <Loader2Icon className="animate-spin motion-reduce:animate-none" /> : <GlobeIcon />}
-            {publishArmed ? 'Publish anyway' : 'Publish'}
-          </Button>
+          {model.isAdmin ? <ConfirmPublish model={model}>{(publish) => (
+            <Button
+              variant={publishArmed ? 'danger' : 'primary'}
+              disabled={readOnly || isPublishing || (publishStatus === 'published' && !publishArmed)}
+              aria-busy={isPublishing}
+              onClick={publish}
+              title={publishedLabel ?? undefined}
+            >
+              {isPublishing ? <Loader2Icon className="animate-spin motion-reduce:animate-none" /> : <GlobeIcon />}
+              {publishArmed ? 'Publish anyway' : 'Publish'}
+            </Button>
+          )}</ConfirmPublish> : null}
           {/* Preview lives in the Content header now, beside what it shows. */}
           <VersionHistoryDialog
             templateId={template.id}

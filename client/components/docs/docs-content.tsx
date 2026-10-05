@@ -496,7 +496,8 @@ export function CreatingATemplate() {
         versions from <strong className="font-medium text-ink">History</strong>.
         Temply keeps the last {INCLUDED.versionsPerTemplate} versions, or{' '}
         {TEMPLATE_PACK.versionsPerTemplate} with a template pack
-        ({limitsFor('enterprise').maxVersions} on Enterprise).
+        ({limitsFor('enterprise').maxVersions} on Enterprise). An older version
+        that an app pins through the API is kept while it is in use.
       </P>
       <P>
         From there the email leaves Temply one of two ways. The{' '}

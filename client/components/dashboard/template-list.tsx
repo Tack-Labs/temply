@@ -1,6 +1,10 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import Link from 'next/link';
+import { TemplateStageTrack } from '~/components/template-stage-track';
+import { TemplateWorkflowAction } from '~/components/template-workflow-action';
+import { sortByStage, stageOf } from '~/lib/template-stage';
 import { FileTextIcon, ListFilterIcon, SearchIcon, XIcon } from 'lucide-react';
 import { editedOn } from '~/components/dashboard/locale-date';
 import { type DeleteState, TemplateActions } from '~/components/dashboard/template-actions';
@@ -9,7 +13,7 @@ import { Button } from '~/components/ui/button';
 import { Input } from '~/components/ui/input';
 import { List, Row } from '~/components/ui/item';
 import { SegmentedControl } from '~/components/ui/segmented-control';
-import { Badge, EmptyState } from '~/components/ui/surfaces';
+import { Badge, EmptyState, Reveal } from '~/components/ui/surfaces';
 import { useHydrated } from '~/hooks/use-hydrated';
 import { cn } from '~/lib/classname';
 import {
@@ -22,9 +26,11 @@ import {
 } from '~/lib/template-search';
 
 type TemplateListProps = {
-  /** Already ordered by the API (most recently updated first) — never re-sort. */
+  /** Ordered by recency within each stage. */
   templates: TemplateListItem[];
   canDuplicate: boolean;
+  isAdmin?: boolean;
+  readOnly?: boolean;
   /** The empty state's way forward. A slot because the button needs Clerk and the query client, which a test does not have. */
   emptyAction: React.ReactNode;
 };
@@ -82,11 +88,15 @@ function noMatchCopy(query: string, filter: TemplateFilter) {
 function TemplateRow({
   template,
   canDuplicate,
+  isAdmin,
+  readOnly,
   hydrated,
   onDeleted,
 }: {
   template: TemplateListItem;
   canDuplicate: boolean;
+  isAdmin: boolean;
+  readOnly: boolean;
   hydrated: boolean;
   /** The server has removed this template; the row is about to close. */
   onDeleted: (templateId: string) => void;
@@ -94,6 +104,7 @@ function TemplateRow({
   const [phase, setPhase] = useState<DeleteState>('idle');
   const badge = TEMPLATE_STATUS_BADGE[templateStatus(template)];
   const edited = hydrated ? editedOn(template.updated_at) : null;
+  const stage = stageOf(template);
 
   return (
     <Row
@@ -101,24 +112,27 @@ function TemplateRow({
       // Dimmed and unclickable while the delete runs, by class rather than
       // `busy`: busy swaps the link for a div, which would remount the
       // thumbnail and reload its preview in the middle of the row's exit.
-      className={phase === 'deleting' ? 'pointer-events-none opacity-60' : undefined}
+      className={cn(stage === 'waiting' && 'bg-warn-wash', phase === 'deleting' && 'pointer-events-none opacity-60')}
       leaving={phase === 'deleted'}
       // The badge and the date sit under the name on a narrow list and
       // trail it on a wide one. It is the list's own width that decides, not
       // the window's: beside the sidebar the same window has less room.
-      bodyClassName="flex-wrap gap-y-1 @2xl:flex-nowrap"
+      bodyClassName="basis-full flex-wrap gap-y-2 @4xl:basis-auto @4xl:flex-nowrap"
+      contentClassName="flex-wrap justify-end @4xl:flex-nowrap"
       leading={<TemplateRowThumbnail templateId={template.id} updatedAt={template.updated_at} />}
       title={template.title}
       subtitle={template.preview_text || 'No preview text'}
       meta={
         // pl-19 lines the meta up with the title: the thumbnail's 64px plus the row's gap.
-        <div className="flex w-full items-center gap-2 pl-19 @2xl:w-auto @2xl:gap-3 @2xl:pl-0">
-          <div className="flex shrink-0 @2xl:w-36">
-            <Badge tone={badge.tone}>{badge.label}</Badge>
+        <div className="flex w-full flex-wrap items-center gap-2 @lg:pl-19 @4xl:w-auto @4xl:gap-3 @4xl:pl-0">
+          <div className="flex shrink-0 flex-col items-start gap-1 @4xl:w-40">
+            {badge.label !== 'Draft' || stage !== 'draft' ? <Badge tone={badge.tone}>{badge.label}</Badge> : null}
+            {template.live_version != null ? <span className="text-2xs text-muted">v{template.live_version} live</span> : null}
           </div>
+          <TemplateStageTrack stage={stage} returned={Boolean(template.returned_at)} compact />
           {/* A fixed cell on a wide list so the dates line up down the rows;
               empty until hydration because the date is the reader's locale. */}
-          <p className="min-w-0 text-xs text-muted tabular-nums @2xl:w-32 @2xl:shrink-0 @2xl:text-right">
+          <p className="min-w-0 text-xs text-muted tabular-nums @4xl:w-32 @4xl:shrink-0 @4xl:text-right">
             {edited && template.updated_at ? (
               <>
                 Edited <time dateTime={template.updated_at}>{edited}</time>
@@ -128,6 +142,8 @@ function TemplateRow({
         </div>
       }
       actions={
+        <div className="flex items-center gap-1 pb-2 @4xl:w-52 @4xl:justify-end @4xl:py-2">
+        <TemplateWorkflowAction id={template.id} stage={stage} isAdmin={isAdmin} disabled={readOnly || phase !== 'idle'} title={template.title} />
         <TemplateActions
           templateId={template.id}
           templateTitle={template.title}
@@ -137,12 +153,13 @@ function TemplateRow({
             if (state === 'deleted') onDeleted(template.id);
           }}
         />
+        </div>
       }
     />
   );
 }
 
-export function TemplateList({ templates, canDuplicate, emptyAction }: TemplateListProps) {
+export function TemplateList({ templates, canDuplicate, emptyAction, isAdmin = false, readOnly = false }: TemplateListProps) {
   const [query, setQuery] = useState('');
   const [filter, setFilter] = useState<TemplateFilter>('all');
   const inputRef = useRef<HTMLInputElement>(null);
@@ -150,6 +167,8 @@ export function TemplateList({ templates, canDuplicate, emptyAction }: TemplateL
   const emptyRef = useRef<HTMLDivElement>(null);
   const hydrated = useHydrated();
   const view = browseTemplates(templates, { query, filter });
+  const ordered = sortByStage(view.rows);
+  const waiting = templates.filter((row) => stageOf(row) === 'waiting');
   // An account with no templates at all, which has nothing to search or
   // filter, apart from a search or a filter that matched none of them.
   const nothingYet = templates.length === 0;
@@ -206,6 +225,15 @@ export function TemplateList({ templates, canDuplicate, emptyAction }: TemplateL
 
   return (
     <div ref={rootRef}>
+      <Reveal open={waiting.length > 0}>
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-line bg-warn-wash p-4">
+          <div>
+            <p className="text-sm font-medium text-warn-ink">{waiting.length} {waiting.length === 1 ? 'template is' : 'templates are'} waiting for {isAdmin ? 'your sign-off' : 'an admin'}</p>
+            <p className="mt-1 text-xs text-muted">Customers keep the live version until {isAdmin ? 'you approve' : 'an admin approves'} the new one.</p>
+          </div>
+          {isAdmin && waiting[0] ? <Button asChild size="sm"><Link href={`/templates/${waiting[0].id}/review`}>Review templates</Link></Button> : null}
+        </div>
+      </Reveal>
       {/* With no templates there is nothing to search or filter, so the toolbar
           closes up through its grid track rather than vanishing. `inert` takes
           it out of the tab order and the accessibility tree; `aria-hidden`
@@ -308,11 +336,13 @@ export function TemplateList({ templates, canDuplicate, emptyAction }: TemplateL
         </div>
       ) : (
         <List className="@container rounded-xl">
-          {view.rows.map((template) => (
+          {ordered.map((template) => (
             <TemplateRow
               key={template.id}
               template={template}
               canDuplicate={canDuplicate}
+              isAdmin={isAdmin}
+              readOnly={readOnly}
               hydrated={hydrated}
               onDeleted={moveFocusFromDeleted}
             />

@@ -5,14 +5,10 @@ import { limitsFor, MAX_TEMPLATE_PACKS, overageCalls, overageUsd, serialiseLimit
 import { ensureAccount, getPlan, getStorageUsed, getUsage, limitsForAccount } from '../lib/billing';
 import { getApiUsage, nextResetDate } from '../lib/api-quota';
 import { billingConfigured, countMembers, cycleAnchor, getStripe, setItemQuantity, stripePrices } from '../lib/stripe';
-import { json, unauthorized } from '../lib/errors';
+import { conflict, json, unauthorized } from '../lib/errors';
 import { authPlugin } from '../plugins/auth';
 import { askAnAdmin, isAdmin, noWorkspace } from '../lib/workspace';
 import { dbPlugin, type Db } from '../plugins/db';
-
-function conflict(message: string) {
-  return json({ status: 409, message, errors: [message] }, 409);
-}
 
 function notConfigured() {
   return json({ status: 500, message: 'Billing is not configured on this server', errors: ['Server Error'] }, 500);

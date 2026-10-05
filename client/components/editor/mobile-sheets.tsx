@@ -9,13 +9,15 @@ import { ContentSource } from '~/components/content-source';
 import { PreflightPanel } from '~/components/preflight-panel';
 import { PreviewDataPanel } from '~/components/preview-data-panel';
 import { TemplateThemePanel } from '~/components/template-theme-panel';
+import { TemplateCopyView, TemplateWorkflowControls, visibleCopy } from '~/components/template-workflow-panel';
 import { EmptyState, ErrorState } from '~/components/ui/surfaces';
 import { cn } from '~/lib/classname';
+import type { TemplateCopy } from '~/lib/template-stage';
 import { CopyHtmlButton, DownloadButton, fileSlug } from '../email-editor-sandbox';
 import { BottomSheet } from './bottom-sheet';
 import type { TemplateEditorModel } from './use-template-editor';
 
-export type SheetId = 'details' | 'brand' | 'data' | 'checks' | 'eye' | null;
+export type SheetId = 'details' | 'brand' | 'data' | 'checks' | 'eye' | 'workflow' | null;
 
 const inputClass =
   'h-11 w-full rounded-md border border-line bg-raised px-3 text-base text-ink placeholder:text-muted';
@@ -53,8 +55,23 @@ function Field({
   );
 }
 
+/** The desktop's staging card, in a sheet. Its copy switch is local: the sheet
+ *  unmounts when it closes, so it opens on the draft every time. */
+function WorkflowSheet({ model }: { model: TemplateEditorModel }) {
+  const [copy, setCopy] = useState<TemplateCopy>('draft');
+  const row = model.template;
+  if (!row) return null;
+  const shown = visibleCopy(row, copy);
+  return (
+    <div className="space-y-4 py-1">
+      <TemplateWorkflowControls model={model} copy={shown} onCopy={setCopy} />
+      {shown !== 'draft' ? <TemplateCopyView row={row} copy={shown} /> : null}
+    </div>
+  );
+}
+
 /**
- * The five bottom sheets that hold everything a phone editor cannot fit
+ * The six bottom sheets that hold everything a phone editor cannot fit
  * beside the canvas. Each one is a thin shell around a panel the desktop
  * layout already owns — the phone changes where a control lives, never what
  * it does.
@@ -141,6 +158,10 @@ export function MobileSheets({
             collapsible={false}
           />
         )}
+      </BottomSheet>
+
+      <BottomSheet open={open === 'workflow'} onOpenChange={close} title="Staging and sign-off" height="full">
+        <WorkflowSheet model={model} />
       </BottomSheet>
 
       <BottomSheet open={open === 'eye'} onOpenChange={close} title="Preview" showTitle={false} height="full">

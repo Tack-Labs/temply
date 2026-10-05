@@ -210,6 +210,14 @@ export function isLimitReached(used: number, limit: number | null): boolean {
 export const API_BURST_PER_MINUTE: Record<'live' | 'test', number> = { live: 120, test: 30 };
 
 /**
+ * How long an old template version outlives the plan's version limit after an
+ * API call last pinned it. Publishing prunes to the newest versions the plan
+ * keeps; an app still rendering an older one by number keeps it for as long as
+ * it keeps calling, and a month after the last call it becomes prunable.
+ */
+export const PINNED_VERSION_KEPT_DAYS = 30;
+
+/**
  * The most a template's document may run to, as the JSON the editor stores,
  * in characters — the measure a string's length and a schema's maxLength
  * share. On disk that is a megabyte of Latin text and up to three of CJK;

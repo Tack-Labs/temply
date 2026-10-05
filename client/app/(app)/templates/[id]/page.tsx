@@ -15,7 +15,7 @@ export const metadata = {
 };
 
 export default async function TemplatePage({ params }: TemplatePageProps) {
-  const { userId } = await auth();
+  const { userId, orgRole } = await auth();
 
   if (!userId) {
     redirect('/login');
@@ -38,6 +38,7 @@ export default async function TemplatePage({ params }: TemplatePageProps) {
       template={template}
       autofocus="end"
       readOnly={billing?.plan === 'lapsed'}
+      isAdmin={orgRole === 'org:admin'}
     />
   );
 }

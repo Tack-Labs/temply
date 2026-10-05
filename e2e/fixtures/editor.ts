@@ -1,4 +1,4 @@
-import type { Page } from '@playwright/test';
+import type { Locator, Page } from '@playwright/test';
 import { expect } from './test';
 import { onPhone } from './project';
 
@@ -54,6 +54,26 @@ export async function renameTo(page: Page, id: string, title: string) {
 /** The phone header's ⋯ menu; a no-op on desktop, where the toolbar is in view. */
 export async function openMore(page: Page): Promise<void> {
   if (onPhone()) await page.getByRole('button', { name: 'More', exact: true }).click();
+}
+
+/**
+ * The staging and sign-off controls, as a scope to look inside. On desktop they
+ * are the card above the editor, so the scope is the page. On the phone they
+ * are the "Staging and sign-off" sheet behind the ⋯ menu, opened here and left
+ * open; `closeWorkflow` puts it away before the editor is used again.
+ */
+export async function openWorkflow(page: Page): Promise<Locator> {
+  if (!onPhone()) return page.locator('body');
+  await openMore(page);
+  await page.getByRole('menuitem', { name: /^Staging and sign-off/ }).click();
+  const sheet = page.getByRole('dialog', { name: 'Staging and sign-off' });
+  await expect(sheet).toBeVisible();
+  return sheet;
+}
+
+/** Closes the sheet `openWorkflow` opened; a no-op on desktop. */
+export async function closeWorkflow(page: Page): Promise<void> {
+  if (onPhone()) await page.getByRole('dialog', { name: 'Staging and sign-off' }).getByRole('button', { name: 'Close' }).click();
 }
 
 /**

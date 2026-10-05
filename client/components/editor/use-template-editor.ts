@@ -18,6 +18,7 @@ import { clearDraft, PLAYGROUND_DRAFT_ID } from '~/lib/drafts';
 import { createEditorUploader } from '~/lib/assets';
 import { useCopyToClipboard } from '~/hooks/use-copy-to-clipboard';
 import type { Mail } from '@temply/shared/schema';
+import type { WorkflowTemplate } from '~/lib/template-stage';
 import type { ContentMode } from '../content-mode-switch';
 import {
   initialPreviewData,
@@ -54,7 +55,8 @@ type DraftSnapshot = {
 };
 
 export type EmailEditorSandboxProps = {
-  template?: Mail;
+  template?: WorkflowTemplate;
+  isAdmin?: boolean;
   /** False on the signed-out playground: no upload, no library, URL only. */
   imageUploads?: boolean;
   autofocus?: FocusPosition;
@@ -98,7 +100,10 @@ const sameCounts = (a: Record<string, number>, b: Record<string, number>) => {
 };
 
 export type TemplateEditorModel = {
-  template?: Mail;
+  template?: WorkflowTemplate;
+  isAdmin: boolean;
+  beforeStage: () => Promise<boolean>;
+  onWorkflowChanged: (row: WorkflowTemplate) => void;
   readOnly: boolean;
   // fields
   subject: string; setSubject: (v: string) => void;
@@ -164,7 +169,8 @@ function themeOfRow(raw: string | null | undefined): RendererThemeOptions {
 }
 
 export function useTemplateEditor(props: EmailEditorSandboxProps): TemplateEditorModel {
-  const { template, seedFields, readOnly = false } = props;
+  const { template: initialTemplate, seedFields, readOnly = false, isAdmin = false } = props;
+  const [template, setTemplate] = useState(initialTemplate);
 
   const router = useRouter();
 
@@ -263,6 +269,7 @@ export function useTemplateEditor(props: EmailEditorSandboxProps): TemplateEdito
       toast.success('Published');
       setPublishedAt(data.template.published_at ?? null);
       setUnpublished(false);
+      setTemplate(data.template);
       router.refresh();
     },
     onError: (error) => {
@@ -693,6 +700,7 @@ export function useTemplateEditor(props: EmailEditorSandboxProps): TemplateEdito
 
   /** The row is on screen again: reset state, then re-baseline. */
   const showRow = (row: Mail) => {
+    setTemplate({ ...template, ...row });
     setSubject(row.title ?? '');
     setPreviewText(row.preview_text ?? '');
     // The baseline and the state are two objects on purpose: one shared
@@ -853,7 +861,7 @@ export function useTemplateEditor(props: EmailEditorSandboxProps): TemplateEdito
   }, [autosave, templateId]);
 
   const handlePublish = async () => {
-    if (!autosave) return;
+    if (!autosave || !isAdmin) return;
     // The gate reads the document directly, not the debounced findings — a
     // URL cleared half a second before the click must still count.
     const current = computePreflight();
@@ -877,6 +885,16 @@ export function useTemplateEditor(props: EmailEditorSandboxProps): TemplateEdito
     }
     await publishTemplate();
     setPublishArmedFor(null);
+  };
+
+  const beforeStage = async () => {
+    if (!autosave) return false;
+    await captureThenFlush(() => captureRef.current(), autosave);
+    if (autosave.pending()) {
+      toast.error('The draft could not be saved, so it was not staged.');
+      return false;
+    }
+    return true;
   };
 
   const handleSend = async () => {
@@ -986,7 +1004,7 @@ export function useTemplateEditor(props: EmailEditorSandboxProps): TemplateEdito
   };
 
   return {
-    template, readOnly,
+    template, readOnly, isAdmin, beforeStage, onWorkflowChanged: setTemplate,
     subject, setSubject, previewText, setPreviewText, fromName, setFromName, to, setTo, replyTo, setReplyTo,
     theme, setTheme, pageStyle, cardStyle,
     editor, setEditor, editorContent, flushContent, editorPaneRef, paneClass, paneHeight,

@@ -141,7 +141,10 @@ describe('GET /api/v1/templates', () => {
     await post(app, `/api/v1/templates/${id}/publish`, {}, OWNER);
     const { templates } = await (await get(app, '/api/v1/templates', OWNER)).json();
     expect(Object.keys(templates[0]).sort()).toEqual(
-      ['created_at', 'has_unpublished_changes', 'id', 'preview_text', 'published_at', 'short_code', 'title', 'updated_at'],
+      [
+        'created_at', 'has_unpublished_changes', 'id', 'live_version', 'preview_text', 'published_at', 'returned_at',
+        'review_requested_at', 'review_requested_by', 'short_code', 'stage', 'staged_at', 'title', 'updated_at',
+      ],
     );
     expect(templates[0].has_unpublished_changes).toBe(false);
     await post(app, `/api/v1/templates/${id}`, { title: 'Light again', content: '{"type":"doc"}' }, OWNER);
@@ -490,6 +493,34 @@ describe('a row another instance published', () => {
   });
 });
 
+describe('a row whose published stamp leads its draft stamp', () => {
+  // Approving a candidate the draft has moved past, and rolling back, leave
+  // published_at later than updated_at. A save or a publish after that must
+  // clear both, or it could land on the published stamp and read as in sync.
+  it('saves, publishes and restores later than both stamps', async () => {
+    const stamp = (offset: number) => new Date(Date.now() + offset).toISOString();
+    const id = crypto.randomUUID();
+    await db.insert(mails).values({ id, user_id: OWNER, org_id: OWNER, title: 'Leading', content: '{}', short_code: 'tpl_lead0000', updated_at: stamp(-5_000), published_at: stamp(2_000), published_content: '{}' });
+
+    await post(app, `/api/v1/templates/${id}`, { title: 'Leading', content: '{"v":2}' }, OWNER);
+    const saved = (await db.select().from(mails).where(eq(mails.id, id)))[0];
+    expect(Date.parse(saved.updated_at!)).toBeGreaterThan(Date.parse(saved.published_at!));
+
+    await post(app, `/api/v1/templates/${id}/publish`, {}, OWNER);
+    const published = (await db.select().from(mails).where(eq(mails.id, id)))[0];
+    expect(Date.parse(published.published_at!)).toBeGreaterThan(Date.parse(saved.published_at!));
+    expect(published.published_at).toBe(published.updated_at);
+
+    const [version] = await db.select().from(templateVersions).where(eq(templateVersions.template_id, id));
+    const leading = Date.parse(published.published_at!) + 10_000;
+    await db.update(mails).set({ updated_at: new Date(leading - 1).toISOString(), published_at: new Date(leading).toISOString() }).where(eq(mails.id, id));
+    const response = await post(app, `/api/v1/templates/${id}/versions/${version!.id}/restore`, {}, OWNER);
+    const { template: restored } = await response.json();
+    expect(Date.parse(restored.updated_at)).toBeGreaterThan(leading);
+    expect(restored.has_unpublished_changes).toBe(true);
+  });
+});
+
 describe('version history', () => {
   /** Publish twice so there is a version to go back to. */
   async function publishedTwice(first: string, second: string, theme?: string) {
@@ -516,6 +547,44 @@ describe('version history', () => {
     for (let i = 0; i < 12; i++) await post(app, `/api/v1/templates/${template.id}/publish`, {}, OWNER);
     const stored = await db.select().from(templateVersions).where(eq(templateVersions.template_id, template.id));
     expect(stored).toHaveLength(12);
+  });
+
+  describe('a version an app pins', () => {
+    const dayMs = 86_400_000;
+    const daysAgo = (days: number) => new Date(Date.now() - days * dayMs).toISOString();
+
+    /** v1 and v2 are published, then pinned as given; ten more publishes push both out of the newest ten. */
+    async function publishPastPinned(pinned: { v1: string | null; v2: string | null }) {
+      await givePlan(db, OWNER, 'team');
+      const template = await createTemplate(OWNER, 'Pinned');
+      for (let i = 0; i < 2; i++) await post(app, `/api/v1/templates/${template.id}/publish`, {}, OWNER);
+      await db.update(templateVersions).set({ pinned_at: pinned.v1 }).where(eq(templateVersions.version_number, 1));
+      await db.update(templateVersions).set({ pinned_at: pinned.v2 }).where(eq(templateVersions.version_number, 2));
+      for (let i = 0; i < 10; i++) await post(app, `/api/v1/templates/${template.id}/publish`, {}, OWNER);
+      const stored = await db.select().from(templateVersions).where(eq(templateVersions.template_id, template.id));
+      return stored.map((v) => v.version_number).sort((a, b) => a - b);
+    }
+
+    it('outlives the plan’s limit while it is in use, and goes once it has not been pinned for the window', async () => {
+      const kept = await publishPastPinned({ v1: daysAgo(5), v2: daysAgo(40) });
+      expect(kept).toEqual([1, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]);
+    });
+
+    it('is pruned like any other when nothing ever pinned it', async () => {
+      const kept = await publishPastPinned({ v1: null, v2: null });
+      expect(kept).toEqual([3, 4, 5, 6, 7, 8, 9, 10, 11, 12]);
+    });
+
+    it('does not move what a rollback goes back to', async () => {
+      await givePlan(db, OWNER, 'team');
+      const template = await createTemplate(OWNER, 'Rolled');
+      for (let i = 0; i < 3; i++) await post(app, `/api/v1/templates/${template.id}/publish`, {}, OWNER);
+      await db.update(templateVersions).set({ pinned_at: daysAgo(1) }).where(eq(templateVersions.version_number, 1));
+
+      expect((await post(app, `/api/v1/templates/${template.id}/rollback`, {}, OWNER)).status).toBe(200);
+      const { template: after } = await (await get(app, `/api/v1/templates/${template.id}`, OWNER)).json();
+      expect(after.live_version).toBe(4);
+    });
   });
 
   it('restores an earlier version into the draft without snapshotting or publishing', async () => {
@@ -586,5 +655,770 @@ describe('version history', () => {
 
     const res = await post(app, `/api/v1/templates/${template.id}/versions/${versions[0].id}/restore`, {}, OTHER);
     expect(res.status).toBe(404);
+  });
+
+  it('lists nothing for a template in another workspace', async () => {
+    const { template } = await publishedTwice('Version one', 'Version two');
+
+    const { versions } = await (await get(app, `/api/v1/templates/${template.id}/versions`, OTHER)).json();
+    expect(versions).toEqual([]);
+  });
+});
+
+// The pipeline: a member stages the draft and asks, an admin approves or
+// sends it back. MEMBER sits in OWNER's workspace without its admin role;
+// OTHER is an admin of a workspace of their own.
+describe('staging and sign-off', () => {
+  const MEMBER = 'user_member';
+  const asMember = { 'x-org-id': OWNER, 'x-org-role': 'member' };
+  const CANDIDATE = [
+    'staged_content', 'staged_theme', 'staged_preview_text', 'staged_at', 'staged_by',
+    'review_requested_at', 'review_requested_by', 'returned_at', 'returned_by', 'return_note',
+  ] as const;
+  const ADMIN_ONLY = ['approve', 'send-back', 'rollback', 'publish'] as const;
+  const ALL_ACTIONS = ['stage', 'unstage', 'request-signoff', 'approve', 'send-back', 'rollback'] as const;
+
+  const act = (id: string, action: string, body: unknown = {}, userId = OWNER, headers: Record<string, string> = {}) =>
+    post(app, `/api/v1/templates/${id}/${action}`, body, userId, headers);
+  const asAdmin = (id: string, action: string, body: unknown = {}) => act(id, action, body, OWNER);
+  const byMember = (id: string, action: string, body: unknown = {}) => act(id, action, body, MEMBER, asMember);
+  const saveDraft = (id: string, fields: { content?: string; theme?: string; previewText?: string } = {}) =>
+    post(app, `/api/v1/templates/${id}`, { title: 'Welcome', content: '{"v":2}', ...fields }, MEMBER, asMember);
+  const stored = async (id: string) => (await db.select().from(mails).where(eq(mails.id, id)))[0];
+  const versionsOf = (id: string) => db.select().from(templateVersions).where(eq(templateVersions.template_id, id));
+  const candidateOf = (row: Record<string, unknown>) => Object.fromEntries(CANDIDATE.map((key) => [key, row[key]]));
+  const noCandidate = Object.fromEntries(CANDIDATE.map((key) => [key, null]));
+  const message = async (res: Response) => (await res.json()).message as string;
+
+  /** A published template whose draft has moved off what is live. */
+  async function edited(fields: { content?: string; theme?: string; previewText?: string } = {}) {
+    const template = await createTemplate(OWNER, 'Welcome');
+    await saveDraft(template.id, { previewText: 'Hi', theme: '{"x":1}', ...fields });
+    return template.id as string;
+  }
+  async function staged(fields: { content?: string; theme?: string; previewText?: string } = {}) {
+    const id = await edited(fields);
+    expect((await byMember(id, 'stage')).status).toBe(200);
+    return id;
+  }
+  async function waiting(fields: { content?: string; theme?: string; previewText?: string } = {}) {
+    const id = await staged(fields);
+    expect((await byMember(id, 'request-signoff')).status).toBe(200);
+    return id;
+  }
+  /** v1 is the first publish, v2 the second; the draft ends level with v2. */
+  async function publishedTwice() {
+    const template = await createTemplate(OWNER, 'Welcome');
+    await asAdmin(template.id, 'publish');
+    await saveDraft(template.id, { content: '{"v":2}' });
+    await asAdmin(template.id, 'publish');
+    return template.id as string;
+  }
+
+  describe('POST /api/v1/templates/:id/stage', () => {
+    it('snapshots the draft into the candidate and leaves what is live alone', async () => {
+      const id = await edited();
+      const res = await byMember(id, 'stage');
+
+      expect(res.status).toBe(200);
+      const { template } = await res.json();
+      expect(template.stage).toBe('staging');
+      expect(template.staged_content).toBe('{"v":2}');
+      expect(template.staged_theme).toBe('{"x":1}');
+      expect(template.staged_preview_text).toBe('Hi');
+      expect(template.staged_by).toBe(MEMBER);
+      expect(template.staged_at).toMatch(/^\d{4}-\d{2}-\d{2}T/);
+      expect(template.review_requested_at).toBeNull();
+      expect(template.published_content).toBe('{"type":"doc"}');
+      expect(template.has_unpublished_changes).toBe(true);
+      expect(await versionsOf(id)).toHaveLength(0);
+    });
+
+    it('keeps the candidate as it was when the draft moves on', async () => {
+      const id = await staged();
+      await saveDraft(id, { content: '{"v":3}' });
+      const row = await stored(id);
+      expect(row.content).toBe('{"v":3}');
+      expect(row.staged_content).toBe('{"v":2}');
+    });
+
+    it('stages a template that was never published', async () => {
+      const template = await createTemplate(OWNER, 'Welcome');
+      await db.update(mails).set({ published_at: null, published_content: null }).where(eq(mails.id, template.id));
+      const res = await byMember(template.id, 'stage');
+      expect(res.status).toBe(200);
+      expect((await res.json()).template.stage).toBe('staging');
+    });
+
+    it('replaces the candidate when staged again, and clears a send-back', async () => {
+      const id = await staged();
+      const first = await stored(id);
+      await byMember(id, 'request-signoff');
+      await asAdmin(id, 'send-back', { note: 'Fix the footer' });
+      await saveDraft(id, { content: '{"v":3}' });
+
+      const res = await byMember(id, 'stage');
+      expect(res.status).toBe(200);
+      const row = await stored(id);
+      expect(row.staged_content).toBe('{"v":3}');
+      expect(row.staged_at! > first.staged_at!).toBe(true);
+      expect(row.review_requested_at).toBeNull();
+      expect(row.review_requested_by).toBeNull();
+      expect(row.returned_at).toBeNull();
+      expect(row.returned_by).toBeNull();
+      expect(row.return_note).toBeNull();
+      expect((await res.json()).template.stage).toBe('staging');
+    });
+
+    it('refuses while an admin is looking at it, and keeps the candidate', async () => {
+      const id = await waiting();
+      await saveDraft(id, { content: '{"v":3}' });
+      const before = candidateOf(await stored(id));
+
+      const res = await byMember(id, 'stage');
+      expect(res.status).toBe(409);
+      expect(await message(res)).toBe('This template is waiting for sign-off. Ask an admin to send it back, or remove the staged copy first.');
+      expect(candidateOf(await stored(id))).toEqual(before);
+    });
+
+    it('refuses when the draft is what is live', async () => {
+      const template = await createTemplate(OWNER, 'Welcome');
+      const res = await byMember(template.id, 'stage');
+      expect(res.status).toBe(400);
+      expect(await message(res)).toBe('There is nothing to stage. The draft matches what is live.');
+      expect(candidateOf(await stored(template.id))).toEqual(noCandidate);
+    });
+  });
+
+  describe('POST /api/v1/templates/:id/unstage', () => {
+    it('takes the candidate back and leaves the draft and what is live as they were', async () => {
+      const id = await staged();
+      const before = await stored(id);
+
+      const res = await byMember(id, 'unstage');
+      expect(res.status).toBe(200);
+      const { template } = await res.json();
+      expect(candidateOf(template)).toEqual(noCandidate);
+      expect(template.stage).toBe('draft');
+
+      const row = await stored(id);
+      expect(candidateOf(row)).toEqual(noCandidate);
+      expect(row.content).toBe(before.content);
+      expect(row.updated_at).toBe(before.updated_at);
+      expect(row.published_content).toBe(before.published_content);
+      expect(row.published_at).toBe(before.published_at);
+      expect(await versionsOf(id)).toHaveLength(0);
+    });
+
+    it('lets the member who asked for sign-off withdraw the request, without an admin', async () => {
+      const id = await waiting();
+      const res = await byMember(id, 'unstage');
+      expect(res.status).toBe(200);
+      expect(candidateOf(await stored(id))).toEqual(noCandidate);
+    });
+
+    it('drops a send-back with the candidate it was about', async () => {
+      const id = await waiting();
+      await asAdmin(id, 'send-back', { note: 'Not yet' });
+      expect((await byMember(id, 'unstage')).status).toBe(200);
+      expect(candidateOf(await stored(id))).toEqual(noCandidate);
+    });
+
+    it('returns a template with nothing unpublished to live', async () => {
+      const id = await staged();
+      await asAdmin(id, 'discard');
+      const { template } = await (await byMember(id, 'unstage')).json();
+      expect(template.stage).toBe('live');
+    });
+
+    it('refuses when nothing is staged', async () => {
+      const id = await edited();
+      const res = await byMember(id, 'unstage');
+      expect(res.status).toBe(409);
+      expect(await message(res)).toBe('There is no staged copy to remove.');
+    });
+
+    it('lets the draft be staged again, with a stamp later than the one it took back', async () => {
+      const id = await staged();
+      const first = (await stored(id)).staged_at!;
+      await byMember(id, 'unstage');
+      await saveDraft(id, { content: '{"v":3}' });
+
+      expect((await byMember(id, 'stage')).status).toBe(200);
+      const row = await stored(id);
+      expect(row.staged_content).toBe('{"v":3}');
+      expect(row.staged_at! > first).toBe(true);
+    });
+  });
+
+  describe('POST /api/v1/templates/:id/request-signoff', () => {
+    it('asks an admin to look, and records who asked', async () => {
+      const id = await staged();
+      const candidate = (await stored(id)).staged_content;
+      const res = await byMember(id, 'request-signoff');
+
+      expect(res.status).toBe(200);
+      const { template } = await res.json();
+      expect(template.stage).toBe('waiting');
+      expect(template.review_requested_by).toBe(MEMBER);
+      expect(template.review_requested_at).toMatch(/^\d{4}-\d{2}-\d{2}T/);
+      expect(template.staged_content).toBe(candidate);
+    });
+
+    it('asks again after a send-back, and clears what the admin said', async () => {
+      const id = await waiting();
+      await asAdmin(id, 'send-back', { note: 'Shorter subject' });
+      const res = await byMember(id, 'request-signoff');
+
+      expect(res.status).toBe(200);
+      const { template } = await res.json();
+      expect(template.stage).toBe('waiting');
+      expect(template.returned_at).toBeNull();
+      expect(template.returned_by).toBeNull();
+      expect(template.return_note).toBeNull();
+    });
+
+    it('refuses when nothing is staged', async () => {
+      const id = await edited();
+      const res = await byMember(id, 'request-signoff');
+      expect(res.status).toBe(409);
+      expect(await message(res)).toBe('Move this template to staging before asking for sign-off.');
+      expect((await stored(id)).review_requested_at).toBeNull();
+    });
+
+    it('refuses when it is already waiting, and keeps the first request', async () => {
+      const id = await waiting();
+      const before = await stored(id);
+      const res = await act(id, 'request-signoff', {}, OWNER);
+      expect(res.status).toBe(409);
+      expect(await message(res)).toBe('This template is already waiting for sign-off.');
+      const after = await stored(id);
+      expect(after.review_requested_at).toBe(before.review_requested_at);
+      expect(after.review_requested_by).toBe(MEMBER);
+    });
+  });
+
+  describe('POST /api/v1/templates/:id/approve', () => {
+    it('fences off a cleared candidate cache key from an instance whose clock was ahead', async () => {
+      for (const action of ['approve', 'publish']) {
+        const id = await waiting();
+        const future = new Date(Math.max(Date.now(), Date.parse((await stored(id)).updated_at)) + 60_000).toISOString();
+        await db.update(mails).set({ staged_at: future, review_requested_at: future }).where(eq(mails.id, id));
+        const { template: live } = await (await asAdmin(id, action)).json();
+        expect(Date.parse(live.published_at)).toBeGreaterThan(Date.parse(future));
+        await saveDraft(id, { content: '{"v":3}' });
+        const { template: candidate } = await (await byMember(id, 'stage')).json();
+        expect(Date.parse(candidate.staged_at)).toBeGreaterThan(Date.parse(live.published_at));
+      }
+    });
+    it('refuses a stale review after the candidate was replaced and asked for again', async () => {
+      const id = await waiting();
+      const original = await stored(id);
+      await asAdmin(id, 'send-back');
+      await byMember(id, 'stage');
+      await byMember(id, 'request-signoff');
+      const before = await stored(id);
+      expect((await asAdmin(id, 'approve', { stagedAt: original.staged_at })).status).toBe(409);
+      expect((await asAdmin(id, 'send-back', { stagedAt: original.staged_at, note: 'Old review' })).status).toBe(409);
+      expect(await stored(id)).toEqual(before);
+      expect((await asAdmin(id, 'approve', { stagedAt: before.staged_at })).status).toBe(200);
+    });
+    it('publishes the candidate, snapshots it once and clears the candidate', async () => {
+      const id = await waiting();
+      const res = await asAdmin(id, 'approve');
+
+      expect(res.status).toBe(200);
+      const { template } = await res.json();
+      expect(template.published_content).toBe('{"v":2}');
+      expect(template.published_theme).toBe('{"x":1}');
+      expect(template.published_preview_text).toBe('Hi');
+      expect(template.stage).toBe('live');
+      expect(template.live_version).toBe(1);
+      expect(template.has_unpublished_changes).toBe(false);
+      expect(template.published_at).toBe(template.updated_at);
+      expect(candidateOf(template)).toEqual(noCandidate);
+
+      const versions = await versionsOf(id);
+      expect(versions).toHaveLength(1);
+      expect(versions[0].version_number).toBe(1);
+      expect(versions[0].content).toBe('{"v":2}');
+      expect(versions[0].theme).toBe('{"x":1}');
+      expect(versions[0].preview_text).toBe('Hi');
+    });
+
+    it('ships the candidate, not a draft that moved after it, and reads as unpublished changes', async () => {
+      const id = await waiting();
+      await saveDraft(id, { content: '{"v":3}', theme: '{"x":1}', previewText: 'Hi' });
+
+      const { template } = await (await asAdmin(id, 'approve')).json();
+      expect(template.published_content).toBe('{"v":2}');
+      expect(template.content).toBe('{"v":3}');
+      expect(template.has_unpublished_changes).toBe(true);
+      expect(template.stage).toBe('draft');
+      expect(Date.parse(template.published_at)).toBeGreaterThan(Date.parse(template.updated_at));
+      expect((await versionsOf(id))[0].content).toBe('{"v":2}');
+    });
+
+    it('reads as unpublished changes when only the theme or the preview text moved', async () => {
+      const themed = await waiting();
+      await saveDraft(themed, { content: '{"v":2}', theme: '{"x":2}', previewText: 'Hi' });
+      expect((await (await asAdmin(themed, 'approve')).json()).template.has_unpublished_changes).toBe(true);
+
+      const previewed = await waiting();
+      await saveDraft(previewed, { content: '{"v":2}', theme: '{"x":1}', previewText: 'Changed' });
+      expect((await (await asAdmin(previewed, 'approve')).json()).template.has_unpublished_changes).toBe(true);
+    });
+
+    it('reads as in sync when a draft with no theme or preview text has not moved', async () => {
+      const template = await createTemplate(OWNER, 'Plain');
+      await post(app, `/api/v1/templates/${template.id}`, { title: 'Plain', content: '{"v":2}' }, MEMBER, asMember);
+      await byMember(template.id, 'stage');
+      await byMember(template.id, 'request-signoff');
+      const { template: approved } = await (await asAdmin(template.id, 'approve')).json();
+      expect(approved.has_unpublished_changes).toBe(false);
+      expect(approved.stage).toBe('live');
+    });
+
+    it('is for admins: a member is told who can, and nothing changes', async () => {
+      const id = await waiting();
+      const before = await stored(id);
+      const res = await byMember(id, 'approve');
+
+      expect(res.status).toBe(403);
+      const body = await res.json();
+      expect(body.code).toBe('admin-only');
+      expect(body.message).toBe('Only an admin can approve templates. Ask an admin on your team.');
+      expect(await stored(id)).toEqual(before);
+      expect(await versionsOf(id)).toHaveLength(0);
+    });
+
+    it('refuses a template that is not waiting', async () => {
+      const id = await staged();
+      const res = await asAdmin(id, 'approve');
+      expect(res.status).toBe(409);
+      expect(await message(res)).toBe('This template is not waiting for sign-off.');
+      expect((await stored(id)).published_content).toBe('{"type":"doc"}');
+
+      const live = await createTemplate(OWNER, 'Live');
+      expect((await asAdmin(live.id, 'approve')).status).toBe(409);
+      expect(await versionsOf(live.id)).toHaveLength(0);
+    });
+  });
+
+  describe('POST /api/v1/templates/:id/send-back', () => {
+    it('returns the candidate to staging with the note, and leaves what is live alone', async () => {
+      const id = await waiting();
+      const before = await stored(id);
+      const res = await asAdmin(id, 'send-back', { note: '  Check the footer links  ' });
+
+      expect(res.status).toBe(200);
+      const { template } = await res.json();
+      expect(template.stage).toBe('staging');
+      expect(template.returned_by).toBe(OWNER);
+      expect(template.returned_at).toMatch(/^\d{4}-\d{2}-\d{2}T/);
+      expect(template.return_note).toBe('Check the footer links');
+      expect(template.review_requested_at).toBeNull();
+      expect(template.review_requested_by).toBeNull();
+      expect(template.staged_content).toBe(before.staged_content);
+      expect(template.staged_at).toBe(before.staged_at);
+      expect(template.staged_by).toBe(MEMBER);
+      expect(template.published_content).toBe('{"type":"doc"}');
+      expect(await versionsOf(id)).toHaveLength(0);
+    });
+
+    it('takes no note, or a blank one', async () => {
+      const bare = await waiting();
+      expect((await (await asAdmin(bare, 'send-back', {})).json()).template.return_note).toBeNull();
+
+      const blank = await waiting();
+      expect((await (await asAdmin(blank, 'send-back', { note: '   ' })).json()).template.return_note).toBeNull();
+    });
+
+    it('takes a request with no body at all', async () => {
+      const id = await waiting();
+      const res = await app.handle(
+        new Request(`http://localhost/api/v1/templates/${id}/send-back`, {
+          method: 'POST',
+          headers: { 'x-user-id': OWNER, 'x-org-id': OWNER, 'x-org-role': 'admin' },
+        }),
+      );
+      expect(res.status).toBe(200);
+    });
+
+    it('refuses a note past 500 characters', async () => {
+      const id = await waiting();
+      expect((await asAdmin(id, 'send-back', { note: 'x'.repeat(500) })).status).toBe(200);
+      const again = await waiting();
+      expect((await asAdmin(again, 'send-back', { note: 'x'.repeat(501) })).status).toBe(400);
+      expect((await stored(again)).returned_at).toBeNull();
+    });
+
+    it('is for admins: a member is told who can, and the review stays open', async () => {
+      const id = await waiting();
+      const res = await byMember(id, 'send-back', { note: 'No' });
+      expect(res.status).toBe(403);
+      expect((await res.json()).message).toBe('Only an admin can send templates back. Ask an admin on your team.');
+      expect((await stored(id)).review_requested_at).not.toBeNull();
+      expect((await stored(id)).returned_at).toBeNull();
+    });
+
+    it('refuses a template that is not waiting', async () => {
+      const id = await staged();
+      const res = await asAdmin(id, 'send-back', { note: 'Why' });
+      expect(res.status).toBe(409);
+      expect(await message(res)).toBe('This template is not waiting for sign-off.');
+      expect((await stored(id)).returned_at).toBeNull();
+    });
+  });
+
+  describe('POST /api/v1/templates/:id/rollback', () => {
+    it('refuses to roll back a live copy that changed since the page loaded', async () => {
+      const id = await publishedTwice();
+      const original = await stored(id);
+      await asAdmin(id, 'publish');
+      const before = await stored(id);
+      expect((await asAdmin(id, 'rollback', { publishedAt: original.published_at })).status).toBe(409);
+      expect(await stored(id)).toEqual(before);
+      expect((await asAdmin(id, 'rollback', { publishedAt: before.published_at })).status).toBe(200);
+    });
+    it('puts the version before the live one back on the API, and leaves the draft', async () => {
+      const id = await publishedTwice();
+      await saveDraft(id, { content: '{"v":3}' });
+      const res = await asAdmin(id, 'rollback');
+
+      expect(res.status).toBe(200);
+      const { template } = await res.json();
+      expect(template.published_content).toBe('{"type":"doc"}');
+      expect(template.content).toBe('{"v":3}');
+      expect(template.has_unpublished_changes).toBe(true);
+      expect(template.stage).toBe('draft');
+      expect(Date.parse(template.published_at)).toBeGreaterThan(Date.parse(template.updated_at));
+    });
+
+    it('snapshots what it put live as a new version', async () => {
+      const id = await publishedTwice();
+      const { template } = await (await asAdmin(id, 'rollback')).json();
+
+      const versions = (await versionsOf(id)).sort((a, b) => a.version_number - b.version_number);
+      expect(versions.map((v) => v.version_number)).toEqual([1, 2, 3]);
+      expect(versions[2].content).toBe('{"type":"doc"}');
+      expect(versions[2].content).toBe(versions[0].content);
+      expect(template.live_version).toBe(3);
+    });
+
+    it('reads as in sync when the draft already is what it put live', async () => {
+      const id = await publishedTwice();
+      await saveDraft(id, { content: '{"type":"doc"}' });
+
+      const { template } = await (await asAdmin(id, 'rollback')).json();
+      expect(template.has_unpublished_changes).toBe(false);
+      expect(template.stage).toBe('live');
+    });
+
+    it('leaves a pending candidate where it was', async () => {
+      const id = await publishedTwice();
+      await saveDraft(id, { content: '{"v":3}' });
+      await byMember(id, 'stage');
+      await byMember(id, 'request-signoff');
+      const before = candidateOf(await stored(id));
+
+      const { template } = await (await asAdmin(id, 'rollback')).json();
+      expect(candidateOf(template)).toEqual(before);
+      expect(template.stage).toBe('waiting');
+    });
+
+    it('keeps the live theme when the earlier version predates themes', async () => {
+      const id = await publishedTwice();
+      const live = (await stored(id)).published_theme;
+      await db.update(templateVersions).set({ theme: null }).where(eq(templateVersions.template_id, id));
+
+      const { template } = await (await asAdmin(id, 'rollback')).json();
+      expect(template.published_theme).toBe(live);
+      expect(template.published_content).toBe('{"type":"doc"}');
+    });
+
+    it('refuses with a plain message when there is no earlier version', async () => {
+      const none = await createTemplate(OWNER, 'Never published by hand');
+      const res = await asAdmin(none.id, 'rollback');
+      expect(res.status).toBe(400);
+      expect(await message(res)).toBe('There is no earlier version to roll back to.');
+
+      const one = await createTemplate(OWNER, 'Published once');
+      await asAdmin(one.id, 'publish');
+      expect((await asAdmin(one.id, 'rollback')).status).toBe(400);
+      expect(await versionsOf(one.id)).toHaveLength(1);
+      expect((await stored(one.id)).published_content).toBe('{"type":"doc"}');
+    });
+
+    it('is for admins: a member is told who can, and nothing changes', async () => {
+      const id = await publishedTwice();
+      const before = await stored(id);
+      const res = await byMember(id, 'rollback');
+      expect(res.status).toBe(403);
+      expect((await res.json()).message).toBe('Only an admin can roll templates back. Ask an admin on your team.');
+      expect(await stored(id)).toEqual(before);
+      expect(await versionsOf(id)).toHaveLength(2);
+    });
+  });
+
+  describe('POST /api/v1/templates/:id/publish', () => {
+    it('is for admins: a member is told who can, and what is live stays', async () => {
+      const id = await edited();
+      const res = await byMember(id, 'publish');
+      expect(res.status).toBe(403);
+      const body = await res.json();
+      expect(body.code).toBe('admin-only');
+      expect(body.message).toBe('Only an admin can publish templates. Ask an admin on your team.');
+      expect((await stored(id)).published_content).toBe('{"type":"doc"}');
+      expect(await versionsOf(id)).toHaveLength(0);
+    });
+
+    it('clears a candidate that was staged or waiting', async () => {
+      for (const ask of [false, true]) {
+        const id = ask ? await waiting() : await staged();
+        await saveDraft(id, { content: '{"v":3}' });
+        const { template } = await (await asAdmin(id, 'publish')).json();
+
+        expect(candidateOf(template)).toEqual(noCandidate);
+        expect(template.stage).toBe('live');
+        expect(template.published_content).toBe('{"v":3}');
+        expect(template.live_version).toBe(1);
+      }
+    });
+
+    it('clears a send-back too', async () => {
+      const id = await waiting();
+      await asAdmin(id, 'send-back', { note: 'Not yet' });
+      const { template } = await (await asAdmin(id, 'publish')).json();
+      expect(candidateOf(template)).toEqual(noCandidate);
+    });
+  });
+
+  describe('what a template says about itself', () => {
+    it('carries its stage and live version on every response that returns it', async () => {
+      const created = await createTemplate(OWNER, 'Welcome');
+      expect(created.stage).toBe('live');
+      expect(created.live_version).toBeNull();
+
+      const fetched = (await (await get(app, `/api/v1/templates/${created.id}`, OWNER)).json()).template;
+      expect(fetched.stage).toBe('live');
+      expect(fetched.live_version).toBeNull();
+
+      await saveDraft(created.id);
+      const discarded = (await (await asAdmin(created.id, 'discard')).json()).template;
+      expect(discarded.stage).toBe('live');
+
+      const duplicated = (await (await asAdmin(created.id, 'duplicate')).json()).template;
+      expect(duplicated.stage).toBe('live');
+      expect(duplicated.live_version).toBeNull();
+
+      const id = await publishedTwice();
+      const { versions } = await (await get(app, `/api/v1/templates/${id}/versions`, OWNER)).json();
+      const restored = (await (await act(id, `versions/${versions[1].id}/restore`)).json()).template;
+      expect(restored.stage).toBe('draft');
+      expect(restored.live_version).toBe(2);
+    });
+
+    it('moves through the stages as the pipeline does', async () => {
+      const id = await edited();
+      const stageOf = async () => (await (await get(app, `/api/v1/templates/${id}`, OWNER)).json()).template.stage;
+      expect(await stageOf()).toBe('draft');
+      await byMember(id, 'stage');
+      expect(await stageOf()).toBe('staging');
+      await byMember(id, 'request-signoff');
+      expect(await stageOf()).toBe('waiting');
+      await asAdmin(id, 'send-back');
+      expect(await stageOf()).toBe('staging');
+      await byMember(id, 'request-signoff');
+      await asAdmin(id, 'approve');
+      expect(await stageOf()).toBe('live');
+    });
+
+    it('lists each row with its stage, live version and review stamps, and still no document', async () => {
+      const live = await createTemplate(OWNER, 'Live');
+      await asAdmin(live.id, 'publish');
+      const draft = await createTemplate(OWNER, 'Draft');
+      await saveDraft(draft.id);
+      const inStaging = await staged();
+      const inReview = await waiting();
+      await asAdmin(inReview, 'send-back', { note: 'Again' });
+      await byMember(inReview, 'request-signoff');
+
+      const { templates } = await (await get(app, '/api/v1/templates', OWNER)).json();
+      const byId = (id: string) => templates.find((t: { id: string }) => t.id === id);
+      expect(byId(live.id)).toMatchObject({ stage: 'live', live_version: 1, staged_at: null, review_requested_at: null, returned_at: null });
+      expect(byId(draft.id)).toMatchObject({ stage: 'draft', live_version: null });
+      expect(byId(inStaging)).toMatchObject({ stage: 'staging', live_version: null, review_requested_at: null });
+      expect(byId(inStaging).staged_at).not.toBeNull();
+      expect(byId(inReview)).toMatchObject({ stage: 'waiting', review_requested_by: MEMBER, returned_at: null });
+      expect(byId(inReview).review_requested_at).not.toBeNull();
+
+      for (const row of templates) {
+        for (const heavy of ['content', 'theme', 'published_content', 'staged_content', 'staged_theme', 'return_note', 'share_token']) {
+          expect(row).not.toHaveProperty(heavy);
+        }
+      }
+    });
+
+    it('lists the newest version number as the live version', async () => {
+      const id = await publishedTwice();
+      await asAdmin(id, 'rollback');
+      const { templates } = await (await get(app, '/api/v1/templates', OWNER)).json();
+      expect(templates.find((t: { id: string }) => t.id === id).live_version).toBe(3);
+    });
+  });
+
+  describe('GET /api/v1/templates/:id/preview?copy=', () => {
+    const docOf = (text: string) => JSON.stringify({ type: 'doc', content: [{ type: 'paragraph', content: [{ type: 'text', text }] }] });
+    const previewOf = (id: string, query: string, userId = OWNER) => get(app, `/api/v1/templates/${id}/preview${query}`, userId);
+
+    /** Live says "Live words", the candidate "Staged words", the draft "Draft words". */
+    async function threeCopies() {
+      const res = await post(app, '/api/v1/templates', { title: 'Welcome', content: docOf('Live words') }, OWNER);
+      const id = (await res.json()).template.id as string;
+      await saveDraft(id, { content: docOf('Staged words') });
+      await byMember(id, 'stage');
+      await saveDraft(id, { content: docOf('Draft words') });
+      return id;
+    }
+
+    it('renders the draft by default and when asked for it', async () => {
+      const id = await threeCopies();
+      expect((await (await previewOf(id, '')).json()).html).toContain('Draft words');
+      expect((await (await previewOf(id, '?copy=draft')).json()).html).toContain('Draft words');
+    });
+
+    it('renders the candidate for staged and what is live for live', async () => {
+      const id = await threeCopies();
+      const staged = await (await previewOf(id, '?copy=staged')).json();
+      expect(staged.html).toContain('Staged words');
+      expect(staged.html).not.toContain('Draft words');
+      const live = await (await previewOf(id, '?copy=live')).json();
+      expect(live.html).toContain('Live words');
+      expect(live.html).not.toContain('Staged words');
+    });
+
+    it('answers 404 with a plain message when there is nothing staged', async () => {
+      const template = await createTemplate(OWNER, 'Welcome');
+      const res = await previewOf(template.id, '?copy=staged');
+      expect(res.status).toBe(404);
+      expect(await message(res)).toBe('Nothing is staged for this template.');
+    });
+
+    it('answers 404 with a plain message when it was never published', async () => {
+      const template = await createTemplate(OWNER, 'Welcome');
+      await db.update(mails).set({ published_at: null, published_content: null }).where(eq(mails.id, template.id));
+      const res = await previewOf(template.id, '?copy=live');
+      expect(res.status).toBe(404);
+      expect(await message(res)).toBe('This template has not been published.');
+      expect((await previewOf(template.id, '?copy=draft')).status).toBe(200);
+    });
+
+    it('refuses a copy it does not know', async () => {
+      const template = await createTemplate(OWNER, 'Welcome');
+      expect((await previewOf(template.id, '?copy=archive')).status).toBe(400);
+    });
+
+    it('keys the cache on the stamp that copy changes with', async () => {
+      const id = await threeCopies();
+      const row = await stored(id);
+      const key = (stamp: string | null) => `&v=${encodeURIComponent(stamp!)}`;
+      const cacheOf = async (copy: string, stamp: string | null) => (await previewOf(id, `?copy=${copy}${key(stamp)}`)).headers.get('cache-control');
+
+      expect(await cacheOf('staged', row.staged_at)).toContain('immutable');
+      expect(await cacheOf('staged', row.updated_at)).toBe('no-store');
+      expect(await cacheOf('live', row.published_at)).toContain('immutable');
+      expect(await cacheOf('live', row.updated_at)).toBe('no-store');
+      expect(await cacheOf('draft', row.updated_at)).toContain('immutable');
+      expect(await cacheOf('draft', row.staged_at)).toBe('no-store');
+      expect(await cacheOf('draft', row.published_at)).toBe('no-store');
+    });
+
+    it('answers with the stamp of the copy it rendered', async () => {
+      const id = await threeCopies();
+      const row = await stored(id);
+      expect((await (await previewOf(id, '?copy=staged')).json()).updatedAt).toBe(row.staged_at);
+      expect((await (await previewOf(id, '?copy=live')).json()).updatedAt).toBe(row.published_at);
+      expect((await (await previewOf(id, '?copy=draft')).json()).updatedAt).toBe(row.updated_at);
+    });
+
+    it('stops honouring the old key once the copy changes', async () => {
+      const id = await threeCopies();
+      const oldStaged = (await stored(id)).staged_at;
+      await byMember(id, 'stage');
+      const res = await previewOf(id, `?copy=staged&v=${encodeURIComponent(oldStaged!)}`);
+      expect(res.headers.get('cache-control')).toBe('no-store');
+
+      const oldLive = (await stored(id)).published_at;
+      await asAdmin(id, 'publish');
+      const live = await previewOf(id, `?copy=live&v=${encodeURIComponent(oldLive!)}`);
+      expect(live.headers.get('cache-control')).toBe('no-store');
+    });
+
+    it('hides another workspace’s copies behind a 404', async () => {
+      const id = await threeCopies();
+      for (const copy of ['draft', 'staged', 'live']) expect((await previewOf(id, `?copy=${copy}`, OTHER)).status).toBe(404);
+    });
+  });
+
+  describe('who may do what', () => {
+    it('answers every new route with 401 when there is no user', async () => {
+      const id = await waiting();
+      for (const action of ALL_ACTIONS) {
+        const res = await post(app, `/api/v1/templates/${id}/${action}`, {});
+        expect(res.status).toBe(401);
+      }
+    });
+
+    it('lets a member stage and ask, and refuses them every admin route', async () => {
+      const id = await edited();
+      expect((await byMember(id, 'stage')).status).toBe(200);
+      expect((await byMember(id, 'request-signoff')).status).toBe(200);
+      const before = await stored(id);
+      for (const action of ADMIN_ONLY) {
+        const res = await byMember(id, action);
+        expect(res.status).toBe(403);
+        expect((await res.json()).code).toBe('admin-only');
+      }
+      expect(await stored(id)).toEqual(before);
+    });
+
+    it('refuses a member before it looks for the template', async () => {
+      for (const action of ADMIN_ONLY) {
+        expect((await byMember('no-such-template', action)).status).toBe(403);
+      }
+    });
+
+    it('answers 404 to another workspace’s admin on every new route, and changes nothing', async () => {
+      const id = await waiting();
+      const before = await stored(id);
+      for (const action of ALL_ACTIONS) {
+        expect((await act(id, action, {}, OTHER)).status).toBe(404);
+      }
+      expect((await act(id, 'publish', {}, OTHER)).status).toBe(404);
+      expect(await stored(id)).toEqual(before);
+      expect(await versionsOf(id)).toHaveLength(0);
+    });
+
+    it('answers 404 for a template that does not exist', async () => {
+      for (const action of ALL_ACTIONS) {
+        expect((await asAdmin('no-such-template', action)).status).toBe(404);
+      }
+    });
+  });
+
+  describe('a read-only workspace', () => {
+    it('refuses every new route and leaves the template as it was', async () => {
+      const id = await waiting();
+      const before = await stored(id);
+      await lapse(db, OWNER);
+
+      for (const action of ALL_ACTIONS) {
+        expect((await asAdmin(id, action)).status).toBe(402);
+        expect((await byMember(id, action)).status).toBe(402);
+      }
+      expect(await stored(id)).toEqual(before);
+      expect(await versionsOf(id)).toHaveLength(0);
+    });
   });
 });

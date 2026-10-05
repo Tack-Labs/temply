@@ -30,15 +30,50 @@ export const mails = pgTable('mails', {
   /**
    * The copy the public API renders. `content`, `theme` and `preview_text`
    * above are the draft the editor works on; nothing reaches an integrator
-   * until the author publishes, which copies the draft here. A null
+   * until an admin publishes, which copies the draft here. A null
    * published_at means never published — the API answers 404 until then.
    * "Unpublished changes" is `updated_at !== published_at`: publishing
    * writes the same stamp to both, a draft save bumps only updated_at.
+   * Approving a candidate the draft has moved past, and rolling back, write
+   * only published_at, which is how the template then reads as ahead.
    */
   published_content: text('published_content'),
   published_theme: text('published_theme'),
   published_preview_text: text('published_preview_text'),
   published_at: text('published_at'),
+  /**
+   * The candidate: the draft as it stood when a member put it forward for
+   * sign-off, shaped like published_* and kept beside it so a candidate that
+   * never ships spends no version. Null staged_at means nothing is staged,
+   * and the other staged_* columns mean nothing without it, so every write
+   * sets or clears them together. A candidate is a snapshot: editing the
+   * draft afterwards leaves it as it was. staged_at is a fresh stamp on every
+   * staging, because the preview cache is keyed on it. Only publishing and
+   * approving drop a candidate, as does a member taking it back; staging again replaces it.
+   */
+  staged_content: text('staged_content'),
+  staged_theme: text('staged_theme'),
+  staged_preview_text: text('staged_preview_text'),
+  staged_at: text('staged_at'),
+  /** Clerk user ids on every *_by column below, never a name: the API does
+   *  no Clerk lookup, so the client words them ("You", "A teammate"). */
+  staged_by: text('staged_by'),
+  /**
+   * Set while an admin is being asked to sign the candidate off, and only
+   * while staged_at is set. The candidate is locked in that time: staging
+   * again is refused, so the copy under review is the copy that ships.
+   * Approving or sending back clears it.
+   */
+  review_requested_at: text('review_requested_at'),
+  review_requested_by: text('review_requested_by'),
+  /**
+   * An admin sent the candidate back. It stays staged, so its author can fix
+   * the draft and stage again, or ask again as it is; either clears these
+   * three. return_note is optional and at most 500 characters.
+   */
+  returned_at: text('returned_at'),
+  returned_by: text('returned_by'),
+  return_note: text('return_note'),
   /** A review link's secret: anyone holding it can view the draft, signed
    *  out. Null means no link. Turning the link off clears it; making a new
    *  one mints a new secret, so an old link stays dead. */
@@ -89,6 +124,11 @@ export const templateVersions = pgTable('template_versions', {
   theme: text('theme'),
   version_number: integer('version_number').notNull(),
   created_at: text('created_at').default(now),
+  /** When an API call last pinned this version, as an ISO timestamp, written
+   *  at most once a day. Publishing prunes to the plan's newest versions but
+   *  spares one pinned within the retention window, so an app that is still
+   *  rendering an old version does not have it deleted from under it. */
+  pinned_at: text('pinned_at'),
 }, (t) => [
   index('template_versions_org_id').on(t.org_id),
   // One number per version of a template. Its leading column also serves

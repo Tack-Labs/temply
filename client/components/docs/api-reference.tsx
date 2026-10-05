@@ -3,8 +3,10 @@ import {
   formatUsd,
   INCLUDED,
   limitsFor,
+  PINNED_VERSION_KEPT_DAYS,
   PLAN_LABELS,
   PRICES_USD,
+  TEMPLATE_PACK,
   TEST_API_CALLS_PER_MONTH,
   TRIAL_DAYS,
 } from '@temply/shared/plans';
@@ -89,7 +91,7 @@ export function ApiReference() {
         <Block>{listSnippet()}</Block>
         <Fields
           rows={[
-            ['templates', 'One entry per template: id, shortCode, title, previewText, publishedAt, updatedAt. These match the fields returned for a single template.'],
+            ['templates', 'One entry per template: id, shortCode, title, previewText, publishedAt, version, updatedAt. These match the fields returned for a single template.'],
             ['mode', '"live" for published templates or "test" for drafts.'],
           ]}
         />
@@ -110,6 +112,7 @@ export function ApiReference() {
             ['title', 'The template’s name, which is also its subject line.'],
             ['previewText', 'The line inboxes show under the subject.'],
             ['publishedAt', 'When it was last published; null if never.'],
+            ['version', 'The number the live copy went live as, the one to pin. null when this key serves the draft.'],
             ['updatedAt', 'When the copy this key serves last changed. Cache on this.'],
             ['mode', '"live" for the published version or "test" for the draft.'],
           ]}
@@ -121,7 +124,8 @@ export function ApiReference() {
         <P>
           <Code>POST /templates/:id/render</Code> with a JSON body carrying the data
           for this send. You get back the email as HTML and as plain text, with your
-          data already in it.
+          data already in it. It renders the live copy; add a{' '}
+          <Code>version</Code> to render an earlier one (<Anchor href="#api-versions">Pin a version</Anchor>).
         </P>
         <CodeTabs languages={SNIPPET_LANGUAGES} snippets={renderSnippets(EXAMPLE)} />
         <Fields
@@ -129,7 +133,8 @@ export function ApiReference() {
             ['html', 'The full email document, ready to hand to your provider.'],
             ['text', 'The same email with the markup stripped, for the multipart alternative.'],
             ['shortCode', 'Echoed back.'],
-            ['updatedAt', 'When this version last changed, as returned by GET.'],
+            ['version', 'The version rendered: the one you pinned, or the live one. null for a test key that did not pin, which renders the draft.'],
+            ['updatedAt', 'When the rendered copy last changed, as returned by GET. For a pinned version, when it went live.'],
             ['mode', '"live" or "test".'],
           ]}
         />
@@ -179,6 +184,34 @@ export function ApiReference() {
       </div>
 
       <div className="mt-10">
+        <H3 id="api-versions">Pin a version</H3>
+        <P>
+          A render serves the live copy, so whatever you publish reaches every app on
+          its next call. To move on your own schedule, send the number of the version
+          you built against as <Code>version</Code>. It comes back as it was when it
+          went live, filled with the data you send. The number is{' '}
+          <Code>version</Code> on the metadata call and on every render.
+        </P>
+        <Block>{JSON.stringify({ data: { firstName: 'Ada' }, version: 2 }, null, 2)}</Block>
+        <P>
+          Say a shared template gains a required variable in version 3. Apps pinned to
+          version 2 keep rendering with the data they send today. Each app adds the new
+          value to its data, checks it against version 3 (a test key can pin too), then
+          pins 3 or drops the pin to follow the live copy.
+        </P>
+        <P>
+          Temply keeps the latest {INCLUDED.versionsPerTemplate} versions of a template
+          ({TEMPLATE_PACK.versionsPerTemplate} with a template pack) and removes older
+          ones as you publish. An older version an app pins stays while it is in use:
+          each pinned call refreshes it, and it can be removed {PINNED_VERSION_KEPT_DAYS}{' '}
+          days after the last one. The first pinned call starts that, so pin before the
+          version drops out of the latest {INCLUDED.versionsPerTemplate}. A removed
+          version answers 410, and a number that was never made answers 404. A pinned
+          call counts toward your calls like any other.
+        </P>
+      </div>
+
+      <div className="mt-10">
         <H3 id="api-send">Send it</H3>
         <P>
           Temply stops at the finished email; your provider delivers it. The
@@ -209,7 +242,8 @@ export function ApiReference() {
         <Fields
           rows={[
             ['401', 'No key, an unknown key, or a revoked one.'],
-            ['404', 'The template does not exist in this account, or it has not been published and you are using a live key.'],
+            ['404', 'The template does not exist in this account, it has not been published and you are using a live key, or the version you pinned was never made.'],
+            ['410', 'The version you pinned was removed to make room for newer ones. Pin a newer version, or leave version out for the live copy.'],
             ['422', 'A required variable is missing from data, or a Repeat value is not a list. Missing variables are listed under missing in the response.'],
             ['402', 'The workspace’s trial or plan has ended, so its live keys are paused. Nothing is deleted, and the key works again once someone subscribes on the Plan page. Test keys are not affected.'],
             ['429', `The key exceeded its per-minute rate limit, or the trial workspace used its ${number(trial.maxApiCalls)} monthly live calls. Rate-limit responses include Retry-After in seconds. Trial limits reset next month or when someone subscribes. The message identifies the limit.`],

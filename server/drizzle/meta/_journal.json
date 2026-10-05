@@ -8,6 +8,20 @@
       "when": 1790533552186,
       "tag": "0000_init",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1791144349132,
+      "tag": "0001_stage_pipeline",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1791186389157,
+      "tag": "0002_version_pinning",
+      "breakpoints": true
     }
   ]
 }

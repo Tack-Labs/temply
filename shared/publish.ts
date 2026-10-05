@@ -1,7 +1,9 @@
 /**
  * The one rule both sides use to tell a draft from what is live. Publishing
  * writes a single stamp to updated_at and published_at; every draft write
- * bumps only updated_at. So "unpublished changes" is a string inequality —
+ * bumps only updated_at. Approving a candidate the draft has moved past,
+ * and rolling back, write only published_at, later than updated_at, so the
+ * template reads as ahead. So "unpublished changes" is a string inequality —
  * no parsing of SQLite's `datetime('now')` against JS ISO strings, which do
  * not sort together.
  */

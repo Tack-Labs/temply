@@ -17,6 +17,7 @@ import {
   SendIcon,
   Share2Icon,
   Trash2Icon,
+  WorkflowIcon,
 } from 'lucide-react';
 import Link from 'next/link';
 import { AssetPickerDialog } from '~/components/assets/asset-picker-dialog';
@@ -36,8 +37,11 @@ import {
 import { VersionHistoryDialog } from '~/components/version-history-dialog';
 import { EMAIL_TRANSFORM, isLibraryUrl, UPLOAD_MIME_TYPES, withTransform } from '~/lib/assets';
 import { cn } from '~/lib/classname';
+import { STAGE_LABEL, STAGE_TONE } from '~/lib/template-stage';
 import { useVisualViewport } from '~/hooks/use-visual-viewport';
+import { ConfirmPublish } from '../confirm-publish';
 import { SaveStatus } from '../email-editor-sandbox';
+import { editorStage } from '../template-workflow-panel';
 import { EditorBottomBar, type IdleTab } from './bottom-bar';
 import { DesktopOnlyBanner } from './desktop-only-banner';
 import { ReadOnlyNotice } from '~/components/dashboard/billing-banner';
@@ -112,6 +116,7 @@ export function MobileEditorLayout({
   // belongs to a trigger elsewhere and expands none of them.
   const idleTabOpen: IdleTab | null =
     sheet === 'details' || sheet === 'brand' || sheet === 'data' || sheet === 'checks' ? sheet : null;
+  const stage = editorStage(model);
   const errors = model.preflight.issues.filter((issue) => issue.severity === 'error').length;
   const warnings = model.preflight.issues.length - errors;
   /** The draft is not on the server and the phone has to say so somewhere it
@@ -195,14 +200,23 @@ export function MobileEditorLayout({
             </DropdownMenuItem>
             {template?.id ? (
               <>
-                <DropdownMenuItem
-                  className={cn(touchTarget, model.publishArmed && 'text-danger-ink [&_svg]:text-danger-ink')}
-                  disabled={model.readOnly || model.isPublishing || (model.publishStatus === 'published' && !model.publishArmed)}
-                  onSelect={model.handlePublish}
-                >
-                  {model.isPublishing ? <Loader2Icon className="animate-spin motion-reduce:animate-none" /> : <GlobeIcon />}
-                  {model.publishArmed ? 'Publish anyway' : 'Publish'}
+                <DropdownMenuItem className={touchTarget} onSelect={() => setSheet('workflow')}>
+                  <WorkflowIcon />
+                  Staging and sign-off
+                  <Badge tone={STAGE_TONE[stage]} className="ml-auto">{STAGE_LABEL[stage]}</Badge>
                 </DropdownMenuItem>
+                {model.isAdmin ? <ConfirmPublish model={model}>{(publish) => (
+                  <DropdownMenuItem
+                    className={cn(touchTarget, model.publishArmed && 'text-danger-ink [&_svg]:text-danger-ink')}
+                    disabled={model.readOnly || model.isPublishing || (model.publishStatus === 'published' && !model.publishArmed)}
+                    // With a candidate in place the dialog owns the click, and
+                    // the menu stays open so the dialog has somewhere to mount.
+                    onSelect={publish ?? ((event) => event.preventDefault())}
+                  >
+                    {model.isPublishing ? <Loader2Icon className="animate-spin motion-reduce:animate-none" /> : <GlobeIcon />}
+                    {model.publishArmed ? 'Publish anyway' : 'Publish'}
+                  </DropdownMenuItem>
+                )}</ConfirmPublish> : null}
                 <DropdownMenuSeparator />
                 {template.short_code ? (
                   <DropdownMenuItem

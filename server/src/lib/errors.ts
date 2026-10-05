@@ -19,11 +19,23 @@ export function notFound(message = 'Not found') {
   });
 }
 
+/** It was here and has been removed for good; a client that cached its
+ *  address should stop asking, which a plain 404 does not tell it. */
+export function gone(message: string) {
+  return json({ status: 410, message, errors: [message] }, 410);
+}
+
 export function badRequest(message: string) {
   return new Response(JSON.stringify({ status: 400, message, errors: [message] }), {
     status: 400,
     headers: { 'Content-Type': 'application/json' },
   });
+}
+
+/** The request was well-formed, but the thing it acts on is not in a state
+ *  that allows it. */
+export function conflict(message: string) {
+  return json({ status: 409, message, errors: [message] }, 409);
 }
 
 /** The request was well-formed but the data cannot be used as sent. */

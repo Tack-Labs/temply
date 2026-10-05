@@ -15,6 +15,7 @@
     "./preflight": "./preflight.ts",
     "./bytes": "./bytes.ts",
     "./publish": "./publish.ts",
+    "./stage": "./stage.ts",
     "./api": "./api.ts",
     "./email": "./email.ts"
   },

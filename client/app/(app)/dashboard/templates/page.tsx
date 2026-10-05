@@ -29,9 +29,7 @@ export default async function TemplatesPage() {
   const failed = !res?.ok;
   const { templates = [] }: { templates?: TemplateListItem[] } = res?.ok ? await res.json() : {};
 
-  // The API returns full rows — content, theme, user_id and all. Project down
-  // to the fields the list renders before the array crosses into the client
-  // component, so nothing else rides along in the RSC payload.
+  // Project the list's contract before it crosses into the client component.
   const list: TemplateListItem[] = templates.map(
     (template): TemplateListItem => ({
       id: template.id,
@@ -41,6 +39,11 @@ export default async function TemplatesPage() {
       updated_at: template.updated_at ?? null,
       published_at: template.published_at ?? null,
       has_unpublished_changes: template.has_unpublished_changes ?? false,
+      staged_at: template.staged_at ?? null,
+      review_requested_at: template.review_requested_at ?? null,
+      review_requested_by: template.review_requested_by ?? null,
+      returned_at: template.returned_at ?? null,
+      live_version: template.live_version ?? null,
     }),
   );
 
@@ -90,6 +93,8 @@ export default async function TemplatesPage() {
         <TemplateList
           templates={list}
           canDuplicate={!atLimit && !readOnly}
+          isAdmin={isAdmin}
+          readOnly={readOnly}
           emptyAction={<NewTemplateButton disabled={readOnly} />}
         />
       )}

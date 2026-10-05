@@ -128,7 +128,7 @@ test.describe('the bar', () => {
   });
 
   test('puts the docs and legal headings below itself when a link lands on them', async ({ page }) => {
-    for (const [path, target] of [['/docs#caching', 'h3#caching'], ['/docs#api-render', 'h3#api-render'], ['/terms#plans', 'section#plans']] as const) {
+    for (const [path, target] of [['/docs#caching', 'h3#caching'], ['/docs#api-render', 'h3#api-render'], ['/docs#api-versions', 'h3#api-versions'], ['/terms#plans', 'section#plans']] as const) {
       await page.goto(path);
       const heading = page.locator(target);
       await expect.poll(() => clearance(page, heading), { message: path }).toBeGreaterThanOrEqual(0);

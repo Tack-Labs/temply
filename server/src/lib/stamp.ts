@@ -13,13 +13,18 @@ export function nextStamp(): string {
 }
 
 /**
- * A stamp later than `previous` as well, for a row another instance may
- * have written with a clock of its own. Call it while holding the row's
- * lock, so nothing can write a later stamp in between.
+ * A stamp later than every one of `previous` as well, for a row another
+ * instance may have written with a clock of its own. Name both
+ * updated_at and published_at for a row's own stamp: approving and rolling
+ * back leave published_at ahead of updated_at, and a later write that
+ * landed on it exactly would read as published. Call it while holding the
+ * row's lock, so nothing can write a later stamp in between.
  */
-export function stampAfter(previous: string | null): string {
-  const at = previous ? parseStamp(previous) : Number.NaN;
-  if (Number.isFinite(at)) last = Math.max(last, at);
+export function stampAfter(...previous: (string | null)[]): string {
+  for (const stamp of previous) {
+    const at = stamp ? parseStamp(stamp) : Number.NaN;
+    if (Number.isFinite(at)) last = Math.max(last, at);
+  }
   return nextStamp();
 }
 

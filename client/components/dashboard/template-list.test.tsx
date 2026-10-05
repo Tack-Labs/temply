@@ -11,6 +11,8 @@ import type { TemplateListItem } from '~/lib/template-search';
 // back afterwards, or every file that runs later would meet the stand-in, and
 // which files those are depends on the run order.
 const realActions = { ...(await import('~/components/dashboard/template-actions')) };
+const realNavigation = { ...(await import('next/navigation')) };
+mock.module('next/navigation', () => ({ ...realNavigation, useRouter: () => ({ refresh: () => {} }) }));
 mock.module('~/components/dashboard/template-actions', () => ({
   ...realActions,
   TemplateActions: ({
@@ -37,6 +39,7 @@ mock.module('~/components/dashboard/template-actions', () => ({
 }));
 afterAll(() => {
   mock.module('~/components/dashboard/template-actions', () => realActions);
+  mock.module('next/navigation', () => realNavigation);
 });
 
 const { TemplateList } = await import('./template-list');
@@ -57,7 +60,7 @@ afterEach(() => {
 const template = (overrides: Partial<TemplateListItem> & { id: string; title: string }): TemplateListItem => ({
   preview_text: null,
   short_code: null,
-  updated_at: '2026-10-01T09:00:00.000Z',
+  updated_at: overrides.has_unpublished_changes ? '2026-10-01T10:00:00.000Z' : '2026-10-01T09:00:00.000Z',
   published_at: '2026-10-01T09:00:00.000Z',
   has_unpublished_changes: false,
   ...overrides,
@@ -73,11 +76,11 @@ const templates: TemplateListItem[] = [
 // Clerk and the query client's mutations, neither of which is under test.
 const newTemplate = <button type="button">New template</button>;
 
-function setup(list: TemplateListItem[] = templates, canDuplicate = true) {
+function setup(list: TemplateListItem[] = templates, canDuplicate = true, isAdmin = false, readOnly = false) {
   const client = new QueryClient();
   const tree = (items: TemplateListItem[]) => (
     <QueryClientProvider client={client}>
-      <TemplateList templates={items} canDuplicate={canDuplicate} emptyAction={newTemplate} />
+      <TemplateList templates={items} canDuplicate={canDuplicate} isAdmin={isAdmin} readOnly={readOnly} emptyAction={newTemplate} />
     </QueryClientProvider>
   );
   const view = render(tree(list));
@@ -88,7 +91,7 @@ function setup(list: TemplateListItem[] = templates, canDuplicate = true) {
 
 type View = ReturnType<typeof render>;
 const rows = (view: View) => view.queryAllByRole('listitem');
-const titles = (view: View) => rows(view).map((item) => within(item).getByRole('link').textContent ?? '');
+const titles = (view: View) => rows(view).map((item) => item.querySelector('a')?.textContent ?? '');
 const count = (view: View) => view.getByRole('status').textContent;
 const radio = (view: View, name: RegExp) => view.getByRole('radio', { name });
 const search = (view: View) => view.getByRole('searchbox', { name: 'Search templates' }) as HTMLInputElement;
@@ -104,24 +107,41 @@ const type = (view: View, value: string) => {
 };
 
 describe('TemplateList rows', () => {
-  it('is one row per template, in the order the API gave them, each a link to its editor', () => {
+  it('puts waiting reviews first, keeps the notice visible through search, and offers admins review', () => {
+    const list = [template({ id: 'live', title: 'Live' }), template({ id: 'waiting', title: 'Review me', staged_at: 'staged', review_requested_at: 'asked' })];
+    const view = setup(list, true, true);
+    expect(titles(view)[0]).toContain('Review me');
+    expect(view.getByText('1 template is waiting for your sign-off')).toBeTruthy();
+    expect(view.getByRole('link', { name: 'Review templates' }).getAttribute('href')).toBe('/templates/waiting/review');
+    type(view, 'Live');
+    expect(view.getByText('1 template is waiting for your sign-off')).toBeTruthy();
+  });
+
+  it('offers members sign-off without an admin callout action and disables writes on a lapsed plan', () => {
+    const view = setup([template({ id: 'waiting', title: 'Review me', staged_at: 'staged', review_requested_at: 'asked' }), template({ id: 'draft', title: 'Draft me', published_at: null })], false, false, true);
+    expect(view.getByText('1 template is waiting for an admin')).toBeTruthy();
+    expect(view.queryByRole('link', { name: 'Review templates' })).toBeNull();
+    expect(view.getByRole('link', { name: 'View sign-off “Review me”' }).getAttribute('href')).toBe('/templates/waiting/review');
+    expect((view.getByRole('button', { name: 'Move to staging “Draft me”' }) as HTMLButtonElement).disabled).toBe(true);
+  });
+  it('is one row per template, with drafts before live rows and recency kept within a stage', () => {
     const view = setup();
     expect(rows(view)).toHaveLength(3);
-    expect(titles(view)[0]).toContain('Welcome email');
-    expect(titles(view)[1]).toContain('Receipt');
-    expect(titles(view)[2]).toContain('Newsletter');
-    expect(within(rows(view)[0]!).getByRole('link').getAttribute('href')).toBe('/templates/a');
+    expect(titles(view)[0]).toContain('Receipt');
+    expect(titles(view)[1]).toContain('Newsletter');
+    expect(titles(view)[2]).toContain('Welcome email');
+    expect(rows(view)[0]!.querySelector('a')?.getAttribute('href')).toBe('/templates/b');
   });
 
   it('shows the preview text, or says there is none', () => {
     const view = setup();
-    expect(within(rows(view)[0]!).getByText('Glad you are here')).toBeTruthy();
+    expect(within(rows(view)[2]!).getByText('Glad you are here')).toBeTruthy();
     expect(within(rows(view)[1]!).getByText('No preview text')).toBeTruthy();
   });
 
   it('badges each row with where it stands, and a published row is not also called a draft', () => {
     const view = setup();
-    const [published, changed, draft] = rows(view) as [HTMLElement, HTMLElement, HTMLElement];
+    const [changed, draft, published] = rows(view) as [HTMLElement, HTMLElement, HTMLElement];
     expect(within(published).getByText('Published').className).toContain('text-success-ink');
     expect(within(published).queryByText('Draft')).toBeNull();
     expect(within(published).queryByText('Unpublished changes')).toBeNull();
@@ -133,7 +153,7 @@ describe('TemplateList rows', () => {
 
   it('says when each was last edited, in a time element a machine can read', () => {
     const view = setup();
-    const time = within(rows(view)[0]!).getByText(/2026/);
+    const time = within(rows(view)[2]!).getByText(/2026/);
     expect(time.tagName).toBe('TIME');
     expect(time.getAttribute('datetime')).toBe('2026-10-01T09:00:00.000Z');
   });
@@ -320,7 +340,7 @@ describe('TemplateList while a delete runs', () => {
 describe('TemplateList focus after a delete', () => {
   const rowOf = (view: View, title: string) =>
     rows(view).find((item) => within(item).queryByText(title)) as HTMLElement;
-  const linkOf = (view: View, title: string) => within(rowOf(view, title)).getByRole('link');
+  const linkOf = (view: View, title: string) => rowOf(view, title).querySelector('a');
   // Focus is on the row's own button when the server confirms, as it is after a
   // confirmed delete: the dialog hands focus back to the button it opened from.
   const confirmDelete = (view: View, title: string) => {
@@ -331,14 +351,14 @@ describe('TemplateList focus after a delete', () => {
 
   it('moves to the row that closes up into the gap', () => {
     const view = setup();
-    confirmDelete(view, 'Welcome email');
-    expect(document.activeElement).toBe(linkOf(view, 'Receipt'));
+    confirmDelete(view, 'Receipt');
+    expect(document.activeElement).toBe(linkOf(view, 'Newsletter'));
   });
 
   it('moves to the row above when the last one goes', () => {
     const view = setup();
-    confirmDelete(view, 'Newsletter');
-    expect(document.activeElement).toBe(linkOf(view, 'Receipt'));
+    confirmDelete(view, 'Welcome email');
+    expect(document.activeElement).toBe(linkOf(view, 'Newsletter'));
   });
 
   it('passes over a neighbour that is already closing, which cannot take focus', () => {
@@ -394,7 +414,7 @@ describe('TemplateList with nothing in it', () => {
   });
 
   it('puts the toolbar out of reach while it has nothing to search, and keeps it in reach otherwise', () => {
-    expect(setup(only).container.querySelector('[inert]')).toBeNull();
+    expect(search(setup(only)).closest('[inert]')).toBeNull();
     cleanup();
     const view = setup([]);
     const closed = search(view).closest('[inert]');
@@ -447,7 +467,7 @@ describe('TemplateList with nothing in it', () => {
   it('opens the toolbar and lists the rows again when a template arrives, without taking focus back', () => {
     const view = setup([]);
     view.showing(only);
-    expect(view.container.querySelector('[inert]')).toBeNull();
+    expect(search(view).closest('[inert]')).toBeNull();
     expect(titles(view)).toHaveLength(1);
     expect(view.queryByRole('group', { name: 'Templates' })).toBeNull();
     expect(document.activeElement).toBe(document.body);

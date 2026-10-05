@@ -176,6 +176,7 @@ export function Row({
   leaving,
   className,
   bodyClassName,
+  contentClassName,
   href,
   onClick,
   primaryLabel,
@@ -190,6 +191,8 @@ export function Row({
      * Row itself stays a single line unless it is told otherwise.
      */
     bodyClassName?: string;
+    /** Responsive wrapping of the primary target and its separate actions. */
+    contentClassName?: string;
     /**
      * Opt in to closing the row up when its entity goes: pass `false` while it
      * stays and `true` once it has been removed, and it fades and shrinks to
@@ -256,7 +259,7 @@ export function Row({
           )}
         >
           <div className="min-h-0 overflow-hidden" aria-hidden={leaving} inert={leaving}>
-            <div className="flex items-center">{content}</div>
+            <div className={cn('flex items-center', contentClassName)}>{content}</div>
           </div>
         </div>
       )}

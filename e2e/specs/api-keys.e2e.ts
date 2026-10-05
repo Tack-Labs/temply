@@ -21,8 +21,10 @@ async function createKey(page: Page, mode: 'Test' | 'Live', keyName: string): Pr
 // `page.request` carries the signed-in cookies, and the Next proxy forwards
 // the Authorization header untouched; the public route ignores the cookies
 // and authenticates by the bearer alone, which is what is being asserted.
-const render = (request: APIRequestContext, shortCode: string, key: string) =>
-  request.post(`/api/public/v1/templates/${shortCode}/render`, { headers: { Authorization: `Bearer ${key}` }, data: {} });
+const render = (request: APIRequestContext, shortCode: string, key: string, body: { version?: number } = {}) =>
+  request.post(`/api/public/v1/templates/${shortCode}/render`, { headers: { Authorization: `Bearer ${key}` }, data: body });
+
+const doc = (text: string) => JSON.stringify({ type: 'doc', content: [{ type: 'paragraph', content: [{ type: 'text', text }] }] });
 
 test.describe('api keys', () => {
   test('a test key renders the draft until it is revoked', async ({ page, api, name }) => {
@@ -80,5 +82,33 @@ test.describe('api keys', () => {
     const ok = await render(page.request, short_code, key);
     expect(ok.status()).toBe(200);
     expect((await ok.json()).mode).toBe('live');
+  });
+
+  test('a live key can pin an earlier version once the template has moved on', async ({ page, api, name }) => {
+    const title = name('pinned');
+    const { id } = await api.createTemplate({ title });
+    await api.saveDraft(id, { title, content: doc('First words') });
+    await api.publishTemplate(id);
+    await api.saveDraft(id, { title, content: doc('Second words') });
+    await api.publishTemplate(id);
+    const { short_code } = await api.getTemplate(id);
+    const keyName = name('pin key');
+    await page.goto('/dashboard/settings/api-keys');
+    const key = await createKey(page, 'Live', keyName);
+    api.trackApiKey((await api.apiKeyNamed(keyName)).id);
+
+    const live = await (await render(page.request, short_code, key)).json();
+    expect(live.html).toContain('Second words');
+    const earlier = live.version - 1;
+
+    const pinned = await render(page.request, short_code, key, { version: earlier });
+    expect(pinned.status()).toBe(200);
+    const body = await pinned.json();
+    expect(body.html).toContain('First words');
+    expect(body.html).not.toContain('Second words');
+    expect(body.version).toBe(earlier);
+
+    const never = await render(page.request, short_code, key, { version: live.version + 1 });
+    expect(never.status()).toBe(404);
   });
 });

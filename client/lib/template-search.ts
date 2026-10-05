@@ -12,6 +12,11 @@ export type TemplateListItem = {
   published_at: string | null;
   /** The draft differs from the published copy. */
   has_unpublished_changes: boolean;
+  staged_at?: string | null;
+  review_requested_at?: string | null;
+  review_requested_by?: string | null;
+  returned_at?: string | null;
+  live_version?: number | null;
 };
 
 /**
