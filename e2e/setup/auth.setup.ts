@@ -1,4 +1,4 @@
-import { clerk, clerkSetup } from '@clerk/testing/playwright';
+import { clerkSetup } from '@clerk/testing/playwright';
 import { test as setup, expect, type Browser, type Page } from '@playwright/test';
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { dirname } from 'node:path';
@@ -6,7 +6,7 @@ import { RUN_ID, TEST_USER } from '../env';
 import { fakes } from '../fakes/client';
 import { EMPTY_DOC } from '../fixtures/api';
 import { WORKSPACES_FILE } from '../fixtures/workspaces';
-import { activateWorkspace } from '../fixtures/session';
+import { signInToWorkspace } from '../fixtures/session';
 import { ensureFirstWorkspace, ensureSecondUser } from './clerk';
 import { subscribe } from './plan';
 import { STORAGE_STATE } from './storage-state';
@@ -17,8 +17,7 @@ const ATTEMPT_MS = 60_000;
 
 /** The work, or an error naming it, whichever comes first. The work itself is
  *  not cancellable — Playwright has no handle on a call already inside Clerk's
- *  client — so what is abandoned here keeps running against a context the
- *  caller then stops using. */
+ *  client — so the caller closes the failed attempt's context to stop it. */
 function within<T>(work: Promise<T>, what: string): Promise<T> {
   let timer: ReturnType<typeof setTimeout>;
   const capped = new Promise<never>((_, reject) => {
@@ -47,7 +46,7 @@ function within<T>(work: Promise<T>, what: string): Promise<T> {
  * options are read back off the project rather than written out again here,
  * so a change in the config reaches this path too.
  */
-async function signIn(browser: Browser, first: Page): Promise<Page> {
+async function signIn(browser: Browser, first: Page, orgId: string): Promise<Page> {
   const { baseURL, userAgent, viewport, ignoreHTTPSErrors } = setup.info().project.use;
   let last: unknown;
   for (const attempt of [1, 2]) {
@@ -56,13 +55,13 @@ async function signIn(browser: Browser, first: Page): Promise<Page> {
       : await (await browser.newContext({ baseURL, userAgent, viewport, ignoreHTTPSErrors })).newPage();
     try {
       await within((async () => {
-        await page.goto('/login');
-        await clerk.signIn({ page, signInParams: { strategy: 'password', identifier: TEST_USER.email, password: TEST_USER.password } });
+        await signInToWorkspace(page, TEST_USER, orgId);
       })(), `attempt ${attempt} of the Clerk sign-in`);
       return page;
     } catch (error) {
       last = error;
       console.warn(`[auth.setup] attempt ${attempt} of the Clerk sign-in failed: ${(error as Error).message}`);
+      await page.context().close();
     }
   }
   throw last;
@@ -71,8 +70,8 @@ async function signIn(browser: Browser, first: Page): Promise<Page> {
 /**
  * One sign-in per run. `clerkSetup` fetches a testing token for the dev
  * instance so Clerk's bot protection lets an automated sign-in through;
- * `clerk.signIn` drives the password strategy without a form. The result
- * is saved as storageState and every spec starts from it.
+ * the password strategy activates the requested workspace with the new
+ * session. The result is saved as storageState and every spec starts from it.
  */
 setup('sign in as the e2e user', async ({ page: firstPage, browser }) => {
   // The sign-in, the checkout, the Clerk writes and a cold editor render
@@ -81,12 +80,11 @@ setup('sign in as the e2e user', async ({ page: firstPage, browser }) => {
   setup.setTimeout(240_000);
   await clerkSetup();
   expect(TEST_USER.email, 'E2E_USER_EMAIL is set').toBeTruthy();
-  const page = await signIn(browser, firstPage);
   // The run's shared workspace is the user's own, by name, not whichever
   // workspace Clerk last remembered for them; it is made active here so the
   // checkout below and every spec's storageState are scoped to it.
   const first = await ensureFirstWorkspace();
-  await activateWorkspace(page, first.orgId);
+  const page = await signIn(browser, firstPage, first.orgId);
 
   // A fresh database puts the workspace on a trial: ten templates, five
   // brands, five API keys, 10,000 live calls. Every spec seeds its own and

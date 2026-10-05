@@ -1,13 +1,48 @@
-import { clerk, clerkSetup } from '@clerk/testing/playwright';
+import { clerkSetup, setupClerkTestingToken } from '@clerk/testing/playwright';
 import { expect, type Browser, type BrowserContext, type Page } from '@playwright/test';
 import { emulateCoarsePointer } from './phone';
 import { onPhone } from './project';
 
 type Credentials = { email: string; password: string };
 
-type WindowWithClerk = Window & {
-  Clerk?: { loaded?: boolean; setActive: (params: { organization: string }) => Promise<void>; session?: { getToken: () => Promise<string | null> } };
+type PasswordClerk = {
+  client: { signIn: { create: (params: { strategy: 'password'; identifier: string; password: string }) => Promise<{ status: string; createdSessionId: string | null }> } };
+  setActive: (params: { session: string; organization: string; navigate: () => Promise<void> }) => Promise<void>;
 };
+
+type WindowWithClerk = Window & {
+  Clerk?: { loaded?: boolean; setActive: (params: { organization: string }) => Promise<void>; session?: { status?: string; lastActiveOrganizationId?: string | null; getToken: () => Promise<string | null> } };
+};
+
+/** The session and its workspace are activated together: an omitted workspace
+ * lets Clerk restore a deleted organisation or leave a choose-organisation task
+ * pending. Navigation belongs to the caller, after activation has finished. */
+export async function passwordSignIn({ user, orgId, clerk }: {
+  user: Credentials;
+  orgId: string;
+  clerk?: PasswordClerk;
+}): Promise<void> {
+  const client = clerk ?? (window as Window & { Clerk: PasswordClerk }).Clerk;
+  const result = await client.client.signIn.create({ strategy: 'password', identifier: user.email, password: user.password });
+  if (result.status !== 'complete' || !result.createdSessionId) {
+    throw new Error(`Clerk password sign-in did not complete: ${result.status}`);
+  }
+  await client.setActive({ session: result.createdSessionId, organization: orgId, navigate: async () => {} });
+}
+
+export async function signInToWorkspace(page: Page, user: Credentials, orgId: string): Promise<void> {
+  await setupClerkTestingToken({ page });
+  await page.goto('/login');
+  await clerkLoaded(page);
+  await expect(page.getByRole('heading', { name: 'Sign in to Temply', exact: true })).toBeVisible();
+  await page.evaluate(passwordSignIn, { user, orgId });
+  await page.waitForFunction((organization) => {
+    const session = (window as WindowWithClerk).Clerk?.session;
+    return session?.status === 'active' && session.lastActiveOrganizationId === organization;
+  }, orgId);
+  await page.goto('/dashboard');
+  await expect(page.getByRole('heading', { name: 'Welcome back' })).toBeVisible({ timeout: 30_000 });
+}
 
 /**
  * Clerk's client state — the caller's role in the workspace included —
@@ -50,8 +85,8 @@ export async function refreshSession(page: Page): Promise<void> {
 }
 
 /**
- * A session of its own for a user other than the one in the shared
- * storageState: a fresh context, a real Clerk sign-in, and the workspace the
+ * A session of its own, separate from the shared storageState: a fresh
+ * context, a real Clerk sign-in, and the workspace the
  * test names made active in that session. `browser.newContext` from the test
  * runner inherits the project's device and baseURL, so only storageState is
  * overridden. The caller closes the context; nothing here signs out, since
@@ -66,9 +101,7 @@ export async function signInAs(browser: Browser, user: Credentials, orgId: strin
   try {
     const page = await context.newPage();
     if (onPhone()) await emulateCoarsePointer(page);
-    await page.goto('/login');
-    await clerk.signIn({ page, signInParams: { strategy: 'password', identifier: user.email, password: user.password } });
-    await activateWorkspace(page, orgId);
+    await signInToWorkspace(page, user, orgId);
     return { context, page };
   } catch (error) {
     await context.close();

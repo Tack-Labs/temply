@@ -1,5 +1,5 @@
 import { createClerkClient } from '@clerk/backend';
-import { TEST_USER } from '../env';
+import { TEST_USER_2 } from '../env';
 import { test, expect } from '../fixtures/test';
 import { signInAs } from '../fixtures/session';
 import { onPhone } from '../fixtures/project';
@@ -10,8 +10,8 @@ test('the Temply organisation admin can browse signups and loses access when its
   const secretKey = process.env.CLERK_SECRET_KEY;
   if (!secretKey?.startsWith('sk_test_')) throw new Error('Admin e2e writes require a Clerk dev-instance key');
   const clerk = createClerkClient({ secretKey });
-  const user = (await clerk.users.getUserList({ emailAddress: [TEST_USER.email] })).data[0];
-  expect(user, 'the signed-in test user exists').toBeTruthy();
+  const user = (await clerk.users.getUserList({ emailAddress: [TEST_USER_2.email] })).data[0];
+  expect(user, 'the platform-admin test user exists').toBeTruthy();
   const shared = readWorkspaces().shared;
 
   // Ordinary workspace admins have no platform access, even by a direct URL.
@@ -27,6 +27,9 @@ test('the Temply organisation admin can browse signups and loses access when its
   const organisationName = (what: string) => name(what).replace(/\d/g, (digit) => String.fromCharCode(97 + Number(digit)));
   const signupName = organisationName('signup');
   try {
+    // Creating an organisation changes the creator's remembered workspace.
+    // The primary account is used by ordinary specs and real sign-out tests,
+    // so temporary platform-admin workspaces belong to the second account.
     adminId = (await clerk.organizations.createOrganization({
       name: organisationName('main'), createdBy: user.id, privateMetadata: { templyAdmin: true },
     })).id;
@@ -36,7 +39,7 @@ test('the Temply organisation admin can browse signups and loses access when its
     // there would move it under whatever else is running — a library listed
     // empty, a template that is not there — so the platform admin gets a
     // session of its own.
-    admin = await signInAs(browser, TEST_USER, adminId);
+    admin = await signInAs(browser, TEST_USER_2, adminId);
     const adminPage = admin.page;
     if (onPhone()) await adminPage.getByRole('button', { name: 'Open navigation' }).click();
     await adminPage.getByRole('navigation', { name: 'Dashboard' }).getByRole('link', { name: 'Admin', exact: true }).click();

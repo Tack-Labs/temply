@@ -140,6 +140,23 @@ export function bubbleMenu(page: Page, name: string): Locator {
   return page.locator('.tippy-box').filter({ has: page.getByRole('toolbar', { name, exact: true }) });
 }
 
+/** A hover stays on its control only after font layout and caret scrolling
+ * have finished moving the floating menu. A pointer sent earlier can leave
+ * the control without another mouse event to arm its tooltip again. */
+export async function hoverControl(page: Page, control: Locator): Promise<void> {
+  await page.evaluate(() => document.fonts.ready.then(() => undefined));
+  await control.scrollIntoViewIfNeeded();
+  let previous: string | undefined;
+  await expect.poll(async () => {
+    const box = await control.boundingBox();
+    const position = box ? JSON.stringify(box) : undefined;
+    const settled = position !== undefined && position === previous;
+    previous = position;
+    return settled;
+  }, { message: 'the floating control has stopped moving', intervals: [100, 250, 500] }).toBe(true);
+  await control.hover();
+}
+
 /**
  * A floating menu or popup is on screen where the customer can use it.
  * Tippy parks a menu that has lost its anchor at x ≈ -1000 rather than

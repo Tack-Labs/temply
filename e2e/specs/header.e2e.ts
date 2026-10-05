@@ -201,6 +201,29 @@ test.describe('the menu on a phone', () => {
   // matter of width, and the phone project adds the coarse pointer.
   test.use({ viewport: { width: 390, height: 844 } });
 
+  test('waits for hydration before the menu can be pressed, including with reduced motion', async ({ page }) => {
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    let release!: () => void;
+    const scripts = new Promise<void>((resolve) => { release = resolve; });
+    await page.route('**/_next/static/**/*.js', async (route) => {
+      await scripts;
+      await route.continue();
+    });
+    try {
+      await page.goto('/', { waitUntil: 'commit' });
+      const button = menuButton(page);
+      await expect(button).toBeVisible();
+      await expect(button).toBeDisabled();
+      release();
+      await button.click();
+      await expect(button).toHaveAttribute('aria-expanded', 'true');
+      await expect(panelLinks(page)).toHaveCount(4);
+    } finally {
+      release();
+      await page.unrouteAll({ behavior: 'wait' });
+    }
+  });
+
   test('opens and closes from its button, and says which it will do through aria-expanded alone', async ({ page }) => {
     await page.goto('/');
     const button = menuButton(page);
@@ -343,12 +366,8 @@ test.describe('the menu on a phone', () => {
   test('closes when a link in it is followed, and when the page changes under it', async ({ page }) => {
     await page.goto('/');
     const button = menuButton(page);
-    // The button is in the server's HTML, and a press before React has
-    // attached its handler is dropped without a trace, leaving a panel that
-    // never opens. The reveal flag is raised in the hydration commit, so it is
-    // the sign the page is live; reduced motion withholds it, so that is asked
-    // for after, and it is what lets the anchor below jump rather than ease.
-    await expect(page.locator('html')).toHaveAttribute('data-reveal-ready', '');
+    // Jump to each anchor so following the next link cannot race a smooth
+    // scroll still running from the one before it.
     await page.emulateMedia({ reducedMotion: 'reduce' });
     await button.click();
     await expect(button).toHaveAttribute('aria-expanded', 'true');

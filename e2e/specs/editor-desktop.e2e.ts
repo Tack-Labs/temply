@@ -1,7 +1,7 @@
 import type { Page } from '@playwright/test';
 import { test, expect } from '../fixtures/test';
 import type { makeApi } from '../fixtures/api';
-import { bubbleMenu, docOf, expectOnScreen, insertHere, insertViaSlash, newLine, openEditor, slashMenu, slashRow } from '../fixtures/canvas';
+import { bubbleMenu, docOf, expectOnScreen, hoverControl, insertHere, insertViaSlash, newLine, openEditor, slashMenu, slashRow } from '../fixtures/canvas';
 
 // The canvas is a contenteditable, so ProseMirror's own class names stand in
 // for roles it does not give, and a node view's `data-type` stands in for
@@ -1102,12 +1102,7 @@ test.describe('editor on the desktop', () => {
       ],
     });
     const t = await api.createTemplate({ title: name('dismiss section'), content: doc });
-    // Radix shuts a tooltip, and drops the open timer it was waiting on, at
-    // any scroll that moves its trigger. Placing the caret in the Section
-    // eases the window to it (`scroll-behavior: smooth`), and on a loaded
-    // runner that is still in flight when the pointer arrives on the control,
-    // after which the tooltip will not re-arm while the pointer rests there.
-    // At rest the window jumps, so the hover finds the page already still.
+    // The scroll here is incidental to the dismissal this case exercises.
     await page.emulateMedia({ reducedMotion: 'reduce' });
     const pm = await openEditor(page, t.id);
     // Autofocus landing is what says the menu has had its chance — tiptap
@@ -1130,7 +1125,7 @@ test.describe('editor on the desktop', () => {
     // hint that swallowed the press would cost a second one.
     // Named exactly, because tippy gives every bubble menu the tooltip role
     // as well and the hint is the one whose whole name is the control's.
-    await menu.getByRole('button', { name: 'Delete Section' }).hover();
+    await hoverControl(page, menu.getByRole('button', { name: 'Delete Section' }));
     await expect(page.getByRole('tooltip', { name: 'Delete Section', exact: true }),
       'the control names itself on hover').toBeVisible();
     await page.keyboard.press('Escape');

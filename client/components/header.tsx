@@ -11,6 +11,7 @@ import { Button } from '~/components/ui/button';
 import { Skeleton } from '~/components/ui/skeleton';
 import { cn } from '~/lib/classname';
 import { SIGNED_IN_HOME } from '~/lib/routes';
+import { useHydrated } from '~/hooks/use-hydrated';
 
 // The landing page sections these point at. Smooth scrolling and the offset that
 // keeps a heading clear of this sticky bar (`--header-h`) are both handled in
@@ -137,6 +138,7 @@ function SectionLink({
 const iconMotion = 'transition-[opacity,rotate,scale] duration-base ease-out motion-reduce:transition-none';
 
 export function Header() {
+  const hydrated = useHydrated();
   // A hint can be stale: a session that expired without a sign-out leaves
   // the stamp behind. The menu it summons brings Clerk, and Clerk's answer
   // corrects the header.
@@ -297,6 +299,7 @@ export function Header() {
             aria-label="Menu"
             aria-expanded={menuOpen}
             aria-controls={MENU_ID}
+            disabled={!hydrated}
             onClick={() => setMenuOpen((open) => !open)}
           >
             <span className="grid place-items-center *:col-start-1 *:row-start-1">
