@@ -42,9 +42,14 @@ describe('the mobile drawer', () => {
     expect(src).toContain('aria-label="Close navigation"');
   });
 
-  it('pulls the opener back by half the box it grew by on a coarse pointer', () => {
-    expect(src).toContain('-ml-2');
-    expect(src).toContain('pointer-coarse:-ml-3.5');
+  it('makes the opener a 44px box on every pointer and pulls it back so its 20px glyph sits on the gutter', () => {
+    expect(src).toMatch(/className="-ml-3 size-11 md:hidden \[&_svg\]:size-5"/);
+    expect(src).not.toContain('pointer-coarse:-ml-3.5');
+  });
+
+  it('is as wide as the sidebar it carries, 248px', () => {
+    expect(src).toContain('w-62');
+    expect(src).not.toContain('w-64');
   });
 
   it('makes the close button a touch target', () => {
@@ -64,7 +69,9 @@ describe('the account menu', () => {
   it('keeps the names the auth spec finds it by', () => {
     expect(src).toMatch(/`Account: \$\{user\?\.fullName \?\? 'User'\}`/);
     expect(src).toContain("'Account'");
-    expect(src).toContain('Sign Out');
+    // The auth and shell specs match /sign out/i; sentence case is the repo's.
+    expect(src).toContain('Sign out');
+    expect(src).not.toContain('Sign Out');
   });
 
   it('keeps the props its callers pass', () => {

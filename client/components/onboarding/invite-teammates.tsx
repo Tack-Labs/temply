@@ -7,6 +7,7 @@ import { useState } from 'react';
 import { toast } from 'sonner';
 import { Button } from '~/components/ui/button';
 import { Card } from '~/components/ui/surfaces';
+import { Textarea } from '~/components/ui/textarea';
 import { isEmailAddress } from '@temply/shared/email';
 
 
@@ -54,13 +55,12 @@ export function InviteTeammates() {
         <label htmlFor="invite-emails" className="block text-sm font-medium text-ink">
           Email addresses
         </label>
-        <textarea
+        <Textarea
           id="invite-emails"
           value={raw}
           onChange={(event) => setRaw(event.target.value)}
           placeholder="ada@example.com, grace@example.com"
           rows={3}
-          className="w-full rounded-sm border border-line bg-raised px-2.5 py-2 text-sm text-ink placeholder:text-muted"
         />
         {invalid.length > 0 ? (
           <p className="text-xs text-danger-ink">Not an email address: {invalid.join(', ')}</p>
@@ -68,10 +68,10 @@ export function InviteTeammates() {
           <p className="text-xs text-muted">Separate several with commas or new lines.</p>
         )}
         <div className="flex items-center justify-between gap-2">
-          <Button variant="ghost" onClick={() => router.push('/dashboard')} disabled={sending}>
+          <Button size="compact" variant="ghost" onClick={() => router.push('/dashboard')} disabled={sending}>
             Skip for now
           </Button>
-          <Button variant="primary" onClick={send} disabled={sending || valid.length === 0 || invalid.length > 0}>
+          <Button size="compact" variant="primary" onClick={send} disabled={sending || valid.length === 0 || invalid.length > 0}>
             {sending ? <Loader2Icon className="animate-spin" /> : <SendIcon />}
             {valid.length > 1 ? `Send ${valid.length} invites` : 'Send invite'}
           </Button>

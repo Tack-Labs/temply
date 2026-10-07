@@ -23,7 +23,7 @@ export function WorkspaceSetupFallback() {
         Try again or{' '}
         <a href={`mailto:${CONTACT_EMAIL}`} className="text-accent-ink underline">contact support</a>.
       </p>
-      <Button variant="secondary" onClick={() => window.location.reload()}>Try again</Button>
+      <Button size="compact" variant="secondary" onClick={() => window.location.reload()}>Try again</Button>
     </div>
   );
 }

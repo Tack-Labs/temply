@@ -30,10 +30,10 @@ export default function ErrorPage({ error, reset }: { error: Error & { digest?: 
         ) : null}
       </p>
       <div className="mt-2 flex items-center gap-2">
-        <Button variant="primary" onClick={reset}>
+        <Button size="compact" variant="primary" onClick={reset}>
           Try again
         </Button>
-        <Button asChild>
+        <Button size="compact" asChild>
           {/* A full page load, so an expired session is renewed on the way. */}
           <a href="/dashboard">Open the dashboard</a>
         </Button>

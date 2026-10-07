@@ -11,6 +11,20 @@ import type { Locator, Page } from '@playwright/test';
 
 const DAY = 86_400_000;
 
+/** What the page's own token paints as, read through a probe so retuning the palette cannot break a case. */
+const painted = (page: Page, property: 'background-color' | 'color', token: string) =>
+  page.evaluate(
+    ([prop, name]) => {
+      const probe = document.createElement('div');
+      document.body.append(probe);
+      probe.style.cssText = `${prop}: var(${name})`;
+      const value = getComputedStyle(probe).getPropertyValue(prop);
+      probe.remove();
+      return value;
+    },
+    [property, token] as const,
+  );
+
 /** The sidebar as a reader meets it: the drawer's copy on a phone, whose fixed one is display:none. */
 async function openSidebar(page: Page): Promise<Locator> {
   if (onPhone()) await page.getByRole('button', { name: 'Open navigation' }).click();
@@ -78,6 +92,43 @@ test.describe('the sidebar', () => {
     await expect(nav.getByRole('link', { name: 'Overview', exact: true })).not.toHaveAttribute('aria-current', 'page');
   });
 
+  test('is 248px wide with rows at least 44px tall, whatever the pointer', async ({ page }) => {
+    await page.goto('/dashboard/templates');
+    const sidebar = await openSidebar(page);
+    // The rail and the drawer are the one component at the one width.
+    expect((await sidebar.boundingBox())?.width).toBeCloseTo(248, 0);
+
+    const nav = sidebar.getByRole('navigation', { name: 'Dashboard' });
+    for (const label of ['Overview', 'Templates', 'Brands', 'Assets', 'Landing', 'Documentation']) {
+      const box = await nav.getByRole('link', { name: label, exact: true }).boundingBox();
+      expect(box?.height, `${label} row`).toBeGreaterThanOrEqual(44);
+    }
+    expect((await sidebar.getByRole('link', { name: 'Settings', exact: true }).boundingBox())?.height).toBeGreaterThanOrEqual(44);
+  });
+
+  test('puts the current page on an accent-wash pill and leaves the other rows bare', async ({ page }) => {
+    await page.goto('/dashboard/templates');
+    const nav = (await openSidebar(page)).getByRole('navigation', { name: 'Dashboard' });
+    const current = nav.getByRole('link', { name: 'Templates', exact: true });
+    const idle = nav.getByRole('link', { name: 'Brands', exact: true });
+
+    await expect(current).toHaveAttribute('aria-current', 'page');
+    await expect(current).toHaveCSS('background-color', await painted(page, 'background-color', '--ds-accent-wash'));
+    await expect(current).toHaveCSS('color', await painted(page, 'color', '--ds-accent-ink'));
+    await expect(idle).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
+    await expect(idle).toHaveCSS('color', await painted(page, 'color', '--ds-muted'));
+  });
+
+  test('keeps Settings and the theme toggle in the foot, apart from the nav', async ({ page }) => {
+    await page.goto('/dashboard/templates');
+    const sidebar = await openSidebar(page);
+    const settings = sidebar.getByRole('link', { name: 'Settings', exact: true });
+    await expect(settings).toHaveAttribute('href', '/dashboard/settings');
+    await expect(sidebar.getByRole('navigation', { name: 'Dashboard' }).getByRole('link', { name: 'Settings' })).toHaveCount(0);
+    // The toggle's own behaviour is the design spec's; here it only has to be in reach.
+    await expect(sidebar.getByRole('button', { name: 'Dark theme', exact: true })).toHaveAttribute('aria-pressed', /^(true|false)$/);
+  });
+
   test('keeps the account menu in reach, named as the auth spec finds it', async ({ page }) => {
     await page.goto('/dashboard/templates');
     const sidebar = await openSidebar(page);
@@ -85,6 +136,47 @@ test.describe('the sidebar', () => {
     await expect(page.getByRole('menuitem', { name: /sign out/i })).toBeVisible();
     await page.keyboard.press('Escape');
     await expect(page.getByRole('menuitem', { name: /sign out/i })).toHaveCount(0);
+  });
+});
+
+test.describe('the desktop shell', () => {
+  test.beforeEach(() => {
+    test.skip(onPhone(), 'a phone has the top bar and the drawer; the rail and the wide page are the desktop');
+  });
+
+  test('has no top bar: the rail on the left, the page from the top edge with 52px and 44px of room', async ({ page }) => {
+    await page.goto('/dashboard/templates');
+    await expect(page.getByRole('button', { name: 'Open navigation' })).toBeHidden();
+
+    const main = page.getByRole('main');
+    const box = await main.boundingBox();
+    expect(box?.y, 'the page starts at the top edge').toBeCloseTo(0, 0);
+    expect(box?.x, 'the page starts where the rail ends').toBeCloseTo(248, 0);
+    await expect(main).toHaveCSS('padding-left', '52px');
+    await expect(main).toHaveCSS('padding-top', '44px');
+  });
+
+  test('pins the foot to the bottom of the rail, plan card above Settings above the account', async ({ page }) => {
+    const sidebar = await openWithQuota(
+      page,
+      quota({
+        plan: 'trial',
+        trialEndsAt: new Date(Date.now() + 8.5 * DAY).toISOString(),
+        api: { used: 4_200, limit: 10_000, remaining: 5_800 },
+      }),
+    );
+    const card = await sidebar.getByText('Free trial').boundingBox();
+    const settings = await sidebar.getByRole('link', { name: 'Settings', exact: true }).boundingBox();
+    const account = await sidebar.getByRole('button', { name: /^Account/ }).boundingBox();
+    expect(card && settings && account).toBeTruthy();
+    expect(card!.y).toBeLessThan(settings!.y);
+    expect(settings!.y).toBeLessThan(account!.y);
+
+    // The rail pads 24px under the user block; a few pixels either way are
+    // the block's own padding, not a foot that has floated up the column.
+    const height = page.viewportSize()?.height ?? 900;
+    expect(account!.y + account!.height).toBeGreaterThanOrEqual(height - 40);
+    expect(account!.y + account!.height).toBeLessThanOrEqual(height);
   });
 });
 
@@ -120,7 +212,7 @@ test.describe('the mobile drawer', () => {
       await expect(drawer).toBeVisible();
       if (way === 'Escape') await page.keyboard.press('Escape');
       else if (way === 'the close button') await drawer.getByRole('button', { name: 'Close navigation' }).click();
-      // The drawer is 16rem wide; the scrim is whatever of the phone's width is left of it.
+      // The drawer is 248px wide; the scrim is whatever of the phone's width is left of it.
       else await page.mouse.click((page.viewportSize()?.width ?? 390) - 20, 400);
 
       await expect(drawer).toHaveCount(0);
@@ -162,7 +254,7 @@ test.describe('the mobile drawer', () => {
     await expect(drawer).toBeVisible();
     expect((await drawer.getByRole('link', { name: 'Temply' }).boundingBox())?.y).toBeGreaterThanOrEqual(4);
     expect((await drawer.getByRole('button', { name: 'Close navigation' }).boundingBox())?.y).toBeGreaterThanOrEqual(4);
-    expect((await drawer.locator('aside > div').first().boundingBox())?.height).toBeCloseTo(56, 0);
+    expect((await drawer.boundingBox())?.width).toBeCloseTo(248, 0);
   });
 
   test('is 44px to the touch: the opener, the close button, the links and the account button', async ({ page }) => {
@@ -231,9 +323,35 @@ test.describe('the quota widget', () => {
     );
     await expect(sidebar.getByText('Free trial')).toBeVisible();
     await expect(sidebar.getByText('9 days left')).toBeVisible();
-    // The role arrives from Clerk after the first paint, so the button
+    // The role arrives from Clerk after the first paint, so the link
     // appears once it has.
     await expect(sidebar.getByRole('link', { name: 'Subscribe' })).toHaveAttribute('href', '/dashboard/settings/plan');
+  });
+
+  test('draws a trial with room as a mint card, its bar on the success fill and its link underlined', async ({ page }) => {
+    const sidebar = await openWithQuota(
+      page,
+      quota({
+        plan: 'trial',
+        trialEndsAt: new Date(Date.now() + 8.5 * DAY).toISOString(),
+        api: { used: 4_200, limit: 10_000, remaining: 5_800 },
+      }),
+    );
+    // The card is two levels above its title: the heading row, then the card.
+    const card = sidebar.getByText('Free trial').locator('xpath=../..');
+    await expect(card).toHaveCSS('background-color', await painted(page, 'background-color', '--ds-success-wash'));
+    await expect(card).toHaveCSS('border-radius', '20px');
+
+    const bar = sidebar.getByRole('progressbar');
+    await expect(bar).toHaveCSS('height', '8px');
+    await expect(bar).toHaveCSS('background-color', await painted(page, 'background-color', '--ds-raised'));
+    await expect(bar.locator('div')).toHaveCSS('background-color', await painted(page, 'background-color', '--ds-success'));
+
+    const subscribe = sidebar.getByRole('link', { name: 'Subscribe', exact: true });
+    await expect(subscribe).toHaveCSS('text-decoration-line', 'underline');
+    await expect(subscribe).toHaveCSS('color', await painted(page, 'color', '--ds-success-ink'));
+    // Its padding makes the target 44px without making the card taller.
+    expect((await subscribe.boundingBox())?.height).toBeGreaterThanOrEqual(44);
   });
 
   test('has no bar once the workspace has lapsed, and says why live keys stopped', async ({ page }) => {

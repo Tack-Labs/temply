@@ -48,14 +48,16 @@ export function MobileNav({ platformAdmin = false }: { platformAdmin?: boolean }
   return (
     <DialogPrimitive.Root open={open} onOpenChange={setOpen}>
       <DialogPrimitive.Trigger asChild>
-        {/* The glyph is 16px inside its box: 32px for a fine pointer, 44px for
-            a coarse one. Pulling the box back by half the difference puts the
-            glyph on the page gutter, not 8px or 14px inside it. */}
+        {/* The glyph is 20px inside a 44px box, for a fine pointer as well:
+            the bar this sits in only exists on a narrow screen, which is
+            where a thumb is the likelier pointer. Pulling the box back by
+            half the difference puts the glyph on the page gutter, not 12px
+            inside it. */}
         <Button
           variant="ghost"
           size="icon"
           aria-label="Open navigation"
-          className="-ml-2 pointer-coarse:-ml-3.5 md:hidden"
+          className="-ml-3 size-11 md:hidden [&_svg]:size-5"
         >
           <MenuIcon />
         </Button>
@@ -69,7 +71,7 @@ export function MobileNav({ platformAdmin = false }: { platformAdmin?: boolean }
             which the reduced-motion rule in globals.css shortens to nothing. */}
         <DialogPrimitive.Content
           aria-describedby={undefined}
-          className="drawer-left fixed inset-y-0 left-0 z-50 w-64 shadow-xl md:hidden"
+          className="drawer-left fixed inset-y-0 left-0 z-50 w-62 shadow-xl md:hidden"
         >
           <DialogPrimitive.Title className="sr-only">Navigation</DialogPrimitive.Title>
           <Sidebar

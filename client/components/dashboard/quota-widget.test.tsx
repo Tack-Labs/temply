@@ -132,24 +132,108 @@ describe('QuotaCard at the edges of its scale', () => {
   });
 });
 
+const card = (view: ReturnType<typeof render>) => view.container.firstElementChild as HTMLElement;
+
 describe('QuotaCard trial', () => {
-  it('names the days left as an accent badge, and offers a subscribe to an admin', () => {
+  it('is the mint card while there is time and room: the plan and the days left, in mint ink', () => {
     const view = render(<QuotaCard data={trial(9, 4_200)} isAdmin />);
-    expect(view.getByText('Free trial')).toBeTruthy();
-    expect(view.getByText('9 days left').className).toContain('text-accent-ink');
-    const subscribe = view.getByRole('link', { name: 'Subscribe' });
-    expect(subscribe.getAttribute('href')).toBe(PLAN_PAGE);
-    expect(subscribe.className).toContain('pointer-coarse:h-11');
+    for (const needed of ['bg-success-wash', 'rounded-2xl', 'p-4', 'shadow-none']) {
+      expect(card(view).className).toContain(needed);
+    }
+    expect(card(view).className).not.toContain('bg-raised');
+    expect(view.getByText('Free trial').className).toContain('text-success-ink');
+    expect(view.getByText('Free trial').className).toContain('font-bold');
+    const days = view.getByText('9 days left');
+    expect(days.className).toContain('text-success-ink');
+    expect(days.className).toContain('font-semibold');
+    // The plan and the days share one row, the days to the right.
+    expect(days.parentElement).toBe(view.getByText('Free trial').parentElement);
+    expect(days.parentElement?.className).toContain('justify-between');
   });
 
-  it('turns the badge warn once the end is close', () => {
+  it('draws the bar as a white 8px track with a mint fill, still measuring the calls', () => {
+    const view = render(<QuotaCard data={trial(9, 4_200)} isAdmin />);
+    expect(bar(view).className).toContain('h-2');
+    expect(bar(view).className).toContain('bg-raised');
+    expect(bar(view).className).toContain('rounded-full');
+    expect(fill(view).className).toContain('bg-success');
+    expect(fill(view).className).not.toContain('bg-accent-ink');
+    expect(fill(view).className).toContain('motion-reduce:transition-none');
+    expect(fill(view).style.width).toBe('42%');
+    expect(view.getByText('42% used').className).toContain('text-success-ink');
+    expect(view.getByText(/^resets /).className).toContain('text-success-ink');
+  });
+
+  it('offers an admin Subscribe as an underlined link in mint ink, to the plan page', () => {
+    const view = render(<QuotaCard data={trial(9, 4_200)} isAdmin />);
+    const subscribe = view.getByRole('link', { name: 'Subscribe' });
+    expect(subscribe.getAttribute('href')).toBe(PLAN_PAGE);
+    for (const needed of ['underline', 'text-success-ink', 'font-bold', 'py-3', 'focus-visible:outline-focus']) {
+      expect(subscribe.className).toContain(needed);
+    }
+    // A text link, not the filled button it replaced.
+    expect(subscribe.className).not.toContain('bg-accent');
+    expect(subscribe.className).toContain('motion-reduce:transition-none');
+  });
+
+  it('turns butter once the end is close, in the card, the days and the link', () => {
     const view = render(<QuotaCard data={trial(2, 100)} isAdmin />);
+    expect(card(view).className).toContain('bg-warn-wash');
+    expect(card(view).className).not.toContain('bg-success-wash');
     expect(view.getByText('2 days left').className).toContain('text-warn-ink');
+    expect(view.getByRole('link', { name: 'Subscribe' }).className).toContain('text-warn-ink');
+    expect(fill(view).className).toContain('bg-warn-ink');
+  });
+
+  it('holds mint up to the last day the warning does not cover, and turns butter on it', () => {
+    expect(card(render(<QuotaCard data={trial(4, 100)} isAdmin />)).className).toContain('bg-success-wash');
+    cleanup();
+    expect(card(render(<QuotaCard data={trial(3, 100)} isAdmin />)).className).toContain('bg-warn-wash');
+  });
+
+  it('turns rose when the limit blocks, whatever the days', () => {
+    const view = render(<QuotaCard data={trial(9, 10_000)} isAdmin />);
+    expect(card(view).className).toContain('bg-danger-wash');
+    expect(card(view).className).not.toContain('bg-success-wash');
+    expect(view.getByText('Limit reached').className).toContain('text-danger-ink');
+    expect(view.getByRole('link', { name: 'Subscribe' }).className).toContain('text-danger-ink');
+  });
+
+  it('turns butter near the limit with days to spare', () => {
+    const view = render(<QuotaCard data={trial(9, 8_500)} isAdmin />);
+    expect(card(view).className).toContain('bg-warn-wash');
+    expect(view.getByText('85% used').className).toContain('text-warn-ink');
   });
 
   it('leaves the subscribe to whoever can act on it', () => {
     const view = render(<QuotaCard data={trial(9, 4_200)} isAdmin={false} />);
     expect(view.queryByRole('link', { name: 'Subscribe' })).toBeNull();
+    expect(view.getByText('Free trial')).toBeTruthy();
+  });
+});
+
+describe('QuotaCard once subscribed', () => {
+  it('is the plain card with no mint, no days and nothing to subscribe to', () => {
+    const view = render(<QuotaCard data={quota({ api: { used: 4_200 } })} isAdmin />);
+    expect(card(view).className).toContain('bg-raised');
+    expect(card(view).className).toContain('border-line');
+    for (const wash of ['bg-success-wash', 'bg-warn-wash', 'bg-danger-wash']) {
+      expect(card(view).className).not.toContain(wash);
+    }
+    expect(view.getByText('Team').className).toContain('text-ink');
+    expect(view.queryByText(/days? left/)).toBeNull();
+    expect(view.queryByRole('link', { name: 'Subscribe' })).toBeNull();
+    // On the card's own white a white track would vanish.
+    expect(bar(view).className).toContain('bg-line-strong');
+    expect(bar(view).className).not.toContain('bg-raised');
+    expect(view.getByText(/^resets /).className).toContain('text-muted');
+  });
+
+  it('borrows the severity wash when the count calls for it, as a trial would', () => {
+    expect(card(render(<QuotaCard data={quota({ api: { used: 8_500 } })} isAdmin />)).className).toContain('bg-warn-wash');
+    cleanup();
+    const over = quota({ api: { used: 11_200 }, overage: { calls: 1_200, usd: 1.2 } });
+    expect(card(render(<QuotaCard data={over} isAdmin />)).className).toContain('bg-warn-wash');
   });
 });
 
@@ -161,6 +245,9 @@ describe('QuotaCard plans without a bar to fill', () => {
     expect(view.getByText('Read-only')).toBeTruthy();
     expect(view.getByText('Live keys paused').className).toContain('text-danger-ink');
     expect(view.getByRole('link', { name: 'Subscribe' }).getAttribute('href')).toBe(PLAN_PAGE);
+    // Rose, because live calls are blocked; the plan name reads in its ink.
+    expect(card(view).className).toContain('bg-danger-wash');
+    expect(view.getByText('Read-only').className).toContain('text-danger-ink');
   });
 
   it('tells a member of a lapsed workspace who can fix it, and offers no button they cannot use', () => {
@@ -194,6 +281,8 @@ describe('QuotaCard', () => {
       const html = render(<QuotaCard data={data} isAdmin />).container.innerHTML;
       expect(html).not.toContain('rail-');
       expect(html).not.toContain('text-faint');
+      // Colours come from the token layer, never a literal in the class list.
+      expect(html).not.toMatch(/\b(?:bg|text)-(?:white|black)\b|#[0-9a-f]{3,8}\b/i);
       cleanup();
     }
   });
@@ -223,7 +312,7 @@ describe('QuotaPanel', () => {
     const blocks = Array.from(view.container.querySelectorAll('.animate-pulse'));
     expect(blocks.length).toBeGreaterThan(0);
     for (const block of blocks) expect(block.getAttribute('aria-hidden')).toBe('true');
-    expect(view.container.querySelector('.rounded-lg.border')).toBeTruthy();
+    expect(view.container.querySelector('.rounded-2xl.border')).toBeTruthy();
   });
 
   it('says the numbers are unavailable, quietly, when the request failed', () => {

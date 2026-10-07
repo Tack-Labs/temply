@@ -17,11 +17,11 @@ export default function NotFound() {
         The address may be mistyped, or the page has moved.
       </p>
       <div className="mt-2 flex items-center gap-2">
-        <Button variant="primary" asChild>
+        <Button size="compact" variant="primary" asChild>
           {/* A full page load, so an expired session is renewed on the way. */}
           <a href="/dashboard">Open the dashboard</a>
         </Button>
-        <Button asChild>
+        <Button size="compact" asChild>
           <Link href="/">Home</Link>
         </Button>
       </div>

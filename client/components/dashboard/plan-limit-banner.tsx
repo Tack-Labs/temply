@@ -27,7 +27,7 @@ export function PlanLimitBanner({
         </div>
       </div>
       {action ? (
-        <Button variant="primary" asChild>
+        <Button size="compact" variant="primary" asChild>
           <Link href={action.href}>
             {action.label}
             <ArrowUpRightIcon />
