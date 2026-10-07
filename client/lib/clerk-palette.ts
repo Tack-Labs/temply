@@ -6,10 +6,10 @@
  */
 export const PALETTE: Record<'light' | 'dark', Record<string, string>> = {
   light: {
-    surface: '#f7f6fc',
+    surface: '#faf9fe',
     raised: '#ffffff',
-    ink: '#2b2547',
-    muted: '#625b7b',
+    ink: '#26213f',
+    muted: '#645e7e',
     accent: '#5b45e0',
     danger: '#c2271d',
   },

@@ -13,14 +13,30 @@ import { lift } from '~/components/ui/surfaces';
  * - Actions always sit trailing (a tile's footer, a row's right edge), always
  *   visible, and outside the primary target — their own click and tab stops,
  *   never a navigation by accident. Nothing is hidden behind hover, so touch
- *   gets the same product.
+ *   gets the same product. The slot lifts every button and link in it to a
+ *   44px target, so a caller's 28px icon button is a thumb-sized one here
+ *   without each call site having to remember.
  * - A `busy` item (an upload in flight) draws dashed and does not respond.
  */
+
+// A descendant selector rather than a size on the slot: the slot's own box is
+// not the thing that gets pressed.
+const actionTargets = '[&_:is(a,button)]:min-h-11 [&_:is(a,button)]:min-w-11';
 
 type Primary =
   | { href: string; onClick?: never; primaryLabel?: never }
   | { href?: never; onClick: () => void; primaryLabel?: string }
   | { href?: never; onClick?: never; primaryLabel?: never };
+
+// The radius is the card's curve less its 1px border: the padding box's own,
+// which is the edge the clip leaves a primary target. A target with square
+// corners has its ring cut off where the curve starts. The class names are
+// written whole because Tailwind reads them from the source as written, and a
+// variant glued onto a name at run time is never generated.
+const innerTop = 'rounded-t-[calc(var(--radius-card)-1px)]';
+const innerBottom = 'rounded-b-[calc(var(--radius-card)-1px)]';
+const firstRowTop = 'group-first/row:rounded-t-[calc(var(--radius-card)-1px)]';
+const lastRowBottom = 'group-last/row:rounded-b-[calc(var(--radius-card)-1px)]';
 
 /** Link, button or plain box, depending on what the item does when pressed. */
 function PrimaryTarget({
@@ -28,17 +44,21 @@ function PrimaryTarget({
   onClick,
   label,
   className,
+  corners,
   children,
 }: {
   href?: string;
   onClick?: () => void;
   label?: string;
   className?: string;
+  /** The corners of the item's clip that this target touches. */
+  corners?: string;
   children: React.ReactNode;
 }) {
   // The item clips its corners, so the focus outline is drawn inside its box
-  // rather than being cut off.
-  const focus = 'focus-visible:-outline-offset-2';
+  // rather than being cut off: pulled in by its own 3px width, so the ring's
+  // outer edge is the item's edge, and curved with the corners it shares.
+  const focus = cn('focus-visible:-outline-offset-3', corners);
   if (href) {
     return (
       <Link href={href} className={cn(className, focus)}>
@@ -107,7 +127,7 @@ export function Tile({
     <li
       aria-busy={busy || undefined}
       className={cn(
-        'group flex flex-col overflow-hidden rounded-lg border bg-raised',
+        'group flex flex-col overflow-hidden rounded-card border bg-raised',
         busy ? 'item-motion border-dashed border-line-strong' : 'border-line shadow-sm',
         interactive ? lift : 'item-motion',
         // A focused action inside the tile lights the border the way hover does.
@@ -121,20 +141,22 @@ export function Tile({
         onClick={busy ? undefined : onClick}
         label={primaryLabel}
         className="flex flex-1 flex-col text-left"
+        // With a footer it is the footer, not the target, that meets the bottom edge.
+        corners={footer ? innerTop : cn(innerTop, innerBottom)}
       >
         {media}
-        <div className={cn('flex items-start gap-2 px-3 pt-2.5', footer ? 'pb-1.5' : 'pb-2.5')}>
+        <div className={cn('flex items-start gap-2 px-4 pt-4', footer ? 'pb-2' : 'pb-4')}>
           <div className="min-w-0 flex-1">
             <p
               className={cn(
-                'truncate text-sm font-medium text-ink transition-colors duration-fast motion-reduce:transition-none',
+                'truncate text-18 font-bold text-ink transition-colors duration-fast motion-reduce:transition-none',
                 interactive && 'group-hover:text-accent-ink',
               )}
             >
               {title}
             </p>
             {subtitle ? (
-              <p className={cn('mt-0.5 text-xs text-muted', subtitleLines === 2 ? 'line-clamp-2' : 'truncate')}>
+              <p className={cn('mt-0.5 text-ui text-muted', subtitleLines === 2 ? 'line-clamp-2' : 'truncate')}>
                 {subtitle}
               </p>
             ) : null}
@@ -145,9 +167,9 @@ export function Tile({
       </PrimaryTarget>
 
       {footer ? (
-        <div className="mt-auto flex items-center justify-between gap-2 px-3 pb-2">
-          <span className="min-w-0 truncate text-xs text-muted tabular-nums">{meta}</span>
-          {actions ? <div className="flex shrink-0 items-center gap-0.5">{actions}</div> : null}
+        <div className="mt-auto flex items-center justify-between gap-2 px-4 pb-3">
+          <span className="min-w-0 truncate text-ui text-muted tabular-nums">{meta}</span>
+          {actions ? <div className={cn('flex shrink-0 items-center gap-1', actionTargets)}>{actions}</div> : null}
         </div>
       ) : null}
     </li>
@@ -158,7 +180,7 @@ export function Tile({
 export function List({ className, ...props }: React.HTMLAttributes<HTMLUListElement>) {
   return (
     <ul
-      className={cn('divide-y divide-line overflow-hidden rounded-lg border border-line bg-raised shadow-sm', className)}
+      className={cn('divide-y divide-line overflow-hidden rounded-card border border-line bg-raised shadow-sm', className)}
       {...props}
     />
   );
@@ -211,24 +233,26 @@ export function Row({
         href={busy ? undefined : href}
         onClick={busy ? undefined : onClick}
         label={primaryLabel}
-        className={cn('flex min-w-0 flex-1 items-center gap-3 px-3 py-2 text-left', bodyClassName)}
+        className={cn('flex min-w-0 flex-1 items-center gap-4 px-4 py-3 text-left', bodyClassName)}
+        // The list's corners clip a row only where it is first or last in it.
+        corners={cn(firstRowTop, lastRowBottom)}
       >
         {leading ? <div className="shrink-0">{leading}</div> : null}
         <div className="min-w-0 flex-1">
           <p
             className={cn(
-              'truncate text-sm font-medium text-ink transition-colors duration-fast motion-reduce:transition-none',
+              'truncate text-18 font-bold text-ink transition-colors duration-fast motion-reduce:transition-none',
               interactive && 'group-hover:text-accent-ink',
             )}
           >
             {title}
           </p>
-          {subtitle ? <p className="mt-0.5 truncate text-xs text-muted">{subtitle}</p> : null}
+          {subtitle ? <p className="mt-0.5 truncate text-ui text-muted">{subtitle}</p> : null}
         </div>
         {badge ? <div className="flex shrink-0 items-center gap-1">{badge}</div> : null}
         {meta}
       </PrimaryTarget>
-      {actions ? <div className="flex shrink-0 items-center gap-0.5 pr-2">{actions}</div> : null}
+      {actions ? <div className={cn('flex shrink-0 items-center gap-1 pr-3', actionTargets)}>{actions}</div> : null}
     </>
   );
 
@@ -236,7 +260,7 @@ export function Row({
     <li
       aria-busy={busy || undefined}
       className={cn(
-        leaving === undefined ? 'group flex items-center item-motion' : 'group item-motion',
+        leaving === undefined ? 'group group/row flex items-center item-motion' : 'group group/row item-motion',
         interactive && 'hover:bg-hover active:bg-active',
         selected && 'bg-accent-wash',
         busy && 'opacity-80',

@@ -13,7 +13,7 @@ mock.module('next/navigation', () => ({ ...realNavigation, usePathname: () => pa
 afterAll(() => {
   mock.module('next/navigation', () => realNavigation);
 });
-const { NavLinks } = await import('./nav-items');
+const { NavLinks, SettingsLink } = await import('./nav-items');
 
 // Queries come off `render`, not the global `screen`; see button.test.tsx.
 afterEach(cleanup);
@@ -72,27 +72,63 @@ describe('NavLinks', () => {
     expect(view.getByRole('link', { name: 'Templates' }).getAttribute('target')).toBeNull();
   });
 
-  it('paints the current page accent and the rest muted, on the theme tokens', () => {
+  it('paints the current page as a lavender pill and the rest muted, on the theme tokens', () => {
     pathname = '/dashboard/assets';
     const view = render(<NavLinks />);
     const active = view.getByRole('link', { name: 'Assets' });
-    expect(active.className).toContain('bg-accent-wash');
-    expect(active.className).toContain('text-accent-ink');
+    for (const needed of ['bg-accent-wash', 'text-accent-ink', 'font-bold']) expect(active.className).toContain(needed);
+    expect(active.className).not.toContain('text-muted');
+    expect(active.className).not.toContain('hover:bg-hover');
     const idle = view.getByRole('link', { name: 'Brands' });
-    expect(idle.className).toContain('text-muted');
-    expect(idle.className).toContain('hover:bg-hover');
-    expect(idle.className).toContain('hover:text-ink');
+    for (const needed of ['text-muted', 'font-semibold', 'hover:bg-hover', 'hover:text-ink']) {
+      expect(idle.className).toContain(needed);
+    }
     expect(idle.className).not.toContain('bg-accent-wash');
+    expect(idle.className).not.toContain('font-bold');
     expect(view.container.innerHTML).not.toContain('rail-');
   });
 
-  it('gives every link the shared focus outline and a 44px target on a coarse pointer', () => {
+  it('draws every row 44px tall on the field radius at 15px, whatever the pointer', () => {
+    pathname = '/dashboard';
+    const view = render(<NavLinks platformAdmin />);
+    for (const link of view.getAllByRole('link')) {
+      for (const needed of ['h-11', 'rounded-field', 'text-ui', 'px-3.5', 'gap-3']) {
+        expect(link.className, link.textContent ?? '').toContain(needed);
+      }
+      // 44px is the row, not a step a coarse pointer adds on top of 36px.
+      expect(link.className).not.toContain('pointer-coarse:h-11');
+      expect(link.className).not.toMatch(/\bh-9\b/);
+    }
+  });
+
+  it('sets a 20px icon in each row and hides it from assistive tech, so the name is the label alone', () => {
     pathname = '/dashboard';
     const view = render(<NavLinks />);
     for (const link of view.getAllByRole('link')) {
-      expect(link.className).toContain('focus-visible:outline-accent-ink');
+      const icons = Array.from(link.querySelectorAll('svg'));
+      expect(icons.length).toBeGreaterThan(0);
+      for (const icon of icons) expect(icon.getAttribute('aria-hidden')).toBe('true');
+      expect(icons[0]?.getAttribute('class')).toContain('size-5');
+    }
+  });
+
+  it('labels the sections in sentence case, quietly, and leaves the first unlabelled', () => {
+    pathname = '/dashboard';
+    const view = render(<NavLinks platformAdmin />);
+    for (const label of ['Resources', 'Temply']) {
+      const heading = view.getByText(label, { selector: 'div' });
+      expect(heading.className).toContain('text-muted');
+      expect(heading.className).not.toContain('uppercase');
+    }
+  });
+
+  it('gives every link the shared focus outline and the press treatment, without motion for a reduced-motion reader', () => {
+    pathname = '/dashboard';
+    const view = render(<NavLinks />);
+    for (const link of view.getAllByRole('link')) {
+      expect(link.className).toContain('focus-visible:outline-focus');
       expect(link.className).not.toContain('focus-visible:ring');
-      expect(link.className).toContain('pointer-coarse:h-11');
+      expect(link.className).toContain('duration-fast');
       expect(link.className).toContain('motion-reduce:transition-none');
     }
   });
@@ -102,6 +138,41 @@ describe('NavLinks', () => {
     let followed = 0;
     const view = render(<NavLinks onNavigate={() => followed++} />);
     view.getByRole('link', { name: 'Brands' }).click();
+    expect(followed).toBe(1);
+  });
+});
+
+describe('SettingsLink', () => {
+  it('is the same row as the nav, pointing at Settings', () => {
+    pathname = '/dashboard';
+    const link = render(<SettingsLink />).getByRole('link', { name: 'Settings' });
+    expect(link.getAttribute('href')).toBe('/dashboard/settings');
+    for (const needed of ['h-11', 'rounded-field', 'text-ui', 'text-muted', 'font-semibold']) {
+      expect(link.className).toContain(needed);
+    }
+    expect(link.getAttribute('aria-current')).toBeNull();
+  });
+
+  it('is current on the section root and on every page beneath it, and on nothing that merely starts alike', () => {
+    for (const [route, current] of [
+      ['/dashboard/settings', true],
+      ['/dashboard/settings/plan', true],
+      ['/dashboard/settings/team/members', true],
+      ['/dashboard', false],
+      ['/dashboard/settingsish', false],
+    ] as const) {
+      pathname = route;
+      const link = render(<SettingsLink />).getByRole('link', { name: 'Settings' });
+      expect(link.getAttribute('aria-current'), route).toBe(current ? 'page' : null);
+      if (current) expect(link.className).toContain('bg-accent-wash');
+      cleanup();
+    }
+  });
+
+  it('tells the caller it was followed, so a drawer can close', () => {
+    pathname = '/dashboard';
+    let followed = 0;
+    render(<SettingsLink onNavigate={() => followed++} />).getByRole('link', { name: 'Settings' }).click();
     expect(followed).toBe(1);
   });
 });

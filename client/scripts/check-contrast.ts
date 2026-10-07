@@ -70,8 +70,8 @@ const PAIRS: Array<[string, string, number, string]> = [
   ['accent-ink', 'raised', 4.5, 'links and accent text on cards'],
   ['accent-ink', 'sunken', 4.5, 'accent text in wells and inset panels'],
   ['accent-ink', 'accent-wash', 4.5, 'accent badge and selected row'],
-  ['muted', 'accent-wash', 4.5, 'secondary text in the pricing page\'s caching callout'],
-  ['ink', 'accent-wash', 4.5, 'emphasis in the pricing page\'s caching callout'],
+  ['muted', 'accent-wash', 4.5, 'secondary text on the accent wash: a selected row\'s subtitle and meta, the plan-limit banner\'s detail'],
+  ['ink', 'accent-wash', 4.5, 'headings on the accent wash: the closing band, the next-step banner, a selected row\'s title'],
   ['danger-ink', 'surface', 4.5, 'destructive text'],
   ['danger-ink', 'raised', 4.5, 'destructive text on cards'],
   ['danger-ink', 'sunken', 4.5, 'destructive text in wells and inset panels'],
@@ -84,10 +84,27 @@ const PAIRS: Array<[string, string, number, string]> = [
   ['success-ink', 'raised', 4.5, 'positive text on cards'],
   ['success-ink', 'sunken', 4.5, 'positive text in wells and inset panels'],
   ['success-ink', 'success-wash', 4.5, 'success badge and confirmation'],
+  ['sky-ink', 'sky-wash', 4.5, 'sky badge and tag'],
+  ['peach-ink', 'peach-wash', 4.5, 'peach badge and tag'],
+  ['sky-ink', 'surface', 4.5, 'sky text on the page'],
+  ['sky-ink', 'raised', 4.5, 'sky text on cards'],
+  ['peach-ink', 'surface', 4.5, 'peach text on the page'],
+  ['peach-ink', 'raised', 4.5, 'peach text on cards'],
   ['muted', 'active', 4.5, 'secondary text on a pressed row'],
   ['warn-ink', 'active', 4.5, 'warning label on a pressed row'],
   ['muted', 'hover', 4.5, 'sidebar link, neutral badge and workspace card under the pointer'],
   ['ink', 'hover', 4.5, 'sidebar link, account row and workspace card under the pointer'],
+  // ink-soft is the step between ink and muted, so it answers wherever either
+  // does. In .dark it is muted's own value, and the pairs hold it there.
+  ['ink-soft', 'surface', 4.5, 'a lead paragraph and a quiet label on the page'],
+  ['ink-soft', 'raised', 4.5, 'a lead paragraph and a quiet label on cards'],
+  ['ink-soft', 'sunken', 4.5, 'a quiet label in wells and inset panels'],
+  ['ink-soft', 'hover', 4.5, 'a quiet label under the pointer'],
+  ['ink-soft', 'track', 4.5, 'a segmented control\'s inactive label in its groove'],
+  // `track` is the groove behind a segmented control and the fill of a neutral
+  // pill, so the text that sits in either answers to 4.5:1.
+  ['ink', 'track', 4.5, 'the selected label, and a neutral pill\'s text, on a track'],
+  ['muted', 'track', 4.5, 'secondary text on a track'],
   ['canvas-ink', 'canvas', 4.5, 'chrome drawn on the email canvas'],
   // The pictures of an email on the marketing page and in the docs. The canvas
   // never follows the theme, so these hold in both.
@@ -115,12 +132,73 @@ const PAIRS: Array<[string, string, number, string]> = [
   ['faint', 'surface', 3, 'icons, dividers and dots on the page'],
   ['faint', 'raised', 3, 'icons, dividers and dots on cards'],
   ['faint', 'sunken', 3, 'icons on wells and thumbnails'],
-  ['canvas-dark-accent', 'canvas-dark', 3, 'the accent block in the forced-dark rendering'],
+  ['faint', 'active', 3, 'icons on a pressed row'],
+  // Contrast is symmetric, so this one pair holds both jobs: the accent block
+  // against the dark page (3:1 is all that mark needs) and the dark page as the
+  // label on that block when it is a button's fill (4.5:1).
+  ['canvas-dark', 'canvas-dark-accent', 4.5, 'the label on a forced-dark button, and the accent block against the page'],
+  // An inactive control is exempt from 4.5:1, but a label nobody can find is
+  // not a design. `disabled` is held to the mark threshold on every surface a
+  // disabled control is drawn on, which keeps it readable and still below
+  // `muted`. It is not held on the accent wash, where it measures 2.83:1 in
+  // light: WCAG 1.4.3 exempts inactive components, so that is a choice, not a
+  // failure.
+  ['disabled', 'track', 3, 'a disabled button\'s label on its track'],
+  ['disabled', 'surface', 3, 'a disabled control\'s label on the page'],
+  ['disabled', 'raised', 3, 'a disabled control\'s label on cards'],
+  // The focus ring is a non-text mark drawn 2px off its control, so it lands on
+  // whatever the control sits on, never on the control's own fill.
+  ['focus', 'surface', 3, 'focus ring on the page'],
+  ['focus', 'raised', 3, 'focus ring on cards'],
+  ['focus', 'sunken', 3, 'focus ring on wells and inset panels'],
+  ['focus', 'hover', 3, 'focus ring on a row under the pointer'],
+  ['focus', 'active', 3, 'focus ring on a pressed row'],
+  ['focus', 'track', 3, 'focus ring on a segmented control\'s groove'],
+  // The hairlines are decoration, not marks a person has to find: a card is
+  // told from the page by its fill and its shadow, and the border only closes
+  // the edge. They are held to a floor so a later retune cannot lighten them
+  // into nothing, and `line-strong` stays the darker of the two.
+  ['line', 'raised', 1.2, 'a divider on a card'],
+  ['line-strong', 'raised', 1.3, 'the border of a field or a secondary button on a card'],
+  // The bar fills of the home page's usage tiles, drawn on a wash for a track
+  // and on the card. The sidebar's meter has its own pairs further down, on
+  // `line-strong`.
+  ['success', 'success-wash', 3, 'success bar fill on its track'],
+  ['success', 'raised', 3, 'success bar fill on a card'],
+  ['peach', 'peach-wash', 3, 'peach bar fill on its track'],
+  ['peach', 'raised', 3, 'peach bar fill on a card'],
+  ['accent-ink', 'accent-wash', 3, 'accent bar fill on its track'],
+  ['warn-ink', 'warn-wash', 3, 'near-limit bar fill on its track'],
+  ['danger-ink', 'danger-wash', 3, 'limit-reached bar fill on its track'],
+  // `accent-edge` is the divider inside a lavender callout, such as the hint in
+  // the editor's components rail. It never carries meaning alone, and a pastel
+  // against white cannot reach 3:1. It is held above `line-strong`, so it stays
+  // a visible step up from a divider, and no lower. It is measured on a card
+  // here and drawn on the accent wash, which this pair does not cover.
+  ['accent-edge', 'raised', 1.5, 'the divider inside a lavender callout'],
   // The sidebar's usage bar fills with the -ink colours on `line-strong`.
   ['accent-ink', 'line-strong', 3, 'usage bar fill on its track'],
   ['warn-ink', 'line-strong', 3, 'near-limit and overage bar fill on its track'],
   ['danger-ink', 'line-strong', 3, 'limit-reached bar fill on its track'],
 ];
+
+// Every wash is a surface that body text and controls sit on: a banner, a badge,
+// a selected row. Text on one answers to 4.5:1, and the focus ring (`focus`, 3px,
+// held 2px off the control) to 3:1, because the ring of a button inside a banner
+// is drawn on the wash and not on the page. The accent wash's ink and muted
+// pairs are listed above with their own uses.
+for (const wash of ['accent', 'danger', 'warn', 'success', 'sky', 'peach']) {
+  if (wash !== 'accent') {
+    PAIRS.push(
+      ['ink', `${wash}-wash`, 4.5, `body text on the ${wash} wash`],
+      ['muted', `${wash}-wash`, 4.5, `secondary text on the ${wash} wash`],
+    );
+  }
+  PAIRS.push(
+    ['ink-soft', `${wash}-wash`, 4.5, `a quiet label on the ${wash} wash`],
+    ['focus', `${wash}-wash`, 3, `focus ring on the ${wash} wash`],
+  );
+}
 
 /** Solid fills that carry white label text. */
 const WHITE_ON: Array<[string, number, string]> = [

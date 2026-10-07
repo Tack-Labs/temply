@@ -14,7 +14,8 @@ export interface SegmentedOption<T extends string> {
 
 /**
  * One choice out of a few, shown side by side: a filter, a view switch. The
- * chosen option is a raised pill sitting in a sunken track.
+ * chosen option is a raised, bolder pill sitting in a track cut into the
+ * page.
  *
  * It is a radiogroup: one option is checked, arrow keys move focus and choose
  * in the same step (Home and End jump to the ends), and both ends wrap. Focus
@@ -73,7 +74,7 @@ export function SegmentedControl<T extends string>({
     <div
       role="radiogroup"
       aria-label={label}
-      className={cn('inline-flex max-w-full gap-0.5 rounded-lg border border-line bg-sunken p-1', className)}
+      className={cn('inline-flex max-w-full gap-0.5 rounded-full bg-track p-1', className)}
     >
       {options.map((option, index) => {
         const selected = option.value === value;
@@ -98,14 +99,15 @@ export function SegmentedControl<T extends string>({
               }
             }}
             className={cn(
-              // The border is always there, transparent until chosen, so the
-              // pill never shifts its neighbours and does not rest on a
-              // background difference alone.
-              'inline-flex h-7 min-w-0 items-center justify-center gap-1.5 rounded-md border px-3 text-sm font-medium whitespace-nowrap pointer-coarse:h-11',
-              'transition-[background-color,color,border-color,box-shadow,outline-color] duration-fast ease-out motion-reduce:transition-none',
-              'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-ink',
-              'disabled:pointer-events-none disabled:opacity-45',
-              selected ? 'border-line bg-raised text-ink shadow-xs' : 'border-transparent text-muted hover:text-ink',
+              'inline-flex h-10 min-w-0 items-center justify-center gap-1.5 rounded-full px-5 text-ui whitespace-nowrap pointer-coarse:h-11',
+              'transition-[background-color,color,box-shadow,outline-color] duration-fast ease-out motion-reduce:transition-none',
+              'focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-focus',
+              'disabled:pointer-events-none disabled:text-disabled',
+              // The chosen pill rests on the track by its fill and shadow,
+              // which are faint in the light theme, so it takes a heavier
+              // weight as well. Bold is a hair wider than semibold, so a
+              // choice nudges its neighbours by a pixel or two.
+              selected ? 'bg-raised font-bold text-ink shadow-sm' : 'font-semibold text-ink-soft hover:text-ink',
             )}
           >
             <span className="min-w-0 truncate" title={typeof option.label === 'string' ? option.label : undefined}>

@@ -13,51 +13,95 @@
    Contrast ratios in the comments are measured, not estimated. `faint` is for
    non-text marks (icons, dividers, dots), so it is held to 3:1 on surface,
    raised and sunken rather than 4.5:1, and must never carry text; faint set
-   on text in any spelling fails the suite. On a pressed row it falls just
-   under 3:1 (2.9:1 in both themes), so a mark that has to be seen there
-   uses `muted`. Anything meant to be read uses `ink` or `muted`.
+   on text in any spelling fails the suite. On a pressed row it still clears
+   3:1 (3.3:1 light, 3.2:1 dark). Anything meant to be read uses `ink` or
+   `muted`.
 --------------------------------------------------------------------------- */
 
 :root {
-  --ds-surface: #f7f6fc;
+  --ds-surface: #faf9fe;
   --ds-raised: #ffffff;
-  --ds-sunken: #f0edf8;
+  --ds-sunken: #f3f1fa;
   --ds-canvas: #ffffff;
   /* The canvas never changes with the theme, so neither can its foreground.
      Chrome drawn on top of the canvas uses this, not `ink`. */
   --ds-canvas-ink: #12141a;   /* 18.4:1 on canvas, in both themes */
 
-  --ds-ink: #2b2547;
-  --ds-muted: #625b7b;
+  --ds-ink: #26213f;
+  /* The step between ink and muted: a lead paragraph, a quiet button label, a
+     neutral pill's text. Read on the same surfaces as muted and darker than it
+     in light; in .dark it is muted, since there is no room above it. */
+  --ds-ink-soft: #4a4466;
+  --ds-muted: #645e7e;
   --ds-faint: #827796;        /* marks only, 3:1 on surface, raised and sunken; never text */
+  /* The label of a control that is switched off. An inactive control is exempt
+     from 4.5:1, so this is held to 3:1 on its own track, which keeps it
+     readable and still plainly quieter than `muted`. */
+  --ds-disabled: #8a85a3;
 
-  --ds-line: #e7e3f5;
-  --ds-line-strong: #cfc7e4;
-  --ds-hover: #f0edf8;
+  --ds-line: #e4e0f1;
+  /* The border of a control: a field, a secondary button. A step darker than
+     `line` so it reads as a hand-hold and not as a divider. */
+  --ds-line-strong: #ddd8ee;
+  --ds-hover: #f3f1fa;
   --ds-active: #e7e3f5;
+  /* A neutral fill that is neither a page nor a card: the groove behind a
+     segmented control, a draft pill, a disabled button. One step off `hover`
+     so a track under the pointer still changes. */
+  --ds-track: #efecf8;
 
   /* One accent, and the fill is the same violet in both themes: the editor
      canvas reads it for its selection ring and may not follow the app. Only
      the text-coloured variant moves. */
   --ds-accent: #5b45e0;       /* fill; white text on it */
-  --ds-accent-ink: #5840cf;   /* accent as text on surface/raised/wash */
+  --ds-accent-ink: #3b2c9e;   /* accent as text on surface/raised/wash: 9.8:1 on surface, 8.3:1 on its wash */
   --ds-accent-hover: #4b36c9;
-  --ds-accent-wash: #f0edff;
+  --ds-accent-wash: #e8e3ff;  /* lavender */
+  /* The divider inside a lavender callout, such as the hint in the editor's
+     components rail. A pastel against white cannot reach 3:1, so it never
+     carries meaning alone: the wash around it groups, and the edge only has to
+     read as a step up from `line`. */
+  --ds-accent-edge: #c9bfff;
   /* The label on an accent fill. Declared only here because the fill is the same
-     blue in both themes, so what sits on it cannot move either; check:contrast
+     violet in both themes, so what sits on it cannot move either; check:contrast
      holds it to 4.5:1 on `accent` and `accent-hover`. */
   --ds-on-accent: #ffffff;
+  /* The focus ring: 3px, held 2px off the control, so it is drawn on the page
+     or the wash behind it and not on the control's own fill. In light it is the
+     accent itself, 4.8:1 or better on every surface and wash the gate lists
+     (check:contrast holds it to 3:1). In .dark that fill is too dark to clear
+     3:1 (2.7:1 on raised), so the ring takes the lightened accent-ink value
+     instead. A token of its own because neither `accent` nor `accent-ink` is
+     right in both themes. */
+  --ds-focus: #5b45e0;
 
-  --ds-danger: #c2271d;       /* white on it = 5.8:1 */
-  --ds-danger-ink: #c2271d;   /* 5.4:1 on surface */
-  --ds-danger-wash: #fdecea;
+  /* Each status is a pastel pair: a light wash and the ink that sits on it,
+     named for the hue the design gives it. Lavender is `accent`, mint is
+     `success`, butter is `warn`, rose is `danger`; sky and peach are
+     decoration with no status of their own, for a tag or a category that
+     needs a tone and no verdict. In light the ink is the dark half of the
+     pair, so it is also the text colour on the page. In .dark the wash is a
+     deep tint and the ink the light half. `success` and `peach` are the solid
+     fill of a progress bar, as `danger` and `warn` are of a button and a dot;
+     like them they never carry text. */
+  --ds-danger: #c2271d;       /* fill; white text on it = 5.8:1 */
+  --ds-danger-ink: #a3203a;   /* rose: 7.1:1 on surface, 5.8:1 on its wash */
+  --ds-danger-wash: #ffd9de;
 
   --ds-warn: #d97706;         /* fill only — never carries text */
-  --ds-warn-ink: #975300;     /* 5.2:1 on surface, 4.6:1 on a pressed row */
-  --ds-warn-wash: #fff4e0;
+  --ds-warn-ink: #765200;     /* butter: 6.7:1 on surface, 5.6:1 on a pressed row, 6.2:1 on its wash */
+  --ds-warn-wash: #fff0bf;
 
-  --ds-success-ink: #0b6b42;  /* 6.1:1 on surface */
-  --ds-success-wash: #e3f5ec;
+  --ds-success: #2e986b;      /* fill only; 3:1 on its wash and on a white card */
+  --ds-success-ink: #0b6b42;  /* mint: 6.3:1 on surface, 5.5:1 on its wash */
+  --ds-success-wash: #d6f2e4;
+
+  --ds-sky-ink: #1e4c94;      /* 6.8:1 on its wash */
+  --ds-sky-wash: #d9eaff;
+
+  --ds-peach: #d56528;        /* fill only; 3:1 on its wash */
+  --ds-peach-ink: #9a4616;    /* 5.3:1 on its wash */
+  --ds-peach-wash: #ffe4d3;
 
   /* The terminal's palette: a dark surface that is dark in both themes, tuned
      to sit beside the navy dark surfaces rather than against them. Declared
@@ -66,7 +110,6 @@
      and `accent` are the status and string colours a terminal picks out. */
   --ds-rail-bg: #0b1220;
   --ds-rail-raised: #111a2e;
-  --ds-rail-line: #26304a;
   --ds-rail-ink: #d5dcea;
   --ds-rail-muted: #9aa6bd;
   --ds-rail-hover: #131c31;
@@ -82,7 +125,9 @@
      `body` and `quiet` carry text; `line`, `bar`, `mark` and `well` are the
      skeleton strokes and plates a picture of an email is built from, and carry
      none. The accent trio is the accent as it reads on a white canvas, which
-     the app's own `accent-ink` stops doing once it lightens for the dark UI. */
+     the app's own `accent-ink` stops doing once it lightens for the dark UI. The
+     ink is a link's violet, a step brighter than `accent-ink` so a link in a
+     paragraph still reads as one beside near-black body text. */
   --ds-canvas-body: #4a5160;
   --ds-canvas-quiet: #636b7a;
   --ds-canvas-line: #e8eaee;
@@ -90,9 +135,9 @@
   --ds-canvas-mark: #aeb5bf;
   --ds-canvas-well: #eef0f3;
   --ds-canvas-on-accent: #ffffff;
-  --ds-canvas-accent-ink: #0a58f0;
-  --ds-canvas-accent-wash: #edf3ff;
-  --ds-canvas-accent-bar: #c5d6ff;
+  --ds-canvas-accent-ink: #4632bc;
+  --ds-canvas-accent-wash: #e8e3ff;
+  --ds-canvas-accent-bar: #c9bfff;
 
   /* The same email after a client forces dark mode on it. Kept apart from the
      app's dark tokens because the two are different repaints: the app's follows
@@ -104,13 +149,19 @@
   --ds-canvas-dark-quiet: #8f95a3;
   --ds-canvas-dark-line: #2d313b;
   --ds-canvas-dark-bar: #3d424e;
-  --ds-canvas-dark-accent: #6b9bff;
+  /* An accent block in the forced-dark rendering, and the fill of a button
+     there: lifted, as a client lifts a brand colour, so its label is the dark
+     canvas itself. */
+  --ds-canvas-dark-accent: #a394ff;
 
-  --ds-shadow-xs: 0 1px 2px rgb(11 18 32 / 0.05);
-  --ds-shadow-sm: 0 1px 2px rgb(11 18 32 / 0.06), 0 1px 3px rgb(11 18 32 / 0.08);
-  --ds-shadow-md: 0 4px 12px rgb(11 18 32 / 0.08), 0 2px 4px rgb(11 18 32 / 0.05);
-  --ds-shadow-lg: 0 12px 32px rgb(11 18 32 / 0.12), 0 4px 8px rgb(11 18 32 / 0.06);
-  --ds-shadow-xl: 0 24px 48px rgb(11 18 32 / 0.16), 0 8px 16px rgb(11 18 32 / 0.08);
+  /* Light shadows are the surfaces' own violet, not a neutral navy, so a lifted
+     card reads as the same material as the page it floats over. */
+  --ds-shadow-xs: 0 1px 2px rgb(60 40 140 / 0.06);
+  --ds-shadow-sm: 0 1px 3px rgb(60 40 140 / 0.08);
+  --ds-shadow-md: 0 8px 24px rgb(60 40 140 / 0.1);
+  --ds-shadow-lg: 0 16px 40px rgb(60 40 140 / 0.16);
+  --ds-shadow-xl: 0 24px 56px rgb(60 40 140 / 0.2), 0 8px 16px rgb(60 40 140 / 0.08);
+  --ds-shadow-cta: 0 8px 20px rgb(91 69 224 / 0.28);
 
   --ds-shadow-canvas: 0 1px 2px rgb(11 18 32 / 0.04), 0 8px 24px rgb(11 18 32 / 0.06);
 
@@ -138,13 +189,16 @@
   --ds-canvas-ink: #12141a;   /* likewise unchanged */
 
   --ds-ink: #f0ecff;
+  --ds-ink-soft: #b6adc9;     /* the same as muted: there is no step between ink and it in the dark */
   --ds-muted: #b6adc9;
   --ds-faint: #837796;        /* marks only, 3:1 on surface, raised and sunken; never text */
+  --ds-disabled: #7d7391;     /* 3:1 on its track and on surface */
 
   --ds-line: #322b45;
   --ds-line-strong: #443959;
   --ds-hover: #282239;
   --ds-active: #342c48;
+  --ds-track: #110e1c;        /* the sunken surface: a groove is cut into the page, not laid on it */
 
   /* The fill is the light theme's violet, untouched; the text-coloured variant
      lightens to clear the dark surfaces. The hover fill lifts rather than
@@ -155,6 +209,8 @@
   --ds-accent-ink: #b6a5ff;   /* accent as text on surface/raised/wash */
   --ds-accent-hover: #6750e6; /* white on it = 4.8:1 */
   --ds-accent-wash: #2c234b;
+  --ds-accent-edge: #6a5bc0;  /* 3:1 on raised */
+  --ds-focus: #b6a5ff;        /* 3:1 on every surface, wash and track */
 
   /* The fill stays dark enough to carry a white label in either theme; only the
      text-coloured variant lightens. */
@@ -166,8 +222,16 @@
   --ds-warn-ink: #ffb454;     /* 10.4:1 on surface */
   --ds-warn-wash: #2a2220;
 
+  --ds-success: #2e986b;      /* fill only; 3:1 on its wash and on raised */
   --ds-success-ink: #7ee2b8;  /* 11.8:1 on surface */
   --ds-success-wash: #10292f;
+
+  --ds-sky-ink: #9ec5ff;      /* 10.3:1 on surface, 8.4:1 on its wash */
+  --ds-sky-wash: #1a2745;
+
+  --ds-peach: #d56528;        /* fill only; 3:1 on its wash and on raised */
+  --ds-peach-ink: #ffb68a;    /* 10.7:1 on surface, 8.7:1 on its wash */
+  --ds-peach-wash: #3a2214;
 
   /* Rail is theme-independent — declared only in :root, not redeclared here. */
 
@@ -176,6 +240,7 @@
   --ds-shadow-md: 0 4px 12px rgb(2 6 16 / 0.5), 0 2px 4px rgb(2 6 16 / 0.4);
   --ds-shadow-lg: 0 12px 32px rgb(2 6 16 / 0.6), 0 4px 8px rgb(2 6 16 / 0.45);
   --ds-shadow-xl: 0 24px 48px rgb(2 6 16 / 0.7), 0 8px 16px rgb(2 6 16 / 0.5);
+  --ds-shadow-cta: 0 6px 16px rgb(2 6 16 / 0.5);
 
   --ds-shadow-canvas: 0 1px 2px rgb(2 6 16 / 0.4), 0 8px 32px rgb(2 6 16 / 0.45);
   color-scheme: dark;
@@ -191,19 +256,24 @@
   --color-canvas-ink: var(--ds-canvas-ink);
 
   --color-ink: var(--ds-ink);
+  --color-ink-soft: var(--ds-ink-soft);
   --color-muted: var(--ds-muted);
   --color-faint: var(--ds-faint);
+  --color-disabled: var(--ds-disabled);
 
   --color-line: var(--ds-line);
   --color-line-strong: var(--ds-line-strong);
   --color-hover: var(--ds-hover);
   --color-active: var(--ds-active);
+  --color-track: var(--ds-track);
 
   --color-accent: var(--ds-accent);
   --color-accent-ink: var(--ds-accent-ink);
   --color-accent-hover: var(--ds-accent-hover);
   --color-accent-wash: var(--ds-accent-wash);
+  --color-accent-edge: var(--ds-accent-edge);
   --color-on-accent: var(--ds-on-accent);
+  --color-focus: var(--ds-focus);
 
   --color-danger: var(--ds-danger);
   --color-danger-ink: var(--ds-danger-ink);
@@ -213,12 +283,19 @@
   --color-warn-ink: var(--ds-warn-ink);
   --color-warn-wash: var(--ds-warn-wash);
 
+  --color-success: var(--ds-success);
   --color-success-ink: var(--ds-success-ink);
   --color-success-wash: var(--ds-success-wash);
 
+  --color-sky-ink: var(--ds-sky-ink);
+  --color-sky-wash: var(--ds-sky-wash);
+
+  --color-peach: var(--ds-peach);
+  --color-peach-ink: var(--ds-peach-ink);
+  --color-peach-wash: var(--ds-peach-wash);
+
   --color-rail-bg: var(--ds-rail-bg);
   --color-rail-raised: var(--ds-rail-raised);
-  --color-rail-line: var(--ds-rail-line);
   --color-rail-ink: var(--ds-rail-ink);
   --color-rail-muted: var(--ds-rail-muted);
   --color-rail-hover: var(--ds-rail-hover);
@@ -245,14 +322,19 @@
   --color-canvas-dark-bar: var(--ds-canvas-dark-bar);
   --color-canvas-dark-accent: var(--ds-canvas-dark-accent);
 
-  /* The shadow ladder, by what sits at each rung: xs a secondary button,
-     sm a card at rest, md a lifted card or an anchored panel (popover,
-     tooltip), lg a menu, xl a surface over a scrim (dialog, drawer). */
+  /* The shadow ladder, by what sits at each rung: xs a chip resting on a
+     track, or a thumbnail; sm a card at rest, a solid button or the chosen
+     segment of a control; md a card lifted on hover or an anchored panel
+     (popover); lg a menu; xl a surface over a scrim (dialog, drawer). The
+     secondary button has no shadow, only its border. cta is off the ladder:
+     the glow under a page-size primary button, violet in light so it reads as
+     the button's own light and not a drop shadow. */
   --shadow-xs: var(--ds-shadow-xs);
   --shadow-sm: var(--ds-shadow-sm);
   --shadow-md: var(--ds-shadow-md);
   --shadow-lg: var(--ds-shadow-lg);
   --shadow-xl: var(--ds-shadow-xl);
+  --shadow-cta: var(--ds-shadow-cta);
 
   /* Tailwind's own ease-out / ease-in are replaced, not extended, so every
      existing `ease-out` class already moves on the token; a bare
@@ -323,6 +405,8 @@
   --text-sm--line-height: 1.25rem;
   --text-base: 0.875rem;   /* 14px — body */
   --text-base--line-height: 1.375rem;
+  --text-ui: 0.9375rem;    /* 15px — the redesigned controls and rows; the app's text floor */
+  --text-ui--line-height: 1.375rem;
   --text-lg: 1rem;         /* 16px */
   --text-lg--line-height: 1.5rem;
   --text-xl: 1.25rem;      /* 20px — page titles */
@@ -335,6 +419,23 @@
   --text-4xl--line-height: 3rem;
   --text-5xl: 3.25rem;     /* 52px — marketing hero on lg */
   --text-5xl--line-height: 3.5rem;
+  /* The redesign's display steps, named for their pixels because that is how
+     its type scale is written (`text-34`, not a seventh t-shirt size). They sit
+     between the steps above and do not replace them: 13px and 14px are still
+     in use across the dashboard. Keep the names in step with lib/classname.ts,
+     which has to read them as font sizes and not as colours. */
+  --text-18: 1.125rem;     /* a lead paragraph, a card title */
+  --text-18--line-height: 1.75rem;
+  --text-26: 1.625rem;     /* a section title in a panel */
+  --text-26--line-height: 1.875rem;
+  --text-34: 2.125rem;     /* a page title */
+  --text-34--line-height: 2.3125rem;
+  --text-38: 2.375rem;     /* marketing section title on a phone */
+  --text-38--line-height: 2.5rem;
+  --text-48: 3rem;         /* marketing section title */
+  --text-48--line-height: 3.25rem;
+  --text-68: 4.25rem;      /* the hero */
+  --text-68--line-height: 4.375rem;
 
   --radius-xs: 4px;
   --radius-sm: 6px;
@@ -344,6 +445,15 @@
   /* The marketing pricing cards: a step above the dashboard's Card, because
      they stand alone on the page rather than in a grid of panels. */
   --radius-2xl: 20px;
+  /* The redesign's three corners, named for what wears them. They sit beside
+     the t-shirt steps and do not replace them: client/core/styles/index.css
+     mirrors xs to xl literally for the editor, and the pricing cards pin
+     2xl. field is an input or a nav row, card a card or a dialog, panel a
+     feature panel; a pill is `rounded-full`. Keep the names in step with
+     lib/classname.ts. */
+  --radius-field: 14px;
+  --radius-card: 24px;
+  --radius-panel: 32px;
 }
 
 @layer base {
@@ -382,37 +492,49 @@
      recolours it — outline-style cannot animate, outline-color can, so the
      ring fades in on the same beat as a hover tint instead of switching on.
      Tailwind's transition-colors lists outline-color too, so a control that
-     already eases its hover keeps this fade. */
+     already eases its hover keeps this fade.
+
+     The ring is 3px and held 2px off the control, in the `focus` token, which
+     clears 3:1 on the page, every wash and a track in both themes. A control
+     that sets its own outline utilities must use the same width and token, or
+     the rest of the page would show a different ring. */
   a,
   button,
   summary,
   [tabindex]:not([tabindex='-1']) {
-    outline: 2px solid transparent;
+    outline: 3px solid transparent;
     outline-offset: 2px;
     transition: outline-color var(--ds-motion-fast) var(--ds-ease-out);
   }
   :focus-visible {
-    outline: 2px solid var(--ds-accent-ink);
+    outline: 3px solid var(--ds-focus);
     outline-offset: 2px;
     border-radius: var(--radius-xs);
   }
 
-  /* Text fields trade the hard outline for a soft ring that fades in, so
-     focus reads as a state change rather than a flash while typing. Range
-     inputs keep the outline — a ring around the whole track looks broken. */
+  /* Text fields draw the same ring and fade it in the same way, so focus reads
+     as a state change rather than a flash while typing. The rule above names
+     links, buttons and tabbable elements, not fields, and a field's transition
+     list is its own, so the transparent resting ring and outline-color in the
+     list are stated here again. The border moves to accent on the same beat.
+     Range inputs keep the plain outline — a ring around the whole track looks
+     broken. */
   input:not([type='range']),
   textarea,
   select {
+    outline: 3px solid transparent;
+    outline-offset: 2px;
     transition:
       border-color var(--ds-motion-fast) var(--ds-ease-out),
-      box-shadow var(--ds-motion-fast) var(--ds-ease-out);
+      box-shadow var(--ds-motion-fast) var(--ds-ease-out),
+      outline-color var(--ds-motion-fast) var(--ds-ease-out);
   }
   input:not([type='range']):focus-visible,
   textarea:focus-visible,
   select:focus-visible {
-    outline: none;
+    outline: 3px solid var(--ds-focus);
+    outline-offset: 2px;
     border-color: var(--ds-accent);
-    box-shadow: 0 0 0 3px color-mix(in srgb, var(--ds-accent) 25%, transparent);
   }
   @media (prefers-reduced-motion: reduce) {
     input:not([type='range']),
@@ -628,18 +750,17 @@ html[data-reveal-ready] [data-reveal][data-revealed='true'] {
   transform: none;
 }
 
-/* Showcase rows stage their entrance: the visual slides in from its own side
-   of the layout and settles to full scale, the copy follows a beat later.
-   --reveal-from is set inline per row (negative for left panels, positive for
-   flipped ones). */
+/* A workflow card stages its entrance: the visual settles up from a touch
+   under full size, and the copy rises a beat behind it. Both sit inside the
+   card's own `[data-reveal]`, which is why they key off its flag. */
 html[data-reveal-ready] [data-reveal] .reveal-visual {
   opacity: 0;
-  transform: translateX(var(--reveal-from, -28px)) scale(0.97);
+  transform: scale(0.97);
   transition: opacity 700ms ease-out, transform 700ms var(--ds-ease-out);
 }
 html[data-reveal-ready] [data-reveal][data-revealed='true'] .reveal-visual {
   opacity: 1;
-  transform: translateX(0) scale(1);
+  transform: none;
 }
 html[data-reveal-ready] [data-reveal] .reveal-copy {
   opacity: 0;
@@ -782,14 +903,15 @@ html {
 .cl-organizationSwitcherTrigger .cl-organizationSwitcherTriggerIcon {
   color: var(--ds-muted);
 }
-/* Clerk pads the trigger 4px; the nav links pad 10px, so the avatar sat 6px
-   left of the icons under it. Less the 1px border, 9px lands it on theirs.
-   The height is a nav link's, and a coarse pointer gets the 44px target. */
+/* Clerk pads the trigger 4px; the nav rows pad 14px, so the avatar would sit
+   10px left of the icons under it. Less the 1.5px border, 12.5px lands it on
+   theirs. The height and radius are a nav row's, which is already the 44px
+   target for every pointer. */
 .cl-organizationSwitcherTrigger {
-  padding-inline: calc(var(--spacing) * 2.5 - 1px);
-  min-height: calc(var(--spacing) * 9);
-  border: 1px solid var(--ds-line);
-  border-radius: var(--radius-lg);
+  padding-inline: calc(var(--spacing) * 3.5 - 1.5px);
+  min-height: calc(var(--spacing) * 11);
+  border: 1.5px solid var(--ds-line);
+  border-radius: var(--radius-field);
   background-color: var(--ds-raised);
   /* Listing outline-color keeps the focus ring fading in with the hover tint,
      as the base layer does for every other button. */
@@ -797,11 +919,6 @@ html {
     background-color var(--ds-motion-fast) var(--ds-ease-out),
     border-color var(--ds-motion-fast) var(--ds-ease-out),
     outline-color var(--ds-motion-fast) var(--ds-ease-out);
-}
-@media (pointer: coarse) {
-  .cl-organizationSwitcherTrigger {
-    min-height: 2.75rem;
-  }
 }
 .cl-organizationSwitcherTrigger:hover:not(:disabled) {
   background-color: var(--ds-hover);
@@ -811,14 +928,15 @@ html {
    else replaces it, so the trigger is found the same way as every other
    control. */
 .cl-organizationSwitcherTrigger:focus-visible {
-  outline: 2px solid var(--ds-accent-ink);
+  outline: 3px solid var(--ds-focus);
   outline-offset: 2px;
   box-shadow: none;
 }
-/* The 20px avatar plus Clerk's 12px gap put the workspace name 6px right
-   of the nav labels under it; a 6px gap lands it on the same column. */
+/* A nav row sets its label 12px past a 20px icon, the same distance Clerk
+   leaves after the avatar; stated rather than left to Clerk's default so the
+   workspace name stays on the labels' column if that default moves. */
 .cl-organizationSwitcherTrigger .cl-organizationPreview {
-  gap: calc(var(--spacing) * 1.5);
+  gap: calc(var(--spacing) * 3);
 }
 
 /* ---------------------------------------------------------------------------

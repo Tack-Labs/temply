@@ -61,16 +61,27 @@ describe('SegmentedControl', () => {
     expect(onValueChange.mock.calls[0]?.[0]).toBe('published');
   });
 
-  it('draws the chosen option as a raised pill on the sunken track, in tokens', () => {
+  it('draws the chosen option as a raised, bold pill with a small shadow on a borderless track, in tokens', () => {
     const { view } = setup('all');
-    expect(view.getByRole('radiogroup').className).toContain('bg-sunken');
-    const chosen = radio(view, /^All/).className;
-    expect(chosen).toContain('bg-raised');
-    expect(chosen).toContain('text-ink');
-    expect(chosen).toContain('shadow-xs');
-    const other = radio(view, /^Drafts/).className;
-    expect(other).toContain('text-muted');
+    const track = view.getByRole('radiogroup').className.split(/\s+/);
+    expect(track).toContain('bg-track');
+    expect(track, 'the track is a groove, not an outlined box').not.toContain('border');
+    expect(track.some((name) => name.startsWith('border-'))).toBe(false);
+    expect(track).not.toContain('bg-sunken');
+    const chosen = radio(view, /^All/).className.split(/\s+/);
+    for (const needed of ['bg-raised', 'text-ink', 'shadow-sm', 'font-bold']) expect(chosen).toContain(needed);
+    expect(chosen).not.toContain('border');
+    const other = radio(view, /^Drafts/).className.split(/\s+/);
+    expect(other).toContain('text-ink-soft');
+    expect(other).toContain('font-semibold');
     expect(other).not.toContain('bg-raised');
+    expect(other).not.toContain('shadow-sm');
+  });
+
+  it('says which option is chosen to a screen reader as well as to the eye', () => {
+    const { view } = setup('drafts');
+    expect(radio(view, /^Drafts/).getAttribute('aria-checked')).toBe('true');
+    expect(radio(view, /^All/).getAttribute('aria-checked')).toBe('false');
   });
 
   it('shows a count in tabular figures, and none when an option has none', () => {
@@ -80,15 +91,45 @@ describe('SegmentedControl', () => {
     expect(radio(view, 'Plain').querySelectorAll('.tabular-nums').length).toBe(0);
   });
 
+  it('is a pill track holding pill options 40px tall, with 20px of side padding and 15px text', () => {
+    const { view } = setup();
+    const track = view.getByRole('radiogroup').className.split(/\s+/);
+    expect(track).toContain('rounded-full');
+    expect(track).toContain('p-1');
+    expect(track, 'a pill track, not the old rounded rectangle').not.toContain('rounded-lg');
+    const option = radio(view, /^All/).className.split(/\s+/);
+    expect(option).toContain('h-10');
+    expect(option).toContain('px-5');
+    expect(option).toContain('rounded-full');
+    expect(option).toContain('text-ui');
+    expect(option).not.toContain('rounded-md');
+  });
+
   it('meets 44px on a coarse pointer and settles on colour alone', () => {
     const { view } = setup();
     const classes = radio(view, /^All/).className;
     expect(classes).toContain('pointer-coarse:h-11');
     expect(classes).toContain('duration-fast');
     expect(classes).toContain('motion-reduce:transition-none');
-    expect(classes).toContain('focus-visible:outline-accent-ink');
     expect(classes).not.toContain('transition-all');
     expect(classes).not.toContain('transform');
+  });
+
+  it('shows the shared 3px focus ring in the focus token, held off the pill', () => {
+    const { view } = setup();
+    const classes = radio(view, /^All/).className.split(/\s+/);
+    for (const needed of ['focus-visible:outline-3', 'focus-visible:outline-offset-2', 'focus-visible:outline-focus']) {
+      expect(classes).toContain(needed);
+    }
+    expect(classes).not.toContain('focus-visible:outline-accent-ink');
+    expect(classes).not.toContain('focus-visible:outline-2');
+  });
+
+  it('dims a disabled option to the disabled ink instead of fading the pill', () => {
+    const { view } = setup('all', [options[0]!, { ...options[1]!, disabled: true }, options[2]!]);
+    const classes = radio(view, /^Drafts/).className.split(/\s+/);
+    expect(classes).toContain('disabled:text-disabled');
+    expect(classes.some((name) => name.startsWith('disabled:opacity'))).toBe(false);
   });
 
   it('is a single tab stop, on the chosen option', () => {

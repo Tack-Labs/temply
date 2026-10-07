@@ -59,10 +59,11 @@ export function ConfirmDialog({
           <DialogDescription>{description}</DialogDescription>
         </DialogHeader>
         <div className="grid grid-cols-2 gap-2">
-          <Button variant="secondary" onClick={() => setOpen(false)}>
+          <Button size="compact" variant="secondary" onClick={() => setOpen(false)}>
             Cancel
           </Button>
           <Button
+            size="compact"
             variant={confirmVariant}
             onClick={() => {
               // Confirm before closing: a controlled caller that treats
