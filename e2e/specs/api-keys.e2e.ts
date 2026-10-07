@@ -70,6 +70,24 @@ test.describe('api keys', () => {
     await dialog.getByRole('button', { name: 'Cancel' }).click();
   });
 
+  test('a list of keys leaves the page as wide as the screen, and the dialog inside it', async ({ page, api, name }) => {
+    // The table's hidden "Actions" header is absolutely placed. Left outside
+    // a positioned scroller it sat at the table's far edge, outside the
+    // shell's clip, and a phone widened its layout viewport to match: the
+    // centred dialog then opened beside the screen, half off it.
+    await api.createApiKey({ name: name('wide list') });
+    await page.goto('/dashboard/settings/api-keys');
+    await expect(page.getByRole('table')).toBeVisible();
+    const widths = await page.evaluate(() => ({ layout: window.innerWidth, screen: document.documentElement.clientWidth }));
+    expect(widths.layout).toBe(widths.screen);
+
+    await page.getByRole('button', { name: 'Create key' }).first().click();
+    const box = await page.getByRole('dialog', { name: 'Create API key' }).boundingBox();
+    const { width } = page.viewportSize()!;
+    expect(box!.x).toBeGreaterThanOrEqual(0);
+    expect(box!.x + box!.width).toBeLessThanOrEqual(width);
+  });
+
   test('a live key renders what is published', async ({ page, api, name }) => {
     // A template made through the API is published at creation, so a live
     // key has a published copy to serve.

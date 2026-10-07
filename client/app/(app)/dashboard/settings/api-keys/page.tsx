@@ -194,7 +194,13 @@ export default function ApiKeysPage() {
           }
         />
       ) : (
-        <div className="overflow-x-auto rounded-xl border border-line bg-raised">
+        // Positioned so the header's sr-only cell is clipped with the table.
+        // That cell is absolute, and with no positioned ancestor it is placed
+        // against the viewport, so it escapes this scroller and the shell's
+        // overflow-hidden and sits at the table's far edge. On a phone that
+        // widens the layout viewport to the table's width, and a centred dialog
+        // opens off to the side of the screen.
+        <div className="relative overflow-x-auto rounded-xl border border-line bg-raised">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-line">

@@ -96,6 +96,15 @@ export function makeApi(request: APIRequestContext) {
     },
     trackAsset(id: string): void { remember(made.assets, id); },
     assetNamed(name: string) { return named<{ id: string; url: string; name: string }>('/api/v1/assets', 'assets', name, 'asset'); },
+    /** A test key, which is outside the plan's cap, so seeding one never
+     *  takes a live slot from another spec. */
+    async createApiKey(opts: { name: string }): Promise<{ id: string }> {
+      const res = await request.post('/api/v1/api-keys', { data: { name: opts.name, mode: 'test' } });
+      if (!res.ok()) throw new Error(`createApiKey: ${res.status()} ${await res.text()}`);
+      const { key } = await res.json();
+      remember(made.apiKeys, key.id);
+      return { id: key.id };
+    },
     trackApiKey(id: string): void { remember(made.apiKeys, id); },
     apiKeyNamed(name: string) { return named<{ id: string; name: string }>('/api/v1/api-keys', 'keys', name, 'API key'); },
     /** Every delete is attempted: one that fails must not leave the rest
