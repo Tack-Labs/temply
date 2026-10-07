@@ -1,7 +1,9 @@
 /**
- * The shape the templates list actually renders. The API sends more fields;
- * typing only what the list uses keeps the search logic honest about which
- * columns a query can match.
+ * The shape the templates list and the dashboard home render. The API's row
+ * carries more (`created_at`, and a `stage` of its own); typing only what
+ * these screens read keeps the search logic honest about which columns a query
+ * can match. The stage is derived again from the stamps (`stageOf`), by the
+ * rule the server uses, rather than read from the row.
  */
 export type TemplateListItem = {
   id: string;
@@ -43,8 +45,11 @@ export function filterTemplates(
  * is born published (the create route stamps both copies), so `draft` is only
  * a row from before that: never published, answering 404 on the public API.
  * `unpublished-changes` is the common working state: live, with a newer draft
- * behind it. The row badge and the Drafts filter both read this, so the label
- * on a row and the tab it is counted under cannot disagree.
+ * behind it. The Drafts filter reads this, and so does the row's pill
+ * (`templatePill`) for a template outside the release flow. One in staging or
+ * sign-off is named for its stage, which outranks this: its draft can have
+ * been discarded back to what is live, so the pill says "In staging" while the
+ * filter still counts it as published.
  */
 export type TemplateStatus = 'published' | 'unpublished-changes' | 'draft';
 
@@ -60,10 +65,13 @@ export function templateStatus(
 }
 
 /**
- * How each status is named and toned. Three states get three looks:
- * `warn` for changes waiting (the live copy is out of date and deserves a
- * look), `success` for in sync, and the quiet `neutral` for a row that has
- * never gone live at all.
+ * How each status is named and toned in the editor's publish badge. The
+ * templates list and the dashboard cards take the words from here, so a row
+ * and the editor it opens never name one state two ways, and tone them on
+ * their own palette (`STATUS_PILL`). Three states get three looks: `warn` for
+ * changes waiting (the live copy is out of date and deserves a look),
+ * `success` for in sync, and the quiet `neutral` for a row that has never gone
+ * live at all.
  */
 export const TEMPLATE_STATUS_BADGE: Record<
   TemplateStatus,
@@ -87,7 +95,11 @@ export function matchesTemplateFilter(
 }
 
 export type TemplateView = {
-  /** What the list draws: the search, then the filter, in the API's order. */
+  /**
+   * The search, then the filter, still in the API's order. The list sorts this
+   * by stage (`sortByStage`) before it draws, stably, so recency holds within
+   * a stage.
+   */
   rows: TemplateListItem[];
   /**
    * Taken after the search and before the filter, so each option states what

@@ -1,15 +1,30 @@
-import type { Page } from '@playwright/test';
+import type { Locator, Page } from '@playwright/test';
 import { EMPTY_DOC } from '../fixtures/api';
 import { renameTo, subjectField } from '../fixtures/editor';
 import { templateLink } from '../fixtures/list';
 import { test, expect } from '../fixtures/test';
 
+/**
+ * Opens a row's ⋯ menu. Delete and Duplicate live behind it, and the menu is
+ * drawn in a portal outside the row, so its items are found on the page.
+ */
+async function openMenu(row: Locator) {
+  const trigger = row.getByRole('button', { name: /^More actions for/ });
+  await trigger.click();
+  await expect(row.page().getByRole('menu')).toBeVisible();
+  return trigger;
+}
+
 test.describe('templates', () => {
   test('a new template appears in the list', async ({ page, api, name }) => {
+    // The page's controls are in the server's HTML, and a click before React
+    // has attached its handler is dropped. A row's edited time is drawn only
+    // once the page has hydrated, so a row of this test's own is what says a
+    // click will land; an empty list would have none to wait for.
+    await api.createTemplate({ title: name('anchor') });
     await page.goto('/dashboard/templates');
-    // An empty list draws a second "New template" in its empty state; both
-    // open the same gallery.
-    await page.getByRole('button', { name: 'New template' }).first().click();
+    await expect(page.getByRole('listitem').filter({ hasText: name('anchor') }).locator('time')).toBeVisible();
+    await page.getByRole('button', { name: 'New template' }).click();
     const gallery = page.getByRole('dialog', { name: 'Start a template' });
     await gallery.getByRole('button', { name: /^Start from/ }).first().click();
     await expect(page).toHaveURL(/\/templates\/[0-9a-f-]{36}$/);
@@ -40,7 +55,8 @@ test.describe('templates', () => {
     await api.createTemplate({ title: name('doomed') });
     await page.goto('/dashboard/templates');
     const row = page.getByRole('listitem').filter({ hasText: name('doomed') });
-    await row.getByRole('button', { name: 'Delete template' }).click();
+    await openMenu(row);
+    await page.getByRole('menuitem', { name: 'Delete template' }).click();
     const dialog = page.getByRole('dialog', { name: 'Delete this template?' });
     await expect(dialog).toContainText('This cannot be undone.');
     await dialog.getByRole('button', { name: 'Delete', exact: true }).click();
@@ -57,11 +73,47 @@ test.describe('templates', () => {
     // one focus must land on, so the test does not depend on their order.
     await page.getByRole('searchbox', { name: 'Search templates' }).fill(stem);
     const doomed = page.getByRole('listitem').filter({ hasText: `${stem} two` });
-    await doomed.getByRole('button', { name: /^Delete template/ }).click();
+    await openMenu(doomed);
+    await page.getByRole('menuitem', { name: 'Delete template' }).click();
     const dialog = page.getByRole('dialog', { name: 'Delete this template?' });
     await dialog.getByRole('button', { name: 'Delete', exact: true }).click();
     await expect(templateLink(page, `${stem} two`)).toHaveCount(0);
     await expect(templateLink(page, `${stem} one`)).toBeFocused();
+  });
+
+  test('cancelling a delete keeps the row and hands focus back to its menu button', async ({ page, api, name }) => {
+    const title = name('kept');
+    await api.createTemplate({ title });
+    await page.goto('/dashboard/templates');
+    await page.getByRole('searchbox', { name: 'Search templates' }).fill(title);
+    const row = page.getByRole('listitem').filter({ hasText: title });
+    const trigger = await openMenu(row);
+    await page.getByRole('menuitem', { name: 'Delete template' }).click();
+    const dialog = page.getByRole('dialog', { name: 'Delete this template?' });
+    await dialog.getByRole('button', { name: 'Cancel', exact: true }).click();
+    await expect(dialog).toHaveCount(0);
+    await expect(templateLink(page, title)).toBeVisible();
+    await expect(trigger).toBeFocused();
+  });
+
+  test('the ⋯ menu is a menu button: it announces itself, closes on Escape and gives focus back', async ({ page, api, name }) => {
+    const title = name('menu');
+    await api.createTemplate({ title });
+    await page.goto('/dashboard/templates');
+    await page.getByRole('searchbox', { name: 'Search templates' }).fill(title);
+    const row = page.getByRole('listitem').filter({ hasText: title });
+    const trigger = row.getByRole('button', { name: `More actions for ${title}` });
+    await expect(trigger).toHaveAttribute('aria-haspopup', 'menu');
+    await expect(trigger).toHaveAttribute('aria-expanded', 'false');
+
+    await openMenu(row);
+    await expect(trigger).toHaveAttribute('aria-expanded', 'true');
+    await expect(page.getByRole('menuitem', { name: 'Delete template' })).toBeVisible();
+
+    await page.keyboard.press('Escape');
+    await expect(page.getByRole('menu')).toHaveCount(0);
+    await expect(trigger).toBeFocused();
+    await expect(trigger).toHaveAttribute('aria-expanded', 'false');
   });
 
   test('search narrows the list to what matches', async ({ page, api, name }) => {
@@ -90,10 +142,11 @@ test.describe('templates', () => {
     const title = name('original');
     await api.createTemplate({ title });
     await page.goto('/dashboard/templates');
-    // Narrowed to the one tile so its Duplicate is the only one on the page;
-    // other tests' tiles are in the same list at the same time.
+    // Narrowed to the one row so only its menu is on the page; other tests'
+    // rows are in the same list at the same time.
     await page.getByRole('searchbox', { name: 'Search templates' }).fill(title);
-    await page.getByRole('button', { name: 'Duplicate template' }).click();
+    await openMenu(page.getByRole('listitem').filter({ hasText: title }));
+    await page.getByRole('menuitem', { name: 'Duplicate template' }).click();
     await expect(page.getByText('Template duplicated')).toBeVisible();
     const copy = templateLink(page, `[DUPLICATE] ${title}`);
     await expect(copy).toBeVisible();
@@ -146,6 +199,30 @@ test.describe('templates', () => {
       await expect(changedRow).toBeVisible();
     });
 
+    test('shows each row one status, and a release in flight outranks what is published', async ({ page, api, name }) => {
+      const stem = name('pills');
+      const live = `${stem} live`;
+      const changed = `${stem} edited`;
+      const staged = `${stem} staged`;
+      await api.createTemplate({ title: live });
+      const edited = await api.createTemplate({ title: changed });
+      await api.saveDraft(edited.id, { title: changed, content: EMPTY_DOC });
+      // Staged from a published template with changes waiting: it is both
+      // "Unpublished changes" and in the flow, and the row may say only one.
+      const flowing = await api.createTemplate({ title: staged });
+      await api.saveDraft(flowing.id, { title: staged, content: EMPTY_DOC });
+      expect((await page.request.post(`/api/v1/templates/${flowing.id}/stage`)).ok()).toBe(true);
+
+      await page.goto('/dashboard/templates');
+      await page.getByRole('searchbox', { name: 'Search templates' }).fill(stem);
+
+      const statuses = /^(Draft|Published|Unpublished changes|In staging|In sign-off|Sent back)$/;
+      const statusOf = (title: string) => page.getByRole('listitem').filter({ hasText: title }).getByText(statuses);
+      await expect(statusOf(live)).toHaveText(['Published']);
+      await expect(statusOf(changed)).toHaveText(['Unpublished changes']);
+      await expect(statusOf(staged)).toHaveText(['In staging']);
+    });
+
     test('keeps the filter and its row actions on screen at any width', async ({ page, api, name }) => {
       const stem = name('fits');
       await api.createTemplate({ title: `${stem} a title long enough that it must be cut rather than push the actions off the edge` });
@@ -156,9 +233,11 @@ test.describe('templates', () => {
 
       const width = page.viewportSize()!.width;
       const filter = await filterOf(page).boundingBox();
-      const remove = await row.getByRole('button', { name: 'Delete template' }).boundingBox();
+      const menu = await row.getByRole('button', { name: /^More actions for/ }).boundingBox();
+      const status = await row.getByText('Published', { exact: true }).boundingBox();
       expect(filter!.x + filter!.width).toBeLessThanOrEqual(width);
-      expect(remove!.x + remove!.width).toBeLessThanOrEqual(width);
+      expect(menu!.x + menu!.width).toBeLessThanOrEqual(width);
+      expect(status!.x + status!.width).toBeLessThanOrEqual(width);
     });
 
     test('combines with the search', async ({ page, api, name }) => {

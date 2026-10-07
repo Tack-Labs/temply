@@ -8,12 +8,14 @@ import { httpGet } from '~/lib/http';
 
 /** The fixed width render() lays every email out at. */
 const EMAIL_WIDTH = 600;
-/** Wrapper aspect ratio (width / height); the iframe height follows from it. */
+/** Default wrapper aspect ratio (width / height); the iframe height follows from it. */
 const THUMBNAIL_ASPECT = 8 / 5;
 
 type TemplateThumbnailProps = {
   templateId: string;
   updatedAt: string | null;
+  /** Width over height of the window. The email is cropped to it from the top, so a taller window shows more of it. */
+  aspect?: number;
 };
 
 /**
@@ -22,7 +24,7 @@ type TemplateThumbnailProps = {
  * colours and styles, fully isolated from app dark mode — the thumbnail must
  * show the email as recipients get it, never re-dressed in `--ds-*` tokens.
  */
-export function TemplateThumbnail({ templateId, updatedAt }: TemplateThumbnailProps) {
+export function TemplateThumbnail({ templateId, updatedAt, aspect = THUMBNAIL_ASPECT }: TemplateThumbnailProps) {
   const { ref, inView } = useInView();
   const [scale, setScale] = useState<number | null>(null);
 
@@ -62,7 +64,8 @@ export function TemplateThumbnail({ templateId, updatedAt }: TemplateThumbnailPr
     <div
       ref={ref}
       aria-hidden="true"
-      className="pointer-events-none aspect-[8/5] overflow-hidden border-b border-line bg-sunken"
+      className="pointer-events-none overflow-hidden border-b border-line bg-sunken"
+      style={{ aspectRatio: aspect }}
     >
       {isError ? (
         <div className="flex h-full flex-col items-center justify-center gap-1.5">
@@ -87,7 +90,7 @@ export function TemplateThumbnail({ templateId, updatedAt }: TemplateThumbnailPr
             width: EMAIL_WIDTH,
             // Pre-scale height that fills the wrapper exactly: with the
             // aspect ratio fixed, wrapperHeight / scale is a constant.
-            height: EMAIL_WIDTH / THUMBNAIL_ASPECT,
+            height: EMAIL_WIDTH / aspect,
             transform: `scale(${scale})`,
             transformOrigin: 'top left',
           }}

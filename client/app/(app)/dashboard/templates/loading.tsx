@@ -5,12 +5,13 @@ import { PageHeader } from '~/components/ui/surfaces';
  * The templates page while its server fetch runs: the real heading, then a
  * toolbar and rows shaped like the ones that replace them, so nothing jumps
  * when the list arrives. The row geometry mirrors TemplateRow in
- * template-list.tsx — the thumbnail at 64px and 80px, two lines of text,
- * a badge and a date that sit under the name on a narrow list and trail it
- * on a wide one — and the two have to change together. So does the toolbar:
- * the count line is there because a narrow list stacks it as a third row,
- * and the filter is 54px tall under a coarse pointer (a 44px button in 5px of
- * padding and border), which sets the toolbar's height when the row is wide.
+ * template-list.tsx — a 56 by 64 thumbnail, two lines of text, a status pill,
+ * the action and the menu, which stack in two lines on a narrow list and run
+ * as fixed columns on a wide one — and the two have to change together. So
+ * does the toolbar: the filter is 52px tall under a coarse pointer (a 44px
+ * option in 4px of padding), which sets the toolbar's height when the row is
+ * wide, and the count line is there because a narrow list stacks it as a
+ * third row.
  */
 export default function TemplatesLoading() {
   return (
@@ -18,41 +19,39 @@ export default function TemplatesLoading() {
       <PageHeader
         title="Templates"
         description="Every email you have built here."
-        actions={<Skeleton className="h-8 w-32 pointer-coarse:h-11" />}
+        actions={<Skeleton className="h-12 w-44 rounded-full" />}
       />
 
-      <SkeletonList label="Loading templates" className="space-y-3">
-        <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
-          <Skeleton className="h-9 sm:w-72" />
-          <Skeleton className="h-9.5 w-60 rounded-lg pointer-coarse:h-13.5 max-sm:max-w-full max-sm:self-start" />
-          <Skeleton className="h-4 w-20 sm:ml-auto" />
+      <SkeletonList label="Loading templates">
+        <div className="flex flex-col gap-4 pb-5 sm:flex-row sm:flex-wrap sm:items-center">
+          <Skeleton className="h-12 rounded-full sm:max-w-105 sm:flex-1 sm:basis-70" />
+          <Skeleton className="h-12 w-60 rounded-full pointer-coarse:h-13 max-sm:max-w-full max-sm:self-start sm:ml-auto" />
+          <Skeleton className="h-5.5 w-20" />
         </div>
 
-        <div aria-hidden className="@container divide-y divide-line overflow-hidden rounded-xl border border-line bg-raised shadow-sm">
+        <div aria-hidden className="@container divide-y divide-line overflow-hidden rounded-card border border-line bg-raised shadow-sm">
           {Array.from({ length: 5 }, (_, index) => (
-            <div key={index} className="flex items-center">
-              <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-3 gap-y-1 px-3 py-2 @2xl:flex-nowrap">
-                <Skeleton className="aspect-[8/5] w-16 shrink-0 @2xl:w-20" />
-                <div className="min-w-0 flex-1 space-y-1.5">
-                  <Skeleton className="h-3.5 w-2/5" />
-                  <Skeleton className="h-3 w-3/5" />
-                </div>
-                <div className="flex w-full items-center gap-2 pl-19 @2xl:w-auto @2xl:gap-3 @2xl:pl-0">
-                  <div className="flex shrink-0 @2xl:w-36">
-                    <Skeleton className="h-5 w-20 rounded-full" />
-                  </div>
-                  <div className="flex @2xl:w-32 @2xl:shrink-0 @2xl:justify-end">
-                    <Skeleton className="h-3 w-24" />
-                  </div>
+            <div key={index} className="grid grid-cols-1 items-center @4xl:grid-cols-[minmax(0,1fr)_auto]">
+              <div className="flex min-w-0 items-center gap-5 px-4 pt-4 pb-2 @4xl:py-4 @4xl:pr-5 @4xl:pl-6">
+                <Skeleton className="h-16 w-14 shrink-0 rounded-lg" />
+                <div className="min-w-0 flex-1 space-y-2">
+                  <Skeleton className="h-5 w-2/5" />
+                  <Skeleton className="h-4 w-3/5" />
                 </div>
               </div>
-              <div className="flex shrink-0 items-center gap-0.5 pr-2">
-                <Skeleton className="size-7 pointer-coarse:size-11" />
-                <Skeleton className="size-7 pointer-coarse:size-11" />
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-2 pr-4 pb-4 pl-4 @lg:pl-23 @4xl:flex-nowrap @4xl:gap-5 @4xl:pr-6 @4xl:pb-0 @4xl:pl-0">
+                <div className="@4xl:w-47.5">
+                  <Skeleton className="h-7 w-28 rounded-full" />
+                </div>
+                <div className="ml-auto flex items-center gap-1 @4xl:contents">
+                  <Skeleton className="h-11 w-28 rounded-full @4xl:w-42" />
+                  <Skeleton className="size-11 rounded-full" />
+                </div>
               </div>
             </div>
           ))}
         </div>
+        <Skeleton className="mt-5 h-5.5 w-72 max-w-full" />
       </SkeletonList>
     </div>
   );

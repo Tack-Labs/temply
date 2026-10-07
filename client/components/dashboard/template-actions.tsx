@@ -1,12 +1,18 @@
 'use client';
 
 import { useMutation } from '@tanstack/react-query';
-import { CopyIcon, Loader2Icon, Trash2Icon } from 'lucide-react';
+import { CopyIcon, Loader2Icon, MoreHorizontalIcon, Trash2Icon } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { useRef } from 'react';
+import { useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { Button } from '~/components/ui/button';
 import { ConfirmDialog } from '~/components/ui/confirm-dialog';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '~/components/ui/dropdown-menu';
 import { httpDelete, httpPost } from '~/lib/http';
 
 /** Where a row's delete stands, so the row can dim while it runs and close once it has. */
@@ -15,9 +21,9 @@ export type DeleteState = 'idle' | 'deleting' | 'deleted';
 type TemplateActionsProps = {
   templateId: string;
   /**
-   * Gives each button the name of the template it acts on. A list of twelve
-   * rows otherwise has twelve buttons all called "Delete template", which a
-   * screen reader's button list cannot tell apart.
+   * Names the trigger for the template it acts on. A list of twelve rows
+   * otherwise has twelve buttons all called "More actions", which a screen
+   * reader's button list cannot tell apart.
    */
   templateTitle?: string;
   /** Duplicating adds a template; hide the action once the plan cap is hit. */
@@ -30,6 +36,11 @@ type TemplateActionsProps = {
   onDeleteStateChange?: (state: DeleteState) => void;
 };
 
+/**
+ * A row's secondary actions behind one ⋯ button: Duplicate and Delete. The
+ * primary action of the row is the workflow button beside it; these are the
+ * ones a reader reaches for rarely, and Delete asks before it does anything.
+ */
 export function TemplateActions({
   templateId,
   templateTitle,
@@ -37,15 +48,19 @@ export function TemplateActions({
   onDeleteStateChange,
 }: TemplateActionsProps) {
   const router = useRouter();
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const [confirming, setConfirming] = useState(false);
+  // Set when Delete is chosen, read when the menu finishes closing. A ref and
+  // not the `confirming` state: Radix hands focus back from the menu after its
+  // content has unmounted, and the handler it calls then is the one from the
+  // render before the menu closed, which has not seen the dialog open.
+  const askedToDelete = useRef(false);
   const confirmationClosing = useRef(false);
   const deleteCompleted = useRef(false);
   const finishDelete = () => {
     onDeleteStateChange?.('deleted');
     router.refresh();
   };
-  // “Delete template” stays the stem of the name: it is what the buttons were
-  // called before they carried a title, and what the specs look for.
-  const subject = templateTitle ? ` “${templateTitle}”` : '';
 
   const { mutate: duplicateTemplate, isPending: isDuplicating } = useMutation({
     mutationFn: async () => {
@@ -58,7 +73,7 @@ export function TemplateActions({
       router.refresh();
     },
     onError: (error) => {
-      toast.error(error.message || 'Failed to duplicate template');
+      toast.error(error.message || 'Could not duplicate the template');
     },
   });
 
@@ -77,29 +92,67 @@ export function TemplateActions({
     },
     onError: (error) => {
       onDeleteStateChange?.('idle');
-      toast.error(error.message || 'Failed to delete template');
+      toast.error(error.message || 'Could not delete the template');
     },
   });
 
   // One request at a time per row: a delete racing a duplicate of the same
   // template would answer the duplicate with a 404 and a confusing toast.
+  // The trigger stays enabled and shows the spinner, so keyboard focus is not
+  // lost to a button that went disabled under it; the items are what refuse.
   const busy = isDuplicating || isDeleting;
 
   return (
-    <div className="flex shrink-0 items-center gap-0.5">
-      {canDuplicate ? (
-        <Button
-          variant="ghost"
-          size="icon-sm"
-          touch
-          onClick={() => duplicateTemplate()}
-          disabled={busy}
-          aria-label={`Duplicate template${subject}`}
+    <>
+      {/* Not modal: Delete opens its own dialog from inside this menu, and a
+          modal menu would leave that layer unclickable behind its
+          pointer-event guard. */}
+      <DropdownMenu modal={false}>
+        <DropdownMenuTrigger asChild>
+          <Button
+            ref={triggerRef}
+            variant="ghost"
+            size="icon"
+            className="size-11"
+            aria-label={templateTitle ? `More actions for ${templateTitle}` : 'More actions'}
+            aria-busy={busy || undefined}
+          >
+            {busy ? <Loader2Icon className="animate-spin motion-reduce:animate-none" /> : <MoreHorizontalIcon />}
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent
+          align="end"
+          onCloseAutoFocus={(event) => {
+            // The dialog has taken focus. Returning it to the trigger now
+            // would pull it back out from under the question.
+            if (askedToDelete.current) {
+              askedToDelete.current = false;
+              event.preventDefault();
+            }
+          }}
         >
-          {isDuplicating ? <Loader2Icon className="animate-spin" /> : <CopyIcon />}
-        </Button>
-      ) : null}
+          {canDuplicate ? (
+            <DropdownMenuItem className="pointer-coarse:h-11" disabled={busy} onSelect={() => duplicateTemplate()}>
+              <CopyIcon />
+              Duplicate template
+            </DropdownMenuItem>
+          ) : null}
+          <DropdownMenuItem
+            className="text-danger-ink hover:bg-danger-wash focus:bg-danger-wash pointer-coarse:h-11 [&_svg]:text-danger-ink"
+            disabled={busy}
+            onSelect={() => {
+              askedToDelete.current = true;
+              setConfirming(true);
+            }}
+          >
+            <Trash2Icon />
+            Delete template
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
       <ConfirmDialog
+        open={confirming}
+        onOpenChange={setConfirming}
         title="Delete this template?"
         description="This cannot be undone."
         onConfirm={() => {
@@ -109,19 +162,19 @@ export function TemplateActions({
         }}
         onCloseAutoFocus={(event) => {
           confirmationClosing.current = false;
+          // Always handled here: the dialog has no trigger of its own to
+          // return to, since it is opened from the menu and not from a button.
+          event.preventDefault();
           if (deleteCompleted.current) {
             // The list owns the handoff after deletion; restoring the old
             // trigger would undo it just before that trigger disappears.
-            event.preventDefault();
             deleteCompleted.current = false;
             finishDelete();
+          } else {
+            triggerRef.current?.focus();
           }
         }}
-      >
-        <Button variant="danger-quiet" size="icon-sm" touch disabled={busy} aria-label={`Delete template${subject}`}>
-          {isDeleting ? <Loader2Icon className="animate-spin" /> : <Trash2Icon />}
-        </Button>
-      </ConfirmDialog>
-    </div>
+      />
+    </>
   );
 }

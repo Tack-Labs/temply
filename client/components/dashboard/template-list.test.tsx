@@ -95,6 +95,11 @@ const titles = (view: View) => rows(view).map((item) => item.querySelector('a')?
 const count = (view: View) => view.getByRole('status').textContent;
 const radio = (view: View, name: RegExp) => view.getByRole('radio', { name });
 const search = (view: View) => view.getByRole('searchbox', { name: 'Search templates' }) as HTMLInputElement;
+// Every word a row's status pill can say. A row shows exactly one of them.
+const PILL = /^(Draft|Published|Unpublished changes|In staging|In sign-off|Sent back)$/;
+const pillsIn = (item: HTMLElement) => within(item).queryAllByText(PILL);
+const ago = (ms: number) => new Date(Date.now() - ms).toISOString();
+const HOUR = 3_600_000;
 // React settles at load whether the DOM reports `input` events, and under
 // happy-dom it settles on no: it then reads a field's value on focus and key
 // release instead. A typed change is therefore a focus, the value arriving, and
@@ -112,7 +117,7 @@ describe('TemplateList rows', () => {
     const view = setup(list, true, true);
     expect(titles(view)[0]).toContain('Review me');
     expect(view.getByText('1 template is waiting for your sign-off')).toBeTruthy();
-    expect(view.getByRole('link', { name: 'Review templates' }).getAttribute('href')).toBe('/templates/waiting/review');
+    expect(view.getByRole('link', { name: 'Review template' }).getAttribute('href')).toBe('/templates/waiting/review');
     type(view, 'Live');
     expect(view.getByText('1 template is waiting for your sign-off')).toBeTruthy();
   });
@@ -120,7 +125,7 @@ describe('TemplateList rows', () => {
   it('offers members sign-off without an admin callout action and disables writes on a lapsed plan', () => {
     const view = setup([template({ id: 'waiting', title: 'Review me', staged_at: 'staged', review_requested_at: 'asked' }), template({ id: 'draft', title: 'Draft me', published_at: null })], false, false, true);
     expect(view.getByText('1 template is waiting for an admin')).toBeTruthy();
-    expect(view.queryByRole('link', { name: 'Review templates' })).toBeNull();
+    expect(view.queryByRole('link', { name: 'Review template' })).toBeNull();
     expect(view.getByRole('link', { name: 'View sign-off “Review me”' }).getAttribute('href')).toBe('/templates/waiting/review');
     expect((view.getByRole('button', { name: 'Move to staging “Draft me”' }) as HTMLButtonElement).disabled).toBe(true);
   });
@@ -135,27 +140,84 @@ describe('TemplateList rows', () => {
 
   it('shows the preview text, or says there is none', () => {
     const view = setup();
-    expect(within(rows(view)[2]!).getByText('Glad you are here')).toBeTruthy();
-    expect(within(rows(view)[1]!).getByText('No preview text')).toBeTruthy();
+    expect(within(rows(view)[2]!).getByText(/Glad you are here/)).toBeTruthy();
+    expect(within(rows(view)[1]!).getByText(/No preview text/)).toBeTruthy();
   });
 
-  it('badges each row with where it stands, and a published row is not also called a draft', () => {
+  it('gives each row one pill for where it stands, and a published row is not also called a draft', () => {
     const view = setup();
     const [changed, draft, published] = rows(view) as [HTMLElement, HTMLElement, HTMLElement];
-    expect(within(published).getByText('Published').className).toContain('text-success-ink');
+    const live = within(published).getByText('Published');
+    expect(live.className).toContain('text-success-ink');
+    expect(live.className).toContain('bg-success-wash');
     expect(within(published).queryByText('Draft')).toBeNull();
     expect(within(published).queryByText('Unpublished changes')).toBeNull();
-    expect(within(changed).getByText('Unpublished changes').className).toContain('text-warn-ink');
-    expect(within(draft).getByText('Draft').className).toContain('text-muted');
-    // One badge a row: the status is told once.
+    const unpublished = within(changed).getByText('Unpublished changes');
+    expect(unpublished.className).toContain('text-accent-ink');
+    expect(unpublished.className).toContain('bg-accent-wash');
+    const neverLive = within(draft).getByText('Draft');
+    expect(neverLive.className).toContain('text-muted');
+    expect(neverLive.className).toContain('bg-track');
     expect(within(draft).queryByText('Published')).toBeNull();
+    for (const item of [changed, draft, published]) expect(pillsIn(item)).toHaveLength(1);
   });
 
-  it('says when each was last edited, in a time element a machine can read', () => {
-    const view = setup();
-    const time = within(rows(view)[2]!).getByText(/2026/);
+  it('puts a template in the release flow in one pill of its own, whatever it also is', () => {
+    const view = setup([
+      template({ id: 'staged', title: 'Staged', staged_at: 'staged' }),
+      template({ id: 'asked', title: 'Asked', staged_at: 'staged', review_requested_at: 'asked' }),
+      template({ id: 'back', title: 'Back', staged_at: 'staged', returned_at: 'returned' }),
+      template({ id: 'plain', title: 'Plain', has_unpublished_changes: true }),
+    ]);
+    const rowOf = (title: string) => rows(view).find((item) => within(item).queryByText(title)) as HTMLElement;
+    const pill = (title: string, label: string) => within(rowOf(title)).getByText(label);
+    expect(pill('Staged', 'In staging').className).toContain('text-sky-ink');
+    expect(pill('Asked', 'In sign-off').className).toContain('text-warn-ink');
+    expect(pill('Back', 'Sent back').className).toContain('text-danger-ink');
+    for (const title of ['Staged', 'Asked', 'Back', 'Plain']) expect(pillsIn(rowOf(title))).toHaveLength(1);
+    // Published, or unpublished changes, is the status of a template outside the flow only.
+    expect(within(rowOf('Staged')).queryByText('Published')).toBeNull();
+    expect(within(rowOf('Asked')).queryByText('Unpublished changes')).toBeNull();
+  });
+
+  it('marks the pill with a dot, in the pill\'s own ink, that a screen reader does not read', () => {
+    const view = setup([template({ id: 'a', title: 'Only' })]);
+    const dot = within(rows(view)[0]!).getByText('Published').querySelector('span');
+    expect(dot?.getAttribute('aria-hidden')).toBe('true');
+    expect(dot?.className).toContain('bg-current');
+  });
+
+  it('keeps the status out of the link, whose name is the template and what it says', () => {
+    const view = setup([template({ id: 'a', title: 'Only', preview_text: 'Hello there' })]);
+    const link = within(rows(view)[0]!).getAllByRole('link')[0]!;
+    expect(link.textContent).toContain('Only');
+    expect(link.textContent).toContain('Hello there');
+    expect(link.textContent).not.toContain('Published');
+  });
+
+  it('tints no row for waiting, since the pill and the notice already say so', () => {
+    const view = setup([template({ id: 'w', title: 'Waiting', staged_at: 'staged', review_requested_at: 'asked' })]);
+    expect(rows(view)[0]!.className).not.toContain('bg-warn-wash');
+  });
+
+  it('says how long ago each was edited, in a time element a machine can read', () => {
+    const stamp = ago(2 * HOUR + 600_000);
+    const view = setup([template({ id: 'a', title: 'Fresh', preview_text: 'Hello there', updated_at: stamp })]);
+    const time = within(rows(view)[0]!).getByText('2 hours ago');
     expect(time.tagName).toBe('TIME');
-    expect(time.getAttribute('datetime')).toBe('2026-10-01T09:00:00.000Z');
+    expect(time.getAttribute('datetime')).toBe(stamp);
+    // The full date for a reader who needs the day, not just the distance.
+    expect(time.getAttribute('title')).toContain(String(new Date(stamp).getFullYear()));
+    expect(time.parentElement?.textContent).toBe('Hello there · edited 2 hours ago');
+  });
+
+  it('counts a week and a day out, never calling elapsed time yesterday or last week', () => {
+    const view = setup([
+      template({ id: 'a', title: 'Older', updated_at: ago(9 * 24 * HOUR) }),
+      template({ id: 'b', title: 'Newer', updated_at: ago(26 * HOUR) }),
+    ]);
+    expect(view.getByText('1 week ago').tagName).toBe('TIME');
+    expect(view.getByText('1 day ago').tagName).toBe('TIME');
   });
 
   it('draws no date for a row that has none to give, and does not throw', () => {
@@ -169,6 +231,180 @@ describe('TemplateList rows', () => {
     expect(view.getByRole('button', { name: 'start delete Receipt' })).toBeTruthy();
     expect(view.container.querySelector('[data-actions="without-duplicate"]')).not.toBeNull();
     expect(view.container.querySelector('[data-actions="with-duplicate"]')).toBeNull();
+  });
+});
+
+describe('TemplateList layout', () => {
+  const only = [template({ id: 'a', title: 'Only', staged_at: 'staged' })];
+  const classesOf = (element: Element | null | undefined) => (element?.className ?? '').split(/\s+/);
+
+  it('is one white card with the redesign\'s corners, which is also the container the rows lay out against', () => {
+    const list = rows(setup(only))[0]!.parentElement!;
+    expect(list.tagName).toBe('UL');
+    expect(classesOf(list)).toContain('@container');
+    expect(classesOf(list)).toContain('rounded-card');
+    expect(classesOf(list)).toContain('bg-raised');
+    expect(classesOf(list)).not.toContain('rounded-xl');
+  });
+
+  it('is two lines on a narrow list and one on a wide one, laid out by the list\'s width, not the window\'s', () => {
+    const item = rows(setup(only))[0]!;
+    const body = classesOf(item.querySelector('a'));
+    expect(body).toContain('@4xl:py-4');
+    // The link and the actions stack, then sit side by side from the list's 4xl.
+    const line = item.querySelector('a')!.parentElement!;
+    expect(classesOf(line)).toContain('grid-cols-1');
+    expect(classesOf(line)).toContain('@4xl:grid-cols-[minmax(0,1fr)_auto]');
+    // Container queries only: a viewport breakpoint would ignore the sidebar.
+    for (const token of [...body, ...classesOf(line)]) expect(token).not.toMatch(/^(sm|md|lg|xl|2xl):/);
+  });
+
+  it('wraps the status and the actions on a narrow row, so neither can push past its edge', () => {
+    const item = rows(setup(only))[0]!;
+    const cluster = item.querySelector('[class*="@4xl:flex-nowrap"]');
+    expect(cluster).not.toBeNull();
+    expect(classesOf(cluster)).toContain('flex-wrap');
+    expect(classesOf(cluster)).toContain('min-w-0');
+    // The actions hold to the right edge whether or not they share a line with the pill.
+    expect(classesOf(cluster!.querySelector('.ml-auto'))).toContain('ml-auto');
+    // The title's own indent: 16px + the 56px thumbnail + 20px gap, once there is room for one.
+    expect(classesOf(cluster)).toContain('@lg:pl-23');
+  });
+
+  it('gives a wide row fixed cells, so the status and the action run straight down the list', () => {
+    const item = rows(setup(only))[0]!;
+    const pill = within(item).getByText('In staging').parentElement!;
+    expect(classesOf(pill)).toContain('@4xl:w-47.5');
+    const action = within(item).getByRole('button', { name: /^Ask for sign-off/ }).parentElement;
+    expect(classesOf(action)).toContain('@4xl:w-42');
+    expect(classesOf(action)).toContain('@4xl:[&>:is(a,button)]:w-full');
+    // The action's own 44px and 15px, over the 28px toolbar size it is drawn at.
+    expect(classesOf(action)).toContain('[&>:is(a,button)]:h-11');
+    expect(classesOf(action)).toContain('[&>:is(a,button)]:text-ui');
+    // The action and the menu join the cluster's own columns on a wide row.
+    expect(classesOf(action!.parentElement)).toContain('@4xl:contents');
+  });
+
+  it('keeps the action and the menu one flex line, so the menu is never alone under the pill', () => {
+    const item = rows(setup(only))[0]!;
+    const group = within(item).getByRole('button', { name: /^start delete/ }).parentElement!.parentElement!;
+    expect(classesOf(group)).toContain('flex');
+    expect(classesOf(group)).toContain('items-center');
+  });
+
+  it('draws the template\'s thumbnail as a fixed 56 by 64 tile, tinted like its pill', () => {
+    const item = rows(setup(only))[0]!;
+    const tile = item.querySelector('.w-14');
+    expect(tile).not.toBeNull();
+    expect(classesOf(tile)).toContain('h-16');
+    expect(classesOf(tile)).toContain('bg-sky-wash');
+  });
+
+  it('says once, under the rows, that a template has one status and that a delete asks first', () => {
+    const view = setup();
+    expect(view.getAllByText('Each template shows one status. Deleting always asks first.')).toHaveLength(1);
+  });
+
+  it('leaves the footnote out when there are no rows for it to be about', () => {
+    const view = setup();
+    type(view, 'zebra');
+    expect(view.queryByText(/Each template shows one status/)).toBeNull();
+    cleanup();
+    expect(setup([]).queryByText(/Each template shows one status/)).toBeNull();
+  });
+});
+
+describe('TemplateList toolbar', () => {
+  it('is a pill field that searches by name or subject, still named Search templates', () => {
+    const view = setup();
+    expect(search(view).getAttribute('placeholder')).toBe('Search by name or subject');
+    expect(search(view).className).toContain('rounded-full');
+    expect(search(view).className).toContain('pl-11');
+    expect(search(view).type).toBe('search');
+  });
+
+  it('draws its clear button as a 44px target on touch, inside the field\'s right padding', () => {
+    const view = setup();
+    type(view, 'receipt');
+    const clear = view.getByRole('button', { name: 'Clear search' });
+    expect(clear.className).toContain('pointer-coarse:size-11');
+    expect(clear.className).toContain('absolute');
+    expect(search(view).className).toContain('pr-12');
+  });
+});
+
+describe('TemplateList waiting notice', () => {
+  const waiting = [template({ id: 'w', title: 'Review me', staged_at: 'staged', review_requested_at: 'asked' })];
+
+  it('is a butter strip in the warn tokens, with the explanation in muted ink beneath', () => {
+    const view = setup(waiting, true, true);
+    const message = view.getByText('1 template is waiting for your sign-off');
+    expect(message.className).toContain('text-warn-ink');
+    const detail = view.getByText('Customers keep the live version until you approve the new one.');
+    expect(detail.className).toContain('text-muted');
+    const strip = message.closest('.bg-warn-wash');
+    expect(strip).not.toBeNull();
+    expect(strip?.className).toContain('rounded-card');
+  });
+
+  it('is closed up with its Reveal when nothing is waiting, rather than leaving a gap, and says nothing', () => {
+    const view = setup([template({ id: 'a', title: 'Live' })]);
+    const strip = view.container.querySelector('[aria-hidden="true"][inert]')?.parentElement;
+    expect(strip?.className).toContain('grid-rows-[0fr]');
+    expect(strip?.className).toContain('motion-reduce:transition-none');
+    // There is nothing to hold yet, so the closed strip is empty rather than
+    // reading "0 templates are waiting".
+    expect(strip?.textContent).toBe('');
+  });
+
+  it('keeps what it said while it closes, instead of flashing "0 templates"', () => {
+    const view = setup(waiting, true, true);
+    view.showing([template({ id: 'w', title: 'Review me' })]);
+    expect(view.queryByText(/^0 templates/)).toBeNull();
+    const message = view.getByText('1 template is waiting for your sign-off');
+    // Closing: out of the tab order and the accessibility tree while it fades.
+    expect(message.closest('[inert]')).not.toBeNull();
+    expect(message.closest('[aria-hidden="true"]')).not.toBeNull();
+    expect(view.container.querySelector('[aria-hidden="true"][inert]')?.parentElement?.className).toContain('grid-rows-[0fr]');
+    expect(view.getByRole('link', { name: 'Review template', hidden: true }).getAttribute('href')).toBe('/templates/w/review');
+  });
+
+  it('holds the last count it showed, and shows a new one the moment there is one', () => {
+    const two = [
+      template({ id: 'a', title: 'First', staged_at: 'staged', review_requested_at: 'asked' }),
+      template({ id: 'b', title: 'Second', staged_at: 'staged', review_requested_at: 'asked' }),
+    ];
+    const view = setup(two, true, true);
+    expect(view.getByText('2 templates are waiting for your sign-off')).toBeTruthy();
+    view.showing([template({ id: 'a', title: 'First' }), template({ id: 'b', title: 'Second' })]);
+    expect(view.getByText('2 templates are waiting for your sign-off').closest('[inert]')).not.toBeNull();
+    view.showing(waiting);
+    const open = view.getByText('1 template is waiting for your sign-off');
+    expect(open.closest('[inert]')).toBeNull();
+    expect(view.getByRole('link', { name: 'Review template' }).getAttribute('href')).toBe('/templates/w/review');
+  });
+
+  it('does not promise to review them all when it opens one', () => {
+    // The link goes to a single template's sign-off, so at two or more it
+    // reads as the next one, never "Review templates".
+    const two = [
+      template({ id: 'a', title: 'First', staged_at: 'staged', review_requested_at: 'asked' }),
+      template({ id: 'b', title: 'Second', staged_at: 'staged', review_requested_at: 'asked' }),
+    ];
+    const view = setup(two, true, true);
+    expect(view.queryByRole('link', { name: 'Review templates' })).toBeNull();
+    expect(view.getByRole('link', { name: 'Review next' }).getAttribute('href')).toBe('/templates/a/review');
+  });
+
+  it('says plainly what it opens when there is one', () => {
+    const view = setup(waiting, true, true);
+    expect(view.getByRole('link', { name: 'Review template' }).getAttribute('href')).toBe('/templates/w/review');
+  });
+
+  it('names an admin to members, and never offers them the review link', () => {
+    const view = setup(waiting, true, false);
+    expect(view.getByText('Customers keep the live version until an admin approves the new one.')).toBeTruthy();
+    expect(view.queryByRole('link', { name: 'Review template' })).toBeNull();
   });
 });
 
