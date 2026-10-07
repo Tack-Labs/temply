@@ -1084,6 +1084,12 @@ test.describe('editor on the desktop', () => {
     const t = await api.createTemplate({ title: name('handle insert'), content: doc });
     const pm = await openEditor(page, t.id);
     await expect(pm.locator('> p')).toHaveText('The only line');
+    // The first preflight check puts a banner above the email a moment after
+    // the editor attaches, 75px tall and with no transition. A pointer resting
+    // on the handle when it lands is left 75px above it, and a tooltip arms
+    // only on a pointer move, so none would follow. This document has no
+    // preview text, so it always gets the banner.
+    await expect(page.getByRole('button', { name: /^Preflight/ })).toBeVisible();
 
     // Where the canvas sits is this case's own setup, not something left to
     // whatever scrolled last: a hover only scrolls what is not already in
