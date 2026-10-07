@@ -254,6 +254,15 @@ test.describe('editor rails', () => {
           await expect.poll(() => width(slot(page, 'Components'))).toBe(STRIP);
         }
 
+        // The first preflight check puts its banner above the email a moment
+        // after the editor attaches, and that is 75px under everything below
+        // it. A page scrolled to the middle before then is carried down by the
+        // same 75px (Chrome's scroll anchoring keeps the lines in view where
+        // they were), and the check on the page not moving would be measuring
+        // that rather than the rail. This document has no preview text, so
+        // the banner is always there to wait for.
+        await expect(page.getByRole('button', { name: /^Preflight/ })).toBeVisible();
+
         const port = scroller(page);
         await port.evaluate((el) => { el.scrollTop = (el.scrollHeight - el.clientHeight) / 2; });
         const mid = await port.evaluate((el) => el.scrollTop);

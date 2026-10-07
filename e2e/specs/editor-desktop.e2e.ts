@@ -1033,15 +1033,27 @@ test.describe('editor on the desktop', () => {
     });
     const t = await api.createTemplate({ title: name('top of the pane'), content: doc });
     const pm = await openEditor(page, t.id);
+    // The first preflight check puts a banner above the email a moment after
+    // the editor attaches, and that moves the Section down by the banner's
+    // height. Clicked before it, the block is scrolled into view and then
+    // pushed past where it was put, so the cases below would be measuring
+    // when the banner came. This document has no preview text, so it always does.
+    await expect(page.getByRole('button', { name: /^Preflight/ })).toBeVisible();
     const section = pm.locator('table[data-type="section"]');
     await section.locator('p').first().click();
     const menu = bubbleMenu(page, 'Section');
     await expectOnScreen(page, menu, 'the section menu where the block was clicked');
 
     // Scrolled the way a customer scrolls, until the block is the first thing
-    // in the pane. The menu is still the same menu: nothing was clicked.
+    // in the pane. The distance is how far the block's top edge is from the
+    // pane's: what the page draws above the email decides that, so it is
+    // read off the page rather than written down. The menu is still the same
+    // menu: nothing was clicked.
+    const below = () =>
+      section.evaluate((el) => Math.round(el.getBoundingClientRect().top - el.closest('main')!.getBoundingClientRect().top));
     await page.mouse.move(650, 500);
-    await page.mouse.wheel(0, 400);
+    await page.mouse.wheel(0, await below());
+    await expect.poll(async () => Math.abs(await below()), 'the block rests on the pane\'s top edge').toBeLessThanOrEqual(1);
     await expect(section, 'the block itself is still on screen').toBeInViewport();
 
     // Geometry alone cannot tell a menu that is placed here from one a pane

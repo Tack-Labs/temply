@@ -24,7 +24,10 @@ test.describe('templates', () => {
     await api.createTemplate({ title: name('anchor') });
     await page.goto('/dashboard/templates');
     await expect(page.getByRole('listitem').filter({ hasText: name('anchor') }).locator('time')).toBeVisible();
-    await page.getByRole('button', { name: 'New template' }).click();
+    // Exact: a role name matches as a case-insensitive substring, and every
+    // row's "More actions for <title>" carries this test's own title, which
+    // says "a new template".
+    await page.getByRole('button', { name: 'New template', exact: true }).click();
     const gallery = page.getByRole('dialog', { name: 'Start a template' });
     await gallery.getByRole('button', { name: /^Start from/ }).first().click();
     await expect(page).toHaveURL(/\/templates\/[0-9a-f-]{36}$/);
