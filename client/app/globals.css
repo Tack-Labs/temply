@@ -246,6 +246,22 @@
   color-scheme: dark;
 }
 
+/* The brand's own colours, from the Temply Brand Pack. Static: the same in
+   light and dark, so they sit outside both blocks above, and the app UI never
+   reads them. They colour the mark and brand artwork only. A control, link,
+   focus ring or line of small text takes a --ds-* token instead: white on
+   coral, pink and purple is 2.82, 3.32 and 3.88:1, short of 4.5, and a
+   gradient never sits under small text. `violet` is the middle stop of the
+   pack's dark gradient and nothing here draws that yet. */
+:root {
+  --brand-coral: #ff6b4a;
+  --brand-pink: #ff3d8f;
+  --brand-purple: #a855ff;
+  --brand-violet: #7a1eff;
+  --brand-navy: #0b1020;
+  --brand-gradient-primary: linear-gradient(135deg, var(--brand-coral) 0%, var(--brand-pink) 50%, var(--brand-purple) 100%);
+}
+
 /* `inline` keeps utilities pointing at the variable instead of copying its
    value, which is what lets them react to the theme class at runtime. */
 @theme inline {
