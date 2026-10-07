@@ -51,8 +51,8 @@ async function open(page: Page, theme: Theme) {
 
 for (const theme of ['light', 'dark'] as const) {
   test.describe(`the workspace switcher in the ${theme} theme`, () => {
-    test.beforeEach((_fixtures, info) => {
-      test.skip(onPhone(info), 'the drawer holds the same trigger; see the note at the top');
+    test.beforeEach(() => {
+      test.skip(onPhone(), 'the drawer holds the same trigger; see the note at the top');
     });
 
     test('is a nav row dressed as a card, and its avatar sits on the line of the icons under it', async ({ page }, info) => {
