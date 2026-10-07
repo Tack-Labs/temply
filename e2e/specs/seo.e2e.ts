@@ -2,6 +2,7 @@ import { expect, test } from '@playwright/test';
 
 const origin = 'https://temply.tacklabs.co.uk';
 const publicPaths = ['/', '/docs', '/playground', '/terms', '/privacy'];
+const socialCard = '/brand/temply-social-card-1200x630.png';
 
 for (const path of publicPaths) {
   test(`${path} has public search and social metadata`, async ({ page }) => {
@@ -31,7 +32,8 @@ for (const path of publicPaths) {
     expect(copy).not.toBeNull();
     expect(await page.locator('meta[property="og:description"]').getAttribute('content')).toBe(copy);
     expect(await page.locator('meta[name="twitter:description"]').getAttribute('content')).toBe(copy);
-    await expect(page.locator('meta[property="og:image"]')).toHaveAttribute('content', `${origin}/temply-email-editor.png`);
+    await expect(page.locator('meta[property="og:image"]')).toHaveAttribute('content', `${origin}${socialCard}`);
+    await expect(page.locator('meta[property="og:image:alt"]')).toHaveAttribute('content', 'Temply. Build the email. We handle the HTML.');
     await expect(page.locator('meta[property="og:image:width"]')).toHaveAttribute('content', '1200');
     await expect(page.locator('meta[property="og:image:height"]')).toHaveAttribute('content', '630');
     await expect(page.locator('meta[name="twitter:card"]')).toHaveAttribute('content', 'summary_large_image');
@@ -86,19 +88,43 @@ test('the sitemap lists canonical public pages and allows noindex to be read', a
   expect(robots).toContain('Disallow: /api/');
 });
 
-test('the Temply social image has the declared dimensions and replaces the old URL', async ({ request }) => {
-  const image = await request.get('/temply-email-editor.png');
+test('the Temply social card has the declared dimensions', async ({ request }) => {
+  const image = await request.get(socialCard);
   expect(image.status()).toBe(200);
   expect(image.headers()['content-type']).toContain('image/png');
   const png = await image.body();
   expect(png.readUInt32BE(16)).toBe(1200);
   expect(png.readUInt32BE(20)).toBe(630);
+  // Platforms refuse very large share images.
+  expect(png.length).toBeLessThan(300 * 1024);
+});
+
+test('the social image URLs that were shared before the new card redirect to it', async ({ request }) => {
+  for (const old of ['/og-image.png', '/temply-email-editor.png']) {
+    const response = await request.get(old, { maxRedirects: 0 });
+    expect(response.status(), old).toBe(301);
+    expect(response.headers().location, old).toBe(socialCard);
+  }
+});
+
+test('the header block cover is still served', async ({ request }) => {
   const cover = await request.get('/temply-email-editor.webp');
   expect(cover.status()).toBe(200);
   expect(cover.headers()['content-type']).toContain('image/webp');
-  const old = await request.get('/og-image.png', { maxRedirects: 0 });
-  expect(old.status()).toBe(301);
-  expect(old.headers().location).toBe('/temply-email-editor.png');
+});
+
+test('the Organization logo in the structured data is a served, square PNG', async ({ page, request }) => {
+  await page.goto('/');
+  const graphs = await page.locator('script[type="application/ld+json"]').allTextContents();
+  const nodes = graphs.flatMap((json) => (JSON.parse(json) as { '@graph'?: { '@type': string; logo?: string }[] })['@graph'] ?? []);
+  const logo = nodes.find((node) => node['@type'] === 'Organization')?.logo;
+  expect(logo).toBe(`${origin}/brand/temply-app-icon-gradient-512.png`);
+  // The structured data names the production host, which this run is not on.
+  const file = await request.get(new URL(logo!).pathname);
+  expect(file.status()).toBe(200);
+  expect(file.headers()['content-type']).toContain('image/png');
+  const png = await file.body();
+  expect([png.readUInt32BE(16), png.readUInt32BE(20)]).toEqual([512, 512]);
 });
 
 test('a missing public page returns 404', async ({ page }) => {

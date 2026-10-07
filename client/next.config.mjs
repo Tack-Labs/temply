@@ -132,10 +132,13 @@ const nextConfig = {
       })),
     ];
   },
-  // Billing and API keys moved under Settings. These catch bookmarks.
   async redirects() {
     return [
-      { source: '/og-image.png', destination: '/temply-email-editor.png', statusCode: 301 },
+      // Platforms cache a share image per URL, so a new card needs a new URL
+      // and the old ones redirect for the links already shared.
+      { source: '/og-image.png', destination: '/brand/temply-social-card-1200x630.png', statusCode: 301 },
+      { source: '/temply-email-editor.png', destination: '/brand/temply-social-card-1200x630.png', statusCode: 301 },
+      // Billing and API keys moved under Settings. These catch bookmarks.
       { source: '/dashboard/billing', destination: '/dashboard/settings/plan', permanent: false },
       {
         source: '/dashboard/api-keys',

@@ -10,7 +10,7 @@ const structuredData = {
   '@context': 'https://schema.org',
   '@graph': [
     { '@type': 'WebSite', name: 'Temply', url: PRODUCTION_SITE_URL },
-    { '@type': 'Organization', name: 'Temply', url: PRODUCTION_SITE_URL, logo: `${PRODUCTION_SITE_URL}/brand/logo.png` },
+    { '@type': 'Organization', name: 'Temply', url: PRODUCTION_SITE_URL, logo: `${PRODUCTION_SITE_URL}/brand/temply-app-icon-gradient-512.png` },
     {
       '@type': 'SoftwareApplication',
       name: 'Temply',

@@ -39,10 +39,10 @@ export function publicPageMetadata(path: PublicPath): Metadata {
   const title = `${page.title} | Temply`;
   const url = `${PRODUCTION_SITE_URL}${path === '/' ? '' : path}`;
   const image = {
-    url: '/temply-email-editor.png',
+    url: '/brand/temply-social-card-1200x630.png',
     width: 1200,
     height: 630,
-    alt: 'Temply visual email editor. Write the email. We handle the HTML.',
+    alt: 'Temply. Build the email. We handle the HTML.',
   };
   return {
     title: { absolute: title },
