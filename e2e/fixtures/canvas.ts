@@ -173,18 +173,25 @@ export async function hoverControl(page: Page, control: Locator): Promise<void> 
  */
 export async function expectOnScreen(page: Page, box: Locator, what: string): Promise<void> {
   await expect(box, `${what} is visible`).toBeVisible();
-  const rect = await box.boundingBox();
-  const viewport = page.viewportSize();
-  expect(rect, `${what} has a box`).not.toBeNull();
-  expect(viewport, 'the page has a viewport').not.toBeNull();
-  expect(rect!.x, `${what} has not lost its anchor`).toBeGreaterThan(-100);
-  expect(rect!.x, `${what} starts inside the viewport`).toBeLessThan(viewport!.width);
-  expect(rect!.y, `${what} starts below the top of the viewport`).toBeGreaterThanOrEqual(0);
-  expect(rect!.y, `${what} starts above the fold`).toBeLessThan(viewport!.height);
-  expect(rect!.x + rect!.width, `${what} ends inside the viewport`).toBeLessThanOrEqual(viewport!.width + 1);
-  expect(rect!.y + rect!.height, `${what} ends above the fold`).toBeLessThanOrEqual(viewport!.height + 1);
-  const scrolls = await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth);
-  expect(scrolls, `${what} does not push the page sideways`).toBe(false);
+  // Where the box is a moment after the action that put it there is not where
+  // it ends up: a block inserted below the fold is scrolled to a frame later,
+  // and smoothly, and a menu is placed a tick after its block. One read
+  // measured the scroll on its way, so the claim made here is that the box
+  // gets on screen, in the time a customer would wait for it.
+  await expect(async () => {
+    const rect = await box.boundingBox();
+    const viewport = page.viewportSize();
+    expect(rect, `${what} has a box`).not.toBeNull();
+    expect(viewport, 'the page has a viewport').not.toBeNull();
+    expect(rect!.x, `${what} has not lost its anchor`).toBeGreaterThan(-100);
+    expect(rect!.x, `${what} starts inside the viewport`).toBeLessThan(viewport!.width);
+    expect(rect!.y, `${what} starts below the top of the viewport`).toBeGreaterThanOrEqual(0);
+    expect(rect!.y, `${what} starts above the fold`).toBeLessThan(viewport!.height);
+    expect(rect!.x + rect!.width, `${what} ends inside the viewport`).toBeLessThanOrEqual(viewport!.width + 1);
+    expect(rect!.y + rect!.height, `${what} ends above the fold`).toBeLessThanOrEqual(viewport!.height + 1);
+    const scrolls = await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth);
+    expect(scrolls, `${what} does not push the page sideways`).toBe(false);
+  }).toPass({ timeout: 5_000, intervals: [50, 100, 250, 500] });
 }
 
 /** A tiptap node as it is stored: the shape a caller reads `content` off. */

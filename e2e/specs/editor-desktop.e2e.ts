@@ -993,6 +993,12 @@ test.describe('editor on the desktop', () => {
     const t = await api.createTemplate({ title: name('insert at the bottom'), content: doc });
     const pm = await openEditor(page, t.id);
     await expect(pm.locator('> p').last()).toHaveText('Line 14');
+    // The first preflight check puts a banner above the email a moment after
+    // the editor attaches, 75px tall and with no transition, and the fold
+    // moves down with it: a line wholly on screen before it is cut by the
+    // fold after. This document has no preview text, so it always gets the
+    // banner, and what is measured below is the layout the customer works in.
+    await expect(page.getByRole('button', { name: /^Preflight/ })).toBeVisible();
 
     // The block the insert happens under is the last one resting wholly on
     // screen, with the rest of the canvas below the fold — the state a
@@ -1008,6 +1014,12 @@ test.describe('editor on the desktop', () => {
     const under = pm.locator('> p').nth(lastWhollyVisible);
     await under.hover();
     await page.getByRole('button', { name: 'Add a block below' }).click();
+    // Two different failures would end in the same timeout on the row: the
+    // button doing nothing, which it does when the handle has let go of the
+    // block it was showing, and the menu not opening on the line it made.
+    // Each is asserted where it happens.
+    await expect(pm.locator('> p').filter({ hasText: /^\/$/ }), 'the + put the line the menu opens from below the block').toHaveCount(1);
+    await expect(slashMenu(page), 'the block menu opens on that line').toBeVisible();
     await slashRow(page, 'Section').click();
 
     const section = pm.locator('table[data-type="section"]');
