@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from 'bun:test';
+import { afterEach, beforeEach, describe, expect, it, setSystemTime } from 'bun:test';
 import { eq } from 'drizzle-orm';
 import { apiKeysTable, orgUsage, mails, templateVersions } from '@temply/shared/schema';
 import { generateApiKey, generateShortCode } from '../lib/codes';
@@ -15,6 +15,19 @@ beforeEach(async () => {
   db = await createTestDb();
   app = createTestApp(db, publicRoutes);
 });
+
+afterEach(() => setSystemTime());
+
+/**
+ * The burst fuse counts in fixed wall-clock minutes and the route reads the
+ * clock itself, so a test that makes a window's worth of calls fails one run
+ * in a few hundred whenever the minute turns under it: the count restarts
+ * and the call that should be refused is served. Freezing the clock ten
+ * seconds into a window rules that out.
+ */
+function pinMidWindow() {
+  setSystemTime(new Date(Math.floor(Date.now() / 60_000) * 60_000 + 10_000));
+}
 
 async function seedKey(userId: string, { revoked = false, mode = 'live' as 'live' | 'test' } = {}) {
   const { fullKey, prefix, hash } = generateApiKey(mode);
@@ -198,6 +211,7 @@ describe('GET /api/public/v1/templates/:shortCode', () => {
   });
 
   it('returns 429 with Retry-After once a key passes its per-minute burst, and stops counting', async () => {
+    pinMidWindow();
     const { fullKey } = await seedKey(OWNER, { mode: 'test' });
     const shortCode = await seedTemplate(OWNER, undefined, { published: false });
     const limit = API_BURST_PER_MINUTE.test;
@@ -220,6 +234,7 @@ describe('GET /api/public/v1/templates/:shortCode', () => {
   });
 
   it('keeps burst windows per key', async () => {
+    pinMidWindow();
     const first = await seedKey(OWNER, { mode: 'test' });
     const second = await seedKey(OWNER, { mode: 'test' });
     const shortCode = await seedTemplate(OWNER, undefined, { published: false });
