@@ -164,7 +164,7 @@ test.describe('the hero headline', () => {
       };
     });
 
-  async function expectInItsColumn(page: Page, { threeLines }: { threeLines: boolean }) {
+  async function expectInItsColumn(page: Page, { fourLines }: { fourLines: boolean }) {
     for (const width of HEADLINE_WIDTHS) {
       await page.setViewportSize({ width, height: 900 });
       const { column, overflows, stacked, first, second } = await headline(page);
@@ -175,16 +175,20 @@ test.describe('the hero headline', () => {
         expect(line.right, `a line runs past the column ${at}`).toBeLessThanOrEqual(column.right + 1);
       }
       expect(stacked, `the second sentence does not start on a new line ${at}`).toBe(true);
-      // From `lg` the column is a fixed 31rem, and the headline is set to fill
-      // it in three lines with the display face in place.
-      if (threeLines && width >= 1024) expect(first.count + second.count, `the headline wraps ${at}`).toBe(3);
+      // From `lg` the two columns share the container, 504px each (456px at
+      // 1024), and at 68px each sentence breaks once with the display face in
+      // place: four lines, two apiece.
+      if (fourLines && width >= 1024) {
+        expect(first.count, `the first sentence wraps ${at}`).toBe(2);
+        expect(second.count, `the second sentence wraps ${at}`).toBe(2);
+      }
     }
   }
 
-  test('stays inside its column from a phone to a wide screen, in three lines from lg up', async ({ page }) => {
+  test('stays inside its column from a phone to a wide screen, in four lines from lg up', async ({ page }) => {
     await page.goto('/');
     await expectLoaded(page, BRICOLAGE);
-    await expectInItsColumn(page, { threeLines: true });
+    await expectInItsColumn(page, { fourLines: true });
   });
 
   test('stays inside its column when no font file arrives', async ({ page }) => {
@@ -195,7 +199,7 @@ test.describe('the hero headline', () => {
     await page.evaluate(() => document.fonts.ready);
     // next/font's `* Fallback` faces are local() and count as loaded at once.
     expect((await loadedFaces(page)).filter((name) => !/fallback/i.test(name)), 'a font file loaded despite the block').toEqual([]);
-    await expectInItsColumn(page, { threeLines: false });
+    await expectInItsColumn(page, { fourLines: false });
   });
 });
 
@@ -261,8 +265,9 @@ async function open(page: Page, path: string, theme: Theme) {
 // element, so retuning the palette cannot break the case, and only a page
 // that stops painting from the token can.
 test.describe('themes', () => {
-  // The header's primary button is the brand accent in the signed-out
-  // header; a signed-in header swaps it for a neutral Dashboard button.
+  // The header's Start free trial pill is the brand accent, and it is only
+  // there for a visitor with no account, from `sm` up: Sign in beside it is a
+  // quiet link, and the only one of the two a phone's bar has room for.
   test.use({ storageState: { cookies: [], origins: [] } });
 
   const PAGES = ['/', '/docs'] as const;
@@ -298,14 +303,12 @@ test.describe('themes', () => {
       const accent = resolve('background-color', '--ds-accent');
       probe.remove();
       const h1 = document.querySelector('h1');
-      const signIn = Array.from(document.querySelectorAll('header a')).find((a) => a.textContent?.trim() === 'Sign in');
       return {
         isDark: document.documentElement.classList.contains('dark'),
         body: getComputedStyle(document.body).backgroundColor,
         surface,
         h1: h1 ? getComputedStyle(h1).color : null,
         ink,
-        button: signIn ? getComputedStyle(signIn).backgroundColor : null,
         accent,
       };
     });
@@ -322,8 +325,31 @@ test.describe('themes', () => {
         expect(seen.body).toBe(seen.surface);
         expect(seen.h1, 'the page has a heading').not.toBeNull();
         expect(seen.h1).toBe(seen.ink);
-        expect(seen.button, 'the header has a Sign in button').not.toBeNull();
-        expect(seen.button).toBe(seen.accent);
+
+        // A call to action that is on screen paints the accent. `display: none`
+        // still computes a background, so each is asserted visible before it
+        // is read, or the case would pass on a control nobody sees.
+        const accentOf = async (cta: Locator) => {
+          await expect(cta).toBeVisible();
+          return cta.evaluate((el) => getComputedStyle(el).backgroundColor);
+        };
+        // By href, not by role: a role query leaves out what `display: none`
+        // hides, which would make the phone's absence indistinguishable from
+        // the pill having been removed from the bar.
+        const pill = page.locator('header a[href="/sign-up"]');
+        if (onPhone()) {
+          // The bar has no room for the pill below `sm`: hidden by design,
+          // so there is nothing in the header to read. The home page's own
+          // call to action stands in for it; the docs have none.
+          await expect(pill, 'the pill is in the bar').toHaveCount(1);
+          await expect(pill, 'the bar keeps its pill off a phone').toBeHidden();
+          if (path === '/') {
+            const hero = page.getByRole('main').getByRole('link', { name: 'Start your free trial' }).first();
+            expect(await accentOf(hero), 'the hero call to action').toBe(seen.accent);
+          }
+        } else {
+          expect(await accentOf(pill), 'the header has a Start free trial button').toBe(seen.accent);
+        }
 
         // One violet accent with a strong blue channel in both themes.
         const [r, g, b] = channels(seen.accent);
@@ -459,7 +485,7 @@ test.describe('primitives', () => {
     // the global :focus-visible rule in globals.css and the Button's own
     // classes paint the same outline, so deleting either leaves this green.
     // button.test.tsx pins the Button's side.
-    test(`a keyboard-focused primary button shows a 2px accent-ink outline, 3:1 against the page, in the ${theme} theme`, async ({ page }) => {
+    test(`a keyboard-focused primary button shows a 3px focus-token outline, 3:1 against the page, in the ${theme} theme`, async ({ page }) => {
       await open(page, '/', theme);
       const { primary } = heroButtons(page);
       // Real Tab presses, not focus(): the outline is :focus-visible, which a
@@ -484,7 +510,7 @@ test.describe('primitives', () => {
             width: parseFloat(style.outlineWidth),
             offset: parseFloat(style.outlineOffset),
             color: style.outlineColor,
-            accentInk: token('--ds-accent-ink'),
+            focus: token('--ds-focus'),
             surface: token('--ds-surface'),
           };
           probe.remove();
@@ -492,10 +518,10 @@ test.describe('primitives', () => {
         });
 
       // The outline's colour fades in over the fast beat, so wait for it.
-      await expect.poll(async () => (await read()).color).toBe((await read()).accentInk);
+      await expect.poll(async () => (await read()).color).toBe((await read()).focus);
       const ring = await read();
       expect(ring.style).toBe('solid');
-      expect(ring.width).toBeGreaterThanOrEqual(2);
+      expect(ring.width).toBeGreaterThanOrEqual(3);
       expect(ring.offset, 'held off the edge, so it is drawn on the surface and not on the fill').toBeGreaterThanOrEqual(2);
       expect(contrast(ring.color, ring.surface), 'the outline against the page behind it').toBeGreaterThanOrEqual(3);
     });
@@ -511,13 +537,15 @@ test.describe('primitives', () => {
     }
   });
 
-  test('a mouse keeps the dense hero buttons', async ({ page }) => {
+  // The hero buttons are the large size, 56px on any pointer: the pill is the
+  // product's call to action and does not shrink to a dense control for a mouse.
+  test('a mouse gets the same 56px hero buttons', async ({ page }) => {
     test.skip(onPhone(), 'a fine pointer is the desktop project’s');
     await page.goto('/');
     const { primary, other } = heroButtons(page);
     for (const button of [primary, other]) {
       const box = await button.boundingBox();
-      expect(box?.height).toBeLessThan(44);
+      expect(box?.height).toBeGreaterThanOrEqual(56);
     }
   });
 });

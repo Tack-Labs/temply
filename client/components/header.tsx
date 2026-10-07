@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 import { BrandMark } from '~/components/brand-mark';
+import { container } from '~/components/marketing/container';
 import { ThemeToggle } from '~/components/theme-toggle';
 import { Button } from '~/components/ui/button';
 import { Skeleton } from '~/components/ui/skeleton';
@@ -133,6 +134,12 @@ function SectionLink({
   );
 }
 
+// The bar's call to action, a 46px pill from `sm`: a size class on a button
+// only sets it for a fine pointer, and md has no coarse step, so this holds
+// on a tablet as well. Below `sm` each call site brings its own. No glow: the
+// bar is 72px tall and the shadow `md` carries would spill onto the page.
+const cta = 'shadow-sm sm:h-11.5 sm:px-4 sm:text-ui lg:px-5';
+
 // Both icons occupy one cell and cross over, so the button turns into its own
 // close mark rather than swapping glyphs.
 const iconMotion = 'transition-[opacity,rotate,scale] duration-base ease-out motion-reduce:transition-none';
@@ -227,48 +234,71 @@ export function Header() {
         onEditor && 'hidden sm:block',
       )}
     >
-      {/* The gutter stays 20px so the bar's edges line up with the page below.
-          At 320px a signed-in visitor's wordmark and three 44px targets overrun
-          the 280px inside it by 2px at a 12px gap between the groups, so below
-          `sm` the gap is 6px. */}
-      <div className="mx-auto flex h-full max-w-5xl items-center justify-between gap-1.5 px-5 sm:gap-3">
-        <div className="flex items-center gap-10">
-          <Link href="/" className="-mx-1 flex min-h-11 items-center gap-2.5 rounded-md px-1">
-            <BrandMark className="size-5.5 text-accent" />
-            <span className="font-display text-xl font-bold tracking-display text-ink">Temply</span>
-          </Link>
+      {/* The shared column, so the bar's edges are the page's. At 320px a
+          signed-in visitor's wordmark and three 44px targets fill the 280px
+          inside its gutter to within a few pixels: below `sm` the gap between
+          them is 6px and the wordmark is one step smaller. At `md` the four
+          pills, the wordmark and the buttons' reserved room share 704px with
+          about 19px to spare, so the pills and both buttons take a step less
+          padding until `lg`. */}
+      <div className={cn(container, 'flex h-full items-center justify-between gap-1.5 sm:gap-2 lg:gap-3')}>
+        {/* The wordmark is the one item that gives way, so a bar never runs
+            past the screen: the buttons keep their 44px, and a width too
+            narrow for all of it clips the name instead. */}
+        <Link href="/" className="-mx-1 flex min-h-11 min-w-0 items-center gap-2 rounded-md px-1 min-[24rem]:gap-2.5">
+          <BrandMark className="size-5.5 shrink-0 text-accent min-[24rem]:size-6.5" />
+          <span className="min-w-0 truncate font-display text-xl font-bold tracking-display text-ink min-[24rem]:text-2xl">
+            Temply
+          </span>
+        </Link>
 
-          <nav aria-label="Page sections" className="hidden md:block">
-            <ul className="flex items-center gap-7">
-              {sections.map((section) => {
-                const current = onLanding && active === section.hash;
-                return (
-                  <li key={section.hash}>
-                    <SectionLink
-                      section={section}
-                      onLanding={onLanding}
-                      current={current}
-                      // One weight for every state: a heavier active link
-                      // would be wider and nudge its neighbours along.
-                      className={cn(
-                        'block rounded-sm py-2 text-sm font-medium transition-colors duration-fast ease-out motion-reduce:transition-none',
-                        current ? 'text-accent-ink' : 'text-muted hover:text-ink',
-                      )}
-                    />
-                  </li>
-                );
-              })}
-            </ul>
-          </nav>
-        </div>
+        <nav aria-label="Page sections" className="hidden md:block">
+          <ul className="flex items-center gap-0.5 lg:gap-1">
+            {sections.map((section) => {
+              const current = onLanding && active === section.hash;
+              return (
+                <li key={section.hash}>
+                  <SectionLink
+                    section={section}
+                    onLanding={onLanding}
+                    current={current}
+                    // One weight for every state: a heavier active link would
+                    // be wider and nudge its neighbours along.
+                    className={cn(
+                      'flex min-h-11 items-center rounded-full px-2.5 text-ui font-medium transition-colors duration-fast ease-out motion-reduce:transition-none lg:px-4 lg:text-lg',
+                      current ? 'bg-accent-wash text-accent-ink' : 'text-muted hover:bg-hover hover:text-ink',
+                    )}
+                  />
+                </li>
+              );
+            })}
+          </ul>
+        </nav>
 
-        <div className="flex items-center gap-1.5 sm:gap-2">
-          <ThemeToggle />
+        {/* The page is static, so the first paint is every visitor's signed-out
+            bar and the cookie is read after hydration: Dashboard then takes the
+            place of Sign in and the pill, and the sections between the wordmark
+            and this group would slide across the page by half of what it gave
+            up. From `sm` it is held to the widest state, signed out, which is
+            wider than a signed-in one with Clerk's 40px avatar in it, and the
+            slack gathers beside the sections because the group is right-aligned.
+            The classes are what the signed-out group measures at each step, in
+            the bar's own faces, plus 2px for a face that sets a hair wider:
+            310px with the menu button at `sm`, 258px from `md` and 274px from
+            `lg`, where the buttons take more padding. Below `sm` it is
+            Dashboard that is the wider of the two, by 24px, and that is left
+            to move the toggle: held to it, a 320px bar would clip the
+            wordmark of everyone signed out. */}
+        <div className="flex items-center justify-end gap-1.5 sm:min-w-78 sm:gap-2 md:min-w-65 lg:min-w-69">
+          {/* A fine pointer gets the 44px too: this is the one control in the
+              bar that is not a link, and at 320px a smaller one would sit
+              beside two that are not. */}
+          <div className="[&>button]:size-11">
+            <ThemeToggle />
+          </div>
 
           {isSignedIn ? (
             <>
-              {/* Both buttons share a minimum width, so the one swapped for
-                  the other once the cookie is read takes the same room. */}
               {/* A plain anchor, not a Link, because this page loads no Clerk:
                   nothing renews the session cookie, which lasts about a
                   minute, so by the click it has usually expired. Clerk's
@@ -276,7 +306,7 @@ export function Header() {
                   request can follow; a Link's fetch is read as signed out and
                   sent to the login page. A Link would also prefetch that
                   redirect and keep it. */}
-              <Button asChild className="sm:min-w-24">
+              <Button asChild variant="primary" size="md" className={cn(cta, 'h-11 px-3 text-sm')}>
                 <a href={SIGNED_IN_HOME}>Dashboard</a>
               </Button>
               <div className="hidden sm:block">
@@ -284,18 +314,30 @@ export function Header() {
               </div>
             </>
           ) : (
-            <Button asChild variant="primary" className="sm:min-w-24">
-              <Link href="/login">Sign in</Link>
-            </Button>
+            <>
+              {/* Quiet, so the pill after it is the one thing in the bar that
+                  asks for a click. Kept at every width: it is how someone who
+                  already has an account gets in. */}
+              <Button asChild variant="ghost" size="compact" className="h-11 px-3 font-semibold text-ink sm:text-ui lg:px-4">
+                <Link href="/login">Sign in</Link>
+              </Button>
+              {/* Below `sm` there is no room for it: at 320px the wordmark, the
+                  toggle, Sign in and the menu button already fill the bar. */}
+              <Button asChild variant="primary" size="md" className={cn(cta, 'hidden sm:inline-flex')}>
+                <Link href="/sign-up">Start free trial</Link>
+              </Button>
+            </>
           )}
 
-          {/* The name stays put and aria-expanded says which way it will go: a
+          {/* Named for what it controls, not for the action it is about to take,
+              so the name is true in both states and aria-expanded says which:
+              "Open menu" would be wrong the moment the panel was open, and a
               name that flipped as well would be a second state signal, heard
               twice by a screen reader. */}
           <Button
             ref={menuButton}
             size="icon"
-            className="md:hidden"
+            className="size-11 md:hidden"
             aria-label="Menu"
             aria-expanded={menuOpen}
             aria-controls={MENU_ID}

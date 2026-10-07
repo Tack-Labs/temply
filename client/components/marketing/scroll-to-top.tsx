@@ -41,7 +41,7 @@ export function ScrollToTop() {
       aria-label="Scroll to top"
       aria-hidden={!visible}
       tabIndex={visible ? 0 : -1}
-      className={`fixed right-5 bottom-5 z-40 flex size-10 items-center justify-center rounded-full bg-accent text-on-accent shadow-lg transition-[opacity,transform] duration-300 hover:bg-accent-hover sm:right-8 sm:bottom-8 ${
+      className={`fixed right-5 bottom-5 z-40 flex size-10 items-center justify-center rounded-full bg-accent text-on-accent shadow-lg transition-[opacity,transform] duration-base ease-out hover:bg-accent-hover motion-reduce:transition-none sm:right-8 sm:bottom-8 ${
         visible ? 'opacity-100' : 'pointer-events-none translate-y-2 opacity-0'
       }`}
     >

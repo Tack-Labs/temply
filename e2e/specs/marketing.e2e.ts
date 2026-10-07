@@ -16,13 +16,25 @@ const seen = (locator: Locator) =>
     return opacity;
   });
 
+/** The "Start your free trial" link in each place the page offers it. Three
+ *  exist (the hero, the Team card, the closing band), so a bare lookup by name
+ *  trips strict mode: every case that wants one scopes to the section it means.
+ *  The hero's sits in its entrance wrapper, the only `.hero-enter` with a link
+ *  to the sign-up route. */
+const trialLink = (page: Page) => ({
+  hero: page.locator('div.hero-enter').getByRole('link', { name: 'Start your free trial' }),
+  team: page.locator('#pricing').getByRole('link', { name: 'Start your free trial' }),
+  band: page.getByRole('region', { name: 'Ready when you are' }).getByRole('link', { name: 'Start your free trial' }),
+});
+
 /** The marketing home's content a reveal could hide: the hero heading, a price,
- *  the call to action and the contact heading, which is also the page's last
- *  section and so the one furthest below the fold. */
+ *  the call to action, the closing band and the contact heading, which is also
+ *  the page's last section and so the one furthest below the fold. */
 const revealable = (page: Page) => ({
   'the hero heading': page.getByRole('heading', { level: 1 }),
   'a price': page.locator('#pricing').getByRole('group', { name: 'Team' }).getByText(/^\$\d+$/).first(),
-  'the call to action': page.locator('#pricing').getByRole('link', { name: 'Start your free trial' }),
+  'the call to action': trialLink(page).team,
+  'the closing band': page.getByRole('region', { name: 'Ready when you are' }).getByRole('heading', { level: 2 }),
   'the contact heading': page.locator('#contact').getByRole('heading', { level: 2 }),
 });
 
@@ -104,6 +116,26 @@ test.describe('marketing', () => {
     }
   });
 
+  // A card wider than its column can still end inside the viewport, which the
+  // scroll-width case above does not see: it only runs through the gutter. The
+  // grid's column is the page's, so every card is inside it at any phone width.
+  test('the workflow cards stay inside the page column at a phone width', async ({ page }) => {
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    for (const width of [320, 360, 390]) {
+      await page.setViewportSize({ width, height: 844 });
+      await page.goto('/');
+      const { list, cards } = await page.locator('#features ol').evaluate((ol) => ({
+        list: { left: ol.getBoundingClientRect().left, right: ol.getBoundingClientRect().right },
+        cards: Array.from(ol.children).map((li) => ({ left: li.getBoundingClientRect().left, right: li.getBoundingClientRect().right })),
+      }));
+      expect(cards, `the workflow has four cards at ${width}px`).toHaveLength(4);
+      for (const card of cards) {
+        expect(card.left, `a card starts left of the column at ${width}px`).toBeGreaterThanOrEqual(list.left - 0.5);
+        expect(card.right, `a card runs past the column at ${width}px`).toBeLessThanOrEqual(list.right + 0.5);
+      }
+    }
+  });
+
   test('the playground opens the editor for a visitor', async ({ browser }) => {
     // A fresh context with no storageState: the playground is the one editor
     // a signed-out visitor can reach, and the project's `page` is signed in.
@@ -137,7 +169,19 @@ test.describe('marketing', () => {
     for (const figure of ['14 days', 'No card needed', '$5', 'per user a month', '$1 per 1,000 calls', '+10 templates', '50 versions', 'updatedAt']) {
       await expect(pricing).toContainText(figure);
     }
-    await expect(pricing.getByRole('link', { name: 'Start your free trial' })).toHaveAttribute('href', '/sign-up');
+    // The trial's own limits differ from Team's (a smaller store, a call cap),
+    // so each card is checked against its own figures.
+    const trial = pricing.getByRole('group', { name: 'Free trial', exact: true });
+    for (const figure of ['$0', 'for 14 days', 'Every new workspace starts here. No card needed.', '10,000 live API calls', '10 templates, 10 versions of each', '100 MB of storage', '5 live keys and 5 brands', 'When it ends, the workspace turns read-only until someone subscribes. Nothing is deleted.']) {
+      await expect(trial).toContainText(figure);
+    }
+    await expect(pricing.getByRole('group', { name: 'Team', exact: true })).toContainText('1 GB of storage');
+    // It has no link of its own: the page offers the trial in the hero, on the
+    // Team card and in the closing band, and nowhere else.
+    await expect(trial.getByRole('link')).toHaveCount(0);
+    // Scoped to the pricing section: the hero and the closing band carry the
+    // same link, so a page-wide lookup would match three.
+    await expect(trialLink(page).team).toHaveAttribute('href', '/sign-up');
     await expect(pricing.getByRole('link', { name: 'Contact sales' })).toHaveAttribute('href', /^mailto:/);
     await pricing.getByRole('link', { name: 'How to cache' }).click();
     await expect(page).toHaveURL(/\/docs#caching$/);
@@ -209,6 +253,41 @@ test.describe('marketing', () => {
       await expect(more).not.toHaveAttribute('aria-disabled', 'true');
     });
 
+    test('paints a stepper at its bound as the filled disabled pill, at full opacity', async ({ page }) => {
+      const { fewer, more, seats } = await open(page);
+      await fewer.focus();
+      for (let n = await seats(); n > 1; n--) await page.keyboard.press('Enter');
+      await expect(fewer).toHaveAttribute('aria-disabled', 'true');
+
+      const paint = (button: Locator) =>
+        button.evaluate((el) => {
+          const probe = document.createElement('div');
+          document.body.append(probe);
+          const resolve = (property: 'background-color' | 'color', token: string) => {
+            probe.style.cssText = `${property}: var(${token})`;
+            return getComputedStyle(probe).getPropertyValue(property);
+          };
+          const out = {
+            background: getComputedStyle(el).backgroundColor,
+            color: getComputedStyle(el).color,
+            track: resolve('background-color', '--ds-track'),
+            disabled: resolve('color', '--ds-disabled'),
+          };
+          probe.remove();
+          return out;
+        });
+      // The fill and the ink settle over the press transition, so the first
+      // read after the last step can still be the live button's.
+      await expect.poll(async () => (await paint(fewer)).background, { message: 'the bound button is on the track' }).toBe((await paint(fewer)).track);
+      await expect.poll(async () => (await paint(fewer)).color, { message: 'its glyph is in the disabled ink' }).toBe((await paint(fewer)).disabled);
+      // Seen through its ancestors, so the card's own scroll reveal has to
+      // have finished before a faded button can be told from a fading section.
+      await expect.poll(() => seen(fewer), { message: 'it is not the live button faded' }).toBe(1);
+
+      const live = await paint(more);
+      expect(live.background, 'the live neighbour is not on the track').not.toBe(live.track);
+    });
+
     test(`stops at ${MAX_SEATS} users: a press at the cap does nothing and keeps focus`, async ({ page }) => {
       const { more, fewer, seats, expectSeats } = await open(page);
       await more.focus();
@@ -254,6 +333,142 @@ test.describe('marketing', () => {
     }
   });
 
+  test('the closing band says "Ready when you are" and offers one way in', async ({ page }) => {
+    await page.goto('/');
+    const band = page.getByRole('region', { name: 'Ready when you are' });
+    await expect(band).toHaveCount(1);
+    await expect(band.getByRole('heading', { level: 2, name: 'Ready when you are', exact: true })).toBeVisible();
+    await expect(band.getByRole('link')).toHaveCount(1);
+    await expect(band.getByRole('link')).toHaveText('Start your free trial');
+    // Contact stays between the band and the footer: it is the only way a
+    // visitor reaches sales for Enterprise.
+    const top = (locator: Locator) => locator.evaluate((el) => el.getBoundingClientRect().top);
+    const order = [await top(page.locator('#pricing')), await top(band), await top(page.locator('#contact')), await top(page.locator('footer'))];
+    expect([...order].sort((a, b) => a - b), 'pricing, the band, contact and the footer run in that order').toEqual(order);
+  });
+
+  test('every free-trial call to action goes to the sign-up route', async ({ page }) => {
+    await page.goto('/');
+    // The hero, the Team card and the closing band: three, not a fourth that a
+    // later edit forgot to send the same way.
+    await expect(page.getByRole('link', { name: 'Start your free trial' })).toHaveCount(3);
+    for (const [place, link] of Object.entries(trialLink(page))) {
+      await expect(link, `the ${place} call to action`).toHaveAttribute('href', '/sign-up');
+    }
+  });
+
+  // Team and Enterprise share a row from lg, under the trial's; below it all
+  // three stack in the order a workspace meets them. As with the workflow, a
+  // card wider than its column can still end inside the viewport,
+  // which the scroll-width case does not see (the page clips its own overflow),
+  // so each card, and every line of text and control the pricing and the band
+  // hold, is held to the column the page's gutters make.
+  test.describe('the pricing and the closing band at a phone width', () => {
+    type Edges = { left: number; right: number; top: number; bottom: number };
+    const edges = (locator: Locator): Promise<Edges> =>
+      locator.evaluate((el) => {
+        const { left, right, top, bottom } = el.getBoundingClientRect();
+        return { left, right, top, bottom };
+      });
+    /** What the text and the controls under `root` do past `limit`. The
+     *  screen-reader-only count and the band's decorative shapes are left out
+     *  by asking for content elements, not every element. */
+    const pastLimit = (root: Locator, limit: Pick<Edges, 'left' | 'right'>) =>
+      root.evaluate((el, bounds) => {
+        const out: string[] = [];
+        for (const node of Array.from(el.querySelectorAll('h2, h3, p, li, a, button, code'))) {
+          const box = node.getBoundingClientRect();
+          if (box.left < bounds.left - 0.5 || box.right > bounds.right + 0.5) {
+            out.push(`<${node.tagName.toLowerCase()}> "${(node.textContent ?? '').trim().slice(0, 30)}" at ${Math.round(box.left)}..${Math.round(box.right)}`);
+          }
+        }
+        return out;
+      }, limit);
+
+    for (const width of [320, 360, 390]) {
+      test(`stay inside the page column at ${width}px, the trial above Team above Enterprise`, async ({ page }) => {
+        await page.emulateMedia({ reducedMotion: 'reduce' });
+        await page.setViewportSize({ width, height: 844 });
+        await page.goto('/');
+
+        const pricing = page.locator('#pricing');
+        const card = (name: string) => pricing.getByRole('group', { name, exact: true });
+        const band = page.getByRole('region', { name: 'Ready when you are' }).locator('> [data-reveal] > div');
+        // The workflow section hangs from the same container, so its content
+        // box is the page's column.
+        const column = () =>
+          page.locator('#features > div').evaluate((el) => {
+            const box = el.getBoundingClientRect();
+            const style = getComputedStyle(el);
+            return { left: box.left + parseFloat(style.paddingLeft), right: box.right - parseFloat(style.paddingRight) };
+          });
+
+        // A resize is not laid out until a frame later and, with motion
+        // reduced, there is no transition to wait on instead, so the first
+        // reading is polled rather than trusted.
+        await expect.poll(async () => (await edges(card('Team'))).right, { message: `the Team card fits the ${width}px screen` }).toBeLessThanOrEqual(width);
+
+        const col = await column();
+        const measure = async () => ({
+          'Free trial': await edges(card('Free trial')),
+          Team: await edges(card('Team')),
+          Enterprise: await edges(card('Enterprise')),
+          'Template pack': await edges(card('Template pack')),
+        });
+        const cards = await measure();
+        for (const [name, box] of Object.entries(cards)) {
+          expect(box.left, `the ${name} card starts left of the column at ${width}px`).toBeGreaterThanOrEqual(col.left - 0.5);
+          expect(box.right, `the ${name} card runs past the column at ${width}px`).toBeLessThanOrEqual(col.right + 0.5);
+        }
+        expect(cards.Team.top, 'Team stacks under the trial').toBeGreaterThanOrEqual(cards['Free trial'].bottom - 0.5);
+        expect(cards.Enterprise.top, 'Enterprise stacks under Team').toBeGreaterThanOrEqual(cards.Team.bottom - 0.5);
+        expect(await pastLimit(pricing, col), `something in the pricing runs past the column at ${width}px`).toEqual([]);
+
+        // The stepper's longest line is the sum at its cap, which is what has
+        // to fit the narrowest card.
+        const more = card('Team').getByRole('button', { name: 'Increase seats' });
+        await more.focus();
+        for (let n = 0; n < 96; n++) await page.keyboard.press('Enter');
+        await expect(card('Team').getByRole('group', { name: 'Users' })).toHaveText('99 users');
+        const atCap = await measure();
+        expect(atCap.Team.right, `the Team card runs past the column at ${width}px with 99 users`).toBeLessThanOrEqual(col.right + 0.5);
+        expect(await pastLimit(pricing, col), `something in the pricing runs past the column at ${width}px with 99 users`).toEqual([]);
+
+        const box = await edges(band);
+        expect(box.left, `the band starts left of the column at ${width}px`).toBeGreaterThanOrEqual(col.left - 0.5);
+        expect(box.right, `the band runs past the column at ${width}px`).toBeLessThanOrEqual(col.right + 0.5);
+        expect(await pastLimit(band, box), `something in the band runs past its box at ${width}px`).toEqual([]);
+
+        const scrolls = await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth);
+        expect(scrolls, `the page scrolls sideways at ${width}px`).toBe(false);
+      });
+    }
+  });
+
+  test('the Team and Enterprise cards share a row on a wide screen, Team the wider, under the trial', async ({ page }) => {
+    // Reduced motion withholds the scroll reveal, whose slide would otherwise
+    // be mid-flight between one measurement and the next.
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await page.goto('/');
+    const rect = (name: string) =>
+      page.locator('#pricing').getByRole('group', { name, exact: true }).evaluate((el) => {
+        const { x, y, width, height, bottom, right } = el.getBoundingClientRect();
+        return { x, y, width, height, bottom, right };
+      });
+    const trial = await rect('Free trial');
+    const team = await rect('Team');
+    const enterprise = await rect('Enterprise');
+    expect(Math.abs(team.y - enterprise.y), 'the two cards start on one line').toBeLessThan(1);
+    expect(Math.abs(team.height - enterprise.height), 'and are as tall as each other').toBeLessThan(1);
+    expect(team.x, 'Team is the left card').toBeLessThan(enterprise.x);
+    expect(team.width, 'and the wider').toBeGreaterThan(enterprise.width);
+    // The trial takes the row above the pair, so it takes no width from either.
+    expect(trial.bottom, 'the trial sits above the pair').toBeLessThanOrEqual(team.y + 0.5);
+    expect(Math.abs(trial.x - team.x), 'and starts where Team does').toBeLessThan(1);
+    expect(Math.abs(trial.right - enterprise.right), 'and ends where Enterprise does').toBeLessThan(1);
+  });
+
   test('the page has one main and one h1', async ({ page }) => {
     await page.goto('/');
     await expect(page.locator('main')).toHaveCount(1);
@@ -262,7 +477,7 @@ test.describe('marketing', () => {
     await expect(page.locator('h1')).toHaveText('Emails that feel like you. Ready for your app.');
   });
 
-  test('the hero, a price, the call to action and the contact heading are on the page without scripts', async ({ browser }) => {
+  test('the hero, a price, the call to action, the closing band and the contact heading are on the page without scripts', async ({ browser }) => {
     // Nothing here runs: the first paint is what a crawler and a reader with
     // scripts off both get. `toBeVisible` ignores opacity, and the entrance
     // animations start at zero, so what is asserted is how opaque each one
@@ -278,10 +493,13 @@ test.describe('marketing', () => {
       await expect(locator, name).toBeVisible();
       expect(await seen(locator), `${name} is faded out`).toBe(1);
     }
+    // The stepper is rendered by the server at its starting count; nothing
+    // here can run to put it there.
+    await expect(page.locator('#pricing').getByRole('group', { name: 'Team' }).getByRole('group', { name: 'Users' })).toHaveText('3 users');
     await context.close();
   });
 
-  test('the pricing, the showcase rows and the contact section show when the page scripts fail to load', async ({ browser }) => {
+  test('the pricing, the closing band, the workflow cards and the contact section show when the page scripts fail to load', async ({ browser }) => {
     // Scripts are on, but none of the bundle arrives, so the reveal's hook
     // never runs. The page's own head is inline and still does.
     const context = await browser.newContext({ storageState: { cookies: [], origins: [] } });
@@ -294,14 +512,17 @@ test.describe('marketing', () => {
     const pricing = page.locator('#pricing');
     await expect(pricing.getByRole('heading', { name: 'One price per person, after a free trial' })).toBeVisible();
     expect(await seen(pricing.locator('> [data-reveal]')), 'the pricing is faded out').toBe(1);
+    const band = page.getByRole('region', { name: 'Ready when you are' });
+    await expect(band.getByRole('heading', { level: 2 })).toBeVisible();
+    expect(await seen(band.locator('> [data-reveal]')), 'the closing band is faded out').toBe(1);
     expect(await seen(page.locator('#contact > [data-reveal]')), 'the contact section is faded out').toBe(1);
     expect(await seen(page.locator('#contact').getByRole('heading', { level: 2 })), 'the contact heading is faded out').toBe(1);
 
-    // A showcase row stages its two halves separately, each from zero.
+    // A workflow card stages its copy and its visual separately, each from zero.
     const halves = page.locator('.reveal-visual, .reveal-copy');
     const count = await halves.count();
-    expect(count, 'the page has showcase rows').toBeGreaterThan(0);
-    for (let n = 0; n < count; n++) expect(await seen(halves.nth(n)), `showcase half ${n} is faded out`).toBe(1);
+    expect(count, 'the page has workflow cards').toBeGreaterThan(0);
+    for (let n = 0; n < count; n++) expect(await seen(halves.nth(n)), `workflow card half ${n} is faded out`).toBe(1);
     await context.close();
   });
 
@@ -334,24 +555,85 @@ test.describe('marketing', () => {
       await expect(page.locator('#contact').getByRole('heading', { level: 2 })).toBeVisible();
     });
 
-    test('a section too tall for 15% of it to fit the screen still shows on a phone held sideways', async ({ page }) => {
-      // The pricing section is several screens tall at this size, so an
-      // observer asking for 15% of it in view would never be satisfied.
+    /** Where an engine's observer root ends, either way it might inset it: a
+     *  tenth of the height, which is what Chromium does, or of the width, which
+     *  is what the specification says. */
+    const rootHeights = (page: Page) =>
+      page.evaluate(() => [window.innerHeight * 0.9, window.innerHeight - window.innerWidth * 0.1]);
+
+    test('the header\'s Pricing anchor lands on a revealed section on the smallest phone held sideways', async ({ page }) => {
+      // The jump a nav link makes puts the section's top at the header's scroll
+      // padding, not at the top of the screen. 568x280 is a landscape phone
+      // with its browser bars up: the shortest screen the page is held to, and
+      // the one where the most of the section is below the root's edge.
       await page.emulateMedia({ reducedMotion: 'no-preference' });
-      await page.setViewportSize({ width: 568, height: 320 });
+      await page.setViewportSize({ width: 568, height: 280 });
       await page.goto('/');
       await armed(page);
 
       const section = page.locator('#pricing > [data-reveal]');
-      const { height, rootHeight } = await section.evaluate((el) => ({
-        height: el.getBoundingClientRect().height,
-        rootHeight: window.innerHeight - window.innerWidth * 0.1,
-      }));
-      expect(height * 0.15, 'the section is no longer taller than the case assumes').toBeGreaterThan(rootHeight);
+      const { height } = await section.evaluate((el) => ({ height: el.getBoundingClientRect().height }));
+      expect(height, 'the section is no longer taller than twice the observer root, which is the case').toBeGreaterThan(2 * Math.max(...(await rootHeights(page))));
       await page.evaluate(() => document.querySelector('#pricing')!.scrollIntoView());
       await expect(section).toHaveAttribute('data-revealed', 'true');
       await expect.poll(() => seen(section), { message: 'the pricing never showed' }).toBe(1);
     });
+
+    // A scroll that stops with the section's top part-way up the screen is what
+    // a thumb does, and it is the one a jump to the anchor never makes: the
+    // top is at 0 after `scrollIntoView`, where any rule reveals it. Asking for
+    // 15% of a section a little taller than the root left the stretch before it
+    // blank, until its top was nearly at the screen's. The reveal is a
+    // property of the section's height against the screen's, which the copy
+    // moves, so each case also sets the height: the 1742px the pricing came to
+    // after its restyle, where 15% of it fits the root at 568x320 and the
+    // regression shows, and the 2269px it was before, where it did not.
+    for (const { width, height } of [
+      { width: 568, height: 320 },
+      { width: 667, height: 375 },
+    ]) {
+      for (const forced of [null, 1742, 2269]) {
+        const label = forced ? `${forced}px tall` : 'at its own height';
+        test(`pricing shows once any of it is on a ${width}x${height} screen held sideways, ${label}`, async ({ page }) => {
+          await page.emulateMedia({ reducedMotion: 'no-preference' });
+          await page.setViewportSize({ width, height });
+          await page.goto('/');
+          await armed(page);
+
+          const section = page.locator('#pricing > [data-reveal]');
+          if (forced) {
+            // Clipped, so a section the copy has made taller still measures
+            // what the case says.
+            await section.evaluate((el, px) => {
+              el.style.height = `${px}px`;
+              el.style.overflow = 'hidden';
+            }, forced);
+          }
+          const sectionHeight = await section.evaluate((el) => el.getBoundingClientRect().height);
+          expect(sectionHeight, 'the section is no longer taller than twice the observer root, which is the case').toBeGreaterThan(2 * Math.max(...(await rootHeights(page))));
+
+          const scrollTo = (top: number | 'section', offset = 0) =>
+            page.evaluate(
+              ([target, from]) => {
+                const y = target === 'section' ? document.querySelector('#pricing')!.getBoundingClientRect().top + window.scrollY - from : target;
+                window.scrollTo({ top: y, behavior: 'instant' });
+              },
+              [top, offset] as const,
+            );
+
+          // At 250px down, between 13 and 87px of the section's top is inside
+          // the root at these sizes, whichever way an engine insets it; at 60px
+          // it is most of the screen.
+          for (const offset of [250, 150, 60]) {
+            await scrollTo(0);
+            await expect(section, 'the section is hidden again once it is off screen').toHaveAttribute('data-revealed', 'false');
+            await scrollTo('section', offset);
+            await expect(section, `pricing is still blank with its top ${offset}px down a ${width}x${height} screen`).toHaveAttribute('data-revealed', 'true');
+            await expect.poll(() => seen(section), { message: `the pricing never showed with its top ${offset}px down` }).toBe(1);
+          }
+        });
+      }
+    }
   });
 
   test('the contact form asks for what is missing before it sends anything', async ({ page }) => {
@@ -377,6 +659,31 @@ test.describe('marketing', () => {
     await expect(form.getByLabel('Email')).not.toHaveAttribute('aria-invalid', 'true');
     await opened('contact-email-error').toBe(0);
     await opened('contact-message-error').toBeGreaterThan(0);
+  });
+
+  test('the contact form paints its send button as the filled disabled pill while it sends', async ({ page }) => {
+    // The request never answers, so the form stays in "Sending".
+    await page.route('**/api/v1/contact', () => new Promise<void>(() => {}));
+    await page.goto('/');
+    const form = page.locator('#contact');
+    await form.getByLabel('Name').fill('Ada');
+    await form.getByLabel('Email').fill('ada@example.com');
+    await form.getByLabel('Message').fill('Hello there');
+    await form.getByRole('button', { name: 'Send message' }).click();
+
+    const sending = form.getByRole('button', { name: 'Sending' });
+    await expect(sending).toHaveAttribute('aria-disabled', 'true');
+    const paint = () =>
+      sending.evaluate((el) => {
+        const probe = document.createElement('div');
+        document.body.append(probe);
+        probe.style.cssText = 'background-color: var(--ds-track)';
+        const track = getComputedStyle(probe).backgroundColor;
+        probe.remove();
+        return { background: getComputedStyle(el).backgroundColor, track };
+      });
+    await expect.poll(async () => (await paint()).background, { message: 'the sending button is on the track, not the accent' }).toBe((await paint()).track);
+    await expect.poll(() => seen(sending), { message: 'it is not the live button faded' }).toBe(1);
   });
 
   test('docs code tabs switch the language and remember it', async ({ page }) => {

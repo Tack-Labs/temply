@@ -40,9 +40,6 @@ function scanned(): string[] {
  * customer picks, or the pixels of a photograph.
  */
 const ALLOWED_LITERALS: Record<string, Record<string, string>> = {
-  'app/(marketing)/home-client.tsx': {
-    black: 'the stops of a mask-image, which is read for its alpha and never painted',
-  },
   'components/marketing/hero-showreel.tsx': {
     '#b85a33': 'terracotta, the brand colour the film restyles the button to (4.6:1 under a white label)',
     '#0f766e': 'teal, the third swatch in the film\'s colour pill',
@@ -59,11 +56,11 @@ const ALLOWED_LITERALS: Record<string, Record<string, string>> = {
   },
   'components/marketing/showcase-visuals.tsx': {
     '#0f766e': 'Northwind, a saved brand: its base swatch',
-    '#2dd4bf': 'Northwind, a saved brand: its light swatch',
-    '#ccfbf1': 'Northwind, a saved brand: its wash swatch',
-    '#b45309': 'Beacon, a saved brand: its base swatch',
-    '#f59e0b': 'Beacon, a saved brand: its light swatch',
-    '#fef3c7': 'Beacon, a saved brand: its wash swatch',
+    '#7fd1c7': 'Northwind, a saved brand: its light swatch',
+    '#d6f2ee': 'Northwind, a saved brand: its wash swatch',
+    '#d97706': 'Beacon, a saved brand: its base swatch',
+    '#ffc57a': 'Beacon, a saved brand: its light swatch',
+    '#fff0d6': 'Beacon, a saved brand: its wash swatch',
   },
   'components/docs/demo-editor.tsx': {
     '#b85a33': 'terracotta, the colour the bubble menu restyles the button to',

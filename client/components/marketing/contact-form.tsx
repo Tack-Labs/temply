@@ -2,10 +2,11 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { CheckIcon, Loader2Icon, SendIcon } from 'lucide-react';
-import { Button } from '~/components/ui/button';
+import { ariaDisabled, Button } from '~/components/ui/button';
 import { Input } from '~/components/ui/input';
 import { Label } from '~/components/ui/label';
 import { Card, Reveal } from '~/components/ui/surfaces';
+import { Textarea } from '~/components/ui/textarea';
 import { cn } from '~/lib/classname';
 import { FetchError, httpPost } from '~/lib/http';
 import { CONTACT_EMAIL } from '~/lib/site';
@@ -14,11 +15,11 @@ type Status = 'idle' | 'sending' | 'sent' | 'error';
 type Field = 'name' | 'email' | 'message';
 type Errors = Partial<Record<Field, string>>;
 
-// text-lg is 16px: anything smaller makes iOS zoom the page when a field takes
-// focus. The border is the 3:1 `faint`, since the fill does not set a field
-// apart from the card it sits on.
-const control =
-  'h-11 pointer-coarse:h-12 border-faint px-3.5 text-lg text-ink aria-invalid:border-danger-ink';
+// Height, radius, border and the 16px text (anything smaller makes iOS zoom the
+// page when a field takes focus) all come from `Input`. The form adds only the
+// ink and the invalid border, which a utility has to restate to beat the focus
+// border the primitive sets.
+const control = 'text-ink aria-invalid:border-danger-ink';
 const labelClass = 'text-base font-semibold';
 const failureClass = 'rounded-md bg-danger-wash px-3.5 py-2.5 text-base text-danger-ink';
 
@@ -230,16 +231,12 @@ export function ContactForm() {
 
           <FieldGroup id="contact-message" label="Message" error={errors.message}>
             {(aria) => (
-              <textarea
+              <Textarea
                 {...aria}
                 ref={messageRef}
                 maxLength={5000}
                 rows={5}
-                className={cn(
-                  'flex min-h-32 w-full resize-y rounded-md border bg-raised py-2.5 placeholder:text-muted',
-                  control,
-                  'h-auto pointer-coarse:h-auto',
-                )}
+                className={control}
                 value={message}
                 onChange={(e) => {
                   setMessage(e.target.value);
@@ -285,7 +282,7 @@ export function ContactForm() {
               variant="primary"
               size="lg"
               aria-disabled={sending}
-              className="aria-disabled:cursor-wait aria-disabled:opacity-45 aria-disabled:hover:bg-accent"
+              className={cn('aria-disabled:cursor-wait', ariaDisabled)}
             >
               {sending ? (
                 <Loader2Icon className="animate-spin motion-reduce:animate-none" aria-hidden />

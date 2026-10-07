@@ -1,13 +1,15 @@
 import { expect, test, type Locator, type Page } from '@playwright/test';
 
-// The marketing header, read where a visitor meets it: signed out, on the
-// public pages, at the widths the two projects run at. A signed-out context
-// is also what keeps the header on its Sign in button, which is the one the
-// theme cases read.
+// The marketing header, read where a visitor meets it: on the public pages, at
+// the widths the two projects run at. Signed out, except where a block sets
+// Clerk's cookie: a signed-out context is what keeps the bar on its Sign in
+// and Start free trial buttons, which most of the cases below look for.
 test.use({ storageState: { cookies: [], origins: [] } });
 
 /** Tailwind's `md`: from here the sections sit in the bar and the menu button is gone. */
 const MD = 768;
+/** Tailwind's `sm`: from here the bar has room for Start free trial. */
+const SM = 640;
 const BAR = 72;
 
 const THEMES = ['light', 'dark'] as const;
@@ -123,6 +125,39 @@ test.describe('the bar', () => {
       }
     }
   });
+
+  test('puts a 46px Start free trial pill beside Sign in from sm, and leaves it out of a phone bar', async ({ page }) => {
+    await page.goto('/');
+    const trial = header(page).getByRole('link', { name: 'Start free trial' });
+    if ((page.viewportSize()?.width ?? 0) >= SM) {
+      await expect(trial).toBeVisible();
+      await expect(trial).toHaveAttribute('href', '/sign-up');
+      const box = await trial.boundingBox();
+      expect(box?.height).toBeGreaterThanOrEqual(46);
+    } else {
+      await expect(trial).toBeHidden();
+    }
+  });
+
+  // At md the wordmark, the four sections, the toggle, Sign in and the pill
+  // share 704px with about 19px to spare, which is where a bar breaks first.
+  for (const width of [768, 820, 1023]) {
+    test(`keeps every control inside the page's gutters at ${width}px`, async ({ page }) => {
+      await page.setViewportSize({ width, height: 800 });
+      await page.goto('/');
+      await expect(header(page).getByRole('link', { name: 'Start free trial' })).toBeVisible();
+      // The bar is measured in the faces it will keep: the fallback ones are
+      // close to the real ones but not the same width, and md is where the bar
+      // has the least room.
+      await page.evaluate(() => document.fonts.ready);
+      const { scroll, client, stray } = await overflow(page);
+      expect(scroll, `the bar overflows at ${width}px`).toBeLessThanOrEqual(client);
+      expect(stray, `controls past the edge at ${width}px`).toEqual([]);
+      // The last control ends on the gutter the column promises, not inside it.
+      const right = await header(page).getByRole('link', { name: 'Start free trial' }).evaluate((el) => el.getBoundingClientRect().right);
+      expect(right, `the pill runs into the gutter at ${width}px`).toBeLessThanOrEqual(client - 31);
+    });
+  }
 
   test('puts an in-page anchor below itself, whichever way it is reached', async ({ page }) => {
     await page.goto('/');
@@ -531,4 +566,62 @@ test.describe('the bar when someone is signed in', () => {
       expect(stray, `controls past the edge at ${width}px`).toEqual([]);
     }
   });
+});
+
+test.describe('the bar as the page hydrates for someone signed in', () => {
+  // The page is static, so its first paint is the signed-out bar for everyone:
+  // Clerk's cookie is read after hydration, and Dashboard takes the place of
+  // Sign in and the pill then. The sections sit between the wordmark and the
+  // buttons, so a bar that let that group shrink would slide them across the
+  // page the moment the swap landed.
+  for (const width of [1300, 1024, 768]) {
+    test(`leaves the sections where they were first painted at ${width}px`, async ({ page, context, baseURL }) => {
+      // A unix time, as Clerk writes it once a session has existed.
+      await context.addCookies([{ name: '__client_uat', value: '1730000000', url: baseURL! }]);
+      await page.setViewportSize({ width, height: 800 });
+
+      // Held back, no script runs: what is measured first is the markup the
+      // server sent, with its stylesheet, rather than a race with hydration.
+      let release!: () => void;
+      const scripts = new Promise<void>((resolve) => { release = resolve; });
+      await page.route('**/_next/static/**/*.js', async (route) => {
+        await scripts;
+        await route.continue();
+      });
+      try {
+        await page.goto('/', { waitUntil: 'domcontentloaded' });
+        // The swap is the case, not the faces arriving: measured in the real
+        // ones, so only what the cookie changes can move the sections.
+        await page.evaluate(() => document.fonts.ready);
+        const bar = header(page);
+        await expect(bar.getByRole('link', { name: 'Sign in' })).toBeVisible();
+        const sections = bar.getByRole('navigation', { name: 'Page sections' });
+        const left = async () => sections.evaluate((el) => el.getBoundingClientRect().left);
+        const painted = await left();
+
+        release();
+        await expect(bar.getByRole('link', { name: 'Dashboard' })).toBeVisible();
+        await expect(page.locator('html')).toHaveAttribute('data-reveal-ready', '');
+        await expect(bar.getByRole('link', { name: 'Sign in' })).toHaveCount(0);
+        await page.evaluate(() => document.fonts.ready);
+        // Two readings an interval apart agreeing is the bar at rest.
+        let last = Number.NaN;
+        await expect
+          .poll(
+            async () => {
+              const now = await left();
+              const held = now === last;
+              last = now;
+              return held ? now : Number.NaN;
+            },
+            { intervals: [150] },
+          )
+          .not.toBeNaN();
+        expect(Math.abs(last - painted), `the sections moved from ${painted}px to ${last}px at ${width}px`).toBeLessThanOrEqual(1);
+      } finally {
+        release();
+        await page.unrouteAll({ behavior: 'wait' });
+      }
+    });
+  }
 });

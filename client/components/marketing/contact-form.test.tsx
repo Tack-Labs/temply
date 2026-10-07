@@ -104,6 +104,21 @@ describe('ContactForm failure notice', () => {
     expect(alerts(view)).toHaveLength(0);
   });
 
+  it('shows the send button as the filled disabled pill while a send is in flight, not the live violet faded', async () => {
+    globalThis.fetch = mock(() => new Promise<Response>(() => {})) as unknown as typeof fetch;
+    const view = render(<ContactForm />);
+    fillIn(view);
+    await submit(view);
+
+    const send = view.getByRole('button', { name: 'Sending' });
+    expect(send.getAttribute('aria-disabled'), 'it keeps the keyboard, so it is not `disabled`').toBe('true');
+    const classes = send.className.split(/\s+/);
+    for (const needed of ['aria-disabled:bg-track', 'aria-disabled:text-disabled', 'aria-disabled:shadow-none', 'aria-disabled:cursor-wait']) {
+      expect(classes).toContain(needed);
+    }
+    expect(classes.some((name) => name.startsWith('aria-disabled:opacity'))).toBe(false);
+  });
+
   it('uses the server\'s own words, with no address, when the fuse is blown', async () => {
     answers = [fused];
     const view = render(<ContactForm />);

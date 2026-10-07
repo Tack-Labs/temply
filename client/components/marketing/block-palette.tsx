@@ -28,9 +28,9 @@ const paletteRows = [
 
 export function BlockPalette() {
   return (
-    <div className="overflow-hidden rounded-xl border border-line bg-raised shadow-lg">
+    <div className="overflow-hidden rounded-card bg-raised shadow-lg">
       {/* The query line. `/` is shown as typed, with a caret after it. */}
-      <div className="flex items-center gap-2.5 border-b border-line px-4 py-3">
+      <div className="flex items-center gap-2.5 border-b border-line px-5 py-3.5">
         <span className="font-mono text-base text-accent-ink">/</span>
         <span className="text-base text-muted">Insert a block</span>
         <span
@@ -41,7 +41,7 @@ export function BlockPalette() {
         </span>
       </div>
 
-      <ul className="p-1.5">
+      <ul className="p-2">
         {paletteRows.map((row, index) => {
           const Icon = row.icon;
           // The first row carries the menu's resting highlight, so the card
@@ -50,10 +50,10 @@ export function BlockPalette() {
           return (
             <li
               key={row.name}
-              className={`flex items-center gap-3 rounded-md px-2.5 py-2 ${active ? 'bg-accent-wash' : ''}`}
+              className={`flex items-center gap-3 rounded-field px-3 py-2 ${active ? 'bg-accent-wash' : ''}`}
             >
               <span
-                className={`flex size-7 items-center justify-center rounded-sm border ${
+                className={`flex size-8 items-center justify-center rounded-md border ${
                   active
                     ? 'border-accent-ink/25 bg-raised text-accent-ink'
                     : 'border-line bg-surface text-muted'
@@ -76,7 +76,7 @@ export function BlockPalette() {
         })}
       </ul>
 
-      <div className="border-t border-line px-4 py-2.5 font-mono text-2xs text-muted">
+      <div className="border-t border-line px-5 py-3 font-mono text-2xs text-muted">
         16 blocks · filter by typing
       </div>
     </div>
