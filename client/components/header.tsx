@@ -5,7 +5,7 @@ import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
-import { BrandMark } from '~/components/brand-mark';
+import { BrandLogo } from '~/components/brand-logo';
 import { container } from '~/components/marketing/container';
 import { ThemeToggle } from '~/components/theme-toggle';
 import { Button } from '~/components/ui/button';
@@ -239,21 +239,23 @@ export function Header() {
       )}
     >
       {/* The shared column, so the bar's edges are the page's. At 320px a
-          signed-in visitor's wordmark and three 44px targets fill the 280px
-          inside its gutter to within a few pixels: below `sm` the gap between
-          them is 6px and the wordmark is one step smaller. At `md` the four
-          pills, the wordmark and the buttons' reserved room share 704px with
-          about 19px to spare, so the pills and both buttons take a step less
-          padding until `lg`. */}
+          signed-in visitor's lockup and three 44px targets are 5px more than
+          the 280px inside its gutter: below `sm` the gap between them is 6px,
+          the lockup is one step smaller, and it gives up the last 5px itself
+          (see below). At `md` the four pills, the lockup and the buttons'
+          reserved room share 704px with 18px to spare, so the pills and both
+          buttons take a step less padding until `lg`; at 35px, the height the
+          sidebar and sign-in screen draw it, it is 1px short. */}
       <div className={cn(container, 'flex h-full items-center justify-between gap-1.5 sm:gap-2 lg:gap-3')}>
-        {/* The wordmark is the one item that gives way, so a bar never runs
-            past the screen: the buttons keep their 44px, and a width too
-            narrow for all of it clips the name instead. */}
-        <Link href="/" className="-mx-1 flex min-h-11 min-w-0 items-center gap-2 rounded-md px-1 min-[24rem]:gap-2.5">
-          <BrandMark className="size-5.5 shrink-0 text-accent min-[24rem]:size-6.5" />
-          <span className="min-w-0 truncate font-display text-xl font-bold tracking-display text-ink min-[24rem]:text-2xl">
-            Temply
-          </span>
+        {/* An image cannot clip its name the way text did, so the lockup steps
+            down to 24px below 24rem, where it takes about what the old mark
+            and word did. Where even that is too wide (a signed-in 320px bar,
+            or anything narrower) the image scales down inside its link, in
+            its own shape, rather than push the controls out of the gutter or
+            scroll the page; the width of the bar is what is measured at
+            320px (header.e2e.ts). */}
+        <Link href="/" aria-label="Temply" className="-mx-1 flex min-h-11 min-w-0 items-center rounded-md px-1">
+          <BrandLogo className="h-6 w-auto max-w-full min-[24rem]:h-7.5" />
         </Link>
 
         <nav aria-label="Page sections" className="hidden md:block">
@@ -281,7 +283,7 @@ export function Header() {
 
         {/* The page is static, so the first paint is every visitor's signed-out
             bar and the cookie is read after hydration: Dashboard then takes the
-            place of Sign in and the pill, and the sections between the wordmark
+            place of Sign in and the pill, and the sections between the lockup
             and this group would slide across the page by half of what it gave
             up. From `sm` the cell is held to the signed-out group, the wider of
             the two (a signed-in one has Clerk's 40px avatar in it), by an
@@ -291,7 +293,7 @@ export function Header() {
             came up 8px short on another's. The live group is right-aligned, so
             the slack gathers beside the sections. Below `sm` it is Dashboard
             that is the wider of the two, by 24px, and that is left to move the
-            toggle: held to it, a 320px bar would clip the wordmark of everyone
+            toggle: held to it, a 320px bar would shrink the lockup of everyone
             signed out. */}
         <div className="grid justify-items-end">
           <div className="col-start-1 row-start-1 flex items-center justify-end gap-1.5 sm:gap-2">
@@ -326,7 +328,7 @@ export function Header() {
                 <Button asChild variant="ghost" size="compact" className={signIn}>
                   <Link href="/login">Sign in</Link>
                 </Button>
-                {/* Below `sm` there is no room for it: at 320px the wordmark, the
+                {/* Below `sm` there is no room for it: at 320px the lockup, the
                     toggle, Sign in and the menu button already fill the bar. */}
                 <Button asChild variant="primary" size="md" className={cn(cta, 'hidden sm:inline-flex')}>
                   <Link href="/sign-up">Start free trial</Link>

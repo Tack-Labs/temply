@@ -58,3 +58,34 @@ test.describe('brand icons', () => {
     }
   });
 });
+
+test.describe('the mark and the lockup in the app', () => {
+  // Signed out: someone signed in is sent past /login, so the screen under
+  // test would never show.
+  test.use({ storageState: { cookies: [], origins: [] } });
+
+  // A mark that stopped sizing by height would be square again, and a lockup
+  // whose file 404s has a natural width of 0; neither shows in a unit test.
+  test('the 404 page draws the gradient mark 32px tall, in its 9:8 shape', async ({ page }) => {
+    const response = await page.goto('/this-page-does-not-exist');
+    expect(response?.status()).toBe(404);
+    const mark = page.locator('svg[viewBox="0 0 360 320"]');
+    await expect(mark).toHaveCount(1);
+    const box = (await mark.boundingBox())!;
+    expect(box.height).toBeCloseTo(32, 0);
+    expect(box.width).toBeCloseTo(36, 0);
+    await expect(mark.locator('path')).toHaveAttribute('fill', /^url\(#[\w-]+\)$/);
+  });
+
+  test('the sign-in screen leads with the lockup as a link home, 35px tall and loaded', async ({ page }) => {
+    // Clerk's card is not under test and waits on a host the run does not reach.
+    await page.goto('/login', { waitUntil: 'domcontentloaded' });
+    const home = page.getByRole('link', { name: 'Temply', exact: true });
+    await expect(home).toHaveAttribute('href', '/');
+    const shown = home.locator('img:visible');
+    await expect(shown).toHaveCount(1);
+    await expect.poll(() => shown.evaluate((img: HTMLImageElement) => img.naturalWidth)).toBeGreaterThan(0);
+    expect((await shown.boundingBox())?.height).toBeCloseTo(35, 0);
+    expect((await home.boundingBox())?.height).toBeGreaterThanOrEqual(44);
+  });
+});

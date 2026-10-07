@@ -129,6 +129,24 @@ test.describe('the sidebar', () => {
     await expect(sidebar.getByRole('button', { name: 'Dark theme', exact: true })).toHaveAttribute('aria-pressed', /^(true|false)$/);
   });
 
+  test('leads with the lockup: one image in view, loaded, 35px tall, 8px in from the column, and the link answers to Temply', async ({ page }) => {
+    await page.goto('/dashboard/templates');
+    const sidebar = await openSidebar(page);
+    const brand = sidebar.getByRole('link', { name: 'Temply', exact: true });
+    await expect(brand).toHaveAttribute('href', '/dashboard');
+
+    const shown = brand.locator('img:visible');
+    await expect(shown).toHaveCount(1);
+    // A file that did not load has a natural width of 0.
+    await expect.poll(() => shown.evaluate((img: HTMLImageElement) => img.naturalWidth)).toBeGreaterThan(0);
+    await expect(sidebar.getByRole('img', { name: 'Temply' })).toHaveCount(1);
+
+    const box = (await shown.boundingBox())!;
+    expect(box.height).toBeCloseTo(35, 0);
+    // The column pads 16px and the link 8: the line the user block's avatar sits on.
+    expect(box.x - (await sidebar.boundingBox())!.x).toBeCloseTo(24, 0);
+  });
+
   test('keeps the account menu in reach, named as the auth spec finds it', async ({ page }) => {
     await page.goto('/dashboard/templates');
     const sidebar = await openSidebar(page);

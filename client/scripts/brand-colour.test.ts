@@ -7,10 +7,11 @@ import manifest from '../app/manifest';
 /**
  * The brand has its own colours and the app its own accent; the two are not
  * the same violet and do not follow each other. What this file watches is the
- * places that cannot read a CSS variable and so repeat a value: the icon SVGs
- * repeat the three brand stops, the manifest and the error page (which renders
- * when the layout, and with it the stylesheet, did not) repeat `--ds-accent`.
- * Each fails here when its token moves and the copy does not.
+ * places that cannot read a CSS variable and so repeat a value: the icon and
+ * lockup SVGs repeat the three brand stops (and the light lockup's wordmark
+ * repeats the navy), the manifest and the error page (which
+ * renders when the layout, and with it the stylesheet, did not) repeat
+ * `--ds-accent`. Each fails here when its token moves and the copy does not.
  * The icon PNGs are rasters supplied by the brand pack; they cannot be
  * compared to a token, so what is pinned is that each is a PNG of the size
  * its name says, and that the copies Next needs under app/ are the same
@@ -56,6 +57,31 @@ describe('the gradient icon', () => {
 
   it('is one file under app/ and public/brand/, so the favicon and the manifest cannot show different icons', () => {
     expect(read('app/icon0.svg')).toBe(read('public/brand/temply-app-icon-gradient.svg'));
+  });
+});
+
+describe('the horizontal lockups', () => {
+  const colour = read('public/brand/temply-logo-horizontal.svg');
+  const onDark = read('public/brand/temply-logo-horizontal-on-dark.svg');
+  const paths = (svg: string) => [...svg.matchAll(/<path\b[^>]*\sd="([^"]+)"/g)].map((match) => match[1]);
+  const fills = (svg: string) => [...svg.matchAll(/<path\b[^>]*\sfill="([^"]+)"/g)].map((match) => match[1]?.toLowerCase());
+  const stops = (svg: string) => [...svg.matchAll(/<stop\b[^>]*\sstop-color="(#[0-9a-fA-F]{6})"/g)].map((match) => match[1]?.toLowerCase());
+
+  for (const [name, svg] of [['temply-logo-horizontal.svg', colour], ['temply-logo-horizontal-on-dark.svg', onDark]] as const) {
+    it(`${name} has the mark running coral, pink, purple, and nothing that runs or loads`, () => {
+      expect(stops(svg)).toEqual(['coral', 'pink', 'purple'].map((token) => brand(token)?.toLowerCase()));
+      expect(svg).not.toMatch(/<script|<image|<foreignObject|\shref=|xlink|@import|url\((?!#)/i);
+    });
+  }
+
+  it('differ only in the wordmark\'s colour: navy on the light surface, white on the dark one', () => {
+    expect(paths(colour)).toEqual(paths(onDark));
+    expect(fills(colour)).toEqual(['url(#temply-gradient)', brand('navy')?.toLowerCase()]);
+    expect(fills(onDark)).toEqual(['url(#temply-gradient)', '#ffffff']);
+  });
+
+  it('are the 1213.66 by 320 the BrandLogo attributes hold the ratio of', () => {
+    for (const svg of [colour, onDark]) expect(svg).toContain('viewBox="0 0 1213.66 320"');
   });
 });
 

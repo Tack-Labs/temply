@@ -6,7 +6,7 @@ import { BrandMark } from '~/components/brand-mark';
 export default function ShareNotFound() {
   return (
     <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-sunken px-6 text-center">
-      <BrandMark className="size-6 text-accent" />
+      <BrandMark className="h-8 w-auto" />
       <h1 className="font-display text-xl font-semibold tracking-display text-ink">This link is not active</h1>
       <p className="max-w-sm text-sm text-muted">
         The person who shared it may have turned it off. Ask them for a new link.

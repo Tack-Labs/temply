@@ -66,16 +66,20 @@ describe('Sidebar', () => {
     }
   });
 
-  it('draws the brand as a 26px accent mark and a 24px Bricolage wordmark, 44px tall', () => {
+  it('draws the brand as the 35px lockup, 8px in from the column, in a 44px row', () => {
     const brand = render(<Sidebar />).getByRole('link', { name: 'Temply' });
     expect(brand.getAttribute('href')).toBe('/dashboard');
-    for (const needed of ['h-11', 'font-display', 'text-2xl', 'font-bold', 'tracking-display', 'text-ink']) {
-      expect(brand.className).toContain(needed);
-    }
-    const mark = brand.querySelector('svg');
-    expect(mark?.getAttribute('class')).toContain('size-6.5');
-    expect(mark?.getAttribute('class')).toContain('text-accent');
-    expect(mark?.getAttribute('aria-hidden')).toBe('true');
+    for (const needed of ['h-11', 'px-2', 'items-center']) expect(brand.className).toContain(needed);
+    // The wordmark is the pack's image, not text in a face of the app's.
+    expect(brand.className).not.toContain('font-display');
+    expect(brand.textContent).toBe('');
+    const [light, dark] = [...brand.querySelectorAll('img')];
+    expect([light?.getAttribute('src'), dark?.getAttribute('src')]).toEqual([
+      '/brand/temply-logo-horizontal.svg',
+      '/brand/temply-logo-horizontal-on-dark.svg',
+    ]);
+    for (const image of [light, dark]) expect(image?.className).toContain('h-8.75');
+    expect(brand.querySelector('svg')).toBeNull();
   });
 
   it('keeps Settings and the theme toggle out of the Dashboard nav and out of each other', () => {

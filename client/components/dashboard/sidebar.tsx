@@ -2,7 +2,7 @@
 
 import { OrganizationSwitcher } from '@clerk/nextjs';
 import Link from 'next/link';
-import { BrandMark } from '~/components/brand-mark';
+import { BrandLogo } from '~/components/brand-logo';
 import { useTheme } from '~/components/theme-provider';
 import { ThemeToggle } from '~/components/theme-toggle';
 import { pressable } from '~/components/ui/button';
@@ -70,14 +70,11 @@ export function Sidebar({
               user block's avatar sits on, and the 44px row is the target. */}
           <Link
             href="/dashboard"
+            aria-label="Temply"
             onClick={onNavigate}
-            className={cn(
-              'flex h-11 items-center gap-2.5 rounded-field px-2 font-display text-2xl font-bold tracking-display text-ink',
-              pressable,
-            )}
+            className={cn('flex h-11 items-center rounded-field px-2', pressable)}
           >
-            <BrandMark className="size-6.5 shrink-0 text-accent" />
-            Temply
+            <BrandLogo className="h-8.75 w-auto" />
           </Link>
           {headerAction}
         </div>

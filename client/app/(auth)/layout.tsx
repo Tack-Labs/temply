@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import { BrandLogo } from '~/components/brand-logo';
 import { Clerk } from '~/components/clerk';
 
 export const metadata: Metadata = { robots: { index: false, follow: false } };
@@ -15,8 +16,8 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
   return (
     <Clerk>
       <main className="flex min-h-screen flex-col items-center justify-center gap-6 bg-surface px-4">
-        <Link href="/" className="font-display text-lg font-semibold tracking-display text-ink">
-          Temply
+        <Link href="/" aria-label="Temply" className="flex min-h-11 items-center rounded-md">
+          <BrandLogo className="h-8.75 w-auto" />
         </Link>
         {children}
         <p className="max-w-xs text-center text-xs text-muted">

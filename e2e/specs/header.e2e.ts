@@ -57,7 +57,11 @@ function settled(page: Page, target: Locator) {
   };
 }
 
-/** What a bar wider than its screen leaves behind: the page scrolling sideways, or a control sitting past an edge. */
+/**
+ * What a bar wider than its screen leaves behind: the page scrolling
+ * sideways, a control sitting past an edge, or one past the column's own
+ * right edge, which is inside the gutter and so does not scroll the page.
+ */
 async function overflow(page: Page) {
   return page.evaluate(() => {
     const client = document.documentElement.clientWidth;
@@ -68,7 +72,10 @@ async function overflow(page: Page) {
         return box.width > 0 && (box.left < 0 || box.right > client);
       })
       .map((el) => el.getAttribute('aria-label') ?? el.textContent?.trim() ?? el.tagName);
-    return { scroll: document.documentElement.scrollWidth, client, stray };
+    const column = bar.firstElementChild as HTMLElement;
+    const edge = column.getBoundingClientRect().right - Number.parseFloat(getComputedStyle(column).paddingRight);
+    const pastColumn = Math.max(0, ...Array.from(bar.querySelectorAll<HTMLElement>('a, button')).map((el) => el.getBoundingClientRect()).filter((box) => box.width > 0).map((box) => box.right - edge));
+    return { scroll: document.documentElement.scrollWidth, client, stray, pastColumn };
   });
 }
 
@@ -520,9 +527,56 @@ test.describe('the menu on a phone', () => {
   }
 });
 
+const LOCKUP = {
+  light: '/brand/temply-logo-horizontal.svg',
+  dark: '/brand/temply-logo-horizontal-on-dark.svg',
+} as const;
+
+test.describe('the lockup', () => {
+  // Both files are in the page and the app's `.dark` class shows one, so the
+  // link has to be named by the one in view: a broken file has no natural
+  // width, and a hidden twin left in the tree would read the name twice.
+  for (const theme of THEMES) {
+    test(`is the ${theme === 'dark' ? 'on-dark' : 'colour'} file in the ${theme} theme, loaded, and the link is named Temply`, async ({ page }) => {
+      await open(page, '/', theme);
+      const link = header(page).getByRole('link', { name: 'Temply' });
+      await expect(link).toHaveAccessibleName('Temply');
+
+      const shown = link.locator('img:visible');
+      await expect(shown).toHaveCount(1);
+      await expect(shown).toHaveAttribute('src', LOCKUP[theme]);
+      await expect.poll(() => shown.evaluate((img: HTMLImageElement) => img.naturalWidth)).toBeGreaterThan(0);
+      await expect(header(page).getByRole('img', { name: 'Temply' })).toHaveCount(1);
+
+      const box = (await shown.boundingBox())!;
+      expect(box.width / box.height, 'the lockup keeps its 1213.66 by 320 shape').toBeCloseTo(1213.66 / 320, 1);
+    });
+  }
+});
+
+test.describe('the lockup in forced colours', () => {
+  // The page is painted from the system's Canvas here, whatever the app's own
+  // theme says, and an image keeps its colours: navy letters on a black Canvas
+  // are not there. So the file follows the system's scheme, and the two
+  // mismatches are the cases that matter.
+  for (const [scheme, theme] of [['dark', 'light'], ['light', 'dark']] as const) {
+    test.describe(`on a ${scheme} Canvas`, () => {
+      test.use({ forcedColors: 'active', colorScheme: scheme });
+
+      test(`shows the ${scheme === 'dark' ? 'on-dark' : 'colour'} file although the app's theme is ${theme}`, async ({ page }) => {
+        await open(page, '/', theme);
+        const shown = header(page).getByRole('link', { name: 'Temply' }).locator('img:visible');
+        await expect(shown).toHaveCount(1);
+        await expect(shown).toHaveAttribute('src', LOCKUP[scheme]);
+        await expect.poll(() => shown.evaluate((img: HTMLImageElement) => img.naturalWidth)).toBeGreaterThan(0);
+      });
+    });
+  }
+});
+
 test.describe('the bar at the narrowest phone', () => {
   // 320px is the iPhone SE and the smallest width the layout promises: the
-  // wordmark, the theme toggle, the sign-in button and the menu button have
+  // lockup, the theme toggle, the sign-in button and the menu button have
   // to share it without scrolling the page or running off the right edge,
   // and with a 44px target each.
   for (const width of [320, 390]) {
@@ -536,6 +590,9 @@ test.describe('the bar at the narrowest phone', () => {
       const closed = await overflow(page);
       expect(closed.scroll, `the bar overflows at ${width}px`).toBeLessThanOrEqual(closed.client);
       expect(closed.stray, `controls past the edge at ${width}px`).toEqual([]);
+      expect(closed.pastColumn, `controls past the column at ${width}px`).toBeLessThan(0.5);
+      // The lockup is 24px tall below 24rem (384px) and 30px from there.
+      expect((await bar.getByRole('link', { name: 'Temply' }).getByRole('img').boundingBox())?.height, `the lockup at ${width}px`).toBeCloseTo(width < 384 ? 24 : 30, 0);
 
       await menuButton(page).click();
       await expect(panelLinks(page)).toHaveCount(4);
@@ -561,9 +618,10 @@ test.describe('the bar when someone is signed in', () => {
       await expect(bar.getByRole('link', { name: 'Dashboard' })).toBeVisible();
       await expect(bar.getByRole('link', { name: 'Sign in' })).toHaveCount(0);
       expect((await bar.boundingBox())?.height).toBeCloseTo(BAR, 0);
-      const { scroll, client, stray } = await overflow(page);
+      const { scroll, client, stray, pastColumn } = await overflow(page);
       expect(scroll, `the bar overflows at ${width}px`).toBeLessThanOrEqual(client);
       expect(stray, `controls past the edge at ${width}px`).toEqual([]);
+      expect(pastColumn, `controls past the column at ${width}px`).toBeLessThan(0.5);
     }
   });
 });

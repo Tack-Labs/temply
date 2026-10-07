@@ -5,7 +5,7 @@ import { BrandMark } from '~/components/brand-mark';
 export default function OnboardingLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex min-h-screen flex-col items-center bg-surface px-4 py-12">
-      <BrandMark className="size-6 text-accent" />
+      <BrandMark className="h-8 w-auto" />
       <div className="mt-8 w-full max-w-md">{children}</div>
     </div>
   );

@@ -18,7 +18,7 @@ export default function ErrorPage({ error, reset }: { error: Error & { digest?: 
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-surface px-6 text-center">
-      <BrandMark className="size-6 text-accent" />
+      <BrandMark className="h-8 w-auto" />
       <h1 className="font-display text-xl font-semibold tracking-display text-ink">Something went wrong</h1>
       <p className="max-w-sm text-sm text-muted">
         This page could not be shown. Your work is saved as you type, so nothing is lost.

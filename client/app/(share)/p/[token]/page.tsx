@@ -37,7 +37,7 @@ export default async function SharePage({ params }: { params: Promise<{ token: s
     <div className="flex min-h-screen flex-col bg-sunken">
       <header className="flex h-12 shrink-0 items-center justify-between gap-3 border-b border-line bg-raised px-4">
         <div className="flex min-w-0 items-center gap-2">
-          <BrandMark className="size-4 shrink-0 text-accent" />
+          <BrandMark className="h-3.5 w-auto shrink-0" />
           <span className="truncate text-sm font-medium text-ink">{preview.title}</span>
           <Badge tone="neutral">Preview</Badge>
         </div>

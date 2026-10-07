@@ -1,6 +1,6 @@
 import { auth } from '@clerk/nextjs/server';
 import Link from 'next/link';
-import { BrandMark } from '~/components/brand-mark';
+import { BrandLogo } from '~/components/brand-logo';
 import { BillingBanner } from '~/components/dashboard/billing-banner';
 import { MobileNav } from '~/components/dashboard/mobile-nav';
 import { Sidebar } from '~/components/dashboard/sidebar';
@@ -43,13 +43,10 @@ export default async function DashboardLayout({
           <MobileNav platformAdmin={platformAdmin} />
           <Link
             href="/dashboard"
-            className={cn(
-              'flex h-11 items-center gap-2.5 rounded-field px-2 font-display text-xl font-bold tracking-display text-ink',
-              pressable,
-            )}
+            aria-label="Temply"
+            className={cn('flex h-11 items-center rounded-field px-2', pressable)}
           >
-            <BrandMark className="size-5.5 shrink-0 text-accent" />
-            Temply
+            <BrandLogo className="h-7.5 w-auto" />
           </Link>
         </header>
 

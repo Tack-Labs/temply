@@ -2,6 +2,16 @@
 
 @custom-variant dark (&:where(.dark, .dark *));
 
+/* Forced colours repaint the page from the system's palette whatever theme the
+   app is in, and leave an image its own colours, so the one thing an image
+   with a wordmark in it has to follow there is the system's Canvas. The
+   browser sets prefers-color-scheme from that Canvas in this mode. */
+@custom-variant forced-dark {
+  @media (forced-colors: active) and (prefers-color-scheme: dark) {
+    @slot;
+  }
+}
+
 /* ---------------------------------------------------------------------------
    Design tokens — "workbench and artifact"
 
