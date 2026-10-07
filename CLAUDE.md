@@ -24,6 +24,14 @@ into the other. Colours belong in the token layer, not in components — the
 contrast gates exist because component-level colours shipped broken three
 times.
 
+The brand's own colours (`--brand-*` in `globals.css`) are a third, static set:
+the same in light and dark, read by neither the app UI nor the canvas, and
+used only for the mark and brand artwork. A control, link, focus ring or line
+of small text takes `--ds-*`, because white on coral, pink or purple fails
+4.5:1; `client/scripts/brand-tokens.test.ts` lists the files that may read one.
+The mark is never stretched, stays 24px tall or more (`brand-size.test.ts`),
+and is drawn from `BrandMark`'s path, not a copy of it.
+
 ## A component is finished UX, not a widget
 
 The bar is "would a paying customer notice this was rushed". A control that
