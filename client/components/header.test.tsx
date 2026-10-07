@@ -129,23 +129,38 @@ describe('the marketing header', () => {
 
   it('holds the buttons to the room a signed-out visitor needs, so the sections stay put when Dashboard takes its place', () => {
     // The group is what the toggle's wrapper sits in: the toggle, then the pair
-    // the cookie chose, then the menu button.
-    const group = (hint?: string) => {
+    // the cookie chose, then the menu button. The cell it shares with an unseen
+    // copy of the signed-out group is as wide as the wider of the two, which is
+    // the browser's measure in whatever face it has, not a width written down.
+    const cell = (hint?: string) => {
       if (hint) setSignedInHint(hint);
       const view = mount();
-      const element = view.getByRole('button', { name: 'Dark theme' }).parentElement?.parentElement as HTMLElement;
-      const classes = element.className.split(/\s+/);
+      const group = view.getByRole('button', { name: 'Dark theme' }).parentElement?.parentElement as HTMLElement;
+      const twin = group.parentElement?.querySelector('[inert]') as HTMLElement;
+      const seen = {
+        grid: group.parentElement?.className.split(/\s+/),
+        group: group.className.split(/\s+/),
+        twin: twin.className.split(/\s+/),
+        twinAriaHidden: twin.getAttribute('aria-hidden'),
+        twinLinks: twin.querySelectorAll('a').length,
+        twinText: twin.textContent,
+      };
       cleanup();
-      return classes;
+      return seen;
     };
-    const signedOut = group();
-    const signedIn = group('1730000000');
+    const signedOut = cell();
+    const signedIn = cell('1730000000');
     // Right-aligned, so the extra room opens up beside the sections and not
-    // between the buttons. One width per step the signed-out group changes at:
-    // 310px with the menu button at sm, 258px from md, 274px from lg. A step
-    // that is missing lets the sections slide as soon as Clerk's cookie is read.
-    expect(signedOut).toEqual(expect.arrayContaining(['justify-end', 'sm:min-w-78', 'md:min-w-65', 'lg:min-w-69']));
-    expect(signedIn).toEqual(signedOut);
+    // between the buttons, and both share the one cell.
+    expect(signedOut.grid).toEqual(expect.arrayContaining(['grid', 'justify-items-end']));
+    expect(signedOut.group).toEqual(expect.arrayContaining(['col-start-1', 'row-start-1', 'justify-end']));
+    expect(signedOut.twin).toEqual(expect.arrayContaining(['col-start-1', 'row-start-1', 'invisible', 'hidden', 'sm:flex']));
+    // Not a second Sign in to anything that reads the page, and not a link
+    // for Next to prefetch.
+    expect(signedOut.twinAriaHidden).toBe('true');
+    expect(signedOut.twinLinks).toBe(0);
+    expect(signedOut.twinText).toBe('Sign inStart free trial');
+    expect(signedIn).toEqual({ ...signedOut, group: signedIn.group });
   });
 
   it('is hidden below sm on the playground, whose own phone bar takes the edge', () => {

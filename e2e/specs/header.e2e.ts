@@ -573,9 +573,16 @@ test.describe('the bar as the page hydrates for someone signed in', () => {
   // Clerk's cookie is read after hydration, and Dashboard takes the place of
   // Sign in and the pill then. The sections sit between the wordmark and the
   // buttons, so a bar that let that group shrink would slide them across the
-  // page the moment the swap landed.
-  for (const width of [1300, 1024, 768]) {
-    test(`leaves the sections where they were first painted at ${width}px`, async ({ page, context, baseURL }) => {
+  // page the moment the swap landed. The room the group keeps is the
+  // browser's measure of the signed-out buttons, so it has to hold in a face
+  // that sets them wider than this machine's: the one a Linux runner has did,
+  // by 8px, when the room was a width written into a class.
+  const faces = [
+    { label: '', css: '' },
+    { label: ' in a wider face', css: 'header * { letter-spacing: 0.06em !important; }' },
+  ];
+  for (const { label, css } of faces) for (const width of [1300, 1024, 768]) {
+    test(`leaves the sections where they were first painted at ${width}px${label}`, async ({ page, context, baseURL }) => {
       // A unix time, as Clerk writes it once a session has existed.
       await context.addCookies([{ name: '__client_uat', value: '1730000000', url: baseURL! }]);
       await page.setViewportSize({ width, height: 800 });
@@ -590,6 +597,7 @@ test.describe('the bar as the page hydrates for someone signed in', () => {
       });
       try {
         await page.goto('/', { waitUntil: 'domcontentloaded' });
+        if (css) await page.addStyleTag({ content: css });
         // The swap is the case, not the faces arriving: measured in the real
         // ones, so only what the cookie changes can move the sections.
         await page.evaluate(() => document.fonts.ready);

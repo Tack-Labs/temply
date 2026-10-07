@@ -140,6 +140,10 @@ function SectionLink({
 // bar is 72px tall and the shadow `md` carries would spill onto the page.
 const cta = 'shadow-sm sm:h-11.5 sm:px-4 sm:text-ui lg:px-5';
 
+// Sign in is drawn twice, once as the link and once as the unseen copy that
+// holds the group's room open, so the two cannot be allowed to drift apart.
+const signIn = 'h-11 px-3 font-semibold text-ink sm:text-ui lg:px-4';
+
 // Both icons occupy one cell and cross over, so the button turns into its own
 // close mark rather than swapping glyphs.
 const iconMotion = 'transition-[opacity,rotate,scale] duration-base ease-out motion-reduce:transition-none';
@@ -279,76 +283,93 @@ export function Header() {
             bar and the cookie is read after hydration: Dashboard then takes the
             place of Sign in and the pill, and the sections between the wordmark
             and this group would slide across the page by half of what it gave
-            up. From `sm` it is held to the widest state, signed out, which is
-            wider than a signed-in one with Clerk's 40px avatar in it, and the
-            slack gathers beside the sections because the group is right-aligned.
-            The classes are what the signed-out group measures at each step, in
-            the bar's own faces, plus 2px for a face that sets a hair wider:
-            310px with the menu button at `sm`, 258px from `md` and 274px from
-            `lg`, where the buttons take more padding. Below `sm` it is
-            Dashboard that is the wider of the two, by 24px, and that is left
-            to move the toggle: held to it, a 320px bar would clip the
-            wordmark of everyone signed out. */}
-        <div className="flex items-center justify-end gap-1.5 sm:min-w-78 sm:gap-2 md:min-w-65 lg:min-w-69">
-          {/* A fine pointer gets the 44px too: this is the one control in the
-              bar that is not a link, and at 320px a smaller one would sit
-              beside two that are not. */}
-          <div className="[&>button]:size-11">
-            <ThemeToggle />
+            up. From `sm` the cell is held to the signed-out group, the wider of
+            the two (a signed-in one has Clerk's 40px avatar in it), by an
+            unseen copy of it sharing the cell. The room is measured by the
+            browser in whatever face it set the bar in, which a width written
+            into a class is not: those were taken from one platform's fonts and
+            came up 8px short on another's. The live group is right-aligned, so
+            the slack gathers beside the sections. Below `sm` it is Dashboard
+            that is the wider of the two, by 24px, and that is left to move the
+            toggle: held to it, a 320px bar would clip the wordmark of everyone
+            signed out. */}
+        <div className="grid justify-items-end">
+          <div className="col-start-1 row-start-1 flex items-center justify-end gap-1.5 sm:gap-2">
+            {/* A fine pointer gets the 44px too: this is the one control in the
+                bar that is not a link, and at 320px a smaller one would sit
+                beside two that are not. */}
+            <div className="[&>button]:size-11">
+              <ThemeToggle />
+            </div>
+
+            {isSignedIn ? (
+              <>
+                {/* A plain anchor, not a Link, because this page loads no Clerk:
+                    nothing renews the session cookie, which lasts about a
+                    minute, so by the click it has usually expired. Clerk's
+                    middleware renews it with a handshake only a full page
+                    request can follow; a Link's fetch is read as signed out and
+                    sent to the login page. A Link would also prefetch that
+                    redirect and keep it. */}
+                <Button asChild variant="primary" size="md" className={cn(cta, 'h-11 px-3 text-sm')}>
+                  <a href={SIGNED_IN_HOME}>Dashboard</a>
+                </Button>
+                <div className="hidden sm:block">
+                  <HeaderUserMenu onSignedOut={() => setSignedIn(false)} />
+                </div>
+              </>
+            ) : (
+              <>
+                {/* Quiet, so the pill after it is the one thing in the bar that
+                    asks for a click. Kept at every width: it is how someone who
+                    already has an account gets in. */}
+                <Button asChild variant="ghost" size="compact" className={signIn}>
+                  <Link href="/login">Sign in</Link>
+                </Button>
+                {/* Below `sm` there is no room for it: at 320px the wordmark, the
+                    toggle, Sign in and the menu button already fill the bar. */}
+                <Button asChild variant="primary" size="md" className={cn(cta, 'hidden sm:inline-flex')}>
+                  <Link href="/sign-up">Start free trial</Link>
+                </Button>
+              </>
+            )}
+
+            {/* Named for what it controls, not for the action it is about to take,
+                so the name is true in both states and aria-expanded says which:
+                "Open menu" would be wrong the moment the panel was open, and a
+                name that flipped as well would be a second state signal, heard
+                twice by a screen reader. */}
+            <Button
+              ref={menuButton}
+              size="icon"
+              className="size-11 md:hidden"
+              aria-label="Menu"
+              aria-expanded={menuOpen}
+              aria-controls={MENU_ID}
+              disabled={!hydrated}
+              onClick={() => setMenuOpen((open) => !open)}
+            >
+              <span className="grid place-items-center *:col-start-1 *:row-start-1">
+                <MenuIcon className={cn(iconMotion, menuOpen && 'scale-50 rotate-90 opacity-0')} />
+                <XIcon className={cn(iconMotion, !menuOpen && 'scale-50 -rotate-90 opacity-0')} />
+              </span>
+            </Button>
           </div>
 
-          {isSignedIn ? (
-            <>
-              {/* A plain anchor, not a Link, because this page loads no Clerk:
-                  nothing renews the session cookie, which lasts about a
-                  minute, so by the click it has usually expired. Clerk's
-                  middleware renews it with a handshake only a full page
-                  request can follow; a Link's fetch is read as signed out and
-                  sent to the login page. A Link would also prefetch that
-                  redirect and keep it. */}
-              <Button asChild variant="primary" size="md" className={cn(cta, 'h-11 px-3 text-sm')}>
-                <a href={SIGNED_IN_HOME}>Dashboard</a>
-              </Button>
-              <div className="hidden sm:block">
-                <HeaderUserMenu onSignedOut={() => setSignedIn(false)} />
-              </div>
-            </>
-          ) : (
-            <>
-              {/* Quiet, so the pill after it is the one thing in the bar that
-                  asks for a click. Kept at every width: it is how someone who
-                  already has an account gets in. */}
-              <Button asChild variant="ghost" size="compact" className="h-11 px-3 font-semibold text-ink sm:text-ui lg:px-4">
-                <Link href="/login">Sign in</Link>
-              </Button>
-              {/* Below `sm` there is no room for it: at 320px the wordmark, the
-                  toggle, Sign in and the menu button already fill the bar. */}
-              <Button asChild variant="primary" size="md" className={cn(cta, 'hidden sm:inline-flex')}>
-                <Link href="/sign-up">Start free trial</Link>
-              </Button>
-            </>
-          )}
-
-          {/* Named for what it controls, not for the action it is about to take,
-              so the name is true in both states and aria-expanded says which:
-              "Open menu" would be wrong the moment the panel was open, and a
-              name that flipped as well would be a second state signal, heard
-              twice by a screen reader. */}
-          <Button
-            ref={menuButton}
-            size="icon"
-            className="size-11 md:hidden"
-            aria-label="Menu"
-            aria-expanded={menuOpen}
-            aria-controls={MENU_ID}
-            disabled={!hydrated}
-            onClick={() => setMenuOpen((open) => !open)}
-          >
-            <span className="grid place-items-center *:col-start-1 *:row-start-1">
-              <MenuIcon className={cn(iconMotion, menuOpen && 'scale-50 rotate-90 opacity-0')} />
-              <XIcon className={cn(iconMotion, !menuOpen && 'scale-50 -rotate-90 opacity-0')} />
-            </span>
-          </Button>
+          {/* Spans, not links: a copy that is never seen must not be a second
+              Sign in to a screen reader, a tab stop, or a route Next prefetches
+              for someone who is already signed in. The toggle and the menu
+              button are boxes of their size, since only their room is needed. */}
+          <div aria-hidden inert className="invisible col-start-1 row-start-1 hidden items-center justify-end gap-2 sm:flex">
+            <span className="size-11 shrink-0" />
+            <Button asChild variant="ghost" size="compact" className={signIn}>
+              <span>Sign in</span>
+            </Button>
+            <Button asChild variant="primary" size="md" className={cta}>
+              <span>Start free trial</span>
+            </Button>
+            <span className="size-11 shrink-0 md:hidden" />
+          </div>
         </div>
       </div>
 
