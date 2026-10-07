@@ -1,4 +1,5 @@
 import type { JSONContent } from '@tiptap/core';
+import { EMAIL_MARK_SRC } from './email-mark';
 
 /**
  * The gallery behind "New template": the emails a startup sends first, each
@@ -32,7 +33,7 @@ export type StarterTemplate = {
 
 const logo: JSONContent = {
   type: 'logo',
-  attrs: { src: '/brand/mark.png', alt: 'Temply', title: null, size: 'md', alignment: 'left' },
+  attrs: { src: EMAIL_MARK_SRC, alt: 'Temply', title: null, size: 'md', alignment: 'left' },
 };
 const spacer = (height: 'sm' | 'md' | 'lg' | 'xl' = 'lg'): JSONContent => ({ type: 'spacer', attrs: { height } });
 const heading = (content: string | JSONContent[], level: 1 | 2 | 3 = 2): JSONContent => ({

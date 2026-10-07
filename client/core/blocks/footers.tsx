@@ -4,6 +4,7 @@ import {
   RectangleHorizontalIcon,
 } from 'lucide-react';
 import { BlockItem } from './types';
+import { EMAIL_MARK_SRC } from '~/lib/email-mark';
 import { PRODUCTION_SITE_URL } from '~/lib/site';
 
 export const footerCopyrightText: BlockItem = {
@@ -47,7 +48,7 @@ export const footerCommunityFeedbackCta: BlockItem = {
         {
           type: 'image',
           attrs: {
-            src: '/brand/mark.png',
+            src: EMAIL_MARK_SRC,
             alt: null,
             title: null,
             width: '42',
@@ -97,7 +98,7 @@ export const footerCompanySignature: BlockItem = {
         {
           type: 'image',
           attrs: {
-            src: '/brand/mark.png',
+            src: EMAIL_MARK_SRC,
             alt: null,
             title: null,
             width: '48',

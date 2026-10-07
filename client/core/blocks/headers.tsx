@@ -2,6 +2,7 @@ import { LogoWithCoverImageIcon } from '@/editor/components/icons/logo-with-cove
 import { BlockItem } from './types';
 import { LogoWithTextHorizonIcon } from '@/editor/components/icons/logo-with-text-horizon';
 import { LogoWithTextVerticalIcon } from '@/editor/components/icons/logo-with-text-vertical';
+import { EMAIL_MARK_SRC } from '~/lib/email-mark';
 import { PRODUCTION_SITE_URL } from '~/lib/site';
 
 export const headerLogoWithTextHorizontal: BlockItem = {
@@ -28,7 +29,7 @@ export const headerLogoWithTextHorizontal: BlockItem = {
               {
                 type: 'image',
                 attrs: {
-                  src: '/brand/mark.png',
+                  src: EMAIL_MARK_SRC,
                   alt: null,
                   title: null,
                   width: '32',
@@ -86,7 +87,7 @@ export const headerLogoWithTextVertical: BlockItem = {
         {
           type: 'image',
           attrs: {
-            src: '/brand/mark.png',
+            src: EMAIL_MARK_SRC,
             alt: null,
             title: null,
             width: '48',
@@ -155,7 +156,7 @@ export const headerLogoWithCoverImage: BlockItem = {
                 {
                   type: 'image',
                   attrs: {
-                    src: '/brand/mark.png',
+                    src: EMAIL_MARK_SRC,
                     alt: null,
                     title: null,
                     width: '48',

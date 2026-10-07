@@ -146,6 +146,20 @@ test.describe('marketing', () => {
     await context.close();
   });
 
+  // A visitor's first look at the editor is the default document, so this is
+  // where a logo that 404s, or one stretched into the Logo block's square, shows.
+  test('the playground\'s starting email carries the new mark, loaded and 48px square', async ({ browser }) => {
+    const context = await browser.newContext({ storageState: { cookies: [], origins: [] } });
+    const page = await context.newPage();
+    await page.goto('/playground');
+    const mark = page.locator('.ProseMirror img[src="/brand/temply-mark-email.png"]');
+    await expect(mark).toHaveCount(1);
+    await expect.poll(() => mark.evaluate((img: HTMLImageElement) => [img.naturalWidth, img.naturalHeight])).toEqual([144, 144]);
+    const box = (await mark.boundingBox())!;
+    expect([box.width, box.height]).toEqual([48, 48]);
+    await context.close();
+  });
+
   test('the legal pages link to each other', async ({ page }) => {
     await page.goto('/privacy');
     await expect(page.getByRole('heading', { name: 'Privacy policy', level: 1 })).toBeVisible();

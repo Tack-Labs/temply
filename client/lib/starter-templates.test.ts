@@ -28,7 +28,7 @@ describe('personaliseStarter', () => {
   it('puts the workspace logo in the logo slot, and keeps the mark without one', () => {
     const logo = (s: typeof welcome) => JSON.stringify(s.content).match(/"src":"([^"]+)"/)?.[1];
     expect(logo(personaliseStarter(welcome, { name: 'Acme', logoUrl: 'https://img.clerk.com/acme.png' }))).toBe('https://img.clerk.com/acme.png');
-    expect(logo(personaliseStarter(welcome, { name: 'Acme' }))).toBe('/brand/mark.png');
+    expect(logo(personaliseStarter(welcome, { name: 'Acme' }))).toBe('/brand/temply-mark-email.png');
   });
 });
 

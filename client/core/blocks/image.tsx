@@ -1,6 +1,7 @@
 import { TextSelection } from '@tiptap/pm/state';
 import type { BlockItem } from './types';
 import { ImageIcon } from 'lucide-react';
+import { EMAIL_ICON_SRC } from '~/lib/email-mark';
 
 export const image: BlockItem = {
   title: 'Image',
@@ -37,7 +38,7 @@ export const inlineImage: BlockItem = {
       .deleteRange(range)
       // @ts-ignore
       .setInlineImage({
-        src: '/brand/mark.png',
+        src: EMAIL_ICON_SRC,
       })
       // @ts-ignore
       .command((props) => {
