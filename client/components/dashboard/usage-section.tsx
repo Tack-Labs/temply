@@ -1,11 +1,13 @@
 'use client';
 
+import { formatBytes } from '@temply/shared/bytes';
 import { PRICES_USD, formatUsd, isLimitReached } from '@temply/shared/plans';
 import Link from 'next/link';
 import { RefreshErrorState } from '~/components/dashboard/refresh-error-state';
-import { TONE_FILL, TONE_NOTE, usagePct, usageTone, type UsageTone } from '~/components/dashboard/usage-tone';
+import { SectionHeading } from '~/components/dashboard/section-heading';
+import { TONE_NOTE, usagePct, usageTone, type UsageTone } from '~/components/dashboard/usage-tone';
 import { Button } from '~/components/ui/button';
-import { Card, StatTile } from '~/components/ui/surfaces';
+import { StatTile } from '~/components/ui/surfaces';
 import { useHydrated } from '~/hooks/use-hydrated';
 import { PLAN_PAGE, shortDate, type Billing } from '~/lib/billing';
 import { cn } from '~/lib/classname';
@@ -14,79 +16,87 @@ import { cn } from '~/lib/classname';
 // cannot know it, and the copy around the numbers is English.
 const count = (n: number) => n.toLocaleString('en-US');
 
-/** The reset date is the reader's locale, so it waits for hydration; the note beside it, or the note row's own minimum height where there is none, holds the line meanwhile. */
+/** The reset date is the reader's locale, so it waits for hydration and fades in; the note beside it, or the note row's own minimum height where there is none, holds the line meanwhile. */
 function Resets({ iso }: { iso: string }) {
   const hydrated = useHydrated();
-  return <span className="shrink-0 text-muted tabular-nums">{hydrated ? `Resets ${shortDate(iso)}` : null}</span>;
+  return hydrated ? (
+    <span className="fade-in-mount shrink-0 text-muted tabular-nums motion-reduce:transition-none">
+      Resets {shortDate(iso)}
+    </span>
+  ) : null;
 }
 
+/** The colour a bar wears while there is room; once a count nears or reaches its limit, the severity replaces it. */
+type Category = 'accent' | 'success' | 'peach';
+
 /**
- * StatTile has a label, a value and a hint but nowhere to put a bar, so a
- * measured number is drawn here with the same label and value type. Where
- * there is no ceiling to measure against, or it has stopped meaning anything
- * (a read-only workspace), `limit` is null and the number stands alone.
+ * One measured number. Where there is no ceiling to measure against, or it
+ * has stopped meaning anything (a read-only workspace), `limit` is null and
+ * the number stands alone.
  */
 function Meter({
   label,
+  value,
   used,
   limit,
   caption,
-  tone,
+  category,
+  severity,
   note,
   aside,
 }: {
   label: string;
+  /** The count as it is read: "4,200", "120 MB". */
+  value: string;
   used: number;
   limit: number | null;
   /** "of 10,000", "no limit", or nothing. Also what a screen reader hears after the count. */
   caption: string | null;
-  tone: UsageTone;
+  category: Category;
+  severity: UsageTone;
   note: string | null;
   aside?: React.ReactNode;
 }) {
   // The width reads the same floored percentage the tone is chosen by. From
   // the raw ratio, 79.9% would be drawn almost to the 80 where warn starts
-  // while still wearing the accent colour.
+  // while still wearing the category colour.
   const pct = limit ? usagePct(used, limit) : 0;
 
   return (
-    <Card className="p-3.5">
-      <p className="text-xs text-muted">{label}</p>
-      <p className="mt-1 flex flex-wrap items-baseline gap-x-1.5">
-        <span className="font-display text-2xl font-semibold tracking-display tabular-nums text-ink">{count(used)}</span>
-        {caption ? <span className="text-sm text-muted tabular-nums">{caption}</span> : null}
-      </p>
-      {limit !== null ? (
-        <div
-          // A new account sits at zero, so the empty track has to read
-          // against the card: it takes the stronger line, as the sidebar's does.
-          className="mt-2.5 h-1.5 w-full overflow-hidden rounded-full bg-line-strong"
-          role="progressbar"
-          aria-label={label}
-          aria-valuemin={0}
-          aria-valuemax={limit}
-          aria-valuenow={Math.min(used, limit)}
-          aria-valuetext={[count(used), caption].filter(Boolean).join(' ')}
-        >
-          <div
-            className={cn(
-              'h-full rounded-full transition-[width] duration-slow ease-out motion-reduce:transition-none',
-              TONE_FILL[tone],
-            )}
-            style={{ width: `${pct}%` }}
-          />
-        </div>
-      ) : null}
-      {note || aside ? (
-        // One line of text-xs is 18px, held here because a plan with no limit has no
-        // note and an aside that is empty until hydration: the row would
-        // otherwise open from nothing when the date arrives.
-        <div className="mt-2 flex min-h-4.5 flex-wrap items-center justify-between gap-x-2 text-xs">
-          <span className={cn('min-w-0 tabular-nums', TONE_NOTE[tone])}>{note}</span>
-          {aside}
-        </div>
-      ) : null}
-    </Card>
+    <StatTile
+      label={label}
+      value={
+        <>
+          {value}
+          {caption ? (
+            <>
+              {' '}
+              <span className="font-sans text-ui font-medium tracking-normal text-muted">{caption}</span>
+            </>
+          ) : null}
+        </>
+      }
+      bar={
+        limit !== null
+          ? {
+              value: pct / 100,
+              tone: severity === 'accent' ? category : severity,
+              text: [value, caption].filter(Boolean).join(' '),
+            }
+          : undefined
+      }
+      hint={
+        note || aside ? (
+          // One line of text-base is 22px, held here because a plan with no
+          // limit has no note and an aside that is empty until hydration: the
+          // row would otherwise open from nothing when the date arrives.
+          <div className="flex min-h-5.5 flex-wrap items-center justify-between gap-x-2">
+            <span className={cn('min-w-0 tabular-nums', TONE_NOTE[severity])}>{note}</span>
+            {aside}
+          </div>
+        ) : undefined
+      }
+    />
   );
 }
 
@@ -100,7 +110,7 @@ function Tiles({ billing, isAdmin }: { billing: Billing; isAdmin: boolean }) {
   // price covers, since past it calls carry on and are billed.
   const apiScale = limits.maxApiCalls ?? limits.includedApiCalls;
   const apiCapped = limits.maxApiCalls !== null && usage.apiCalls >= limits.maxApiCalls;
-  const apiTone = usageTone({ used: usage.apiCalls, scale: apiScale, capped: apiCapped, over: overage.calls > 0 });
+  const apiSeverity = usageTone({ used: usage.apiCalls, scale: apiScale, capped: apiCapped, over: overage.calls > 0 });
   const apiNote =
     overage.calls > 0
       ? `${count(overage.calls)} over · ~${formatUsd(Math.round(overage.usd * 100) / 100)}`
@@ -113,38 +123,56 @@ function Tiles({ billing, isAdmin }: { billing: Billing; isAdmin: boolean }) {
   const templateLimit = limits.maxTemplates;
   const templatesAtLimit = isLimitReached(usage.templates, templateLimit);
 
+  const storageLimit = limits.maxStorageBytes;
+  const storageAtLimit = isLimitReached(usage.storageBytes, storageLimit);
+
   return (
-    <div className="grid grid-cols-[repeat(auto-fit,minmax(min(16rem,100%),1fr))] gap-3">
+    <div className="grid grid-cols-[repeat(auto-fit,minmax(min(13rem,100%),1fr))] gap-4.5">
       {lapsed ? (
         <Meter
           label="Live API calls this month"
+          value={count(usage.apiCalls)}
           used={usage.apiCalls}
           limit={null}
           caption={null}
-          tone="danger"
+          category="accent"
+          severity="danger"
           note="Live calls paused"
         />
       ) : (
         <Meter
           label="Live API calls this month"
+          value={count(usage.apiCalls)}
           used={usage.apiCalls}
           limit={apiScale}
           caption={apiScale === null ? 'no limit' : `of ${count(apiScale)}${limits.maxApiCalls === null ? ' included' : ''}`}
-          tone={apiTone}
+          category="accent"
+          severity={apiSeverity}
           note={apiNote}
           aside={<Resets iso={billing.resetsOn} />}
         />
       )}
 
       {lapsed ? (
-        <Meter label="Templates" used={usage.templates} limit={null} caption={null} tone="danger" note="Read-only" />
+        <Meter
+          label="Templates"
+          value={count(usage.templates)}
+          used={usage.templates}
+          limit={null}
+          caption={null}
+          category="success"
+          severity="danger"
+          note="Read-only"
+        />
       ) : (
         <Meter
           label="Templates"
+          value={count(usage.templates)}
           used={usage.templates}
           limit={templateLimit}
           caption={templateLimit === null ? 'no limit' : `of ${count(templateLimit)}`}
-          tone={usageTone({ used: usage.templates, scale: templateLimit, capped: templatesAtLimit, over: false })}
+          category="success"
+          severity={usageTone({ used: usage.templates, scale: templateLimit, capped: templatesAtLimit, over: false })}
           note={
             templateLimit === null
               ? null
@@ -154,6 +182,32 @@ function Tiles({ billing, isAdmin }: { billing: Billing; isAdmin: boolean }) {
           }
         />
       )}
+
+      {/* A lapsed workspace's images stay hosted for the emails already sent,
+          and what stops an upload is the write guard rather than the
+          allowance, so there is no bar to draw and the two tiles beside this
+          one have already given the reason. */}
+      <Meter
+        label="Storage"
+        value={formatBytes(usage.storageBytes)}
+        used={usage.storageBytes}
+        limit={lapsed ? null : storageLimit}
+        caption={lapsed ? null : storageLimit === null ? 'no limit' : `of ${formatBytes(storageLimit)}`}
+        category="peach"
+        severity={usageTone({
+          used: usage.storageBytes,
+          scale: lapsed ? null : storageLimit,
+          capped: !lapsed && storageAtLimit,
+          over: false,
+        })}
+        note={
+          lapsed || storageLimit === null
+            ? null
+            : storageAtLimit
+              ? 'Limit reached'
+              : `${formatBytes(storageLimit - usage.storageBytes)} left`
+        }
+      />
 
       {/* Seats are only counted on a Team subscription; elsewhere there is
           nothing honest to put here, so the tile is left out. The price is
@@ -178,17 +232,18 @@ function Tiles({ billing, isAdmin }: { billing: Billing; isAdmin: boolean }) {
  */
 export function UsageSection({ billing, isAdmin }: { billing: Billing | null; isAdmin: boolean }) {
   return (
-    <section aria-labelledby="usage-heading" className="space-y-2.5">
-      {/* As tall as the row is with the "Manage plan" button in it, 28px and 44px
-          on a coarse pointer, whoever is reading: a member has no button, and
-          the loading skeleton cannot know which one is coming. */}
-      <div className="flex min-h-7 items-center justify-between gap-3 pointer-coarse:min-h-11">
-        <h2 id="usage-heading" className="font-display text-sm font-semibold tracking-display text-ink">
-          Usage
-        </h2>
+    <section aria-labelledby="usage-heading" className="space-y-3.5">
+      {/* 44px whoever is reading: an admin's "Manage plan" is that tall, a
+          member has no button, and the loading skeleton cannot know which
+          one is coming. */}
+      <div className="flex min-h-11 items-center justify-between gap-4">
+        <div className="flex min-w-0 flex-wrap items-baseline gap-x-3">
+          <SectionHeading id="usage-heading">Usage</SectionHeading>
+          <span className="text-ui text-muted">This month</span>
+        </div>
         {/* The plan page is admin-only, so a member is not sent to it. */}
         {isAdmin ? (
-          <Button variant="link" size="sm" touch asChild className="px-0">
+          <Button variant="link" asChild className="h-11 px-0 text-ui font-bold">
             <Link href={PLAN_PAGE}>Manage plan</Link>
           </Button>
         ) : null}

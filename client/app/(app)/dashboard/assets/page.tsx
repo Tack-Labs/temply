@@ -14,6 +14,7 @@ import { useDuplicateNameGuard } from '~/components/assets/duplicate-name-dialog
 import { useFileDrop } from '~/components/assets/use-file-drop';
 import { Button } from '~/components/ui/button';
 import { ConfirmDialog } from '~/components/ui/confirm-dialog';
+import { Input } from '~/components/ui/input';
 import { PageLoading } from '~/components/ui/page-loading';
 import { EmptyState, ErrorState, PageHeader } from '~/components/ui/surfaces';
 import { assetUsage, toastUploaded, UPLOAD_MIME_TYPES, type Asset } from '~/lib/assets';
@@ -22,9 +23,6 @@ import { cn } from '~/lib/classname';
 import { errorMessage } from '~/lib/http';
 import { localId } from '~/lib/id';
 import { useMinimumDisplay } from '~/hooks/use-minimum-display';
-
-const inputClass =
-  'h-9 w-full max-w-xs rounded-md border border-line bg-raised px-3 text-sm text-ink placeholder:text-muted';
 
 export default function AssetsPage() {
   const { query, upload, remove } = useAssets();
@@ -140,7 +138,7 @@ export default function AssetsPage() {
               className="hidden"
               onChange={(event) => { void uploadFiles(event.target.files); event.target.value = ''; }}
             />
-            <Button variant="primary" disabled={upload.isPending || readOnly} onClick={() => fileInput.current?.click()}>
+            <Button size="compact" variant="primary" disabled={upload.isPending || readOnly} onClick={() => fileInput.current?.click()}>
               {upload.isPending ? <Loader2Icon className="animate-spin" /> : <UploadIcon />}
               Upload
             </Button>
@@ -165,8 +163,8 @@ export default function AssetsPage() {
 
       {(list?.assets.length ?? 0) > 0 ? (
         <div className="flex items-center justify-between gap-3">
-          <input
-            className={inputClass}
+          <Input
+            className="max-w-xs"
             placeholder="Search by file name"
             value={search}
             onChange={(event) => setSearch(event.target.value)}
@@ -188,7 +186,7 @@ export default function AssetsPage() {
           icon={ImageIcon}
           title={search ? 'No images match' : 'No images yet'}
           description={search ? 'Try a different file name.' : 'Upload one to reuse it across templates, or drop images anywhere on this page'}
-          action={search ? undefined : <Button variant="primary" disabled={readOnly} onClick={() => fileInput.current?.click()}>Upload</Button>}
+          action={search ? undefined : <Button size="compact" variant="primary" disabled={readOnly} onClick={() => fileInput.current?.click()}>Upload</Button>}
         />
       ) : (
         <AssetGrid

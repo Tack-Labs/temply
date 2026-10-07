@@ -36,8 +36,8 @@ export default async function AdminPage({ searchParams }: {
         <label htmlFor="organisation-search" className="text-sm font-medium text-ink">Find an organisation</label>
         <div className="flex flex-wrap items-center gap-2">
           <Input id="organisation-search" name="q" defaultValue={query} maxLength={100} placeholder="Name or organisation ID" className="min-w-0 flex-1 basis-48" />
-          <Button type="submit" variant="secondary">Search</Button>
-          {query ? <Button variant="link" asChild><Link href="/dashboard/admin">Clear</Link></Button> : null}
+          <Button size="compact" type="submit" variant="secondary">Search</Button>
+          {query ? <Button size="compact" variant="link" asChild><Link href="/dashboard/admin">Clear</Link></Button> : null}
         </div>
       </form>
       {data ? <OrganizationDirectory data={data} query={query} /> : (

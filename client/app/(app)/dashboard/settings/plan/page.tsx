@@ -58,7 +58,7 @@ const FILLS: Record<Tone, string> = { accent: 'bg-accent', warn: 'bg-warn', dang
 function PortalButton({ label, variant = 'secondary' }: { label: string; variant?: 'primary' | 'secondary' }) {
   const portal = usePortal();
   return (
-    <Button variant={variant} onClick={() => portal.mutate()} disabled={portal.isPending}>
+    <Button size="compact" variant={variant} onClick={() => portal.mutate()} disabled={portal.isPending}>
       {portal.isPending ? <Loader2Icon className="animate-spin" /> : null}
       {label}
     </Button>
@@ -255,6 +255,7 @@ function SubscribePanel({ billing, isAdmin }: { billing: Billing; isAdmin: boole
         </div>
         {isAdmin ? (
           <Button
+            size="compact"
             variant="primary"
             onClick={() => checkout.mutate(packs)}
             disabled={checkout.isPending || !billing.billingConfigured}
@@ -555,7 +556,7 @@ function EnterpriseCard() {
       </div>
       {/* Enterprise is arranged by hand, never through checkout — whatever
           plan the reader is on, the way in is a conversation. */}
-      <Button asChild>
+      <Button size="compact" asChild>
         <a href={`mailto:${SALES_EMAIL}?subject=Temply%20Enterprise`}>Contact sales</a>
       </Button>
     </Card>

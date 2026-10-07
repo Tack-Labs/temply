@@ -44,11 +44,11 @@ export function AssetPreviewDialog({
             </div>
 
             <div className="flex items-center justify-end gap-2">
-              <Button variant="secondary" onClick={() => void copyAssetUrl(asset)}>
+              <Button size="compact" variant="secondary" onClick={() => void copyAssetUrl(asset)}>
                 <CopyIcon />
                 Copy URL
               </Button>
-              <Button variant="danger" onClick={() => onDelete(asset)}>
+              <Button size="compact" variant="danger" onClick={() => onDelete(asset)}>
                 <Trash2Icon />
                 Delete
               </Button>

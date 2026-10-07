@@ -5,6 +5,7 @@ import { toast } from 'sonner';
 import { Button } from '~/components/ui/button';
 import { List, Row, Tile } from '~/components/ui/item';
 import { cn } from '~/lib/classname';
+import { parseStamp } from '~/lib/stamp';
 import { EMAIL_TRANSFORM, THUMB_TRANSFORM, withTransform, type Asset } from '~/lib/assets';
 import { formatBytes } from '@temply/shared/bytes';
 import type { AssetView } from './asset-view-switch';
@@ -39,7 +40,7 @@ export function assetMeta(asset: Asset): string {
 
 export function assetDate(asset: Asset): string | null {
   return asset.created_at
-    ? new Date(asset.created_at).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })
+    ? parseStamp(asset.created_at).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })
     : null;
 }
 

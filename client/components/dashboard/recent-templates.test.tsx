@@ -1,6 +1,7 @@
 import { afterAll, afterEach, describe, expect, it, mock } from 'bun:test';
 import '../../core/editor/test/dom';
 import { cleanup, render } from '@testing-library/react';
+import { renderToString } from 'react-dom/server';
 import type { TemplateListItem } from '~/lib/template-search';
 
 // Bun shares one process, and one module registry, across test files, and
@@ -28,6 +29,9 @@ const { RecentTemplates } = await import('./recent-templates');
 // Queries come off `render`, not the global `screen`; see button.test.tsx.
 afterEach(cleanup);
 
+const HOUR = 3_600_000;
+const ago = (ms: number) => new Date(Date.now() - ms).toISOString();
+
 const template = (overrides: Partial<TemplateListItem> & { id: string; title: string }): TemplateListItem => ({
   preview_text: null,
   short_code: null,
@@ -38,28 +42,32 @@ const template = (overrides: Partial<TemplateListItem> & { id: string; title: st
 });
 
 const templates: TemplateListItem[] = [
-  template({ id: 'a', title: 'Welcome email', preview_text: 'Glad you are here' }),
-  template({ id: 'b', title: 'Receipt', has_unpublished_changes: true }),
+  template({ id: 'a', title: 'Welcome email', preview_text: 'Glad you are here', updated_at: ago(2 * HOUR), published_at: ago(2 * HOUR) }),
+  template({ id: 'b', title: 'Receipt', has_unpublished_changes: true, updated_at: ago(3 * 24 * HOUR) }),
   template({ id: 'c', title: 'Newsletter', published_at: null }),
 ];
 
 const setup = (props: Partial<React.ComponentProps<typeof RecentTemplates>> = {}) =>
-  render(
-    <RecentTemplates
-      templates={templates}
-      failed={false}
-      emptyAction={<button type="button">New template</button>}
-      {...props}
-    />,
-  );
+  render(<RecentTemplates templates={templates} failed={false} canCreate {...props} />);
+
+const card = (view: ReturnType<typeof setup>, title: string) =>
+  view.getAllByRole('listitem').find((item) => item.textContent?.includes(title)) as HTMLElement;
 
 describe('RecentTemplates', () => {
-  it('lists each template as a link to its editor, under a heading', () => {
+  it('lists each template as a card that opens its editor, under a heading', () => {
     const view = setup();
-    expect(view.getByRole('heading', { name: 'Recent templates' })).toBeTruthy();
+    expect(view.getByRole('region', { name: 'Recent templates' })).toBeTruthy();
+    expect(view.getByRole('heading', { level: 2, name: 'Recent templates' })).toBeTruthy();
     expect(view.getByRole('link', { name: /Welcome email/ }).getAttribute('href')).toBe('/templates/a');
     expect(view.getByRole('link', { name: /Receipt/ }).getAttribute('href')).toBe('/templates/b');
     expect(view.getAllByRole('listitem')).toHaveLength(3);
+  });
+
+  it('lays the cards in a grid that fills as many columns as the width allows', () => {
+    const list = setup().getByRole('list');
+    expect(list.className).toContain('grid');
+    expect(list.className).toContain('minmax(15rem,1fr)');
+    expect(list.className).toContain('gap-4.5');
   });
 
   it('shows the preview text, or says there is none', () => {
@@ -71,48 +79,99 @@ describe('RecentTemplates', () => {
   it('says where each one stands in the same words and tones as the templates list', () => {
     const view = setup();
     expect(view.getByText('Published').className).toContain('text-success-ink');
-    expect(view.getByText('Unpublished changes').className).toContain('text-warn-ink');
+    expect(view.getByText('Unpublished changes').className).toContain('text-accent-ink');
     expect(view.getByText('Draft').className).toContain('text-muted');
   });
 
-  it('dates a template by when it was edited, never "Published {date}"', () => {
+  it('names a template in the release flow for its place in it, as the list does', () => {
+    const flow = [
+      template({ id: 'w', title: 'Waiting', staged_at: ago(HOUR), review_requested_at: ago(HOUR) }),
+      template({ id: 's', title: 'Staged', staged_at: ago(HOUR) }),
+      template({ id: 'r', title: 'Returned', staged_at: ago(HOUR), returned_at: ago(HOUR) }),
+    ];
+    const view = setup({ templates: flow });
+    expect(view.getByText('In sign-off').className).toContain('text-warn-ink');
+    expect(view.getByText('In staging').className).toContain('text-sky-ink');
+    expect(view.getByText('Sent back').className).toContain('text-danger-ink');
+    expect(view.queryByText('Published')).toBeNull();
+  });
+
+  it('tints the thumbnail frame from the pill, so the two read as one mark', () => {
     const view = setup();
-    expect(view.getAllByText(/^Edited/)).toHaveLength(3);
+    const frame = (title: string) => card(view, title).querySelector('[data-thumbnail]')?.closest('.h-35');
+    expect(frame('Welcome email')?.className).toContain('bg-success-wash');
+    expect(frame('Receipt')?.className).toContain('bg-accent-wash');
+    expect(frame('Newsletter')?.className).toContain('bg-track');
+  });
+
+  it('says how long ago each was edited, in a time element a machine can read', () => {
+    const stamp = ago(2 * HOUR + 600_000);
+    const view = setup({ templates: [template({ id: 'a', title: 'Welcome email', updated_at: stamp })] });
+    const edited = view.getByText(/^Edited/);
+    expect(edited.textContent).toBe('Edited 2 hours ago');
+    const time = view.getByText('2 hours ago');
+    expect(time.tagName).toBe('TIME');
+    expect(time.getAttribute('datetime')).toBe(stamp);
+    expect(time.getAttribute('title')).toBeTruthy();
     expect(view.queryByText(/^Published \S/)).toBeNull();
-    expect(view.container.querySelector('time')?.getAttribute('datetime')).toBe('2026-10-01T09:00:00.000Z');
   });
 
-  it('gives the dates tabular figures so a column of them lines up', () => {
-    const view = setup();
-    expect(view.getAllByText(/^Edited/)[0]?.className).toContain('tabular-nums');
+  it('gives the times tabular figures, and fades them in once the browser can say them', () => {
+    const edited = setup().getAllByText(/^Edited/)[0]!;
+    expect(edited.className).toContain('tabular-nums');
+    expect(edited.className).toContain('fade-in-mount');
+    expect(edited.className).toContain('motion-reduce:transition-none');
   });
 
-  it('leaves the date out of a row that has none, rather than printing "Invalid Date"', () => {
+  it('draws no clock-dependent words on the server', () => {
+    const markup = renderToString(<RecentTemplates templates={templates} failed={false} canCreate />);
+    expect(markup).toContain('Welcome email');
+    expect(markup).not.toContain('Edited');
+    expect(markup).not.toContain('<time');
+  });
+
+  it('leaves the time out of a card that has none, rather than printing "Invalid Date"', () => {
     const view = setup({ templates: [template({ id: 'x', title: 'Undated', updated_at: null })] });
     expect(view.queryByText(/^Edited/)).toBeNull();
     expect(view.container.innerHTML).not.toContain('Invalid');
   });
 
-  it('lets the list’s own width decide where the badge sits, not the window’s', () => {
+  it('lets the pill and the time wrap rather than overflow a narrow card', () => {
     const view = setup();
-    expect(view.getByRole('list').className).toContain('@container');
+    const pill = view.getByText('Published');
+    expect(pill.parentElement?.className).toContain('flex-wrap');
   });
 
-  it('links to the whole list, with a target that grows on a touch screen', () => {
+  it('lifts as one card under the pointer, with the link the whole of it', () => {
+    const view = setup();
+    const link = view.getByRole('link', { name: /Welcome email/ });
+    expect(link.className).toContain('rounded-card');
+    expect(link.firstElementChild?.className).toContain('rounded-card');
+    expect(link.firstElementChild?.className).toContain('hover:-translate-y-0.5');
+  });
+
+  it('links to the whole list, a 44px target on every pointer', () => {
     const link = setup().getByRole('link', { name: 'View all' });
     expect(link.getAttribute('href')).toBe('/dashboard/templates');
-    expect(link.className).toContain('pointer-coarse:h-11');
+    expect(link.className).toContain('h-11');
   });
 });
 
 describe('RecentTemplates with nothing to show', () => {
-  it('invites a first template, with the action handed in beside it', () => {
+  it('points at the starters when a template can be made', () => {
     const view = setup({ templates: [] });
     expect(view.getByText('No templates yet')).toBeTruthy();
-    expect(view.getByRole('button', { name: 'New template' })).toBeTruthy();
+    expect(view.getByText(/Pick a starter above/)).toBeTruthy();
+    expect(view.queryByRole('button')).toBeNull();
     expect(view.queryByRole('list')).toBeNull();
     // Nothing to view all of.
     expect(view.queryByRole('link', { name: 'View all' })).toBeNull();
+  });
+
+  it('does not send the reader to starters that cannot be used', () => {
+    const view = setup({ templates: [], canCreate: false });
+    expect(view.getByText('No templates yet')).toBeTruthy();
+    expect(view.queryByText(/starter/)).toBeNull();
   });
 
   it('is an error, not an empty account, when the fetch failed', () => {
@@ -121,15 +180,13 @@ describe('RecentTemplates with nothing to show', () => {
     expect(view.getByText(/not a sign that they are gone/)).toBeTruthy();
     expect(view.getByRole('button', { name: 'Try again' })).toBeTruthy();
     expect(view.queryByText('No templates yet')).toBeNull();
-    expect(view.queryByRole('button', { name: 'New template' })).toBeNull();
     expect(view.queryByRole('link', { name: 'View all' })).toBeNull();
   });
 
   it('keeps the header row the height "View all" makes it, so the loading skeleton’s row is the one that arrives', () => {
     for (const props of [{}, { templates: [] }, { failed: true }]) {
       const row = setup(props).getByRole('heading', { name: 'Recent templates' }).parentElement;
-      expect(row?.className).toContain('min-h-7');
-      expect(row?.className).toContain('pointer-coarse:min-h-11');
+      expect(row?.className).toContain('min-h-11');
       cleanup();
     }
   });

@@ -12,7 +12,9 @@ import { httpDelete, httpGet, httpPost } from '~/lib/http';
 import { toast } from 'sonner';
 import { isLimitReached } from '@temply/shared/plans';
 import { useBilling } from '~/lib/billing';
+import { parseStamp } from '~/lib/stamp';
 import { Button, pressable } from '~/components/ui/button';
+import { Input } from '~/components/ui/input';
 import { cn } from '~/lib/classname';
 import { ConfirmDialog } from '~/components/ui/confirm-dialog';
 import { PlanLimitBanner } from '~/components/dashboard/plan-limit-banner';
@@ -53,7 +55,7 @@ type CreateKeyResponse = {
 };
 
 const formatDate = (value: string | null) =>
-  value ? new Date(value).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' }) : null;
+  value ? parseStamp(value).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' }) : null;
 
 export default function ApiKeysPage() {
   const queryClient = useQueryClient();
@@ -138,7 +140,7 @@ export default function ApiKeysPage() {
           once there is a list for it to sit above. */}
       {keys.length > 0 ? (
         <div className="flex justify-end">
-          <Button variant="primary" onClick={openCreate} disabled={readOnly}>
+          <Button size="compact" variant="primary" onClick={openCreate} disabled={readOnly}>
             <PlusIcon />
             Create key
           </Button>
@@ -164,7 +166,7 @@ export default function ApiKeysPage() {
             <code className="flex-1 truncate rounded-sm border border-line bg-raised px-2.5 py-1.5 font-mono text-sm text-ink">
               {newlyCreatedKey}
             </code>
-            <Button onClick={() => copyKey(newlyCreatedKey)}>
+            <Button size="compact" onClick={() => copyKey(newlyCreatedKey)}>
               {copied ? <CheckIcon /> : <CopyIcon />}
               {copied ? 'Copied' : 'Copy'}
             </Button>
@@ -185,7 +187,7 @@ export default function ApiKeysPage() {
           title="No API keys"
           description="Create one to read your templates from your own application."
           action={
-            <Button variant="primary" onClick={openCreate} disabled={readOnly}>
+            <Button size="compact" variant="primary" onClick={openCreate} disabled={readOnly}>
               <PlusIcon />
               Create key
             </Button>
@@ -342,11 +344,15 @@ curl -X POST -H "Authorization: Bearer tply_live_..." \\
                     className={cn(
                       'flex flex-col items-start gap-0.5 rounded-md border px-3 py-2 text-left',
                       pressable,
-                      active ? 'border-accent bg-accent-wash' : 'border-line hover:bg-hover',
-                      locked && 'opacity-60',
+                      // Locked it is the filled disabled tile, not the live one at
+                      // half strength; the reason beside the name stays in the
+                      // muted ink so it can still be read.
+                      locked
+                        ? 'border-transparent bg-track'
+                        : active ? 'border-accent bg-accent-wash' : 'border-line hover:bg-hover',
                     )}
                   >
-                    <span className={cn('text-sm font-medium', active ? 'text-accent-ink' : 'text-ink')}>
+                    <span className={cn('text-sm font-medium', locked ? 'text-disabled' : active ? 'text-accent-ink' : 'text-ink')}>
                       {option.label}
                       {locked ? (
                         <span id={lockId} className="ml-1.5 text-xs font-normal text-muted">
@@ -354,7 +360,7 @@ curl -X POST -H "Authorization: Bearer tply_live_..." \\
                         </span>
                       ) : null}
                     </span>
-                    <span id={hintId} className="text-xs text-muted">
+                    <span id={hintId} className={cn('text-xs', locked ? 'text-disabled' : 'text-muted')}>
                       {option.hint}
                     </span>
                   </button>
@@ -367,9 +373,8 @@ curl -X POST -H "Authorization: Bearer tply_live_..." \\
             <label htmlFor="api-key-name" className="block text-sm font-medium text-ink">
               Key name
             </label>
-            <input
+            <Input
               id="api-key-name"
-              className="h-8 w-full rounded-sm border border-line bg-raised px-2.5 text-sm text-ink placeholder:text-muted"
               placeholder="Production server"
               value={keyName}
               onChange={(e) => setKeyName(e.target.value)}
@@ -382,6 +387,7 @@ curl -X POST -H "Authorization: Bearer tply_live_..." \\
 
           <DialogFooter>
             <Button
+              size="compact"
               onClick={() => {
                 setShowCreate(false);
                 setKeyName('');
@@ -390,6 +396,7 @@ curl -X POST -H "Authorization: Bearer tply_live_..." \\
               Cancel
             </Button>
             <Button
+              size="compact"
               variant="primary"
               onClick={handleCreate}
               disabled={!keyName.trim() || isCreating}

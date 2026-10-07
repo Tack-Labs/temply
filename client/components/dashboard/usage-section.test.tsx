@@ -28,7 +28,9 @@ type Overrides = {
   overage?: Billing['overage'];
 };
 
-/** A Team workspace with room to spare: 4,200 of the 10,000 included calls and 4 of its 10 templates. */
+const MB = 1024 * 1024;
+
+/** A Team workspace with room to spare: 4,200 of the 10,000 included calls, 4 of its 10 templates and 120 MB of its 1 GB. */
 function billing({ plan = 'team', seats = 3, usage, limits, overage }: Overrides = {}): Billing {
   return {
     plan,
@@ -38,14 +40,14 @@ function billing({ plan = 'team', seats = 3, usage, limits, overage }: Overrides
     seats,
     templatePacks: 0,
     currentPeriodEnd: '2026-11-01T00:00:00Z',
-    usage: { templates: 4, apiKeys: 1, apiCalls: 4_200, storageBytes: 0, ...usage },
+    usage: { templates: 4, apiKeys: 1, apiCalls: 4_200, storageBytes: 120 * MB, ...usage },
     limits: {
       maxTemplates: 10,
       maxApiKeys: null,
       maxVersions: 10,
       includedApiCalls: 10_000,
       maxApiCalls: null,
-      maxStorageBytes: null,
+      maxStorageBytes: 1024 * MB,
       ...limits,
     },
     overage: overage ?? { calls: 0, usd: 0 },
@@ -76,6 +78,7 @@ type View = ReturnType<typeof render>;
 const setup = (data: Billing | null, isAdmin = false) => render(<UsageSection billing={data} isAdmin={isAdmin} />);
 const calls = (view: View) => view.getByRole('progressbar', { name: 'Live API calls this month' });
 const templatesBar = (view: View) => view.getByRole('progressbar', { name: 'Templates' });
+const storageBar = (view: View) => view.getByRole('progressbar', { name: 'Storage' });
 const fill = (bar: HTMLElement) => bar.firstElementChild as HTMLElement;
 
 describe('UsageSection API calls', () => {
@@ -83,8 +86,8 @@ describe('UsageSection API calls', () => {
     const view = setup(billing());
     const bar = calls(view);
     expect(bar.getAttribute('aria-valuemin')).toBe('0');
-    expect(bar.getAttribute('aria-valuemax')).toBe('10000');
-    expect(bar.getAttribute('aria-valuenow')).toBe('4200');
+    expect(bar.getAttribute('aria-valuemax')).toBe('100');
+    expect(bar.getAttribute('aria-valuenow')).toBe('42');
     expect(bar.getAttribute('aria-valuetext')).toBe('4,200 of 10,000 included');
     expect(fill(bar).className).toContain('bg-accent-ink');
     expect(fill(bar).style.width).toBe('42%');
@@ -118,7 +121,7 @@ describe('UsageSection API calls', () => {
   it('keeps warn for billed overage, which carries on rather than stops', () => {
     const view = setup(billing({ usage: { apiCalls: 11_200 }, overage: { calls: 1_200, usd: 1.2 } }));
     const bar = calls(view);
-    expect(bar.getAttribute('aria-valuenow')).toBe('10000');
+    expect(bar.getAttribute('aria-valuenow')).toBe('100');
     expect(bar.getAttribute('aria-valuetext')).toBe('11,200 of 10,000 included');
     expect(fill(bar).style.width).toBe('100%');
     expect(fill(bar).className).toContain('bg-warn-ink');
@@ -145,11 +148,17 @@ describe('UsageSection templates', () => {
   it('measures the count against the plan’s allowance', () => {
     const view = setup(billing());
     const bar = templatesBar(view);
-    expect(bar.getAttribute('aria-valuenow')).toBe('4');
-    expect(bar.getAttribute('aria-valuemax')).toBe('10');
+    expect(bar.getAttribute('aria-valuenow')).toBe('40');
+    expect(bar.getAttribute('aria-valuemax')).toBe('100');
     expect(bar.getAttribute('aria-valuetext')).toBe('4 of 10');
-    expect(fill(bar).className).toContain('bg-accent-ink');
     expect(view.getByText('6 left')).toBeTruthy();
+  });
+
+  it('is mint while there is room, on a mint track', () => {
+    const bar = templatesBar(setup(billing()));
+    expect(bar.className).toContain('bg-success-wash');
+    expect(fill(bar).className.split(/\s+/)).toContain('bg-success');
+    expect(fill(bar).style.width).toBe('40%');
   });
 
   it('turns warn when the allowance is nearly used', () => {
@@ -169,7 +178,8 @@ describe('UsageSection plans without a bar to fill', () => {
   it('shows counts and no bar when there is no ceiling to measure against', () => {
     const view = setup(billing({ plan: 'enterprise', seats: null, limits: unlimited }));
     expect(view.queryByRole('progressbar')).toBeNull();
-    expect(view.getAllByText('no limit')).toHaveLength(2);
+    // Calls, templates and storage each have nothing to measure against.
+    expect(view.getAllByText('no limit')).toHaveLength(3);
     expect(view.getByText('4,200')).toBeTruthy();
   });
 
@@ -178,6 +188,10 @@ describe('UsageSection plans without a bar to fill', () => {
     expect(view.queryByRole('progressbar')).toBeNull();
     expect(view.getByText('Live calls paused').className).toContain('text-danger-ink');
     expect(view.getByText('Read-only').className).toContain('text-danger-ink');
+    // The storage tile has no limit to measure and nothing to add to the two
+    // reasons already given.
+    expect(view.getByText('Storage')).toBeTruthy();
+    expect(view.getByText('120 MB')).toBeTruthy();
     // Nothing is counting down toward a reset while live calls are off.
     expect(view.queryByText(/^Resets/)).toBeNull();
     expect(view.getByText('3,000')).toBeTruthy();
@@ -203,31 +217,83 @@ describe('UsageSection members', () => {
   });
 });
 
-describe('UsageSection geometry', () => {
-  const headerRow = (view: View) => view.getByRole('heading', { name: 'Usage' }).parentElement;
+describe('UsageSection storage', () => {
+  it('measures the images kept against the plan’s allowance, in the peach the board gives it', () => {
+    const view = setup(billing());
+    const bar = storageBar(view);
+    expect(bar.getAttribute('aria-valuenow')).toBe('11');
+    expect(bar.getAttribute('aria-valuemax')).toBe('100');
+    expect(bar.getAttribute('aria-valuetext')).toBe('120 MB of 1 GB');
+    expect(bar.className).toContain('bg-peach-wash');
+    expect(fill(bar).className.split(/\s+/)).toContain('bg-peach');
+    // The same floored percentage the tone reads: 11.7% is 11.
+    expect(fill(bar).style.width).toBe('11%');
+    expect(view.getByText('120 MB')).toBeTruthy();
+    expect(view.getByText('of 1 GB')).toBeTruthy();
+    expect(view.getByText('904 MB left')).toBeTruthy();
+  });
 
-  it('holds the header row at the height the admin’s button makes it, for a member too', () => {
-    // The loading skeleton is h-7, h-11 on a coarse pointer, and cannot know the role.
+  it('turns warn from 80% and danger once nothing more can be uploaded', () => {
+    const near = setup(billing({ usage: { storageBytes: 900 * MB } }));
+    expect(fill(storageBar(near)).className).toContain('bg-warn-ink');
+    expect(near.getByText('124 MB left').className).toContain('text-warn-ink');
+    cleanup();
+    const full = setup(billing({ usage: { storageBytes: 1024 * MB } }));
+    expect(fill(storageBar(full)).className).toContain('bg-danger-ink');
+    expect(full.getByText('Limit reached').className).toContain('text-danger-ink');
+  });
+
+  it('shows what is kept and no bar where the plan sets no ceiling', () => {
+    const view = setup(billing({ plan: 'enterprise', seats: null, limits: unlimited, usage: { storageBytes: 5 * 1024 * MB } }));
+    expect(view.getByText('5 GB')).toBeTruthy();
+    expect(view.queryByRole('progressbar', { name: 'Storage' })).toBeNull();
+  });
+});
+
+describe('UsageSection layout', () => {
+  const headerRow = (view: View) => view.getByRole('heading', { name: 'Usage' }).parentElement?.parentElement;
+
+  it('is a section titled Usage, with the period beside the title', () => {
+    const view = setup(billing());
+    expect(view.getByRole('region', { name: 'Usage' })).toBeTruthy();
+    expect(view.getByRole('heading', { level: 2, name: 'Usage' }).className).toContain('text-2xl');
+    expect(view.getByText('This month')).toBeTruthy();
+  });
+
+  it('holds the header row at 44px whoever is reading, so the loading skeleton can match it', () => {
     for (const isAdmin of [true, false]) {
-      const row = headerRow(setup(billing(), isAdmin));
-      expect(row?.className).toContain('min-h-7');
-      expect(row?.className).toContain('pointer-coarse:min-h-11');
+      expect(headerRow(setup(billing(), isAdmin))?.className).toContain('min-h-11');
       cleanup();
     }
   });
 
   it('holds the note line on a plan with no limit, where the date it carries is empty until hydration', () => {
     const view = setup(billing({ plan: 'enterprise', seats: null, limits: unlimited }));
-    const note = view.getByText('Live API calls this month').parentElement?.querySelector('.min-h-4\\.5');
+    const note = view.getByText('Live API calls this month').parentElement?.querySelector('.min-h-5\\.5');
     expect(note).not.toBeNull();
+  });
+
+  it('fades the reset date in once the reader’s locale is known, rather than popping it in', () => {
+    const date = setup(billing()).getByText(/^Resets \S/);
+    expect(date.className).toContain('fade-in-mount');
+    expect(date.className).toContain('motion-reduce:transition-none');
+  });
+
+  it('draws tiles as cards of the dashboard’s radius, with the value in the display face', () => {
+    const view = setup(billing());
+    const tile = view.getByText('Live API calls this month').parentElement as HTMLElement;
+    expect(tile.className).toContain('rounded-card');
+    expect(view.getByText('4,200').className).toContain('font-display');
+    // The count's caption is body type beside it, not display type.
+    expect(view.getByText('of 10,000 included').className).toContain('font-sans');
   });
 });
 
 describe('UsageSection plan link', () => {
-  it('sends an admin to the plan page, with a target that grows on a touch screen', () => {
+  it('sends an admin to the plan page, with a 44px target', () => {
     const link = setup(billing(), true).getByRole('link', { name: 'Manage plan' });
     expect(link.getAttribute('href')).toBe(PLAN_PAGE);
-    expect(link.className).toContain('pointer-coarse:h-11');
+    expect(link.className.split(/\s+/)).toContain('h-11');
   });
 
   it('does not send a member to a page they cannot open', () => {

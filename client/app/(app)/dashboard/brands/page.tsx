@@ -8,6 +8,7 @@ import { toast } from 'sonner';
 import { DEFAULT_RENDERER_THEME, type RendererThemeOptions } from '@temply/shared/theme';
 import { BRAND_PRESETS } from '@temply/shared/brand-presets';
 import { Button } from '~/components/ui/button';
+import { Input } from '~/components/ui/input';
 import { ConfirmDialog } from '~/components/ui/confirm-dialog';
 import {
   Dialog,
@@ -154,7 +155,7 @@ export default function BrandsPage() {
         title="Brands"
         description="Reusable looks you apply to templates."
         actions={
-          <Button variant="primary" disabled={atLimit || readOnly} onClick={openCreate}>
+          <Button size="compact" variant="primary" disabled={atLimit || readOnly} onClick={openCreate}>
             <PlusIcon />
             New brand
           </Button>
@@ -183,7 +184,7 @@ export default function BrandsPage() {
             title="No custom brands yet"
             description="Save colours, spacing, and corners to reuse across templates."
             action={
-              <Button onClick={openCreate} disabled={atLimit || readOnly}>
+              <Button size="compact" onClick={openCreate} disabled={atLimit || readOnly}>
                 New brand
               </Button>
             }
@@ -307,9 +308,8 @@ export default function BrandsPage() {
                 <label htmlFor="brand-name" className="block text-sm font-medium text-ink">
                   Brand name
                 </label>
-                <input
+                <Input
                   id="brand-name"
-                  className="h-8 w-full rounded-sm border border-line bg-raised px-2.5 text-sm text-ink placeholder:text-muted"
                   placeholder="Your brand name"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
@@ -323,6 +323,7 @@ export default function BrandsPage() {
 
           <DialogFooter>
             <Button
+              size="compact"
               onClick={() => {
                 setShowEditor(false);
                 setEditingBrand(null);
@@ -331,7 +332,7 @@ export default function BrandsPage() {
             >
               Cancel
             </Button>
-            <Button variant="primary" onClick={handleSave} disabled={!name.trim() || isSaving}>
+            <Button size="compact" variant="primary" onClick={handleSave} disabled={!name.trim() || isSaving}>
               {isSaving ? <Loader2Icon className="animate-spin" /> : null}
               Save
             </Button>

@@ -9,6 +9,7 @@ import { errorMessage } from '~/lib/http';
 import { toastUploaded, UPLOAD_MIME_TYPES, type Asset } from '~/lib/assets';
 import { Button } from '~/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '~/components/ui/dialog';
+import { Input } from '~/components/ui/input';
 import { EmptyState, ErrorState } from '~/components/ui/surfaces';
 import { AssetGrid, type PendingUpload } from './asset-grid';
 import { useAssets } from './use-assets';
@@ -16,9 +17,6 @@ import { useDuplicateNameGuard } from './duplicate-name-dialog';
 import { useFileDrop } from './use-file-drop';
 import { cn } from '~/lib/classname';
 import { localId } from '~/lib/id';
-
-const inputClass =
-  'h-9 w-full rounded-md border border-line bg-raised px-3 text-sm text-ink placeholder:text-muted';
 
 export function AssetPickerDialog({
   open,
@@ -91,8 +89,7 @@ export function AssetPickerDialog({
         </DialogHeader>
 
         <div className="flex items-center gap-2">
-          <input
-            className={inputClass}
+          <Input
             placeholder="Search by file name"
             value={search}
             onChange={(event) => setSearch(event.target.value)}
@@ -108,7 +105,7 @@ export function AssetPickerDialog({
               event.target.value = '';
             }}
           />
-          <Button variant="primary" disabled={upload.isPending} onClick={() => fileInput.current?.click()}>
+          <Button size="md" variant="primary" disabled={upload.isPending} onClick={() => fileInput.current?.click()}>
             {upload.isPending ? <Loader2Icon className="animate-spin" /> : <UploadIcon />}
             Upload
           </Button>
@@ -128,7 +125,7 @@ export function AssetPickerDialog({
               icon={ImageIcon}
               title={search ? 'No images match' : 'No images yet'}
               description={search ? 'Try a different file name.' : 'Upload one to use it here'}
-              action={search ? undefined : <Button variant="primary" onClick={() => fileInput.current?.click()}>Upload</Button>}
+              action={search ? undefined : <Button size="compact" variant="primary" onClick={() => fileInput.current?.click()}>Upload</Button>}
             />
           ) : (
             <AssetGrid mode="pick" size="md" assets={assets} pending={pendingUpload ? [pendingUpload] : []} onPick={onPick} />
