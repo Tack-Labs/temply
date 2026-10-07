@@ -77,6 +77,19 @@ test.describe('the mark and the lockup in the app', () => {
     await expect(mark.locator('path')).toHaveAttribute('fill', /^url\(#[\w-]+\)$/);
   });
 
+  // The playground renders its wait state into the page, ahead of the editor's
+  // code, so the loader a visitor first sees is in the response. The retired
+  // mark was three rounded bars in a violet tile.
+  test('the loader is the gradient app icon with the mark\'s three shapes', async ({ request }) => {
+    const html = await (await request.get('/playground')).text();
+    expect(html).toContain('Loading the editor…');
+    const bars = html.match(/class="page-loading-bar"/g) ?? [];
+    expect(bars.length).toBeGreaterThan(0);
+    expect(bars.length % 3).toBe(0);
+    expect(html).toContain('viewBox="0 0 1024 1024"');
+    expect(html).not.toContain('rx="3.5"');
+  });
+
   test('the sign-in screen leads with the lockup as a link home, 35px tall and loaded', async ({ page }) => {
     // Clerk's card is not under test and waits on a host the run does not reach.
     await page.goto('/login', { waitUntil: 'domcontentloaded' });

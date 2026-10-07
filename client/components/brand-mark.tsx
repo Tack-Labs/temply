@@ -5,6 +5,13 @@ import { useId } from 'react';
 const MARK_PATH = 'M24 0L336 0A24 24 0 0 1 360 24L360 76A24 24 0 0 1 336 100L24 100A24 24 0 0 1 0 76L0 24A24 24 0 0 1 24 0ZM132 120L228 120A16 16 0 0 1 244 136L244 173.12A16 16 0 0 1 231.42 188.75L135.42 209.75A16 16 0 0 1 116 194.12L116 136A16 16 0 0 1 132 120ZM128.58 231.25L224.58 210.25A16 16 0 0 1 244 225.88L244 304A16 16 0 0 1 228 320L132 320A16 16 0 0 1 116 304L116 246.88A16 16 0 0 1 128.58 231.25Z';
 
 /**
+ * The mark's three shapes (the bar, and the stem either side of the cut), taken
+ * from the path above at its subpath starts so they are never retyped. They
+ * draw the mark when laid together; the loader moves them one at a time.
+ */
+export const MARK_PARTS = MARK_PATH.split(/(?=M)/);
+
+/**
  * The Temply mark: a T cut by one slanted slice, drawn as a single path so the
  * gradient runs across the whole shape. The gradient reads the static
  * `--brand-*` tokens, which are the same in light and dark, so the mark follows

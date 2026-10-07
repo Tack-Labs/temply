@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it } from 'bun:test';
 import '../core/editor/test/dom';
 import { cleanup, render } from '@testing-library/react';
-import { BrandMark } from './brand-mark';
+import { BrandMark, MARK_PARTS } from './brand-mark';
 
 afterEach(cleanup);
 
@@ -59,5 +59,12 @@ describe('BrandMark', () => {
     expect(svg(container).getAttribute('aria-hidden')).toBe('true');
     expect(svg(container).getAttribute('class')).toBe('size-6 shrink-0');
     expect(svg(container).getAttribute('role')).toBeNull();
+  });
+
+  it('hands out its three shapes, which laid together are the one path it draws', () => {
+    const { container } = render(<BrandMark />);
+    expect(MARK_PARTS).toHaveLength(3);
+    expect(MARK_PARTS.every((part) => part.startsWith('M') && part.endsWith('Z'))).toBe(true);
+    expect(MARK_PARTS.join('')).toBe(container.querySelector('path')?.getAttribute('d') ?? '');
   });
 });

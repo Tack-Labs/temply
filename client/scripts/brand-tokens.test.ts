@@ -62,6 +62,7 @@ describe('the brand tokens', () => {
 /** Where a brand colour may be read, and why. */
 const ALLOWED: Record<string, string> = {
   'components/brand-mark.tsx': 'the mark: the stops of its gradient, which is artwork and carries no text',
+  'components/ui/page-loading.tsx': 'the loader: the app icon\'s gradient tile, artwork whose only text sits outside it',
 };
 
 const SKIPPED_DIRS = new Set(['node_modules', '.turbo', 'coverage', 'public']);

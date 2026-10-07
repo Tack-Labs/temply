@@ -701,18 +701,20 @@
   animation: content-pane-in var(--ds-motion-base) var(--ds-ease-out);
 }
 
-/* Page loading — the Temply mark with its three bars breathing in turn, top
-   to bottom. The mark itself fades in so it never pops. Both keyframes rest
-   at the complete, fully visible state, so when the reduced-motion rule below
-   collapses every animation to a single instant frame what is left is a
-   still logo, not a half-faded one. */
+/* Page loading — the Temply app icon with the mark's three shapes breathing in
+   turn, top to bottom. The icon itself fades in so it never pops. Both
+   keyframes rest at the complete, fully visible state, so when the
+   reduced-motion rule below collapses every animation to a single instant
+   frame what is left is a still logo, not a half-faded one. The lift is in the
+   icon's own units (the drawing is 1024 wide and shown at 40px, with the mark
+   at about 1.6x inside it), so 28 is a little under two pixels. */
 @keyframes page-loading-in {
   from { opacity: 0; transform: translateY(4px); }
   to { opacity: 1; transform: none; }
 }
 @keyframes page-loading-bar {
   0%, 100% { opacity: 1; transform: translateY(0); }
-  50% { opacity: 0.4; transform: translateY(-3px); }
+  50% { opacity: 0.4; transform: translateY(-28px); }
 }
 .page-loading {
   animation: page-loading-in var(--ds-motion-base) var(--ds-ease-out) both;
