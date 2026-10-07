@@ -7,6 +7,22 @@ import type { Editor } from '@tiptap/core';
 const MENU_ROOM = 48;
 
 /**
+ * The box the block has to be inside to be seen: the nearest ancestor that
+ * scrolls vertically, which in the framed editor is the canvas, not the
+ * window. A window with nothing scrolling in it is its own box.
+ */
+function viewportOf(element: HTMLElement): { top: number; bottom: number } {
+  for (let up = element.parentElement; up; up = up.parentElement) {
+    const { overflowY } = getComputedStyle(up);
+    if (overflowY === 'auto' || overflowY === 'scroll') {
+      const { top, bottom } = up.getBoundingClientRect();
+      return { top, bottom };
+    }
+  }
+  return { top: 0, bottom: window.innerHeight };
+}
+
+/**
  * Brings the block the selection is in back into view, once it has a size.
  *
  * ProseMirror scrolls the selection into view as part of the transaction that
@@ -36,7 +52,8 @@ export function revealInsertedBlock(editor: Editor | null): void {
     if (!(element instanceof HTMLElement)) return;
 
     const rect = element.getBoundingClientRect();
-    if (rect.top >= MENU_ROOM && rect.bottom <= window.innerHeight) return;
+    const view = viewportOf(element);
+    if (rect.top >= view.top + MENU_ROOM && rect.bottom <= view.bottom) return;
 
     element.scrollIntoView({ block: 'center' });
   });

@@ -109,23 +109,17 @@ export function EmailSettingsRail({
       animate={animate}
       onToggle={onToggle}
       open={
-        <div className="flex flex-1 flex-col">
-          {/* From lg the status card below is opaque and pinned over the foot
-              of the scroller, so a field focused from the bottom edge would
-              land under it. Each control keeps a scroll margin the height of
-              the card at its tallest (164px when an error wraps in the narrow
-              rail) and the focus ring (5px), so the browser stops short of it.
-              It is set here and not as padding on the scroller because that
-              would also move where the canvas scrolls its own blocks to. */}
-          <div className="flex flex-col gap-5.5 px-6 pt-5 lg:**:scroll-mb-44">
-            {/* The collapse button leads here, on the side the rail collapses
-                toward; its 44px target is pulled in so the icon lines up
-                with the fields' left edge. */}
-            <div className="flex items-center gap-1">
-              <RailToggle side="right" expanded label="Collapse email settings panel" className="-ml-3" />
-              <h2 className="font-display text-xl font-bold tracking-display text-ink">Email settings</h2>
-            </div>
+        <div className="flex flex-1 flex-col lg:min-h-0">
+          {/* The collapse button leads here, on the side the rail collapses
+              toward; its 44px target is pulled in so the icon lines up with
+              the fields' left edge. From lg the header is pinned and the form
+              scrolls under it. */}
+          <div className="flex items-center gap-1 px-6 pt-5 pb-5.5 lg:border-b-[1.5px] lg:border-line lg:pb-4">
+            <RailToggle side="right" expanded label="Collapse email settings panel" className="-ml-3" />
+            <h2 className="font-display text-xl font-bold tracking-display text-ink">Email settings</h2>
+          </div>
 
+          <div className="flex flex-col gap-5.5 px-6 lg:min-h-0 lg:flex-1 lg:overflow-y-auto lg:scroll-py-3 lg:pt-5 lg:pb-6 lg:[scrollbar-width:thin]">
             <div className="flex flex-col gap-5">
               <Field id="subject" label="Subject">
                 <Input
@@ -202,11 +196,11 @@ export function EmailSettingsRail({
             ) : null}
           </div>
 
-          {/* At the foot of the rail, and from lg pinned to the foot of the
-              window as the settings scroll past. The surface behind it hides
-              what goes under. Stacked below lg it is simply the last thing in
-              the flow: pinned there it would sit over the fields on a phone. */}
-          <div className="mt-auto bg-raised px-6 pt-4 pb-6 lg:sticky lg:bottom-0">
+          {/* At the foot of the rail. From lg it is pinned below the scrolling
+              form, with a rule between, so the verdict is always in view and
+              never covers a field. Stacked below lg it is simply the last
+              thing in the flow. */}
+          <div className="mt-auto bg-raised px-6 pt-4 pb-6 lg:shrink-0 lg:border-t-[1.5px] lg:border-line lg:pb-5">
             <StatusCard
               status={status}
               expanded={preflightExpanded}
@@ -219,16 +213,15 @@ export function EmailSettingsRail({
         </div>
       }
       strip={
-        // The top padding is on the pinned box, not on the strip around it:
-        // pinned at top-0 the box would otherwise sit flush to the scrollport
-        // and clip the expand button's focus ring. The left strip does the same.
+        // The top padding keeps the expand button's focus ring off the card's
+        // clipped edge. The left strip does the same.
         <div className="flex h-full flex-col items-center pb-6">
-          <div className="sticky top-0 flex flex-col items-center gap-3 pt-5">
+          <div className="flex flex-col items-center gap-3 pt-5">
             <RailToggle side="right" expanded={false} label="Expand email settings panel" />
             <div aria-hidden="true" className="my-1 h-[1.5px] w-8 bg-line" />
             <SettingsChip />
           </div>
-          <div className="sticky bottom-6 mt-auto pt-3">
+          <div className="mt-auto pt-3">
             <StatusDot status={status} />
           </div>
         </div>

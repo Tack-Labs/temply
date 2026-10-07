@@ -86,20 +86,17 @@ export function ComponentsRail({
       animate={animate}
       onToggle={onToggle}
       open={
-        // Pinned to the top of the scroll so the chips stay in reach while a
-        // long email moves past, and capped to the scroller (`--rail-port`, from
-        // the frame) so the pinned box is never taller than what can be seen:
-        // a rail pinned at its natural height leaves its foot below the fold
-        // wherever the page is scrolled to. The heading and its toggle stay put
-        // and the groups scroll under them. The padding sits inside the scroll,
-        // so a focus ring at the edge of the chips is not clipped by it.
-        <div className="flex flex-col gap-5.5 pt-5 lg:sticky lg:top-0 lg:max-h-(--rail-port)">
-          <div className="flex items-center justify-between gap-2 px-4">
+        // The heading and its toggle are pinned and the groups scroll under
+        // them, so every chip stays in reach however short the window. The
+        // padding sits inside the scroll, so a focus ring at the edge of the
+        // chips is not clipped by it.
+        <div className="flex flex-col lg:min-h-0 lg:flex-1">
+          <div className="flex items-center justify-between gap-2 px-4 pt-5 pb-5.5 lg:border-b-[1.5px] lg:border-line lg:pb-4">
             <h2 className="pl-1 font-display text-xl font-bold tracking-display text-ink">Components</h2>
             <RailToggle side="left" expanded label="Collapse components panel" />
           </div>
 
-          <div className="min-h-0 space-y-5.5 px-4 pb-6 lg:overflow-y-auto lg:scroll-py-3 lg:[scrollbar-width:thin]">
+          <div className="min-h-0 space-y-5.5 px-4 pb-6 lg:flex-1 lg:overflow-y-auto lg:scroll-py-3 lg:pt-5 lg:[scrollbar-width:thin]">
             {GROUPS.map((group) => (
               <Group key={group.id} heading={group.heading}>
                 {blocksFor(group.titles).map((block) => (
@@ -120,10 +117,10 @@ export function ComponentsRail({
         </div>
       }
       strip={
-        // The same cap as the panel: eleven chips are taller than a laptop's
-        // scroller, so the toggle stays put and the chips scroll under it. The
-        // top padding is room for the first chip's focus ring inside the scroll.
-        <div className="flex flex-col items-center gap-3 pt-5 lg:sticky lg:top-0 lg:max-h-(--rail-port)">
+        // The same split as the panel: eleven chips are taller than a laptop's
+        // card, so the toggle stays put and the chips scroll under it. The top
+        // padding is room for the first chip's focus ring inside the scroll.
+        <div className="flex flex-col items-center gap-3 pt-5 lg:h-full">
           {/* The panel's copy of the reason is inert while folded, and a
               description cannot be read out of a subtree assistive tech skips,
               so the strip carries the sentence itself. It is mounted only while
@@ -135,7 +132,7 @@ export function ComponentsRail({
           ) : null}
           <RailToggle side="left" expanded={false} label="Expand components panel" />
           <div aria-hidden="true" className="my-1 h-[1.5px] w-8 bg-line" />
-          <div className="flex min-h-0 w-full flex-col items-center gap-3 overflow-y-auto pt-2 pb-6 scroll-py-3 [scrollbar-width:thin] [&>*]:shrink-0">
+          <div className="flex min-h-0 w-full flex-1 flex-col items-center gap-3 overflow-y-auto pt-2 pb-6 scroll-py-3 [scrollbar-width:thin] [&>*]:shrink-0">
             {GROUPS.flatMap((group) =>
               blocksFor(group.titles).map((block) => (
                 <StripChip

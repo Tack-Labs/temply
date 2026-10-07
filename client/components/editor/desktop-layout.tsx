@@ -38,12 +38,14 @@ const labelClass = 'block text-sm font-medium text-ink';
 //   --rail-strip       4.5rem, a collapsed rail's width
 //   --rail-left-open   13rem from lg, 16.5rem from xl: the Components rail
 //   --rail-right-open  17rem from lg, 20rem from xl: the Email settings rail
-//   --rail-left        what the slot is wide now: the strip or the open width
+//   --rail-left        how wide the rail's card is now: the strip or the open width
 //   --rail-right
-// The rails read the strip and the open widths too, to size their own faces.
-// Below lg the rails stack around the canvas at the full width and none of
-// the variables are read.
-const railSlot = 'flex shrink-0 flex-col overflow-x-clip bg-raised';
+// From lg a slot is transparent and holds a floating card: 0.75rem of the app's
+// sunken surface on the card's outer edge and above and below it, which the
+// slot's width counts on top of the variable. The rails read the strip and the
+// open widths too, to size their own faces. Below lg the rails stack around
+// the canvas at the full width and none of the variables are read.
+const railSlot = 'flex shrink-0 flex-col bg-raised lg:bg-transparent';
 
 // The ease is only switched on once the reader has collapsed or opened a rail:
 // a rail restored collapsed on load is put at its width, not travelled to.
@@ -155,18 +157,18 @@ function FramedLayout({
   return (
     <div
       className={cn(
-        'flex flex-1 flex-col lg:flex-row lg:[--rail-strip:4.5rem] lg:[--rail-left-open:13rem] lg:[--rail-right-open:17rem] xl:[--rail-left-open:16.5rem] xl:[--rail-right-open:20rem]',
+        'flex flex-1 flex-col lg:min-h-0 lg:flex-row lg:[--rail-strip:4.5rem] lg:[--rail-left-open:13rem] lg:[--rail-right-open:17rem] xl:[--rail-left-open:16.5rem] xl:[--rail-right-open:20rem]',
         leftCollapsed ? 'lg:[--rail-left:var(--rail-strip)]' : 'lg:[--rail-left:var(--rail-left-open)]',
         rightCollapsed ? 'lg:[--rail-right:var(--rail-strip)]' : 'lg:[--rail-right:var(--rail-right-open)]',
       )}
     >
-      {/* LEFT RAIL SLOT. The Components rail pins its own head to the top of
-          the scroll while the canvas moves past it. */}
+      {/* LEFT RAIL SLOT. The Components rail is a card floating beside the
+          canvas; what it holds scrolls inside it. */}
       <div
         className={cn(
           railSlot,
           left.animate && railEase,
-          'border-b-[1.5px] border-line lg:w-(--rail-left) lg:border-r-[1.5px] lg:border-b-0',
+          'border-b-[1.5px] border-line lg:w-[calc(var(--rail-left)+0.75rem)] lg:border-b-0 lg:py-3 lg:pl-3',
         )}
       >
         <ComponentsRail
@@ -180,8 +182,13 @@ function FramedLayout({
 
       {/* CANVAS SURROUND. The app's sunken surface, so it follows the app
           theme; the email on it is painted from the template's own theme
-          and does not. */}
-      <section ref={canvas} aria-label="Email canvas" className="min-w-0 flex-1 bg-sunken px-6 pt-8 pb-12">
+          and does not. From lg it is the one thing on the page that scrolls:
+          the rails and the bar above it stay where they are. */}
+      <section
+        ref={canvas}
+        aria-label="Email canvas"
+        className="min-w-0 flex-1 bg-sunken px-6 pt-8 pb-12 lg:min-h-0 lg:overflow-y-auto lg:[scrollbar-gutter:stable]"
+      >
         <div className="mx-auto w-full max-w-[760px] space-y-4">
           {readOnly ? <ReadOnlyNotice /> : null}
           <ClickHint />
@@ -194,13 +201,13 @@ function FramedLayout({
         </div>
       </section>
 
-      {/* RIGHT RAIL SLOT. The settings flow with the page and scroll with the
-          canvas; the status card at their foot stays in view. */}
+      {/* RIGHT RAIL SLOT. The settings scroll inside their card, and the
+          status card at their foot stays in view. */}
       <div
         className={cn(
           railSlot,
           right.animate && railEase,
-          'border-t-[1.5px] border-line lg:w-(--rail-right) lg:border-t-0 lg:border-l-[1.5px]',
+          'border-t-[1.5px] border-line lg:w-[calc(var(--rail-right)+0.75rem)] lg:border-t-0 lg:py-3 lg:pr-3',
         )}
       >
         <EmailSettingsRail

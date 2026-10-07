@@ -377,15 +377,11 @@ describe('EmailSettingsRail, collapsed', () => {
     expect(done.className).toContain('transition-colors');
   });
 
-  it('keeps the expand button\'s focus ring inside the pinned box, as the left strip does', () => {
+  it('leaves room above the expand button for its focus ring, since the card clips at its edge', () => {
     const view = render(<Harness startCollapsed />);
     const expand = strip(view).getByRole('button', { name: 'Expand email settings panel' });
-    // Padding on the strip around a `sticky top-0` box leaves the box flush to
-    // the scrollport once pinned, and the 5px ring is clipped at its edge.
-    const pinned = expand.closest('.sticky') as HTMLElement;
-    expect(pinned.className).toContain('top-0');
-    expect(pinned.className).toContain('pt-5');
-    expect((pinned.parentElement as HTMLElement).className).not.toContain('pt-5');
+    expect((expand.parentElement as HTMLElement).className).toContain('pt-5');
+    expect(view.getByRole('complementary', { name: 'Email settings' }).className).toContain('lg:overflow-clip');
   });
 
   it('turns the dot to the tone of what is found', () => {

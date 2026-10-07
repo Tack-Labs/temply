@@ -35,6 +35,7 @@ export function SegmentedControl<T extends string>({
   onValueChange,
   options,
   label,
+  size = 'md',
   className,
 }: {
   value: T;
@@ -42,6 +43,8 @@ export function SegmentedControl<T extends string>({
   options: readonly SegmentedOption<T>[];
   /** Names the group for a screen reader; required so it cannot ship unnamed. */
   label: string;
+  /** `sm` is the 40px track for a bar that has to stay short; a coarse pointer still gets 44px segments. */
+  size?: 'md' | 'sm';
   className?: string;
 }) {
   const radios = React.useRef<Array<HTMLButtonElement | null>>([]);
@@ -99,7 +102,8 @@ export function SegmentedControl<T extends string>({
               }
             }}
             className={cn(
-              'inline-flex h-10 min-w-0 items-center justify-center gap-1.5 rounded-full px-5 text-ui whitespace-nowrap pointer-coarse:h-11',
+              'inline-flex min-w-0 items-center justify-center gap-1.5 rounded-full whitespace-nowrap pointer-coarse:h-11',
+              size === 'sm' ? 'h-8 px-3.5 text-sm' : 'h-10 px-5 text-ui',
               'transition-[background-color,color,box-shadow,outline-color] duration-fast ease-out motion-reduce:transition-none',
               'focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-focus',
               'disabled:pointer-events-none disabled:text-disabled',

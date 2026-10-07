@@ -239,3 +239,22 @@ describe('SegmentedControl', () => {
     expect(view.getByTestId('rich').parentElement?.getAttribute('title')).toBeNull();
   });
 });
+
+describe('SegmentedControl, size', () => {
+  const sized = (size?: 'md' | 'sm') =>
+    render(<SegmentedControl label="Show templates" value="all" onValueChange={() => {}} options={options} size={size} />);
+
+  it('is the 40px segment by default and the 32px one when asked for the short bar', () => {
+    expect(radio(sized(), /^All/).className).toContain('h-10');
+    cleanup();
+    const small = sized('sm');
+    expect(radio(small, /^All/).className).toContain('h-8');
+    expect(radio(small, /^All/).className).not.toContain('h-10');
+  });
+
+  it('keeps a thumb-sized target on a coarse pointer at either size, and the same roles', () => {
+    const small = sized('sm');
+    expect(radio(small, /^All/).className).toContain('pointer-coarse:h-11');
+    expect(small.getAllByRole('radio')).toHaveLength(3);
+  });
+});

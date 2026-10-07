@@ -148,8 +148,7 @@ test('the editor is one full-height frame: header, tab row, view switch and a su
   await views.getByRole('button', { name: 'Edit', exact: true }).click();
 
   // The canvas surround follows the app's token, with the email in a card of
-  // its own on it; the page itself never scrolls, because the body of the
-  // frame does.
+  // its own on it; the page itself never scrolls, because the canvas does.
   const surround = page.getByRole('region', { name: 'Email canvas' });
   await expect(surround).toHaveCSS('background-color', await painted(page, 'background-color', '--ds-sunken'));
   await expect(surround.locator('article')).toHaveCSS('border-radius', '28px');

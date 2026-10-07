@@ -89,7 +89,9 @@ export function EmailEditorSandbox(props: EmailEditorSandboxProps) {
           beforeNavigate={model.beforeStage}
           trailing={<EditorViewSwitch model={model} />}
         />
-        <main id="main-content" className="flex min-h-0 flex-1 flex-col overflow-y-auto bg-sunken">
+        {/* From `lg` this is a fixed shell: the docked bar and the canvas under
+            it scroll themselves. Below it the page scrolls as one. */}
+        <main id="main-content" className="flex min-h-0 flex-1 flex-col overflow-y-auto bg-sunken lg:overflow-hidden">
           <TemplateWorkflowPanel model={model}>
             <DesktopEditorLayout model={model} autofocus={autofocus} imageUploads={imageUploads} framed />
           </TemplateWorkflowPanel>

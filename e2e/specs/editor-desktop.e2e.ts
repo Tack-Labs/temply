@@ -1001,7 +1001,8 @@ test.describe('editor on the desktop', () => {
     const lastWhollyVisible = await pm.locator('> p').evaluateAll((lines) =>
       lines.reduce((best, line, index) => {
         const rect = line.getBoundingClientRect();
-        return rect.top >= 0 && rect.bottom <= window.innerHeight ? index : best;
+        const view = line.closest('section[aria-label="Email canvas"]')!.getBoundingClientRect();
+        return rect.top >= view.top && rect.bottom <= view.bottom ? index : best;
       }, 0),
     );
     const under = pm.locator('> p').nth(lastWhollyVisible);
@@ -1050,7 +1051,7 @@ test.describe('editor on the desktop', () => {
     // read off the page rather than written down. The menu is still the same
     // menu: nothing was clicked.
     const below = () =>
-      section.evaluate((el) => Math.round(el.getBoundingClientRect().top - el.closest('main')!.getBoundingClientRect().top));
+      section.evaluate((el) => Math.round(el.getBoundingClientRect().top - el.closest('section[aria-label="Email canvas"]')!.getBoundingClientRect().top));
     await page.mouse.move(650, 500);
     await page.mouse.wheel(0, await below());
     await expect.poll(async () => Math.abs(await below()), 'the block rests on the pane\'s top edge').toBeLessThanOrEqual(1);

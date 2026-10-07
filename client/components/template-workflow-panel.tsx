@@ -29,9 +29,11 @@ export function visibleCopy(row: WorkflowTemplate, copy: TemplateCopy): Template
 }
 
 /** Where the template is in staging and sign-off, and what to do next. Shared
- *  by the desktop card and the phone's bottom sheet. */
-export function TemplateWorkflowControls({ model, copy, onCopy }: {
-  model: TemplateEditorModel; copy: TemplateCopy; onCopy: (copy: TemplateCopy) => void;
+ *  by the desktop bar and the phone's bottom sheet. `compact` is the bar's
+ *  layout: the track, the copy switch and the actions share a row, and the
+ *  status is a line under them instead of a tinted box. */
+export function TemplateWorkflowControls({ model, copy, onCopy, compact = false }: {
+  model: TemplateEditorModel; copy: TemplateCopy; onCopy: (copy: TemplateCopy) => void; compact?: boolean;
 }) {
   const row = model.template;
   if (!row) return null;
@@ -44,32 +46,52 @@ export function TemplateWorkflowControls({ model, copy, onCopy }: {
     : stage === 'staging' ? 'Check the staged copy before asking an admin to sign it off.'
     : stage === 'live' ? 'Customers receive this copy. Edit the draft to start your next change.'
     : 'Customers keep receiving the live copy until the next change is approved or published.';
+  const tint = waiting ? 'bg-warn-wash' : stage === 'live' ? 'bg-success-wash' : stage === 'staging' ? 'bg-accent-wash' : 'bg-hover';
+  const ink = waiting ? 'text-warn-ink' : stage === 'live' ? 'text-success-ink' : 'text-ink';
 
+  const track = <TemplateStageTrack stage={stage} liveVersion={row.live_version} compact={compact} className={compact ? 'w-72 max-w-full' : undefined} />;
+  const switcher = (
+    <SegmentedControl label="Template copy" value={copy} onValueChange={onCopy} size={compact ? 'sm' : 'md'} options={[
+      { value: 'draft', label: 'Draft' },
+      { value: 'staged', label: 'Staged copy', disabled: !row.staged_at },
+      { value: 'live', label: 'Live copy', disabled: !row.published_at },
+    ]} />
+  );
+  const actions = (
+    <div className="ml-auto flex flex-wrap items-center gap-2">
+      {step.action === 'edit' ? null : <span className="text-xs text-muted">Next step</span>}
+      <TemplateWorkflowAction id={row.id} stage={stage} isAdmin={model.isAdmin} disabled={model.readOnly}
+        beforeStage={model.beforeStage} onChanged={model.onWorkflowChanged} inEditor />
+      {stage === 'staging' && model.unpublished ? <TemplateWorkflowAction id={row.id} stage="draft" isAdmin={model.isAdmin}
+        disabled={model.readOnly} beforeStage={model.beforeStage} onChanged={model.onWorkflowChanged} label="Update staged copy" variant="secondary" /> : null}
+      {row.staged_at ? <TemplateUnstageAction id={row.id} waiting={waiting} disabled={model.readOnly} onChanged={model.onWorkflowChanged} /> : null}
+      {model.isAdmin && !waiting && (row.live_version ?? 0) >= 2 ? <Button asChild variant="ghost" size="sm">
+        <Link href={`/templates/${row.id}/review`}>Review and rollback</Link>
+      </Button> : null}
+    </div>
+  );
+
+  if (compact) {
+    // The note a reviewer sent back is the detail, so it wraps rather than
+    // truncating: a long one makes the bar taller, which beats cutting it off.
+    return (
+      <div className="space-y-2.5">
+        <div className="flex flex-wrap items-center gap-x-5 gap-y-2.5">{track}{switcher}{actions}</div>
+        <p className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
+          <span className={cn('rounded-full px-2.5 py-0.5 text-xs font-medium', tint, ink)}>{message}</span>
+          <span className="min-w-0 break-words text-xs text-muted">{detail}</span>
+        </p>
+      </div>
+    );
+  }
   return (
     <div className="space-y-4">
-      <TemplateStageTrack stage={stage} liveVersion={row.live_version} />
-      <div className={cn('rounded-lg p-3', waiting ? 'bg-warn-wash' : stage === 'live' ? 'bg-success-wash' : stage === 'staging' ? 'bg-accent-wash' : 'bg-hover')}>
-        <p className={cn('text-sm font-medium', waiting ? 'text-warn-ink' : stage === 'live' ? 'text-success-ink' : 'text-ink')}>{message}</p>
+      {track}
+      <div className={cn('rounded-lg p-3', tint)}>
+        <p className={cn('text-sm font-medium', ink)}>{message}</p>
         <p className="mt-1 break-words text-xs text-muted">{detail}</p>
       </div>
-      <div className="flex flex-wrap items-center gap-2">
-        <SegmentedControl label="Template copy" value={copy} onValueChange={onCopy} options={[
-          { value: 'draft', label: 'Draft' },
-          { value: 'staged', label: 'Staged copy', disabled: !row.staged_at },
-          { value: 'live', label: 'Live copy', disabled: !row.published_at },
-        ]} />
-        <div className="ml-auto flex flex-wrap items-center gap-2">
-          {step.action === 'edit' ? null : <span className="text-xs text-muted">Next step</span>}
-          <TemplateWorkflowAction id={row.id} stage={stage} isAdmin={model.isAdmin} disabled={model.readOnly}
-            beforeStage={model.beforeStage} onChanged={model.onWorkflowChanged} inEditor />
-          {stage === 'staging' && model.unpublished ? <TemplateWorkflowAction id={row.id} stage="draft" isAdmin={model.isAdmin}
-            disabled={model.readOnly} beforeStage={model.beforeStage} onChanged={model.onWorkflowChanged} label="Update staged copy" variant="secondary" /> : null}
-          {row.staged_at ? <TemplateUnstageAction id={row.id} waiting={waiting} disabled={model.readOnly} onChanged={model.onWorkflowChanged} /> : null}
-          {model.isAdmin && !waiting && (row.live_version ?? 0) >= 2 ? <Button asChild variant="ghost" size="sm">
-            <Link href={`/templates/${row.id}/review`}>Review and rollback</Link>
-          </Button> : null}
-        </div>
-      </div>
+      <div className="flex flex-wrap items-center gap-2">{switcher}{actions}</div>
     </div>
   );
 }
@@ -99,23 +121,26 @@ export function TemplateWorkflowPanel({ model, children }: { model: TemplateEdit
   };
   const side = shown === 'draft' ? lastSide : shown;
 
-  // The editor's body is a column that fills the frame and scrolls; the card
-  // keeps the margin of the page it sits on, and the draft takes the rest.
+  // From `lg` the bar is docked under the tabs and the draft takes the rest
+  // of the frame, so the editor, not this panel, owns the scrolling. Below it
+  // the bar is a card and the page scrolls as one.
   return (
-    <div className="flex flex-1 flex-col">
-      {/* Below `sm` the editor is a fixed frame over the page, so a card here
+    <div className="flex flex-1 flex-col lg:min-h-0">
+      {/* Below `sm` the editor is a fixed frame over the page, so a bar here
           would sit underneath it: the phone reaches this from the ⋯ menu. */}
-      <Card className="mx-4 mt-4 mb-4 space-y-4 max-sm:hidden lg:mx-7 lg:mt-6">
-        <TemplateWorkflowControls model={model} copy={shown} onCopy={choose} />
-      </Card>
-      <div hidden={shown !== 'draft'} className="flex flex-1 flex-col">{children}</div>
-      <Reveal open={shown !== 'draft'} className="max-sm:hidden">
-        {copyOf(row, side) ? (
-          <Card className="mx-4 mb-4 space-y-3 lg:mx-7">
-            <TemplateCopyView row={row} copy={side} />
-            <Button size="sm" variant="link" onClick={() => choose('draft')}>Go to draft</Button>
-          </Card>
-        ) : null}
+      <div className="mx-4 mt-4 mb-4 rounded-card bg-raised p-4 shadow-sm max-sm:hidden lg:m-0 lg:shrink-0 lg:rounded-none lg:border-b-[1.5px] lg:border-line lg:px-6 lg:py-3 lg:shadow-none">
+        <TemplateWorkflowControls model={model} copy={shown} onCopy={choose} compact />
+      </div>
+      <div hidden={shown !== 'draft'} className="flex flex-1 flex-col lg:min-h-0">{children}</div>
+      <Reveal open={shown !== 'draft'} className="max-sm:hidden lg:min-h-0">
+        <div className="lg:max-h-full lg:overflow-y-auto">
+          {copyOf(row, side) ? (
+            <Card className="mx-4 mb-4 space-y-3 lg:mx-7 lg:mt-6">
+              <TemplateCopyView row={row} copy={side} />
+              <Button size="sm" variant="link" onClick={() => choose('draft')}>Go to draft</Button>
+            </Card>
+          ) : null}
+        </div>
       </Reveal>
     </div>
   );
