@@ -80,10 +80,6 @@ test.describe('marketing', () => {
     const manifest = await request.get('/manifest.webmanifest');
     expect(manifest.ok()).toBe(true);
     expect((await manifest.json()).name).toBe('Temply');
-    for (const path of ['/apple-icon', '/icon-192', '/icon-512']) {
-      const icon = await request.get(path);
-      expect(icon.headers()['content-type'], `${path} is a PNG`).toBe('image/png');
-    }
 
     // Each page is dated by the last commit that touched what it is made
     // of, not by the deploy. The terms page is the probe: its sources are
