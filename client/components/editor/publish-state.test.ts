@@ -121,3 +121,45 @@ describe('publishView', () => {
     expect(publishView(null, false, now, utc).label).toBe('Not published yet');
   });
 });
+
+/** The reader's zone for the length of `run`, then whatever it was. */
+function inZone<T>(timeZone: string, run: () => T): T {
+  const before = process.env.TZ;
+  process.env.TZ = timeZone;
+  try {
+    return run();
+  } finally {
+    if (before === undefined) delete process.env.TZ;
+    else process.env.TZ = before;
+  }
+}
+
+describe('a publish stamp in the database shape', () => {
+  // The API sends `YYYY-MM-DD HH:MM:SS` in UTC with no zone on it, and `new
+  // Date` reads that as the reader's local time: in Los Angeles a publish at
+  // 14:15 UTC read as 21:15 UTC, and in Auckland as 01:15 UTC the same day.
+  const zones = ['America/Los_Angeles', 'Pacific/Auckland'];
+
+  it('is the same moment in every zone the reader can be in', () => {
+    for (const zone of zones) {
+      expect(plain(inZone(zone, () => formatPublishStamp('2026-10-03 14:15:00', now, utc))), zone).toBe('2:15 PM');
+      expect(inZone(zone, () => formatPublishStamp('2026-09-28 09:00:00', now, utc)), zone).toBe('Sep 28');
+      expect(inZone(zone, () => formatPublishStamp('2025-12-31 09:00:00', now, utc)), zone).toBe('Dec 31, 2025');
+    }
+  });
+
+  it('puts the whole time in the tooltip label, in the same moment', () => {
+    for (const zone of zones) {
+      const view = inZone(zone, () => publishView('2026-10-03 14:15:00', false, now, utc));
+      // Whether ICU puts a comma or "at" between the date and the time is its
+      // own version's choice, so the two halves are read separately.
+      const label = plain(view.label ?? '');
+      expect(label, zone).toStartWith('Published Oct 3, 2026');
+      expect(label, zone).toEndWith('2:15 PM');
+    }
+  });
+
+  it('is still empty for a stamp of that shape that is no date', () => {
+    expect(formatPublishStamp('2026-13-45 99:99:99', now, utc)).toBe('');
+  });
+});

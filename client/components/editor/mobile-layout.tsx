@@ -313,7 +313,7 @@ export function MobileEditorLayout({
           <div className="flex items-center gap-2 border-b border-line bg-danger-wash px-2 py-1.5">
             <AlertTriangleIcon className="size-4 shrink-0 text-danger-ink" aria-hidden />
             <span className="min-w-0 flex-1 text-xs text-danger-ink">Not saved. Your changes are on this device only.</span>
-            <Button variant="secondary" className={cn(touchTarget, 'text-sm')} onClick={() => void model.autosave?.flush()}>
+            <Button size="compact" variant="secondary" className={cn(touchTarget, 'text-sm')} onClick={() => void model.autosave?.flush()}>
               Retry
             </Button>
           </div>

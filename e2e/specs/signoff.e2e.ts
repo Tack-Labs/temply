@@ -51,7 +51,7 @@ test.describe('staging and sign-off', () => {
       await page.goto('/dashboard/templates');
       await page.getByRole('searchbox', { name: 'Search templates' }).fill(title);
       const row = page.getByRole('listitem').filter({ has: page.getByRole('link', { name: title }) });
-      await expect(row.getByText('Sign-off', { exact: true })).toBeVisible();
+      await expect(row.getByText('In sign-off', { exact: true })).toBeVisible();
       await row.getByRole('link', { name: /^Review / }).click();
       await expect(page.getByTitle('Staged email preview').contentFrame().getByText('Candidate for sign-off')).toBeVisible();
       await page.getByRole('button', { name: 'Send a test', exact: true }).click();

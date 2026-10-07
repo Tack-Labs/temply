@@ -185,10 +185,28 @@ test.describe('billing', () => {
       // The editor opens the template to read, not to change.
       await page.goto(`/templates/${id}`);
       await expect(page.getByText('Hello from e2e')).toBeVisible();
-      await expect(page.getByText('This workspace is read-only')).toBeVisible();
+      // The notice by its role: the Components rail words its reason for turning
+      // the chips off with the same opening, and a text match would find both.
+      await expect(page.getByRole('status').filter({ hasText: 'This workspace is read-only' })).toBeVisible();
+      const components = page.getByRole('complementary', { name: 'Components' });
+      await expect(components.getByText('This workspace is read-only, so components cannot be added.')).toBeVisible();
+      await expect(components.getByRole('button', { name: 'Divider', exact: true })).toBeDisabled();
       await expect(page.locator('.ProseMirror')).toHaveAttribute('contenteditable', 'false');
       await expect(page.getByRole('textbox', { name: 'Subject' })).not.toBeEditable();
       await expect(page.getByRole('button', { name: 'Publish', exact: true })).toBeDisabled();
+
+      // Every way out of the editor waits for the draft to be saved, and a
+      // read-only workspace has no draft to save: it must still let go. The
+      // links are plain anchors until React attaches their handlers, and a
+      // click that early would navigate on its own and prove nothing, so the
+      // canvas (created only after hydration) is awaited before each.
+      const tabs = page.getByRole('navigation', { name: 'Template' });
+      await tabs.getByRole('link', { name: 'Variables' }).click();
+      await expect(page).toHaveURL(new RegExp(`/templates/${id}/variables$`));
+      await page.goto(`/templates/${id}`);
+      await expect(page.locator('.ProseMirror')).toHaveAttribute('contenteditable', 'false');
+      await page.getByRole('banner').getByRole('link', { name: 'Back to templates' }).click();
+      await expect(page).toHaveURL(/\/dashboard\/templates$/);
 
       // Live keys stop with the plan.
       const paused = await render(page.request, short_code, key.full_key);

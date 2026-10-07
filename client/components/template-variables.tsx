@@ -32,9 +32,9 @@ export function TemplateVariables({ template }: { template: TemplatePageRow }) {
   const count = keys.variables.length + keys.conditions.length + keys.lists.length;
   return <div className="mx-auto max-w-6xl space-y-6">
     <PageHeader title="The details that change for each person" description="A variable is a space for a name, an order total or another detail your app fills in when it uses this email."
-      actions={<Button asChild variant="secondary"><Link href={`/templates/${template.id}`}>Edit variables in the email</Link></Button>} />
+      actions={<Button size="compact" asChild variant="secondary"><Link href={`/templates/${template.id}`}>Edit variables in the email</Link></Button>} />
     {!count ? <EmptyState icon={BracesIcon} title="Make one email feel personal" description="In the editor, type @ where a name or another changing detail should go. Your variables will appear here automatically."
-      action={<Button asChild variant="primary"><Link href={`/templates/${template.id}`}>Add your first variable</Link></Button>} /> : <>
+      action={<Button size="compact" asChild variant="primary"><Link href={`/templates/${template.id}`}>Add your first variable</Link></Button>} /> : <>
       <Card>
         <div className="flex items-center gap-2"><h2 className="font-display text-lg font-semibold text-ink">What your app needs to provide</h2><Badge>{count} details</Badge></div>
         <p className="mt-2 text-sm text-muted">This list comes from your draft. To add, rename or remove a variable, edit it in the email.</p>
@@ -53,7 +53,7 @@ export function TemplateVariables({ template }: { template: TemplatePageRow }) {
         <Card className="space-y-4">
           <h2 className="font-display text-lg font-semibold text-ink">Try some example details</h2>
           <PreviewDataPanel keys={keys} data={data} onChange={(next) => { setData(next); preview.reset(); }} />
-          <Button variant="primary" disabled={preview.isPending} onClick={() => preview.mutate()}><EyeIcon />Preview these details</Button>
+          <Button size="compact" variant="primary" disabled={preview.isPending} onClick={() => preview.mutate()}><EyeIcon />Preview these details</Button>
           <p className="text-xs leading-relaxed text-muted">Examples are only for this preview. Your app supplies the real values. An example in the editor is not a fallback: live requests with missing required values are refused and name what is missing.</p>
         </Card>
         <Card className="min-w-0 space-y-4">

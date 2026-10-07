@@ -616,16 +616,43 @@ test.describe('editor on the desktop', () => {
     await expect(status).toHaveText('Saved');
   });
 
-  test('the header trail names the page and leads back to the list', async ({ page, api, name }) => {
-    const t = await api.createTemplate({ title: name('breadcrumb') });
+  test('the header names the template and leads back to the list', async ({ page, api, name }) => {
+    const title = name('back');
+    const t = await api.createTemplate({ title });
     await openEditor(page, t.id);
-    const trail = page.getByRole('navigation', { name: 'Breadcrumb' });
-    // The page itself is the last crumb and says so; only the one before it
-    // is a link.
-    await expect(trail.getByText('Editor')).toHaveAttribute('aria-current', 'page');
-    await expect(trail.getByRole('link')).toHaveCount(1);
-    await trail.getByRole('link', { name: 'Templates' }).click();
+    // The template's name is the page's one heading, and the one way out of
+    // a page with no sidebar is a link, not a button that navigates.
+    await expect(page.getByRole('banner').getByRole('heading', { level: 1 })).toHaveText(title);
+    await page.getByRole('link', { name: 'Back to templates' }).click();
     await expect(page).toHaveURL(/\/dashboard\/templates$/);
+  });
+
+  test('the tab row marks the page it is on, and the mark follows each tab opened from it', async ({ page, api, name }) => {
+    // The trail this replaces marked its last crumb as the page. The tabs do
+    // the same for one of five, and the mark is read from the pathname, so it
+    // has to move when a tab is pressed and the page changes under the
+    // frame: template-workspace.e2e.ts loads each page fresh, which cannot
+    // show that.
+    const t = await api.createTemplate({ title: name('tabs') });
+    await openEditor(page, t.id);
+    const tabs = page.getByRole('navigation', { name: 'Template' });
+    const marked = async (label: string) => {
+      await expect(tabs.getByRole('link', { name: label, exact: true })).toHaveAttribute('aria-current', 'page');
+      await expect(tabs.locator('[aria-current]'), 'one tab is marked, and only one').toHaveCount(1);
+    };
+
+    await marked('Edit email');
+    for (const { label, path } of [
+      { label: 'Variables', path: '/variables' },
+      { label: 'Versions', path: '/versions' },
+      { label: 'Review & release', path: '/review' },
+      { label: 'Connect your app', path: '/connect' },
+      { label: 'Edit email', path: '' },
+    ]) {
+      await tabs.getByRole('link', { name: label, exact: true }).click();
+      await expect(page).toHaveURL(new RegExp(`/templates/${t.id}${path}$`));
+      await marked(label);
+    }
   });
 
   test('the cheatsheet lists what the editor answers to', async ({ page, api, name }) => {

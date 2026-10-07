@@ -15,6 +15,7 @@ import { TemplateCopyPreview, useTemplateCopy } from './template-copy-preview';
 import { Button } from './ui/button';
 import { ConfirmDialog } from './ui/confirm-dialog';
 import { Card, EmptyState, ErrorState, PageHeader, Reveal } from './ui/surfaces';
+import { Textarea } from './ui/textarea';
 import { ReadOnlyNotice } from './dashboard/billing-banner';
 import { StagedTestSend } from './staged-test-send';
 
@@ -84,7 +85,7 @@ export function TemplateReview({ template: initialTemplate, isAdmin, userId, rea
         <Link href={`/templates/${template.id}`} className="min-w-0 break-words text-accent-ink hover:underline">{template.title}</Link> / Sign-off
       </nav>
       <PageHeader title="Review and sign off" description={template.title}
-        actions={<Button asChild variant="secondary"><Link ref={draftLink} href={`/templates/${template.id}`}>Go to draft</Link></Button>} />
+        actions={<Button size="compact" asChild variant="secondary"><Link ref={draftLink} href={`/templates/${template.id}`}>Go to draft</Link></Button>} />
       {readOnly ? <ReadOnlyNotice /> : null}
       <Card className="space-y-4">
         <TemplateStageTrack stage={stage} liveVersion={template.live_version} />
@@ -140,15 +141,15 @@ export function TemplateReview({ template: initialTemplate, isAdmin, userId, rea
               <p className="text-xs text-muted">{!waiting ? 'Nobody has asked for sign-off on this copy yet. Ask from the template when it is ready.'
                 : isAdmin ? 'Approving puts this staged copy live straight away.' : 'An admin can approve this copy or send it back. You can keep editing the draft.'}</p>
               {isAdmin && waiting ? <>
-                <Button className="w-full" disabled={busy || !ready} aria-busy={mutation.isPending} onClick={(event) => confirmDecision('approve', event.currentTarget)}>
+                <Button size="compact" className="w-full" disabled={busy || !ready} aria-busy={mutation.isPending} onClick={(event) => confirmDecision('approve', event.currentTarget)}>
                   {mutation.isPending ? <Loader2Icon className="animate-spin motion-reduce:animate-none" /> : null}Approve and go live
                 </Button>
-                <Button variant="secondary" className="w-full" disabled={busy} aria-expanded={sendingBack} onClick={() => setSendingBack((value) => !value)}>{sendingBack ? 'Cancel' : 'Send back'}</Button>
+                <Button size="compact" variant="secondary" className="w-full" disabled={busy} aria-expanded={sendingBack} onClick={() => setSendingBack((value) => !value)}>{sendingBack ? 'Cancel' : 'Send back'}</Button>
                 <Reveal open={sendingBack}><div className="space-y-2 pt-2">
                   <label htmlFor="return-note" className="text-xs font-medium text-ink">Note for the author (optional)</label>
-                  <textarea id="return-note" maxLength={500} value={note} onChange={(event) => setNote(event.target.value)} className="min-h-24 w-full rounded-md border border-line bg-surface p-2 text-sm text-ink" />
+                  <Textarea id="return-note" maxLength={500} value={note} onChange={(event) => setNote(event.target.value)} className="min-h-24" />
                   <p className="text-right text-2xs text-muted">{note.length} / 500</p>
-                  <Button variant="secondary" className="w-full" disabled={busy} onClick={(event) => confirmDecision('send-back', event.currentTarget)}>Send back</Button>
+                  <Button size="compact" variant="secondary" className="w-full" disabled={busy} onClick={(event) => confirmDecision('send-back', event.currentTarget)}>Send back</Button>
                 </div></Reveal>
               </> : null}
             </Card>
@@ -156,11 +157,11 @@ export function TemplateReview({ template: initialTemplate, isAdmin, userId, rea
         </div>
       ) : <EmptyState icon={CheckIcon} title={stage === 'live' ? 'This copy is live' : 'Nothing to sign off'}
         description={stage === 'live' ? 'Return to the draft when you are ready to make your next change.' : 'Move the draft to staging, then ask for sign-off.'}
-        action={<Button asChild variant="secondary"><Link href={`/templates/${template.id}`}>Go to draft</Link></Button>} />}
+        action={<Button size="compact" asChild variant="secondary"><Link href={`/templates/${template.id}`}>Go to draft</Link></Button>} />}
 
       {isAdmin && earlier != null ? <Card className="flex flex-wrap items-center justify-between gap-3">
         <div><h2 className="text-sm font-medium text-ink">Roll back the live copy</h2><p className="mt-1 text-xs text-muted">Put v{earlier} back live as {template.live_version != null ? `v${template.live_version + 1}` : 'a new version'}, so the history stays in order. The draft and staged copy stay where they are.</p></div>
-        <Button variant="secondary" disabled={busy} onClick={(event) => confirmDecision('rollback', event.currentTarget)}>Roll back to v{earlier}</Button>
+        <Button size="compact" variant="secondary" disabled={busy} onClick={(event) => confirmDecision('rollback', event.currentTarget)}>Roll back to v{earlier}</Button>
       </Card> : null}
       {isAdmin && history.isError ? <ErrorState description="Version history could not be loaded, so rollback is unavailable." onRetry={() => void history.refetch()} /> : null}
 

@@ -1,6 +1,6 @@
 'use client';
 
-import { HistoryIcon, Loader2Icon, RotateCcwIcon, Undo2Icon } from 'lucide-react';
+import { Loader2Icon, RotateCcwIcon, Undo2Icon } from 'lucide-react';
 import type { Mail } from '@temply/shared/schema';
 import { ConfirmDialog } from '~/components/ui/confirm-dialog';
 import { List, Row } from '~/components/ui/item';
@@ -8,6 +8,7 @@ import { useMemo, useState } from 'react';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { httpGet, httpPost } from '~/lib/http';
 import { useBilling } from '~/lib/billing';
+import { parseStamp } from '~/lib/stamp';
 import { Button } from '~/components/ui/button';
 import { ErrorState } from '~/components/ui/surfaces';
 import { storedDocument } from '~/core/editor/utils/replace-deprecated';
@@ -43,9 +44,9 @@ type VersionHistoryDialogProps = {
   onDiscarded?: (template: Mail) => void;
   /** The draft was replaced by a version; the editor should show it. */
   onRestored?: (template: Mail) => void;
-  /** Replaces the default button — the phone opens this from a menu item, and
-   *  a dialog trigger has to be the item itself or the menu eats the tap. */
-  trigger?: React.ReactElement;
+  /** The control that opens the dialog. The phone passes a menu item, and a
+   *  dialog trigger has to be the item itself or the menu eats the tap. */
+  trigger: React.ReactElement;
 };
 
 export function VersionHistoryDialog({
@@ -131,14 +132,7 @@ export function VersionHistoryDialog({
 
   return (
     <Dialog open={open} onOpenChange={(o) => { setOpen(o); setPreviewVersion(null); }}>
-      <DialogTrigger asChild>
-        {trigger ?? (
-          <Button type="button">
-            <HistoryIcon />
-            <span className="hidden sm:inline">History</span>
-          </Button>
-        )}
-      </DialogTrigger>
+      <DialogTrigger asChild>{trigger}</DialogTrigger>
       <DialogContent className="min-w-0 max-w-lg overflow-hidden p-4">
         <DialogHeader>
           <DialogTitle>Version history</DialogTitle>
@@ -189,10 +183,11 @@ export function VersionHistoryDialog({
               <TemplateVersionPreview templateId={templateId} versionId={previewVersion.id} />
             )}
             <div className="flex justify-end gap-2">
-              <Button variant="secondary" onClick={() => setPreviewVersion(null)}>
+              <Button size="compact" variant="secondary" onClick={() => setPreviewVersion(null)}>
                 Cancel
               </Button>
               <Button
+                size="compact"
                 variant="primary"
                 onClick={() => restoreVersion(previewVersion.id)}
                 disabled={isRestoring || previewJson === null || readOnly}
@@ -219,7 +214,7 @@ export function VersionHistoryDialog({
                 primaryLabel={`Preview version ${version.version_number}`}
                 title={`Version ${version.version_number}`}
                 subtitle={
-                  version.created_at ? new Date(version.created_at).toLocaleString() : 'Unknown date'
+                  version.created_at ? parseStamp(version.created_at).toLocaleString() : 'Unknown date'
                 }
                 actions={
                   <Button

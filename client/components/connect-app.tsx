@@ -13,10 +13,12 @@ import { SITE_URL } from '~/lib/site';
 import { httpGet, httpPost } from '~/lib/http';
 import { useCopyToClipboard } from '~/hooks/use-copy-to-clipboard';
 import { useHydrated } from '~/hooks/use-hydrated';
+import { cn } from '~/lib/classname';
 import { storedDocument } from '~/core/editor/utils/replace-deprecated';
 import { initialPreviewData, PreviewDataPanel, toPayload, type PreviewData } from './preview-data-panel';
 import type { SavedVersion } from './template-versions';
 import { Button } from './ui/button';
+import { fieldClass, Input } from './ui/input';
 import { Badge, Card, PageHeader } from './ui/surfaces';
 import { SegmentedControl } from './ui/segmented-control';
 
@@ -76,10 +78,10 @@ export function ConnectApp({ template }: { template: TemplatePageRow }) {
       <p className="mb-4 text-sm text-muted">A key is a password that lets your app ask Temply for an email. Start with a test key while you’re setting things up.</p>
       <SegmentedControl label="Key type" value={mode} onValueChange={(next) => { setMode(next); setKey(''); reset(); }} options={[{ value: 'test', label: 'Test key' }, { value: 'live', label: 'Live key' }]} />
       <p className="mt-3 text-sm text-muted">{mode === 'test' ? 'A test key uses your draft and its own test allowance.' : 'A live key uses the published email and your live allowance.'} Choosing a saved version uses that exact copy with either key.</p>
-      <Button asChild variant="secondary" className="mt-4"><Link href="/dashboard/settings/api-keys"><KeyRoundIcon />Create or manage keys</Link></Button>
+      <Button size="compact" asChild variant="secondary" className="mt-4"><Link href="/dashboard/settings/api-keys"><KeyRoundIcon />Create or manage keys</Link></Button>
       <p className="mt-3 text-xs text-muted">Your developer should store the key on the server as TEMPLY_KEY. The request below uses this name so the secret is never included in copied setup notes.</p>
       <label className="mt-5 block text-sm font-medium text-ink">Which email should the app use?
-        <select value={version} onChange={(event) => { setVersion(event.target.value); reset(); }} className="mt-2 block h-11 w-full rounded-lg border border-line bg-raised px-3 font-normal">
+        <select value={version} onChange={(event) => { setVersion(event.target.value); reset(); }} className={cn(fieldClass, 'mt-2 h-12 py-2 font-normal')}>
           <option value="latest">{mode === 'test' ? 'Latest draft — for testing' : 'Latest published email — follows your releases'}</option>
           {(versions.data?.versions ?? []).map((row) => <option key={row.id} value={row.version_number}>Version {row.version_number}{row.tag ? ` — ${row.tag}` : ''}</option>)}
         </select>
@@ -97,13 +99,13 @@ export function ConnectApp({ template }: { template: TemplatePageRow }) {
     <ConnectionStep number={4} title="Check the connection">
       <p className="text-sm text-muted">Paste your key to try the same request here. It prepares an email without sending it and uses one {mode} API call. The key is cleared after the check.</p>
       <form className="mt-4 flex flex-wrap items-end gap-3" onSubmit={(event) => { event.preventDefault(); test.mutate(); }}>
-        <label className="min-w-0 flex-1 text-sm font-medium text-ink">Your {mode} key<input type="password" autoComplete="off" value={key} onChange={(event) => { setKey(event.target.value); reset(); }} placeholder={`Paste your ${mode} key`} className="mt-2 block h-11 w-full rounded-lg border border-line bg-raised px-3" /></label>
-        <Button type="submit" variant="primary" disabled={!ready || !key.trim() || test.isPending}><PlayIcon />{test.isPending ? 'Checking…' : 'Check connection'}</Button>
+        <label className="min-w-0 flex-1 text-sm font-medium text-ink">Your {mode} key<Input type="password" autoComplete="off" value={key} onChange={(event) => { setKey(event.target.value); reset(); }} placeholder={`Paste your ${mode} key`} className="mt-2" /></label>
+        <Button size="compact" type="submit" variant="primary" disabled={!ready || !key.trim() || test.isPending}><PlayIcon />{test.isPending ? 'Checking…' : 'Check connection'}</Button>
       </form>
       {test.isError ? <div role="alert" className="mt-4 rounded-lg bg-danger-wash p-4 text-sm text-danger-ink">{test.error.message}</div> : null}
       {test.data ? <div role="status" className="mt-4 rounded-lg bg-success-wash p-4 text-sm text-success-ink"><p className="flex items-center gap-2 font-medium"><CheckCircle2Icon className="size-4" />Connection checked — email prepared</p><p className="mt-2">Temply returned HTML and plain text using {test.data.version ? `version ${test.data.version}` : 'the draft'} with a {test.data.mode} key. Nothing was sent.</p></div> : null}
     </ConnectionStep>
-    <Card className="flex flex-wrap items-center justify-between gap-4 bg-accent-wash p-5"><div><h2 className="font-display text-lg font-semibold text-ink">Hand this step to your developer</h2><p className="mt-1 text-sm text-muted">Copy the instructions and request together. Your key stays private.</p></div><Button disabled={!ready} onClick={() => void copyText(`Connect our Temply email: ${template.title}\nTemplate ID: ${template.short_code}\nUse a ${mode} key stored on the server as TEMPLY_KEY.\n${pin ? `Pin requests to version ${pin}.` : mode === 'test' ? 'Test keys use the draft.' : 'Live keys use the published email.'}\nReplace example data with real customer details. Pass the returned html and text to our email provider.\n\n${snippet}\n\nDocumentation: ${origin}/docs`)}><CopyIcon />Copy setup notes</Button></Card>
+    <Card className="flex flex-wrap items-center justify-between gap-4 bg-accent-wash p-5"><div><h2 className="font-display text-lg font-semibold text-ink">Hand this step to your developer</h2><p className="mt-1 text-sm text-muted">Copy the instructions and request together. Your key stays private.</p></div><Button size="compact" disabled={!ready} onClick={() => void copyText(`Connect our Temply email: ${template.title}\nTemplate ID: ${template.short_code}\nUse a ${mode} key stored on the server as TEMPLY_KEY.\n${pin ? `Pin requests to version ${pin}.` : mode === 'test' ? 'Test keys use the draft.' : 'Live keys use the published email.'}\nReplace example data with real customer details. Pass the returned html and text to our email provider.\n\n${snippet}\n\nDocumentation: ${origin}/docs`)}><CopyIcon />Copy setup notes</Button></Card>
     <div className="flex flex-wrap gap-2"><Badge>401: check the key</Badge><Badge>404: check the template and publish</Badge><Badge>422: add missing details</Badge><Badge>429: check limits and retry</Badge></div>
   </div>;
 }

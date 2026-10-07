@@ -138,6 +138,9 @@ export type TemplateEditorModel = {
   previewError: string | null;
   // preflight
   preflight: { issues: PreflightIssue[]; bytes: number | null };
+  /** False until the first check has completed. `preflight` starts empty, and
+   *  an empty list on its own reads as a clean bill of health. */
+  preflightChecked: boolean;
   preflightExpanded: boolean; setPreflightExpanded: Dispatch<SetStateAction<boolean>>;
   // save / publish / send
   saveStatus: AutosaveStatus; autosave: ReturnType<typeof createAutosave> | null;
@@ -514,6 +517,7 @@ export function useTemplateEditor(props: EmailEditorSandboxProps): TemplateEdito
     issues: [],
     bytes: null,
   });
+  const [preflightChecked, setPreflightChecked] = useState(false);
   const [preflightExpanded, setPreflightExpanded] = useState(false);
   // Two-step send: armedFor holds the serialized error set the first click
   // acknowledged. The second click only goes through while the errors still
@@ -588,6 +592,7 @@ export function useTemplateEditor(props: EmailEditorSandboxProps): TemplateEdito
     if (serialized === preflightSerialized.current) return;
     preflightSerialized.current = serialized;
     setPreflight(next);
+    setPreflightChecked(true);
     // A confirmation only covers the error set it was given.
     setArmedFor((current) =>
       current !== null && current !== errorKey(next.issues) ? null : current,
@@ -887,7 +892,13 @@ export function useTemplateEditor(props: EmailEditorSandboxProps): TemplateEdito
     setPublishArmedFor(null);
   };
 
+  // The guard every way out of the editor waits on: the header's back link,
+  // the tab row, "Connect your app" and the workflow actions. A read-only
+  // workspace has no autosave and so nothing to flush; refusing there would
+  // leave all of them dead with no word said, so it is let through here, once,
+  // and not at each caller.
   const beforeStage = async () => {
+    if (readOnly) return true;
     if (!autosave) return false;
     await captureThenFlush(() => captureRef.current(), autosave);
     if (autosave.pending()) {
@@ -1012,7 +1023,7 @@ export function useTemplateEditor(props: EmailEditorSandboxProps): TemplateEdito
     mode, changeMode, pendingMode, forceDark, setForceDark,
     previewKeys, previewData, setPreviewData, hasPreviewData, refreshPreviewKeys,
     previewHtml, isPreviewPending, htmlSource, textSource, previewError,
-    preflight, preflightExpanded, setPreflightExpanded,
+    preflight, preflightChecked, preflightExpanded, setPreflightExpanded,
     saveStatus, autosave, unpublished, publishedAt, publishedLabel,
     publishStatus: status, publishBadge: badge,
     isPublishing, publishArmed, handlePublish, sendArmed, handleSend, handleDiscarded, handleRestored,

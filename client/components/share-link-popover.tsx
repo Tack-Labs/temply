@@ -74,7 +74,7 @@ export function ShareLinkPopover({
     <Popover>
       <PopoverTrigger asChild>
         {trigger ?? (
-          <Button aria-label="Share a review link">
+          <Button size="compact" aria-label="Share a review link">
             <Link2Icon />
             <span className="hidden sm:inline">Share</span>
           </Button>
@@ -117,7 +117,7 @@ export function ShareLinkPopover({
           </>
         ) : (
           <div className="mt-3">
-            <Button variant="primary" onClick={() => createLink()} disabled={isCreating || readOnly}>
+            <Button size="compact" variant="primary" onClick={() => createLink()} disabled={isCreating || readOnly}>
               {isCreating ? <Loader2Icon className="animate-spin" /> : <Link2Icon />}
               Create link
             </Button>

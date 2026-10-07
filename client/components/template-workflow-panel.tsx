@@ -99,17 +99,19 @@ export function TemplateWorkflowPanel({ model, children }: { model: TemplateEdit
   };
   const side = shown === 'draft' ? lastSide : shown;
 
+  // The editor's body is a column that fills the frame and scrolls; the card
+  // keeps the margin of the page it sits on, and the draft takes the rest.
   return (
-    <div className="space-y-4">
+    <div className="flex flex-1 flex-col">
       {/* Below `sm` the editor is a fixed frame over the page, so a card here
           would sit underneath it: the phone reaches this from the ⋯ menu. */}
-      <Card className="space-y-4 max-sm:hidden">
+      <Card className="mx-4 mt-4 mb-4 space-y-4 max-sm:hidden lg:mx-7 lg:mt-6">
         <TemplateWorkflowControls model={model} copy={shown} onCopy={choose} />
       </Card>
-      <div hidden={shown !== 'draft'}>{children}</div>
+      <div hidden={shown !== 'draft'} className="flex flex-1 flex-col">{children}</div>
       <Reveal open={shown !== 'draft'} className="max-sm:hidden">
         {copyOf(row, side) ? (
-          <Card className="space-y-3">
+          <Card className="mx-4 mb-4 space-y-3 lg:mx-7">
             <TemplateCopyView row={row} copy={side} />
             <Button size="sm" variant="link" onClick={() => choose('draft')}>Go to draft</Button>
           </Card>

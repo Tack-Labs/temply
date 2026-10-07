@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { BracesIcon } from 'lucide-react';
 import { Button } from '~/components/ui/button';
+import { Input } from '~/components/ui/input';
 import { Label } from '~/components/ui/label';
 import { ContentPreview } from '~/components/content-preview';
 import { ContentSource } from '~/components/content-source';
@@ -13,14 +14,11 @@ import { TemplateCopyView, TemplateWorkflowControls, visibleCopy } from '~/compo
 import { EmptyState, ErrorState } from '~/components/ui/surfaces';
 import { cn } from '~/lib/classname';
 import type { TemplateCopy } from '~/lib/template-stage';
-import { CopyHtmlButton, DownloadButton, fileSlug } from '../email-editor-sandbox';
+import { CopyHtmlButton, DownloadButton, fileSlug } from './source-actions';
 import { BottomSheet } from './bottom-sheet';
 import type { TemplateEditorModel } from './use-template-editor';
 
 export type SheetId = 'details' | 'brand' | 'data' | 'checks' | 'eye' | 'workflow' | null;
-
-const inputClass =
-  'h-11 w-full rounded-md border border-line bg-raised px-3 text-base text-ink placeholder:text-muted';
 
 function Field({
   id,
@@ -42,10 +40,9 @@ function Field({
   return (
     <div className="space-y-1.5">
       <Label htmlFor={id}>{label}</Label>
-      <input
+      <Input
         id={id}
         type={type}
-        className={inputClass}
         readOnly={readOnly}
         value={value}
         placeholder={placeholder}

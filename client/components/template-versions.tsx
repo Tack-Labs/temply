@@ -9,8 +9,10 @@ import { toast } from 'sonner';
 import type { TemplatePageRow } from '~/lib/template-page';
 import { httpGet, httpPost } from '~/lib/http';
 import { useBilling } from '~/lib/billing';
+import { parseStamp } from '~/lib/stamp';
 import { TemplateVersionPreview } from './template-version-preview';
 import { Button } from './ui/button';
+import { Input } from './ui/input';
 import { Badge, Card, EmptyState, ErrorState, PageHeader } from './ui/surfaces';
 import { ConfirmDialog } from './ui/confirm-dialog';
 import { PageLoading } from './ui/page-loading';
@@ -27,10 +29,10 @@ function VersionTag({ templateId, version, disabled }: { templateId: string; ver
   });
   return <form className="flex flex-wrap items-end gap-2" onSubmit={(event) => { event.preventDefault(); save.mutate(); }}>
     <label className="min-w-0 flex-1 text-sm text-ink">Version tag
-      <input className="mt-1 block h-10 w-full rounded-lg border border-line bg-raised px-3 text-sm" value={tag}
+      <Input className="mt-1" value={tag}
         maxLength={48} disabled={disabled} placeholder="e.g. Autumn launch or Approved copy" onChange={(event) => setTag(event.target.value)} />
     </label>
-    <Button type="submit" disabled={disabled || save.isPending || tag === (version.tag ?? '')}><TagIcon />Save tag</Button>
+    <Button size="md" type="submit" disabled={disabled || save.isPending || tag === (version.tag ?? '')}><TagIcon />Save tag</Button>
   </form>;
 }
 
@@ -52,21 +54,21 @@ export function TemplateVersions({ template, readOnly, isAdmin }: { template: Te
       {billing.data ? <span className="mt-1 block">Your plan keeps the latest {billing.data.limits.maxVersions} versions, plus recently pinned versions. Tags are labels and do not extend retention.</span> : null}
     </div>
     {versions.isError ? <ErrorState description={versions.error.message} onRetry={() => void versions.refetch()} /> : versions.isPending ? <PageLoading label="Loading your versions…" /> : !shown ?
-      <EmptyState icon={HistoryIcon} title="Your first version starts with a publish" description="Edit your email, then publish it. Each future publish will appear here." action={<Button asChild><Link href={`/templates/${template.id}`}>Edit email</Link></Button>} /> :
+      <EmptyState icon={HistoryIcon} title="Your first version starts with a publish" description="Edit your email, then publish it. Each future publish will appear here." action={<Button size="compact" asChild><Link href={`/templates/${template.id}`}>Edit email</Link></Button>} /> :
       <div className="grid items-start gap-5 md:grid-cols-[280px_minmax(0,1fr)]">
         <Card className="space-y-2" aria-label="Saved versions">
           {rows.map((version) => <button type="button" key={version.id} aria-pressed={shown.id === version.id} onClick={() => setSelected(version.id)}
             className={`block w-full rounded-lg p-3 text-left ${shown.id === version.id ? 'bg-accent-wash text-accent-ink' : 'text-ink hover:bg-hover'}`}>
             <span className="flex flex-wrap items-center gap-2 font-medium">Version {version.version_number}{version.version_number === template.live_version ? <Badge tone="success">Live</Badge> : null}</span>
             {version.tag ? <span className="mt-1 block break-words text-sm">{version.tag}</span> : null}
-            <span className="mt-1 block text-xs text-muted">{version.created_at ? new Date(version.created_at).toLocaleString() : 'Date unavailable'}</span>
+            <span className="mt-1 block text-xs text-muted">{version.created_at ? parseStamp(version.created_at).toLocaleString() : 'Date unavailable'}</span>
           </button>)}
         </Card>
         <Card className="min-w-0 space-y-4">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div><h2 className="font-display text-lg font-semibold text-ink">Version {shown.version_number}</h2><p className="mt-1 text-sm text-muted">{shown.title}</p></div>
             <ConfirmDialog title={`Restore version ${shown.version_number} to your draft?`} description="This replaces any changes in your current draft. The live email stays as it is." confirmLabel="Restore to draft" onConfirm={() => restore.mutate(shown.id)}>
-              <Button disabled={readOnly || restore.isPending}><RotateCcwIcon />Restore to draft</Button>
+              <Button size="compact" disabled={readOnly || restore.isPending}><RotateCcwIcon />Restore to draft</Button>
             </ConfirmDialog>
           </div>
           <VersionTag key={shown.id + (shown.tag ?? '')} templateId={template.id} version={shown} disabled={readOnly || !isAdmin} />

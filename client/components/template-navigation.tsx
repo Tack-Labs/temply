@@ -1,49 +1,66 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname, useRouter } from 'next/navigation';
-import { ArrowLeftIcon, BracesIcon, HistoryIcon, PencilLineIcon, PlugIcon, ShieldCheckIcon } from 'lucide-react';
+import { usePathname } from 'next/navigation';
+import { useGuardedLink } from '~/hooks/use-guarded-link';
 import { cn } from '~/lib/classname';
 
 const sections = [
-  { path: '', label: 'Edit email', icon: PencilLineIcon },
-  { path: '/variables', label: 'Variables', icon: BracesIcon },
-  { path: '/versions', label: 'Versions', icon: HistoryIcon },
-  { path: '/review', label: 'Review & release', icon: ShieldCheckIcon },
-  { path: '/connect', label: 'Connect your app', icon: PlugIcon },
+  { path: '', label: 'Edit email' },
+  { path: '/variables', label: 'Variables' },
+  { path: '/versions', label: 'Versions' },
+  { path: '/review', label: 'Review & release' },
+  { path: '/connect', label: 'Connect your app' },
 ];
 
-export function TemplateNavigation({ id, title, beforeNavigate }: {
-  id: string; title: string; beforeNavigate?: () => Promise<boolean>;
+/**
+ * The row of sections under the editor's header. The current one is bold and
+ * carries a 3px violet underline, and says so to a screen reader with
+ * `aria-current`; the underline is a fade-in on mount, so moving between
+ * sections draws it rather than snapping it into place. `trailing` is the
+ * row's right-hand end: the editor puts its view switch there, and the pages
+ * that are not the editor leave it empty. When the two do not fit side by
+ * side the trailing end wraps to a row of its own, and the tabs scroll
+ * sideways rather than wrap, so the row is never more than two lines.
+ */
+export function TemplateNavigation({ id, beforeNavigate, trailing }: {
+  id: string;
+  beforeNavigate?: () => Promise<boolean>;
+  trailing?: React.ReactNode;
 }) {
   const pathname = usePathname();
-  const router = useRouter();
-  const go = async (event: React.MouseEvent<HTMLAnchorElement>, href: string) => {
-    if (!beforeNavigate || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
-    event.preventDefault();
-    if (await beforeNavigate()) router.push(href);
-  };
+  const guarded = useGuardedLink(beforeNavigate);
   return (
-    <header className="space-y-4">
-      <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-        <Link href="/dashboard/templates" onClick={(event) => void go(event, '/dashboard/templates')}
-          className="inline-flex items-center gap-1.5 text-sm text-muted hover:text-ink">
-          <ArrowLeftIcon className="size-4" /> All templates
-        </Link>
-        <span aria-hidden className="text-muted">/</span>
-        <h1 className="min-w-0 break-words font-display text-xl font-semibold text-ink">{title || 'Your email'}</h1>
-      </div>
-      <nav aria-label="Template" className="flex gap-1 overflow-x-auto border-b border-line pb-2">
-        {sections.map(({ path, label, icon: Icon }) => {
+    <div className="flex shrink-0 flex-wrap items-center justify-between gap-x-4 border-b-[1.5px] border-line bg-raised px-4 sm:px-7">
+      {/* The padding and the equal negative margin give the focus ring room: a
+          scroll container clips what is drawn outside its edge. */}
+      <nav aria-label="Template" className="-mx-2 -my-2 flex max-w-full gap-1.5 overflow-x-auto px-2 py-2">
+        {sections.map(({ path, label }) => {
           const href = `/templates/${id}${path}`;
-          return <Link key={path} href={href} onClick={(event) => void go(event, href)}
-            aria-current={pathname === href ? 'page' : undefined}
-            className={cn('flex min-h-10 shrink-0 items-center gap-2 rounded-lg px-3 text-sm transition-colors motion-reduce:transition-none',
-              pathname === href ? 'bg-accent-wash font-medium text-accent-ink' : 'text-muted hover:bg-hover hover:text-ink')}>
-            <Icon className="size-4" />{label}
-          </Link>;
+          const current = pathname === href;
+          return (
+            <Link
+              key={path}
+              href={href}
+              onClick={guarded(href)}
+              aria-current={current ? 'page' : undefined}
+              className={cn(
+                'relative inline-flex h-[54px] shrink-0 items-center rounded-field px-3.5 text-lg transition-colors duration-fast ease-out motion-reduce:transition-none',
+                current ? 'font-bold text-ink' : 'font-semibold text-muted hover:text-ink',
+              )}
+            >
+              {label}
+              {current ? (
+                <span
+                  aria-hidden="true"
+                  className="fade-in-mount absolute inset-x-3.5 bottom-0 h-[3px] rounded-t-[3px] bg-accent motion-reduce:transition-none"
+                />
+              ) : null}
+            </Link>
+          );
         })}
       </nav>
-    </header>
+      {trailing ? <div className="flex items-center py-1.5">{trailing}</div> : null}
+    </div>
   );
 }

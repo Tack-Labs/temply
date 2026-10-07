@@ -1,3 +1,4 @@
+import { parseStamp } from '~/lib/stamp';
 import {
   TEMPLATE_STATUS_BADGE,
   templateStatus,
@@ -34,7 +35,7 @@ function dayKey(date: Date, timeZone: string | undefined): string {
  * know, so this is only called after mount.
  */
 export function formatPublishStamp(iso: string, now: Date, options: StampOptions = {}): string {
-  const at = new Date(iso);
+  const at = parseStamp(iso);
   if (Number.isNaN(at.getTime())) return '';
   const { locale, timeZone } = options;
   if (dayKey(at, timeZone) === dayKey(now, timeZone)) {
@@ -96,7 +97,7 @@ export function publishView(
     status,
     badge: publishBadge(status, publishedAt ? formatPublishStamp(publishedAt, now, options) : null),
     label: publishedAt
-      ? `Published ${new Date(publishedAt).toLocaleString(locale, { dateStyle: 'medium', timeStyle: 'short', timeZone })}`
+      ? `Published ${parseStamp(publishedAt).toLocaleString(locale, { dateStyle: 'medium', timeStyle: 'short', timeZone })}`
       : 'Not published yet',
   };
 }

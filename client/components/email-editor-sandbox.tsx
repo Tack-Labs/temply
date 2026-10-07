@@ -1,18 +1,6 @@
 'use client';
 
-import {
-  AlertTriangleIcon,
-  CheckIcon,
-  CopyIcon,
-  DownloadIcon,
-  Loader2Icon,
-} from 'lucide-react';
 import { useRef } from 'react';
-import { toast } from 'sonner';
-import type { AutosaveStatus } from '~/lib/autosave';
-import { useCopyToClipboard } from '~/hooks/use-copy-to-clipboard';
-import { cn } from '~/lib/classname';
-import { Button } from './ui/button';
 import { PageLoading } from './ui/page-loading';
 import { useHydrated } from '~/hooks/use-hydrated';
 import { useMediaQuery } from '~/hooks/use-media-query';
@@ -20,123 +8,17 @@ import { DesktopEditorLayout } from './editor/desktop-layout';
 import { MobileEditorLayout } from './editor/mobile-layout';
 import { useTemplateEditor, type EmailEditorSandboxProps } from './editor/use-template-editor';
 import { TemplateWorkflowPanel } from './template-workflow-panel';
+import { EditorHeader } from './editor-header';
 import { TemplateNavigation } from './template-navigation';
+import { EditorActions, EditorStatus } from './editor/editor-actions';
+import { EditorViewSwitch } from './editor/editor-view-switch';
+import { SaveStatus } from './save-status';
 
 export type { EmailEditorSandboxProps };
 
-/**
- * What the autosave has to say, and nothing when it has nothing. Idle and
- * dirty say nothing — the pause is short and a flicker of "unsaved" on every
- * keystroke is noise; the word appears once a save is under way and stays as
- * "Saved". A failure is the only state that asks for anything, and it asks
- * with a button.
- *
- * The word and the announcement are two elements on purpose. A live region is
- * read whatever its opacity, so the one that used to carry both said "Saved"
- * on a template nobody had touched — `idle` fell through to the same branch
- * as `saved` and was merely faded out. The visible word stays through the
- * fade, so the strip leaves rather than blinking out, and is `aria-hidden`
- * because the live region beside it is the half a reader hears; Retry sits
- * outside both, being a control rather than a status.
- *
- * The icon is the same three-way split so the states read at a glance: a
- * spinner while it works, a check in the success colour once it has landed,
- * an alert in the danger colour when it has not. They share one box and
- * cross-fade, so the strip never changes width as the state turns over.
- */
-export function SaveStatus({ status, onRetry }: { status: AutosaveStatus; onRetry: () => void }) {
-  const visible = status === 'saving' || status === 'saved' || status === 'error';
-  const word = status === 'error' ? 'Not saved' : status === 'saving' ? 'Saving…' : 'Saved';
-  const icon =
-    'absolute inset-0 size-3.5 transition-opacity duration-base ease-out motion-reduce:transition-none';
-  return (
-    <span className="flex items-center gap-1 text-xs">
-      <span
-        aria-hidden
-        className={cn(
-          'flex items-center gap-1 transition-opacity duration-base ease-out motion-reduce:transition-none',
-          visible ? 'opacity-100' : 'opacity-0',
-          status === 'error' ? 'text-danger-ink' : 'text-muted',
-        )}
-      >
-        <span className="relative size-3.5 shrink-0">
-          <Loader2Icon
-            className={cn(icon, status === 'saving' ? 'animate-spin opacity-100 motion-reduce:animate-none' : 'opacity-0')}
-          />
-          <CheckIcon
-            className={cn(icon, 'text-success-ink', status === 'saved' || status === 'idle' ? 'opacity-100' : 'opacity-0')}
-          />
-          <AlertTriangleIcon className={cn(icon, status === 'error' ? 'opacity-100' : 'opacity-0')} />
-        </span>
-        {word}
-      </span>
-      {status === 'error' ? (
-        <Button variant="link" size="sm" className="h-auto px-1 text-xs" onClick={onRetry}>
-          Retry
-        </Button>
-      ) : null}
-      <span className="sr-only" role="status">
-        {visible ? word : ''}
-      </span>
-    </span>
-  );
-}
-
-/** A file name from the subject line: "Welcome to Temply" → welcome-to-temply. */
-export function fileSlug(title: string): string {
-  const slug = title
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '');
-  return slug || 'email';
-}
-
-/**
- * Saves what the view shows as a file. The escape hatch that makes the
- * product safe to try: the HTML is yours, with or without an account.
- * Nothing is rendered again — it is the same source the pane is showing.
- */
-export function DownloadButton({ content, filename, mimeType, label }: { content: string; filename: string; mimeType: string; label: string }) {
-  const download = () => {
-    const url = URL.createObjectURL(new Blob([content], { type: mimeType }));
-    const anchor = document.createElement('a');
-    anchor.href = url;
-    anchor.download = filename;
-    anchor.click();
-    // The browser has the blob by now; the URL only needs to outlive the click.
-    setTimeout(() => URL.revokeObjectURL(url), 1000);
-  };
-  return (
-    <Button variant="ghost" size="icon-sm" aria-label={label} title={label} onClick={download} disabled={!content}>
-      <DownloadIcon />
-    </Button>
-  );
-}
-
-/** Copies the source already on screen — no second render to fetch it. The
- *  label names what is being copied: the same pane serves HTML and text. */
-export function CopyHtmlButton({ html, label = 'Copy HTML' }: { html: string; label?: string }) {
-  // Through the hook, not navigator.clipboard directly: the phone is opened
-  // over plain http on the LAN, where the API is undefined and a bare call
-  // rejects into nothing. A copy that cannot happen has to say so.
-  const [copiedText, copy] = useCopyToClipboard();
-  const copied = copiedText === html;
-
-  return (
-    <Button
-      variant="ghost"
-      size="icon-sm"
-      aria-label={copied ? 'Copied' : label}
-      title={copied ? 'Copied' : label}
-      onClick={async () => {
-        if (!(await copy(html))) toast.error('Could not copy. This browser blocks clipboard access.');
-      }}
-      className={cn(copied && 'text-accent-ink hover:text-accent-ink')}
-    >
-      {copied ? <CheckIcon /> : <CopyIcon />}
-    </Button>
-  );
-}
+// The phone's frame imports it from here; the implementation lives in a leaf
+// module so a test can mount it without the whole editor behind it.
+export { SaveStatus };
 
 export function EmailEditorSandbox(props: EmailEditorSandboxProps) {
   const { imageUploads = true, autofocus } = props;
@@ -168,19 +50,52 @@ export function EmailEditorSandbox(props: EmailEditorSandboxProps) {
   // its place, so a phone never paints the desktop page while its JavaScript
   // is still on the way. The wrapper stays after hydration, as `contents`,
   // so lifting the class does not remount the desktop shell.
-  return (
-    <div className="space-y-5">
-      {model.template ? <TemplateNavigation id={model.template.id} title={model.subject} beforeNavigate={model.beforeStage} /> : null}
-      <TemplateWorkflowPanel model={model}>
-      <div className={hydrated ? 'contents' : 'contents max-sm:hidden'}>
-        <DesktopEditorLayout model={model} autofocus={autofocus} imageUploads={imageUploads} />
-      </div>
-      {hydrated ? null : (
-        <div className="sm:hidden">
-          <PageLoading label="Loading the editor…" />
+  const wrapper = hydrated ? 'contents' : 'contents max-sm:hidden';
+  const waiting = hydrated ? null : (
+    <div className="sm:hidden">
+      <PageLoading label="Loading the editor…" />
+    </div>
+  );
+
+  // The anonymous playground has no template, so no header, tabs or actions
+  // to put in a frame: it is the one section on a page of its own.
+  if (!model.template) {
+    return (
+      <div className="space-y-5">
+        <div className={wrapper}>
+          <DesktopEditorLayout model={model} autofocus={autofocus} imageUploads={imageUploads} framed={false} />
         </div>
-      )}
-      </TemplateWorkflowPanel>
+        {waiting}
+      </div>
+    );
+  }
+
+  // A saved template is the full-height frame the route's layout makes: the
+  // header and the tab row keep their height, and the body under them is the
+  // one thing that scrolls. The header carries the status and the actions
+  // because the model that knows them lives here; the other pages in the
+  // frame pass the header neither.
+  return (
+    <div className="flex min-h-0 flex-1 flex-col">
+      <div className={wrapper}>
+        <EditorHeader
+          title={model.subject}
+          status={<EditorStatus model={model} />}
+          actions={<EditorActions model={model} />}
+          beforeNavigate={model.beforeStage}
+        />
+        <TemplateNavigation
+          id={model.template.id}
+          beforeNavigate={model.beforeStage}
+          trailing={<EditorViewSwitch model={model} />}
+        />
+        <main id="main-content" className="flex min-h-0 flex-1 flex-col overflow-y-auto bg-sunken">
+          <TemplateWorkflowPanel model={model}>
+            <DesktopEditorLayout model={model} autofocus={autofocus} imageUploads={imageUploads} framed />
+          </TemplateWorkflowPanel>
+        </main>
+      </div>
+      {waiting}
     </div>
   );
 }

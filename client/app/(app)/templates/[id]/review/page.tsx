@@ -1,7 +1,7 @@
 import { auth } from '@clerk/nextjs/server';
 import { redirect } from 'next/navigation';
 import { TemplateReview } from '~/components/template-review';
-import { TemplateNavigation } from '~/components/template-navigation';
+import { TemplateFrame } from '~/components/template-frame';
 import { RefreshErrorState } from '~/components/dashboard/refresh-error-state';
 import { serverFetch } from '~/lib/server-fetch';
 
@@ -16,9 +16,18 @@ export default async function ReviewPage({ params }: { params: Promise<{ id: str
     serverFetch('/api/v1/billing').catch(() => null),
   ]);
   if (res?.status === 404) redirect('/dashboard/templates');
-  if (!res?.ok) return <RefreshErrorState description="We could not load this template for sign-off. Try again." />;
+  // The route's layout is a bare column, so the frame is what gives a failed
+  // load its way back, its tab row and its `main`. The template's name is the
+  // thing that did not load, so the header carries the page's name instead.
+  if (!res?.ok) {
+    return (
+      <TemplateFrame id={id} title="Sign-off">
+        <RefreshErrorState description="We could not load this template for sign-off. Try again." />
+      </TemplateFrame>
+    );
+  }
   const { template } = await res.json();
   const billing = billingRes?.ok ? await billingRes.json() : null;
-  return <div className="space-y-6"><TemplateNavigation id={id} title={template.title} /><div className="mx-auto max-w-5xl"><TemplateReview key={`${id}:${template.staged_at ?? template.published_at}`} template={template}
-    isAdmin={orgRole === 'org:admin'} userId={userId} readOnly={billing?.plan === 'lapsed'} /></div></div>;
+  return <TemplateFrame id={id} title={template.title}><div className="mx-auto max-w-5xl"><TemplateReview key={`${id}:${template.staged_at ?? template.published_at}`} template={template}
+    isAdmin={orgRole === 'org:admin'} userId={userId} readOnly={billing?.plan === 'lapsed'} /></div></TemplateFrame>;
 }
