@@ -1,5 +1,5 @@
 import type { MetadataRoute } from 'next';
-import { MARK_BLUE } from './mark';
+import { MARK_COLOUR } from './mark';
 
 /** Served at /manifest.webmanifest: what a browser shows when the site is
  *  added to a home screen or installed. */
@@ -11,7 +11,7 @@ export default function manifest(): MetadataRoute.Manifest {
     start_url: '/dashboard',
     display: 'standalone',
     background_color: '#ffffff',
-    theme_color: MARK_BLUE,
+    theme_color: MARK_COLOUR,
     icons: [
       { src: '/brand/icon.svg', sizes: 'any', type: 'image/svg+xml', purpose: 'any' },
       { src: '/icon-192', sizes: '192x192', type: 'image/png' },
