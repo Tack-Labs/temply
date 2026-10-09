@@ -6,16 +6,15 @@ import { json, tooManyRequests, unauthorized, unprocessable } from '../lib/error
 import { ANONYMOUS_RENDERS_PER_MINUTE, HOUR_MS, checkPerMinute, checkWindow, clientAddress } from '../lib/rate-limit';
 import { TEMPLATE_CONTENT_MAX_LENGTH } from '@temply/shared/plans';
 import { isEmailAddress } from '@temply/shared/email';
+import { sendingFrom, sendingLabel } from '@temply/shared/site';
 import { authPlugin } from '../plugins/auth';
 import { dbPlugin } from '../plugins/db';
 
-const FROM_ADDRESS = process.env.SENDING_FROM_ADDRESS || 'send@temply.app';
-const FROM_LABEL = process.env.SENDING_FROM_LABEL || 'Temply';
-
 function buildFrom(name?: string): string {
+  const label = sendingLabel();
   const trimmed = name?.replace(/[<>"\r\n]/g, '').trim();
-  const display = trimmed ? `${trimmed} via ${FROM_LABEL}` : FROM_LABEL;
-  return `${display} <${FROM_ADDRESS}>`;
+  const display = trimmed ? `${trimmed} via ${label}` : label;
+  return `${display} <${sendingFrom()}>`;
 }
 
 // Abuse guard for the shared debug sender: 20 test sends an hour per user.

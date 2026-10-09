@@ -133,14 +133,14 @@ describe('render', () => {
                 {
                   type: 'link',
                   attrs: {
-                    href: 'https://temply.tacklabs.co.uk',
+                    href: 'https://example.com',
                     target: '_blank',
                     rel: 'noopener noreferrer nofollow',
                     class: null,
                   },
                 },
               ],
-              text: 'temply.tacklabs.co.uk',
+              text: 'example.com',
             },
           ],
         },
@@ -148,13 +148,13 @@ describe('render', () => {
     };
 
     const engine = new Engine(content);
-    engine.setLinkValue('https://temply.tacklabs.co.uk', 'https://temply.tacklabs.co.uk/playground');
+    engine.setLinkValue('https://example.com', 'https://example.com/playground');
     const result = await engine.render({
       plainText: true,
     });
 
     expect(result).toMatchInlineSnapshot(
-      `"temply.tacklabs.co.uk https://temply.tacklabs.co.uk/playground"`
+      `"example.com https://example.com/playground"`
     );
   });
 
@@ -182,14 +182,14 @@ describe('render', () => {
     const engine = new Engine(content);
     engine.setVariableValue(
       'unsubscribe_url',
-      'https://temply.tacklabs.co.uk/unsubscribe_url'
+      'https://example.com/unsubscribe_url'
     );
     const result = await engine.render({
       plainText: true,
     });
 
     expect(result).toMatchInlineSnapshot(
-      `"Unsubscribe https://temply.tacklabs.co.uk/unsubscribe_url"`
+      `"Unsubscribe https://example.com/unsubscribe_url"`
     );
   });
 

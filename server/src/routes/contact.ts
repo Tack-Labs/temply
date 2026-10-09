@@ -1,4 +1,5 @@
 import { Elysia, t } from 'elysia';
+import { contactFrom } from '@temply/shared/site';
 import { Resend } from 'resend';
 import { contactMessages } from '@temply/shared/schema';
 import { json, tooManyRequests } from '../lib/errors';
@@ -42,7 +43,7 @@ export const contactRoutes = new Elysia()
       try {
         const resend = new Resend(apiKey);
         await resend.emails.send({
-          from: process.env.CONTACT_FROM_EMAIL || 'onboarding@resend.dev',
+          from: contactFrom(),
           to,
           replyTo: email,
           subject: `Contact form: ${name}`,

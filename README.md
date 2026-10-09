@@ -124,7 +124,7 @@ in production. `server/.env` needs the same values only for `dev:server`.
 | `STRIPE_METER_EVENT` | server | no | The event name of the Billing Meter the overage price reads. Default `temply_api_calls`. |
 | `STRIPE_API_BASE` | server | no | Points the Stripe client at another host. The e2e stack sets it to its fake; never set it anywhere else. |
 | `RESEND_API_KEY` | server | for sending | Test sends from the editor and contact-form delivery. Without it sends are refused and contact messages are stored but not delivered. |
-| `SENDING_FROM_ADDRESS`, `SENDING_FROM_LABEL` | server | no | The verified sender test sends go out from; users set a display name only. Defaults `send@temply.app` / `Temply`. |
+| `SENDING_FROM_ADDRESS`, `SENDING_FROM_LABEL` | server | no | The verified sender test sends go out from; users set a display name only. Unset, the address is `send@` the site's own host and the label `Temply`. |
 | `CONTACT_EMAIL` | server | for contact form | Where contact-form messages are delivered. |
 | `CONTACT_FROM_EMAIL` | server | no | The sender contact-form messages arrive from. Defaults to Resend's test sender `onboarding@resend.dev`; set a verified address in production. |
 | `IMAGEKIT_PUBLIC_KEY`, `IMAGEKIT_PRIVATE_KEY`, `IMAGEKIT_URL_ENDPOINT` | server | for uploads | Image uploads. Unset: the library and uploads are off, pasted image URLs still work. |
