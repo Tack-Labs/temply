@@ -17,7 +17,8 @@
     "./publish": "./publish.ts",
     "./stage": "./stage.ts",
     "./api": "./api.ts",
-    "./email": "./email.ts"
+    "./email": "./email.ts",
+    "./site": "./site.ts"
   },
   "dependencies": {
     "drizzle-orm": "^0.45.2"

@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, mock } from 'bun:test';
+import { sendingFrom } from '@temply/shared/site';
 import type { TestDb } from '../test/helpers';
 
 process.env.RESEND_API_KEY = 're_test_key';
@@ -88,7 +89,7 @@ describe('POST /api/v1/emails/send', () => {
     const res = await post(app, '/api/v1/emails/send', body({ fromName: 'Acme', replyTo: 'me@acme.com' }), USER);
     expect(res.status).toBe(200);
     expect(sent).toHaveLength(1);
-    expect(sent[0].from).toBe('Acme via Temply <send@temply.app>');
+    expect(sent[0].from).toBe(`Acme via Temply <${sendingFrom()}>`);
     expect(sent[0].replyTo).toBe('me@acme.com');
     expect(sent[0].to).toEqual(['a@example.com']);
   });
@@ -139,7 +140,7 @@ describe('POST /api/v1/emails/send', () => {
     );
     expect(res.status).toBe(200);
     expect(sent).toHaveLength(1);
-    expect(sent[0].from).toBe('Acme evil@x.comBcc: victim@x.com via Temply <send@temply.app>');
+    expect(sent[0].from).toBe(`Acme evil@x.comBcc: victim@x.com via Temply <${sendingFrom()}>`);
     expect(sent[0].from).not.toContain('\r');
     expect(sent[0].from).not.toContain('\n');
     expect(sent[0].from.split(' via Temply <')[0]).not.toContain('<');

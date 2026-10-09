@@ -1,4 +1,5 @@
 import { Elysia, t } from 'elysia';
+import { siteUrl } from '@temply/shared/site';
 import { and, eq, isNull } from 'drizzle-orm';
 import { subscriptions } from '@temply/shared/schema';
 import { limitsFor, MAX_TEMPLATE_PACKS, overageCalls, overageUsd, serialiseLimits } from '@temply/shared/plans';
@@ -75,7 +76,7 @@ export const billingRoutes = new Elysia()
     const packs = ctx.body.templatePacks ?? 0;
     const now = new Date();
     const anchor = cycleAnchor(now);
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:9000';
+    const appUrl = siteUrl();
     const session = await stripe.checkout.sessions.create({
       mode: 'subscription',
       customer,
@@ -109,7 +110,7 @@ export const billingRoutes = new Elysia()
     if (!billingConfigured()) return notConfigured();
     const [sub] = await ctx.db.select().from(subscriptions).where(eq(subscriptions.org_id, ctx.orgId)).limit(1);
     if (!sub?.stripe_customer_id) return json({ status: 400, message: 'This workspace has no billing account yet', errors: ['Bad Request'] }, 400);
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:9000';
+    const appUrl = siteUrl();
     const session = await getStripe().billingPortal.sessions.create({ customer: sub.stripe_customer_id, return_url: `${appUrl}/dashboard/settings/plan` });
     return json({ url: session.url });
   })

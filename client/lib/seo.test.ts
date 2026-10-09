@@ -1,9 +1,11 @@
 import { expect, test } from 'bun:test';
+import { fileURLToPath } from 'node:url';
+import { PRODUCTION_SITE_URL } from './site';
 
 for (const environment of ['production', 'preview', 'development']) {
   test(`${environment} uses the public canonical host and the correct indexing policy`, () => {
     const probe = Bun.spawnSync({
-      cmd: ['bun', '--eval', `
+      cmd: [process.execPath, '--eval', `
         import { publicPageMetadata } from './lib/seo';
         import config from './next.config.mjs';
         const metadata = publicPageMetadata('/docs');
@@ -15,14 +17,14 @@ for (const environment of ['production', 'preview', 'development']) {
             rule.headers.some(header => header.key === 'X-Robots-Tag')),
         }));
       `],
-      cwd: new URL('..', import.meta.url).pathname,
+      cwd: fileURLToPath(new URL('..', import.meta.url)),
       env: { ...process.env, VERCEL_ENV: environment, SITE_NOINDEX: '0', NEXT_PUBLIC_APP_URL: 'https://staging.example.test' },
       stdout: 'pipe',
       stderr: 'pipe',
     });
     expect(probe.exitCode).toBe(0);
     const result = JSON.parse(new TextDecoder().decode(probe.stdout));
-    expect(result.canonical).toBe('https://temply.tacklabs.co.uk/docs');
+    expect(result.canonical).toBe(`${PRODUCTION_SITE_URL}/docs`);
     expect(result.robots).toEqual({ index: environment === 'production', follow: environment === 'production' });
     expect(result.noindexAll).toBe(environment !== 'production');
   });
@@ -30,7 +32,7 @@ for (const environment of ['production', 'preview', 'development']) {
 
 test('SITE_NOINDEX protects a staging build without Vercel environment metadata', () => {
   const probe = Bun.spawnSync({
-    cmd: ['bun', '--eval', `
+    cmd: [process.execPath, '--eval', `
       import { publicPageMetadata } from './lib/seo';
       import config from './next.config.mjs';
       console.log(JSON.stringify({
@@ -39,7 +41,7 @@ test('SITE_NOINDEX protects a staging build without Vercel environment metadata'
           rule.headers.some(header => header.key === 'X-Robots-Tag' && header.value === 'noindex, nofollow')),
       }));
     `],
-    cwd: new URL('..', import.meta.url).pathname,
+    cwd: fileURLToPath(new URL('..', import.meta.url)),
     env: { ...process.env, VERCEL_ENV: '', SITE_NOINDEX: '1' },
     stdout: 'pipe',
     stderr: 'pipe',

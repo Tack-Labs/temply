@@ -28,21 +28,21 @@ afterEach(() => warn.mockRestore());
 describe('POST /api/csp-report', () => {
   it('logs the directive, what was refused and the page, from either report shape', async () => {
     const legacy = {
-      'csp-report': { 'effective-directive': 'script-src', 'blocked-uri': 'https://evil.example', 'document-uri': 'https://temply.app/' },
+      'csp-report': { 'effective-directive': 'script-src', 'blocked-uri': 'https://evil.example', 'document-uri': 'https://example.com/' },
     };
     expect((await send(legacy, 'application/csp-report')).status).toBe(200);
-    const modern = [{ body: { effectiveDirective: 'img-src', blockedURL: 'http://cdn.example/a.png', documentURL: 'https://temply.app/p/x' } }];
+    const modern = [{ body: { effectiveDirective: 'img-src', blockedURL: 'http://cdn.example/a.png', documentURL: 'https://example.com/p/x' } }];
     expect((await send(modern, 'application/reports+json')).status).toBe(200);
     expect(warnings).toEqual([
-      '[csp] script-src refused https://evil.example on https://temply.app/',
-      '[csp] img-src refused http://cdn.example/a.png on https://temply.app/p/x',
+      '[csp] script-src refused https://evil.example on https://example.com/',
+      '[csp] img-src refused http://cdn.example/a.png on https://example.com/p/x',
     ]);
   });
 
   it('answers a body it cannot read without a word, and fuses a flood by address', async () => {
     expect((await send('not json', 'application/csp-report')).status).toBe(200);
     expect(warnings).toHaveLength(0);
-    const report = { 'csp-report': { 'effective-directive': 'style-src', 'blocked-uri': 'inline', 'document-uri': 'https://temply.app/' } };
+    const report = { 'csp-report': { 'effective-directive': 'style-src', 'blocked-uri': 'inline', 'document-uri': 'https://example.com/' } };
     // The unreadable one above spent a slot: the fuse counts requests, not
     // lines, so a flood of garbage is fused the same as a flood of reports.
     for (let i = 0; i < 40; i++) await send(report, 'application/csp-report');

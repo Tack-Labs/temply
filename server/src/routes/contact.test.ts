@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, mock } from 'bun:test';
+import { sendingFrom } from '@temply/shared/site';
 import { contactMessages } from '@temply/shared/schema';
 import { createTestApp, createTestDb, post, type TestDb } from '../test/helpers';
 
@@ -51,7 +52,8 @@ describe('POST /api/v1/contact', () => {
     expect(sent).toHaveLength(1);
     expect(sent[0].to).toBe('team@example.com');
     expect(sent[0].replyTo).toBe('sam@acme.co');
-    expect(sent[0].from).toBe('onboarding@resend.dev');
+    // With no contact sender set, the form goes out from the verified sending address.
+    expect(sent[0].from).toBe(sendingFrom());
   });
 
   it('still succeeds and stores when sending is not configured', async () => {

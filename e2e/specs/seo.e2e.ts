@@ -1,6 +1,8 @@
 import { expect, test } from '@playwright/test';
+import { PRODUCTION_SITE_URL } from '../../shared/site';
 
-const origin = 'https://temply.tacklabs.co.uk';
+// The canonical host the pages print, from the module that names it.
+const origin = PRODUCTION_SITE_URL;
 const publicPaths = ['/', '/docs', '/playground', '/terms', '/privacy'];
 const socialCard = '/brand/temply-social-card-1200x630.png';
 

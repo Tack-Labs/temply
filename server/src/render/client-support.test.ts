@@ -27,7 +27,7 @@ const richDocument = {
         { type: 'text', text: 'Drop it into your server environment. ' },
         {
           type: 'text',
-          marks: [{ type: 'link', attrs: { href: 'https://temply.app', target: '_blank' } }],
+          marks: [{ type: 'link', attrs: { href: 'https://example.com', target: '_blank' } }],
           text: 'Open the dashboard',
         },
       ],
@@ -36,7 +36,7 @@ const richDocument = {
       type: 'button',
       attrs: {
         text: 'Open the dashboard',
-        url: 'https://temply.app',
+        url: 'https://example.com',
         alignment: 'left',
         variant: 'filled',
         borderRadius: 'smooth',
