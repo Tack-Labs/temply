@@ -18,11 +18,11 @@ describe('EmptyState', () => {
     expect(view.getByRole('button', { name: 'New template' })).toBeTruthy();
   });
 
-  it('draws its icon in the muted ink, which reads, rather than the faint one, which only marks', () => {
+  it('draws its icon on the accent wash in the accent ink, the pair the contrast gate holds, never the faint mark', () => {
     const view = render(<EmptyState icon={Icon} title="No templates yet" description="Make one to see it here." />);
-    const icon = view.container.querySelector('svg')?.getAttribute('class') ?? '';
-    expect(icon.split(/\s+/)).toContain('text-muted');
-    expect(icon).not.toContain('text-faint');
+    const tile = view.container.querySelector('svg')?.parentElement?.className.split(/\s+/) ?? [];
+    for (const needed of ['bg-accent-wash', 'text-accent-ink', 'rounded-2xl']) expect(tile).toContain(needed);
+    expect(view.container.innerHTML).not.toContain('text-faint');
   });
 });
 

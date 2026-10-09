@@ -6,9 +6,11 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { FetchError, httpDelete, httpPost, httpPut } from '~/lib/http';
 import { toast } from 'sonner';
 import { DEFAULT_RENDERER_THEME, type RendererThemeOptions } from '@temply/shared/theme';
+import { applyKnobs, knobsFromTheme } from '@temply/shared/brand-knobs';
 import { BRAND_PRESETS } from '@temply/shared/brand-presets';
 import { Button } from '~/components/ui/button';
 import { Input } from '~/components/ui/input';
+import { Label } from '~/components/ui/label';
 import { ConfirmDialog } from '~/components/ui/confirm-dialog';
 import {
   Dialog,
@@ -22,11 +24,19 @@ import { PageLoading } from '~/components/ui/page-loading';
 import { Tile } from '~/components/ui/item';
 import { Badge, EmptyState, ErrorState, PageHeader } from '~/components/ui/surfaces';
 import { PlanLimitBanner } from '~/components/dashboard/plan-limit-banner';
+import { SectionHeading } from '~/components/dashboard/section-heading';
 import { BrandEditor } from '~/components/brand/brand-editor';
 import { BrandPreview } from '~/components/brand/brand-preview';
 import { useMinimumDisplay } from '~/hooks/use-minimum-display';
 import { brandsQueryOptions, type Brand } from '~/lib/brands';
 import { useBilling } from '~/lib/billing';
+
+/** What the Create brand dialog opens on: the Classic preset with its corners
+ *  set to Round, the look the product's own illustrations are drawn in. */
+function newBrandTheme(): RendererThemeOptions {
+  const base = structuredClone(BRAND_PRESETS[0].theme);
+  return applyKnobs(base, { ...knobsFromTheme(base), corner: 'round' });
+}
 
 /** The three colours that read a brand at a glance: page, button, link. */
 function Swatches({ theme }: { theme: RendererThemeOptions }) {
@@ -34,7 +44,7 @@ function Swatches({ theme }: { theme: RendererThemeOptions }) {
   return (
     <div className="flex items-center gap-1.5">
       {colors.map((c, i) => (
-        <span key={i} className="size-5 rounded-sm border border-line" style={{ background: c }} />
+        <span key={i} className="size-6 rounded-full border border-line" style={{ background: c }} />
       ))}
     </div>
   );
@@ -56,7 +66,7 @@ export default function BrandsPage() {
   const [showEditor, setShowEditor] = useState(false);
   const [editingBrand, setEditingBrand] = useState<Brand | null>(null);
   const [name, setName] = useState('');
-  const [theme, setTheme] = useState<RendererThemeOptions>(() => structuredClone(BRAND_PRESETS[0].theme));
+  const [theme, setTheme] = useState<RendererThemeOptions>(() => newBrandTheme());
   const [preview, setPreview] = useState<{ name: string; theme: RendererThemeOptions } | null>(null);
   const [previewOpen, setPreviewOpen] = useState(false);
 
@@ -119,7 +129,7 @@ export default function BrandsPage() {
   const openCreate = () => {
     setEditingBrand(null);
     setName('');
-    setTheme(structuredClone(BRAND_PRESETS[0].theme));
+    setTheme(newBrandTheme());
     setShowEditor(true);
   };
 
@@ -155,7 +165,7 @@ export default function BrandsPage() {
         title="Brands"
         description="Reusable looks you apply to templates."
         actions={
-          <Button size="compact" variant="primary" disabled={atLimit || readOnly} onClick={openCreate}>
+          <Button variant="primary" disabled={atLimit || readOnly} onClick={openCreate}>
             <PlusIcon />
             New brand
           </Button>
@@ -172,8 +182,8 @@ export default function BrandsPage() {
       ) : null}
 
       {/* The user's own saved brands. */}
-      <section className="space-y-2.5">
-        <h2 className="text-sm font-semibold text-ink">Your brands</h2>
+      <section aria-labelledby="brands-heading" className="space-y-3.5">
+        <SectionHeading id="brands-heading">Your brands</SectionHeading>
         {showLoading ? (
           <PageLoading label="Loading your brands…" />
         ) : isError ? (
@@ -184,7 +194,8 @@ export default function BrandsPage() {
             title="No custom brands yet"
             description="Save colours, spacing, and corners to reuse across templates."
             action={
-              <Button size="compact" onClick={openCreate} disabled={atLimit || readOnly}>
+              <Button variant="primary" onClick={openCreate} disabled={atLimit || readOnly}>
+                <PlusIcon />
                 New brand
               </Button>
             }
@@ -227,7 +238,7 @@ export default function BrandsPage() {
                         </Button>
                       </ConfirmDialog>
                       {!isDefault ? (
-                        <Button variant="ghost" size="sm" disabled={readOnly} onClick={() => setDefaultBrand(brand.id)}>
+                        <Button variant="ghost" size="compact" disabled={readOnly} onClick={() => setDefaultBrand(brand.id)}>
                           Set as default
                         </Button>
                       ) : null}
@@ -245,8 +256,8 @@ export default function BrandsPage() {
       </section>
 
       {/* Built-in looks — always available in the editor, not deletable. */}
-      <section className="space-y-2.5">
-        <h2 className="text-sm font-semibold text-ink">Presets</h2>
+      <section aria-labelledby="presets-heading" className="space-y-3.5">
+        <SectionHeading id="presets-heading">Presets</SectionHeading>
         <ul className="grid gap-3 grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
           {BRAND_PRESETS.map((p) => {
             const isDefault = p.id === defaultBrandId;
@@ -264,7 +275,7 @@ export default function BrandsPage() {
                 }
                 actions={
                   !isDefault ? (
-                    <Button variant="ghost" size="sm" disabled={readOnly} onClick={() => setDefaultBrand(p.id)}>
+                    <Button variant="ghost" size="compact" disabled={readOnly} onClick={() => setDefaultBrand(p.id)}>
                       Set as default
                     </Button>
                   ) : null
@@ -304,10 +315,8 @@ export default function BrandsPage() {
             </div>
 
             <div className="min-w-0 space-y-4">
-              <div className="space-y-1.5">
-                <label htmlFor="brand-name" className="block text-sm font-medium text-ink">
-                  Brand name
-                </label>
+              <div className="space-y-2">
+                <Label htmlFor="brand-name">Brand name</Label>
                 <Input
                   id="brand-name"
                   placeholder="Your brand name"
@@ -333,7 +342,7 @@ export default function BrandsPage() {
               Cancel
             </Button>
             <Button size="compact" variant="primary" onClick={handleSave} disabled={!name.trim() || isSaving}>
-              {isSaving ? <Loader2Icon className="animate-spin" /> : null}
+              {isSaving ? <Loader2Icon className="animate-spin motion-reduce:animate-none" /> : null}
               Save
             </Button>
           </DialogFooter>

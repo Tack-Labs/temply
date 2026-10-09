@@ -11,8 +11,10 @@ import { httpGet, httpPost } from '~/lib/http';
 import { useBilling } from '~/lib/billing';
 import { parseStamp } from '~/lib/stamp';
 import { TemplateVersionPreview } from './template-version-preview';
-import { Button } from './ui/button';
+import { Button, pressable } from './ui/button';
 import { Input } from './ui/input';
+import { Label } from './ui/label';
+import { cn } from '~/lib/classname';
 import { Badge, Card, EmptyState, ErrorState, PageHeader } from './ui/surfaces';
 import { ConfirmDialog } from './ui/confirm-dialog';
 import { PageLoading } from './ui/page-loading';
@@ -28,10 +30,10 @@ function VersionTag({ templateId, version, disabled }: { templateId: string; ver
     onError: (error) => toast.error(error.message),
   });
   return <form className="flex flex-wrap items-end gap-2" onSubmit={(event) => { event.preventDefault(); save.mutate(); }}>
-    <label className="min-w-0 flex-1 text-sm text-ink">Version tag
-      <Input className="mt-1" value={tag}
+    <Label className="min-w-0 flex-1 leading-normal">Version tag
+      <Input className="mt-2 font-normal" value={tag}
         maxLength={48} disabled={disabled} placeholder="e.g. Autumn launch or Approved copy" onChange={(event) => setTag(event.target.value)} />
-    </label>
+    </Label>
     <Button size="md" type="submit" disabled={disabled || save.isPending || tag === (version.tag ?? '')}><TagIcon />Save tag</Button>
   </form>;
 }
@@ -50,29 +52,29 @@ export function TemplateVersions({ template, readOnly, isAdmin }: { template: Te
   const shown = rows.find((version) => version.id === selected) ?? rows[0];
   return <div className="mx-auto max-w-6xl space-y-6">
     <PageHeader title="A history you can come back to" description="Every publish saves a copy of your email. Give it a tag so it’s easy to recognise later." />
-    <div className="rounded-xl bg-accent-wash p-4 text-sm leading-relaxed text-accent-ink">Restoring a version replaces your draft. Your customers keep getting the live email until you publish again.
+    <div className="rounded-xl bg-accent-wash px-4 py-3.5 text-base leading-relaxed text-accent-ink">Restoring a version replaces your draft. Your customers keep getting the live email until you publish again.
       {billing.data ? <span className="mt-1 block">Your plan keeps the latest {billing.data.limits.maxVersions} versions, plus recently pinned versions. Tags are labels and do not extend retention.</span> : null}
     </div>
     {versions.isError ? <ErrorState description={versions.error.message} onRetry={() => void versions.refetch()} /> : versions.isPending ? <PageLoading label="Loading your versions…" /> : !shown ?
-      <EmptyState icon={HistoryIcon} title="Your first version starts with a publish" description="Edit your email, then publish it. Each future publish will appear here." action={<Button size="compact" asChild><Link href={`/templates/${template.id}`}>Edit email</Link></Button>} /> :
+      <EmptyState icon={HistoryIcon} title="Your first version starts with a publish" description="Edit your email, then publish it. Each future publish will appear here." action={<Button asChild variant="primary"><Link href={`/templates/${template.id}`}>Edit email</Link></Button>} /> :
       <div className="grid items-start gap-5 md:grid-cols-[280px_minmax(0,1fr)]">
         <Card className="space-y-2" aria-label="Saved versions">
           {rows.map((version) => <button type="button" key={version.id} aria-pressed={shown.id === version.id} onClick={() => setSelected(version.id)}
-            className={`block w-full rounded-lg p-3 text-left ${shown.id === version.id ? 'bg-accent-wash text-accent-ink' : 'text-ink hover:bg-hover'}`}>
-            <span className="flex flex-wrap items-center gap-2 font-medium">Version {version.version_number}{version.version_number === template.live_version ? <Badge tone="success">Live</Badge> : null}</span>
+            className={cn('block w-full rounded-xl px-4 py-3 text-left', pressable, shown.id === version.id ? 'bg-accent-wash text-accent-ink' : 'text-ink hover:bg-hover')}>
+            <span className="flex flex-wrap items-center gap-2 text-ui font-bold">Version {version.version_number}{version.version_number === template.live_version ? <Badge tone="success">Live</Badge> : null}</span>
             {version.tag ? <span className="mt-1 block break-words text-sm">{version.tag}</span> : null}
-            <span className="mt-1 block text-xs text-muted">{version.created_at ? parseStamp(version.created_at).toLocaleString() : 'Date unavailable'}</span>
+            <span className="mt-1 block text-sm text-muted">{version.created_at ? parseStamp(version.created_at).toLocaleString() : 'Date unavailable'}</span>
           </button>)}
         </Card>
         <Card className="min-w-0 space-y-4">
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <div><h2 className="font-display text-lg font-semibold text-ink">Version {shown.version_number}</h2><p className="mt-1 text-sm text-muted">{shown.title}</p></div>
+            <div><h2 className="font-display text-lg font-semibold text-ink">Version {shown.version_number}</h2><p className="mt-1 text-base text-muted">{shown.title}</p></div>
             <ConfirmDialog title={`Restore version ${shown.version_number} to your draft?`} description="This replaces any changes in your current draft. The live email stays as it is." confirmLabel="Restore to draft" onConfirm={() => restore.mutate(shown.id)}>
               <Button size="compact" disabled={readOnly || restore.isPending}><RotateCcwIcon />Restore to draft</Button>
             </ConfirmDialog>
           </div>
           <VersionTag key={shown.id + (shown.tag ?? '')} templateId={template.id} version={shown} disabled={readOnly || !isAdmin} />
-          {!isAdmin ? <p className="text-xs text-muted">Ask a workspace admin to add or change a version tag.</p> : null}
+          {!isAdmin ? <p className="text-sm text-muted">Ask a workspace admin to add or change a version tag.</p> : null}
           <TemplateVersionPreview templateId={template.id} versionId={shown.id} />
         </Card>
       </div>}

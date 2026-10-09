@@ -6,6 +6,7 @@ import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { Button } from '~/components/ui/button';
 import { ConfirmDialog } from '~/components/ui/confirm-dialog';
+import { Input } from '~/components/ui/input';
 import { Popover, PopoverContent, PopoverTrigger } from '~/components/ui/popover';
 import { httpDelete, httpPost } from '~/lib/http';
 import { useBilling } from '~/lib/billing';
@@ -80,23 +81,25 @@ export function ShareLinkPopover({
           </Button>
         )}
       </PopoverTrigger>
-      <PopoverContent align="start" className="w-80">
-        <p className="text-sm font-medium text-ink">Review link</p>
-        <p className="mt-1 text-sm text-muted">
+      <PopoverContent align="start">
+        <p className="font-display text-xl font-bold tracking-display text-ink">Review link</p>
+        <p className="mt-1.5 text-ui text-muted">
           Anyone with the link can see this email without signing in. It shows your
           draft, so what they see follows your edits.
         </p>
         {token ? (
           <>
-            <div className="mt-3 flex items-center gap-2">
-              <input
+            <div className="mt-4 flex items-center gap-2">
+              {/* The field at its own height, and the button beside it at the
+                  same one, so the row reads as one control. */}
+              <Input
                 readOnly
                 value={url}
                 aria-label="Review link"
                 onFocus={(event) => event.currentTarget.select()}
-                className="h-8 min-w-0 flex-1 rounded-sm border border-line bg-raised px-2.5 font-mono text-xs text-ink"
+                className="min-w-0 flex-1 px-3 font-mono text-sm"
               />
-              <Button size="sm" onClick={copy} aria-label={copied ? 'Copied' : 'Copy link'}>
+              <Button size="md" className="px-4" onClick={copy} aria-label={copied ? 'Copied' : 'Copy link'}>
                 {copied ? <CheckIcon /> : <CopyIcon />}
                 {copied ? 'Copied' : 'Copy'}
               </Button>
@@ -108,17 +111,17 @@ export function ShareLinkPopover({
                 confirmLabel="Turn off"
                 onConfirm={() => removeLink()}
               >
-                <Button variant="danger-quiet" size="sm" touch disabled={isRemoving}>
-                  {isRemoving ? <Loader2Icon className="animate-spin" /> : null}
+                <Button variant="danger-quiet" size="compact" disabled={isRemoving}>
+                  {isRemoving ? <Loader2Icon className="animate-spin motion-reduce:animate-none" /> : null}
                   Turn off link
                 </Button>
               </ConfirmDialog>
             </div>
           </>
         ) : (
-          <div className="mt-3">
-            <Button size="compact" variant="primary" onClick={() => createLink()} disabled={isCreating || readOnly}>
-              {isCreating ? <Loader2Icon className="animate-spin" /> : <Link2Icon />}
+          <div className="mt-4">
+            <Button variant="primary" onClick={() => createLink()} disabled={isCreating || readOnly}>
+              {isCreating ? <Loader2Icon className="animate-spin motion-reduce:animate-none" /> : <Link2Icon />}
               Create link
             </Button>
           </div>

@@ -8,13 +8,15 @@ import { cn } from '~/lib/classname';
 export type AssetView = 'grid' | 'list';
 
 const VIEWS: { value: AssetView; label: string; icon: React.ReactNode }[] = [
-  { value: 'grid', label: 'Grid', icon: <LayoutGridIcon className="size-3.5" /> },
-  { value: 'list', label: 'List', icon: <ListIcon className="size-3.5" /> },
+  { value: 'grid', label: 'Grid', icon: <LayoutGridIcon className="size-4" /> },
+  { value: 'list', label: 'List', icon: <ListIcon className="size-4" /> },
 ];
 
-/** 24px segment plus the 2px gap between them — same geometry as the
- *  editor's content-mode switch, so the two controls read as one family. */
-const SEGMENT_STEP = 26;
+/** 40px segment plus the 2px gap between them: the segmented control's own
+ *  geometry, so this reads as one family with the filters beside it and the
+ *  editor's view switch, and stands the search field's 48px tall in its
+ *  track. */
+const SEGMENT_STEP = 42;
 const STORAGE_KEY = 'temply.assets.view';
 
 /** The chosen view, remembered per browser. Storage can be unavailable
@@ -54,11 +56,14 @@ export function AssetViewSwitch({
     <div
       role="group"
       aria-label="Library view"
-      className="relative flex items-center gap-0.5 rounded-md border border-line bg-surface p-0.5"
+      className="relative flex items-center gap-0.5 rounded-full bg-track p-1"
     >
+      {/* The chosen pill slides between the two; the segmented control's
+          own pill does not move, but here the two options are icons of one
+          size, so the travel reads as the choice changing hands. */}
       <span
         aria-hidden
-        className="absolute top-0.5 left-0.5 size-6 rounded-sm bg-accent-wash transition-transform duration-slow ease-out motion-reduce:transition-none"
+        className="absolute top-1 left-1 size-10 rounded-full bg-raised shadow-sm transition-transform duration-slow ease-out motion-reduce:transition-none"
         style={{ transform: `translateX(${Math.max(index, 0) * SEGMENT_STEP}px)` }}
       />
       {VIEWS.map((entry) => (
@@ -70,9 +75,9 @@ export function AssetViewSwitch({
           title={entry.label}
           onClick={() => onViewChange(entry.value)}
           className={cn(
-            'relative z-10 flex size-6 items-center justify-center rounded-sm bg-transparent',
+            'relative z-10 flex size-10 items-center justify-center rounded-full bg-transparent',
             pressable,
-            entry.value === view ? 'text-accent-ink' : 'text-muted hover:text-ink',
+            entry.value === view ? 'text-ink' : 'text-ink-soft hover:text-ink',
           )}
         >
           {entry.icon}

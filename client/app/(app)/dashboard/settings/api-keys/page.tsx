@@ -15,6 +15,7 @@ import { useBilling } from '~/lib/billing';
 import { parseStamp } from '~/lib/stamp';
 import { Button, pressable } from '~/components/ui/button';
 import { Input } from '~/components/ui/input';
+import { Label } from '~/components/ui/label';
 import { cn } from '~/lib/classname';
 import { ConfirmDialog } from '~/components/ui/confirm-dialog';
 import { PlanLimitBanner } from '~/components/dashboard/plan-limit-banner';
@@ -140,7 +141,7 @@ export default function ApiKeysPage() {
           once there is a list for it to sit above. */}
       {keys.length > 0 ? (
         <div className="flex justify-end">
-          <Button size="compact" variant="primary" onClick={openCreate} disabled={readOnly}>
+          <Button variant="primary" onClick={openCreate} disabled={readOnly}>
             <PlusIcon />
             Create key
           </Button>
@@ -158,15 +159,16 @@ export default function ApiKeysPage() {
 
       {newlyCreatedKey ? (
         <Card className="border-accent bg-accent-wash">
-          <p className="text-sm font-medium text-ink">Your new key</p>
-          <p className="mt-0.5 text-sm text-muted">
+          <p className="text-18 font-bold text-accent-ink">Your new key</p>
+          <p className="mt-0.5 text-ui text-muted">
             Copy it now. For your safety it is not shown again.
           </p>
           <div className="mt-3 flex items-center gap-2">
-            <code className="flex-1 truncate rounded-sm border border-line bg-raised px-2.5 py-1.5 font-mono text-sm text-ink">
-              {newlyCreatedKey}
+            {/* Read like a field, since it is one the reader copies from. */}
+            <code className="flex h-12 min-w-0 flex-1 items-center rounded-field border-[1.5px] border-line-strong bg-raised px-4 font-mono text-ui text-ink">
+              <span className="truncate">{newlyCreatedKey}</span>
             </code>
-            <Button size="compact" onClick={() => copyKey(newlyCreatedKey)}>
+            <Button size="md" className="px-4" onClick={() => copyKey(newlyCreatedKey)}>
               {copied ? <CheckIcon /> : <CopyIcon />}
               {copied ? 'Copied' : 'Copy'}
             </Button>
@@ -187,7 +189,7 @@ export default function ApiKeysPage() {
           title="No API keys"
           description="Create one to read your templates from your own application."
           action={
-            <Button size="compact" variant="primary" onClick={openCreate} disabled={readOnly}>
+            <Button variant="primary" onClick={openCreate} disabled={readOnly}>
               <PlusIcon />
               Create key
             </Button>
@@ -200,16 +202,16 @@ export default function ApiKeysPage() {
         // overflow-hidden and sits at the table's far edge. On a phone that
         // widens the layout viewport to the table's width, and a centred dialog
         // opens off to the side of the screen.
-        <div className="relative overflow-x-auto rounded-xl border border-line bg-raised">
-          <table className="w-full text-sm">
+        <div className="relative overflow-x-auto rounded-card border border-line bg-raised shadow-sm">
+          <table className="w-full text-ui">
             <thead>
               <tr className="border-b border-line">
-                <th scope="col" className="px-3.5 py-2 text-left text-xs font-medium text-muted">Name</th>
-                <th scope="col" className="px-3.5 py-2 text-left text-xs font-medium text-muted">Key</th>
-                <th scope="col" className="px-3.5 py-2 text-left text-xs font-medium text-muted">Created</th>
-                <th scope="col" className="px-3.5 py-2 text-left text-xs font-medium text-muted">Last used</th>
-                <th scope="col" className="px-3.5 py-2 text-left text-xs font-medium text-muted">Status</th>
-                <th scope="col" className="px-3.5 py-2">
+                <th scope="col" className="px-4 py-3 text-left text-xs font-bold tracking-widest text-muted uppercase">Name</th>
+                <th scope="col" className="px-4 py-3 text-left text-xs font-bold tracking-widest text-muted uppercase">Key</th>
+                <th scope="col" className="px-4 py-3 text-left text-xs font-bold tracking-widest text-muted uppercase">Created</th>
+                <th scope="col" className="px-4 py-3 text-left text-xs font-bold tracking-widest text-muted uppercase">Last used</th>
+                <th scope="col" className="px-4 py-3 text-left text-xs font-bold tracking-widest text-muted uppercase">Status</th>
+                <th scope="col" className="px-4 py-3">
                   <span className="sr-only">Actions</span>
                 </th>
               </tr>
@@ -217,31 +219,31 @@ export default function ApiKeysPage() {
             <tbody className="divide-y divide-line">
               {keys.map((key) => (
                 <tr key={key.id}>
-                  <td className="px-3.5 py-2.5 font-medium text-ink">
+                  <td className="px-4 py-3.5 text-ui font-bold text-ink">
                     <span className="flex items-center gap-2">
                       {key.name}
                       {key.mode === 'test' ? <Badge tone="neutral">Test</Badge> : null}
                     </span>
                   </td>
-                  <td className="px-3.5 py-2.5">
-                    <code className="rounded-xs bg-hover px-1.5 py-0.5 font-mono text-xs text-muted">
+                  <td className="px-4 py-3.5">
+                    <code className="rounded-sm bg-sunken px-1.5 py-0.5 font-mono text-sm text-muted">
                       {key.key_prefix}…
                     </code>
                   </td>
-                  <td className="px-3.5 py-2.5 text-muted tabular-nums">
+                  <td className="px-4 py-3.5 text-muted tabular-nums">
                     {formatDate(key.created_at) ?? 'Unknown'}
                   </td>
-                  <td className="px-3.5 py-2.5 text-muted tabular-nums">
+                  <td className="px-4 py-3.5 text-muted tabular-nums">
                     {formatDate(key.last_used_at) ?? 'Never'}
                   </td>
-                  <td className="px-3.5 py-2.5">
+                  <td className="px-4 py-3.5">
                     {key.revoked_at ? (
                       <Badge tone="danger">Revoked</Badge>
                     ) : (
                       <Badge tone="success">Active</Badge>
                     )}
                   </td>
-                  <td className="px-3.5 py-2.5 text-right">
+                  <td className="px-4 py-3.5 text-right">
                     {!key.revoked_at && (
                       <ConfirmDialog
                         title="Revoke this key?"
@@ -265,17 +267,18 @@ export default function ApiKeysPage() {
 
       {(
         <Card>
-          <h2 className="text-sm font-semibold text-ink">Using a key</h2>
-          <p className="mt-1 text-sm text-muted">
+          <h2 className="font-display text-lg font-semibold tracking-display text-ink">Using a key</h2>
+          <p className="mt-1 text-base text-muted">
             Send it as a bearer token when you call the public API. A live key renders the
             published version of a template. Draft edits become available when you publish. A
             test key renders the draft instead, is free on every plan, and stops at 1,000
             calls a month.{' '}
-            <Link href="/docs#api" className="text-accent-ink underline-offset-4 hover:underline">
+            <Link href="/docs#api" className="text-accent-ink underline-offset-4 transition-colors duration-fast ease-out hover:underline motion-reduce:transition-none">
               Full API reference
             </Link>
           </p>
-          <pre className="mt-3 overflow-x-auto rounded-sm border border-line bg-surface p-3 font-mono text-xs text-ink">
+          {/* The terminal's palette, as the Connect page prints the same request. */}
+          <pre className="mt-3 overflow-x-auto rounded-xl bg-rail-bg p-4 font-mono text-sm leading-relaxed text-rail-ink">
             <code>{`# The template's details
 curl -H "Authorization: Bearer tply_live_..." \\
   ${PUBLIC_API_URL}/templates/tpl_abc123
@@ -286,12 +289,12 @@ curl -X POST -H "Authorization: Bearer tply_live_..." \\
   -d '{"data":{"firstName":"Ada","isMember":true}}' \\
   ${PUBLIC_API_URL}/templates/tpl_abc123/render`}</code>
           </pre>
-          <p className="mt-3 flex items-start gap-2 text-sm text-muted">
+          <p className="mt-3 flex items-start gap-2 text-base text-muted">
             <ZapIcon aria-hidden className="mt-0.5 size-4 shrink-0 text-accent-ink" />
             <span>
               Every render counts as a call. Render a broadcast once and send that HTML to
-              everyone, and cache renders on the template&apos;s <code className="font-mono text-xs">updatedAt</code>.{' '}
-              <Link href="/docs#caching" className="text-accent-ink underline-offset-4 hover:underline">
+              everyone, and cache renders on the template&apos;s <code className="rounded-sm bg-sunken px-1.5 py-0.5 font-mono text-sm text-ink">updatedAt</code>.{' '}
+              <Link href="/docs#caching" className="text-accent-ink underline-offset-4 transition-colors duration-fast ease-out hover:underline motion-reduce:transition-none">
                 How to cache renders
               </Link>
             </span>
@@ -319,8 +322,8 @@ curl -X POST -H "Authorization: Bearer tply_live_..." \\
 
           {/* Two chips, not a select: the choice is binary and the difference
               needs a sentence, which a dropdown has nowhere to put. */}
-          <div className="space-y-1.5">
-            <span className="block text-sm font-medium text-ink">Key type</span>
+          <div className="space-y-2">
+            <span className="block text-base font-bold text-ink">Key type</span>
             <div className="grid grid-cols-2 gap-2" role="radiogroup" aria-label="Key type">
               {(
                 [
@@ -348,25 +351,27 @@ curl -X POST -H "Authorization: Bearer tply_live_..." \\
                     disabled={locked}
                     onClick={() => setKeyMode(option.mode)}
                     className={cn(
-                      'flex flex-col items-start gap-0.5 rounded-md border px-3 py-2 text-left',
+                      // A field's corners and border: the tile is a choice in
+                      // a form, beside the name field under it.
+                      'flex flex-col items-start gap-0.5 rounded-field border-[1.5px] px-4 py-3 text-left',
                       pressable,
                       // Locked it is the filled disabled tile, not the live one at
                       // half strength; the reason beside the name stays in the
                       // muted ink so it can still be read.
                       locked
                         ? 'border-transparent bg-track'
-                        : active ? 'border-accent bg-accent-wash' : 'border-line hover:bg-hover',
+                        : active ? 'border-accent bg-accent-wash' : 'border-line-strong bg-raised hover:bg-hover',
                     )}
                   >
-                    <span className={cn('text-sm font-medium', locked ? 'text-disabled' : active ? 'text-accent-ink' : 'text-ink')}>
+                    <span className={cn('text-base font-bold', locked ? 'text-disabled' : active ? 'text-accent-ink' : 'text-ink')}>
                       {option.label}
                       {locked ? (
-                        <span id={lockId} className="ml-1.5 text-xs font-normal text-muted">
+                        <span id={lockId} className="ml-1.5 text-sm font-normal text-muted">
                           Limit reached
                         </span>
                       ) : null}
                     </span>
-                    <span id={hintId} className={cn('text-xs', locked ? 'text-disabled' : 'text-muted')}>
+                    <span id={hintId} className={cn('text-sm', locked ? 'text-disabled' : 'text-muted')}>
                       {option.hint}
                     </span>
                   </button>
@@ -375,10 +380,8 @@ curl -X POST -H "Authorization: Bearer tply_live_..." \\
             </div>
           </div>
 
-          <div className="space-y-1.5">
-            <label htmlFor="api-key-name" className="block text-sm font-medium text-ink">
-              Key name
-            </label>
+          <div className="space-y-2">
+            <Label htmlFor="api-key-name">Key name</Label>
             <Input
               id="api-key-name"
               placeholder="Production server"
@@ -407,7 +410,7 @@ curl -X POST -H "Authorization: Bearer tply_live_..." \\
               onClick={handleCreate}
               disabled={!keyName.trim() || isCreating}
             >
-              {isCreating ? <Loader2Icon className="animate-spin" /> : null}
+              {isCreating ? <Loader2Icon className="animate-spin motion-reduce:animate-none" /> : null}
               Create key
             </Button>
           </DialogFooter>

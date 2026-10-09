@@ -706,14 +706,16 @@ test.describe('marketing', () => {
     const curl = page.getByText(/^curl /);
     await expect(js).toHaveCount(0);
     const curlBefore = await curl.count();
-    const first = page.getByRole('tablist', { name: 'Language' }).first();
-    await first.getByRole('tab', { name: 'JavaScript' }).click();
-    await expect(first.getByRole('tab', { name: 'JavaScript' })).toHaveAttribute('aria-selected', 'true');
+    // The switch is the app's segmented control: a radiogroup, one radio per
+    // language.
+    const first = page.getByRole('radiogroup', { name: 'Language' }).first();
+    await first.getByRole('radio', { name: 'JavaScript' }).click();
+    await expect(first.getByRole('radio', { name: 'JavaScript' })).toHaveAttribute('aria-checked', 'true');
     await expect(js).toHaveCount(1);
     await expect(curl).toHaveCount(curlBefore - 1);
     // The choice is read from storage on mount only, so the other blocks
     // follow on reload rather than live.
     await page.reload();
-    await expect(page.getByRole('tab', { name: 'JavaScript', selected: true })).toHaveCount(3);
+    await expect(page.getByRole('radio', { name: 'JavaScript', checked: true })).toHaveCount(3);
   });
 });

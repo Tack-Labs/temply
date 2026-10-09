@@ -30,14 +30,14 @@ export function ShortcutTable() {
                       the wrong one for a frame. */}
                   <kbd
                     className={cn(
-                      'rounded-xs border border-line bg-raised px-1.5 py-0.5 font-mono text-2xs text-ink',
+                      'rounded-sm bg-sunken px-1.5 py-0.5 font-mono text-xs text-ink',
                       isApple === null && 'opacity-0'
                     )}
                   >
                     {formatKeys(item.keys, isApple ?? true)}
                   </kbd>
                 </dt>
-                <dd className="text-sm text-muted">{item.what}</dd>
+                <dd className="text-base text-muted">{item.what}</dd>
               </div>
             ))}
           </dl>

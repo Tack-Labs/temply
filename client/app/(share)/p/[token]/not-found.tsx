@@ -11,7 +11,7 @@ export default function ShareNotFound() {
       <p className="max-w-sm text-sm text-muted">
         The person who shared it may have turned it off. Ask them for a new link.
       </p>
-      <Link href="/" className="text-sm text-accent-ink underline-offset-4 hover:underline">
+      <Link href="/" className="text-base text-accent-ink underline-offset-4 transition-colors duration-fast ease-out hover:underline motion-reduce:transition-none">
         Made with Temply
       </Link>
     </div>

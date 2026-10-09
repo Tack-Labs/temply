@@ -3,7 +3,7 @@
 import { useRef, useState } from 'react';
 import { GlobeIcon, HistoryIcon, Link2Icon, Loader2Icon, MoreHorizontalIcon, SendIcon, Trash2Icon } from 'lucide-react';
 import { Button } from '../ui/button';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '../ui/dropdown-menu';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '../ui/dropdown-menu';
 import { Badge } from '../ui/surfaces';
 import { ConfirmPublish } from '../confirm-publish';
 import { DeleteEmailDialog } from '../delete-email-dialog';
@@ -13,14 +13,16 @@ import { VersionHistoryDialog } from '../version-history-dialog';
 import type { TemplateEditorModel } from './use-template-editor';
 
 // The header's buttons are page-level: 48px, with the 18px side padding the
-// board draws on the quiet ones. Spelled once so History, Share and Send are
-// the same size by construction.
+// board draws on the quiet ones.
 const barButton = 'px-4.5';
 
 /**
  * The right-hand end of the editor's header: what a customer does with the
  * template, in the order they reach for it. Publish is the one primary action
- * and sits last, where the eye finishes; Delete is behind the ⋯ menu, one
+ * and sits last, where the eye finishes. Send a test is the one other thing
+ * done often enough to stay on the bar. History and Share are reached a few
+ * times in a template's life and sit behind the ⋯ menu with Delete, as they
+ * do on the phone, so the bar is two buttons and not four; Delete is one
  * confirmation away rather than one slip.
  *
  * Every control acts on a saved template, so the anonymous playground, which
@@ -40,28 +42,6 @@ export function EditorActions({ model }: { model: TemplateEditorModel }) {
 
   return (
     <>
-      <VersionHistoryDialog
-        templateId={template.id}
-        hasUnpublishedChanges={model.unpublished}
-        onDiscarded={model.handleDiscarded}
-        onRestored={model.handleRestored}
-        trigger={
-          <Button variant="ghost" className={barButton}>
-            <HistoryIcon />
-            History
-          </Button>
-        }
-      />
-      <ShareLinkPopover
-        templateId={template.id}
-        initialToken={template.share_token ?? null}
-        trigger={
-          <Button variant="ghost" className={barButton} aria-label="Share a review link">
-            <Link2Icon />
-            Share
-          </Button>
-        }
-      />
       {/* Internal-debug delivery — only for a saved template. The anonymous
           playground must not advertise a send capability the product does
           not offer. "Send anyway" has to be readable to mean anything, so
@@ -99,7 +79,34 @@ export function EditorActions({ model }: { model: TemplateEditorModel }) {
             <MoreHorizontalIcon />
           </Button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="w-48">
+        <DropdownMenuContent align="end" className="w-56">
+          {/* The dialog and the popover are opened from their item, which is
+              their trigger: a dialog mounted inside the menu would go with it,
+              so the item keeps the menu open (preventDefault) and the layer
+              opens over it, as the phone's ⋯ menu does. */}
+          <VersionHistoryDialog
+            templateId={template.id}
+            hasUnpublishedChanges={model.unpublished}
+            onDiscarded={model.handleDiscarded}
+            onRestored={model.handleRestored}
+            trigger={
+              <DropdownMenuItem onSelect={(event) => event.preventDefault()}>
+                <HistoryIcon />
+                History
+              </DropdownMenuItem>
+            }
+          />
+          <ShareLinkPopover
+            templateId={template.id}
+            initialToken={template.share_token ?? null}
+            trigger={
+              <DropdownMenuItem onSelect={(event) => event.preventDefault()}>
+                <Link2Icon />
+                Share link
+              </DropdownMenuItem>
+            }
+          />
+          <DropdownMenuSeparator />
           <DropdownMenuItem className="text-danger-ink [&_svg]:text-danger-ink" onSelect={() => setDeleting(true)}>
             <Trash2Icon />
             Delete

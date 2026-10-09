@@ -27,8 +27,10 @@ const BaseButton = React.forwardRef<HTMLButtonElement, ButtonProps>(
     ref
   ) => {
     const Comp = asChild ? Slot : 'button';
+    // 12px corners: the toolbars these sit in are 16px with 4px of padding,
+    // so a pressed or hovered button follows the toolbar's own curve.
     const baseClass =
-      'mly:inline-flex mly:items-center mly:justify-center mly:rounded-md mly:text-sm mly:font-medium mly:transition-colors mly:focus-visible:relative mly:focus-visible:z-10 mly:disabled:opacity-50 ';
+      'mly:inline-flex mly:items-center mly:justify-center mly:rounded-lg mly:text-sm mly:font-medium mly:transition-colors mly:focus-visible:relative mly:focus-visible:z-10 mly:disabled:opacity-50 ';
     const variantClasses = {
       default: 'mly:bg-gray-900 mly:text-gray-50 mly:hover:bg-soft-gray',
       destructive: 'mly:bg-red-500 mly:text-gray-50 mly:hover:bg-red-500/90',
@@ -41,8 +43,8 @@ const BaseButton = React.forwardRef<HTMLButtonElement, ButtonProps>(
     };
     const sizeClasses = {
       default: 'mly:h-10 mly:px-4 mly:py-2',
-      sm: 'mly:h-9 mly:rounded-md mly:px-3',
-      lg: 'mly:h-11 mly:rounded-md mly:px-8',
+      sm: 'mly:h-9 mly:rounded-lg mly:px-3',
+      lg: 'mly:h-11 mly:rounded-lg mly:px-8',
       icon: 'mly:h-10 mly:w-10',
     };
 

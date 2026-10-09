@@ -1,6 +1,7 @@
 'use client';
 
 import { UserProfile } from '@clerk/nextjs';
+import { profileElements } from '~/components/auth-appearance';
 import { useTheme } from '~/components/theme-provider';
 
 export default function SettingsPage() {
@@ -25,10 +26,8 @@ export default function SettingsPage() {
         appearance={{
           ...clerkAppearance,
           elements: {
-            ...(clerkAppearance.elements as Record<string, string>),
-            rootBox: 'w-full',
-            cardBox: 'w-full shadow-none border border-line rounded-lg',
-            card: 'w-full shadow-none',
+            ...(clerkAppearance.elements as Record<string, unknown>),
+            ...profileElements,
           },
         }}
       />

@@ -21,7 +21,10 @@ const PopoverContent = React.forwardRef<
       align={align}
       sideOffset={sideOffset}
       className={cn(
-        'overlay-panel z-[9999] w-72 rounded-md border border-line bg-raised p-4 text-ink shadow-md outline-none',
+        // An anchored panel is a small dialog: the card's corners, the card's
+        // padding, no hairline, and the menu's rung on the shadow ladder since
+        // it floats over the page with no scrim to lift it.
+        'overlay-panel z-[9999] w-80 rounded-card bg-raised p-5 text-ink shadow-lg outline-none',
         className
       )}
       {...props}

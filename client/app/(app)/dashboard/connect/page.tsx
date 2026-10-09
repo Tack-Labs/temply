@@ -17,10 +17,11 @@ export default async function ConnectPage() {
   const { templates } = await response.json() as { templates: TemplateListItem[] };
   return <div className="space-y-6">
     <PageHeader title="Connect your app" description="Choose an email to get setup steps with its details already filled in. You can follow them or share them with a developer." />
-    <Card className="bg-accent-wash p-5"><h2 className="font-display text-lg font-semibold text-ink">Design here. Send from your app.</h2><p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted">Your app tells Temply which email it needs and supplies the customer’s details. Temply returns the finished email. Your existing email provider delivers it.</p></Card>
+    {/* A callout on the accent wash, so everything on it is the wash's own ink. */}
+    <Card className="bg-accent-wash"><h2 className="font-display text-xl font-bold tracking-display text-accent-ink">Design here. Send from your app.</h2><p className="mt-2 max-w-2xl text-ui leading-relaxed text-accent-ink">Your app tells Temply which email it needs and supplies the customer’s details. Temply returns the finished email. Your existing email provider delivers it.</p></Card>
     {!templates.length ? <EmptyState icon={PlugIcon} title="Start with your first email" description="Create a template before connecting it to your app. A starter gives you something to try straight away." action={<NewTemplateButton />} /> :
       <div className="grid gap-4 sm:grid-cols-2">{templates.map((template) => <Link key={template.id} href={`/templates/${template.id}/connect`}>
-        <Card interactive className="flex h-full items-center gap-4 p-5"><span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-accent-wash text-accent-ink"><PlugIcon className="size-5" /></span><div className="min-w-0 flex-1"><h2 className="break-words text-base font-medium text-ink">{template.title}</h2><p className="mt-1 text-sm text-muted">Open the four setup steps</p></div><ArrowRightIcon className="size-4 shrink-0 text-muted" /></Card>
+        <Card interactive className="flex h-full items-center gap-4"><span className="flex size-12 shrink-0 items-center justify-center rounded-xl bg-accent-wash text-accent-ink"><PlugIcon className="size-5" /></span><div className="min-w-0 flex-1"><h2 className="break-words text-18 font-bold text-ink">{template.title}</h2><p className="mt-0.5 text-ui text-muted">Open the four setup steps</p></div><ArrowRightIcon className="size-5 shrink-0 text-muted" /></Card>
       </Link>)}</div>}
   </div>;
 }

@@ -35,7 +35,7 @@ export function BlockPalette() {
         <span className="text-base text-muted">Insert a block</span>
         <span
           aria-hidden
-          className="ml-auto rounded-xs border border-line bg-surface px-1.5 py-0.5 font-mono text-2xs text-muted"
+          className="ml-auto rounded-sm bg-sunken px-1.5 py-0.5 font-mono text-xs text-muted"
         >
           esc
         </span>
@@ -53,15 +53,13 @@ export function BlockPalette() {
               className={`flex items-center gap-3 rounded-field px-3 py-2 ${active ? 'bg-accent-wash' : ''}`}
             >
               <span
-                className={`flex size-8 items-center justify-center rounded-md border ${
-                  active
-                    ? 'border-accent-ink/25 bg-raised text-accent-ink'
-                    : 'border-line bg-surface text-muted'
+                className={`flex size-8 items-center justify-center rounded-lg ${
+                  active ? 'bg-raised text-accent-ink shadow-xs' : 'bg-sunken text-muted'
                 }`}
               >
-                <Icon className="size-3.5" />
+                <Icon className="size-4" />
               </span>
-              <span className={`text-base ${active ? 'font-medium text-ink' : 'text-muted'}`}>
+              <span className={`text-base ${active ? 'font-semibold text-ink' : 'text-muted'}`}>
                 {row.name}
               </span>
               {active ? (

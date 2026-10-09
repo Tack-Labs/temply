@@ -79,18 +79,15 @@ test.describe('publish and share', () => {
     // popover up the way it stays up for a customer.
     const press = (target: Locator) => (onPhone() ? target.tap() : target.click());
     // The popover carries no name of its own; its heading is what tells it
-    // apart. On the phone it anchors to a menu item and the menu stays open
-    // under it, so it is opened only when it is not already up: a second tap
-    // on ⋯ would close the menu instead.
+    // apart. On both shells it anchors to an item of the ⋯ menu ("More" on
+    // the phone, "More actions" on the desktop) and the menu stays open under
+    // it, so it is opened only when it is not already up: a second press on
+    // ⋯ would close the menu instead.
     const share = page.getByRole('dialog').filter({ hasText: 'Review link' });
     const openShare = async () => {
       if (await share.isVisible()) return share;
-      if (onPhone()) {
-        await openMore(page);
-        await press(page.getByRole('menuitem', { name: 'Share link' }));
-      } else {
-        await page.getByRole('button', { name: 'Share a review link' }).click();
-      }
+      await press(page.getByRole('button', { name: onPhone() ? 'More' : 'More actions', exact: true }));
+      await press(page.getByRole('menuitem', { name: 'Share link' }));
       return share;
     };
     let popover = await openShare();

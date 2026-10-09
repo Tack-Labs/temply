@@ -148,7 +148,7 @@ export function MobileEditorLayout({
       className={cn('fixed inset-x-0 z-30 flex flex-col overflow-clip bg-surface', frame ? '' : 'top-0 h-dvh')}
       style={frame ? { top: frame.top, height: frame.height } : undefined}
     >
-      <header className="z-40 flex h-14 shrink-0 items-center gap-1 border-b border-line bg-raised px-2">
+      <header className="z-40 flex h-14 shrink-0 items-center gap-1 border-b-[1.5px] border-line bg-raised px-2">
         {/* The playground has no template to go back to, and its visitor may
             not even be signed in — the link only belongs on a saved one. */}
         {template?.id ? (
@@ -166,7 +166,7 @@ export function MobileEditorLayout({
           aria-expanded={sheet === 'details'}
           aria-label={`Edit details: ${model.subject || 'Untitled'}`}
           onClick={() => setSheet('details')}
-          className={cn('flex h-11 min-w-0 flex-1 items-center gap-1.5 rounded-md px-2 text-left text-sm font-medium text-ink hover:bg-hover', pressable)}
+          className={cn('flex h-11 min-w-0 flex-1 items-center gap-1.5 rounded-field px-2 text-left text-ui font-bold text-ink hover:bg-hover', pressable)}
         >
           <span className="truncate">{model.subject || 'Untitled'}</span>
           <PencilLineIcon className="size-3.5 shrink-0 text-muted" aria-hidden />
@@ -312,7 +312,7 @@ export function MobileEditorLayout({
         <div className="overflow-hidden" aria-hidden={!saveFailed} inert={!saveFailed}>
           <div className="flex items-center gap-2 border-b border-line bg-danger-wash px-2 py-1.5">
             <AlertTriangleIcon className="size-4 shrink-0 text-danger-ink" aria-hidden />
-            <span className="min-w-0 flex-1 text-xs text-danger-ink">Not saved. Your changes are on this device only.</span>
+            <span className="min-w-0 flex-1 text-sm text-danger-ink">Not saved. Your changes are on this device only.</span>
             <Button size="compact" variant="secondary" className={cn(touchTarget, 'text-sm')} onClick={() => void model.autosave?.flush()}>
               Retry
             </Button>

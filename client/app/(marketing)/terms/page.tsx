@@ -1,7 +1,6 @@
 import { JsonLd } from '~/components/json-ld';
 import { publicPageMetadata, publicPageSchema } from '~/lib/seo';
-import Link from 'next/link';
-import { LegalPage, List, P, Section, Strong } from '~/components/legal/legal-page';
+import { A, LegalPage, List, P, Section, Strong } from '~/components/legal/legal-page';
 import { LEGAL } from '~/lib/legal';
 import { formatUsd, INCLUDED, PRICES_USD, TEST_API_CALLS_PER_MONTH, TRIAL_DAYS } from '@temply/shared/plans';
 
@@ -73,8 +72,8 @@ export default function TermsPage() {
         <P>
           Every new workspace starts with a {TRIAL_DAYS}-day free trial. It needs no card and comes with limits,
           including {INCLUDED.apiCalls.toLocaleString('en-GB')} live API calls a month. The current limits and prices
-          are on our <Link href="/#pricing" className="text-accent-ink underline-offset-4 hover:underline">pricing</Link>{' '}
-          and on the <Link href="/dashboard/settings/plan" className="text-accent-ink underline-offset-4 hover:underline">plan page</Link>.
+          are on our <A href="/#pricing">pricing</A>{' '}
+          and on the <A href="/dashboard/settings/plan">plan page</A>.
         </P>
         <List
           items={[
@@ -161,9 +160,7 @@ export default function TermsPage() {
             'We may update these terms. The date at the top says when. For a change that materially affects you we will give notice by email or in the product before it takes effect; using the service after that is acceptance.',
             <>
               Questions go to{' '}
-              <a href={`mailto:${LEGAL.contactEmail}`} className="text-accent-ink underline-offset-4 hover:underline">
-                {LEGAL.contactEmail}
-              </a>
+              <A href={`mailto:${LEGAL.contactEmail}`}>{LEGAL.contactEmail}</A>
               .
             </>,
           ]}

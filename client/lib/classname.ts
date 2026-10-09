@@ -12,7 +12,7 @@ const twMerge = extendTailwindMerge({
     theme: {
       text: ['ui', '18', '26', '34', '38', '48', '68'],
       radius: ['field', 'card', 'panel'],
-      shadow: ['cta'],
+      shadow: ['cta', 'cta-hover'],
     },
   },
 });

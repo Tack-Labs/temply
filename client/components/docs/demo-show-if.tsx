@@ -18,6 +18,8 @@
  * showreel and the showcase visuals: a mail client paints the canvas white in
  * both themes, so what sits on it cannot follow the app's own tokens.
  */
+import { docsPanelRows } from '~/components/docs/panel';
+import { cn } from '~/lib/classname';
 
 /* An inline <style> rather than globals.css on purpose: these keyframes belong
    to this one figure, and their `docs-showif-` prefix makes them collision-proof. */
@@ -32,7 +34,7 @@ const ANIMATION_CSS = `
   position: relative;
   max-width: 320px;
   margin-inline: auto;
-  border-radius: 10px;
+  border-radius: 12px;
   background-color: var(--ds-canvas);
   box-shadow: var(--ds-shadow-canvas);
   padding: 20px;
@@ -49,7 +51,7 @@ const ANIMATION_CSS = `
 
 .docs-showif-block {
   height: 100%;
-  border-radius: 7px;
+  border-radius: 10px;
   background-color: var(--ds-canvas-accent-wash);
   padding: 10px 12px;
   transform-origin: 50% 0%;
@@ -121,7 +123,7 @@ export function DemoShowIf() {
     <figure className="mt-8 max-w-xl">
       <style>{ANIMATION_CSS}</style>
 
-      <div className="overflow-hidden rounded-lg border border-line bg-raised">
+      <div className={cn(docsPanelRows, 'overflow-hidden')}>
         {/* The data the render is given, above the email it produces. */}
         <div
           className="flex items-center gap-2 border-b border-line px-4 py-2.5"
@@ -140,7 +142,7 @@ export function DemoShowIf() {
               </svg>
             </span>
           </span>
-          <span className="font-mono text-xs text-muted">isMember</span>
+          <span className="font-mono text-sm text-muted">isMember</span>
         </div>
 
         <div className="docs-showif-stage bg-sunken" aria-hidden>
@@ -161,9 +163,9 @@ export function DemoShowIf() {
         </div>
       </div>
 
-      <figcaption className="mt-3 text-sm text-muted">
+      <figcaption className="mt-4 text-base text-muted">
         The same template, rendered twice: with{' '}
-        <span className="font-mono text-xs text-ink">isMember</span> true the
+        <span className="font-mono text-sm text-ink">isMember</span> true the
         members-only block is in the email, and without it the block is dropped
         and everything else stays put.
       </figcaption>

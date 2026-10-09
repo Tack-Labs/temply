@@ -98,7 +98,7 @@ export function AltTextInput({
         align="end"
         side="top"
         sideOffset={8}
-        className="mly:w-64 mly:rounded-lg mly:border mly:border-gray-300 mly:bg-panel mly:p-2.5 mly:shadow-sm"
+        className="mly:w-64 mly:rounded-xl mly:bg-panel mly:p-3 mly:shadow-lg"
         onCloseAutoFocus={(e) => e.preventDefault()}
       >
         <form

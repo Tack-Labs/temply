@@ -58,22 +58,33 @@ export async function openMore(page: Page): Promise<void> {
 
 /**
  * The staging and sign-off controls, as a scope to look inside. On desktop they
- * are the card above the editor, so the scope is the page. On the phone they
- * are the "Staging and sign-off" sheet behind the ⋯ menu, opened here and left
- * open; `closeWorkflow` puts it away before the editor is used again.
+ * are the "Staging & sign-off" popover in the header, opened here and left
+ * open; the copy it switches to is shown on the page under it, so the scope is
+ * the page. On the phone they are the "Staging and sign-off" sheet behind the ⋯
+ * menu, opened here and left open, and the scope is the sheet. Either is left
+ * alone if it is already up; `closeWorkflow` puts it away before the editor is
+ * used again.
  */
 export async function openWorkflow(page: Page): Promise<Locator> {
-  if (!onPhone()) return page.locator('body');
-  await openMore(page);
-  await page.getByRole('menuitem', { name: /^Staging and sign-off/ }).click();
-  const sheet = page.getByRole('dialog', { name: 'Staging and sign-off' });
-  await expect(sheet).toBeVisible();
-  return sheet;
+  const panel = page.getByRole('dialog', { name: 'Staging and sign-off' });
+  if (!onPhone()) {
+    if (!(await panel.isVisible())) await page.getByRole('button', { name: 'Staging & sign-off' }).click();
+    await expect(panel).toBeVisible();
+    return page.locator('body');
+  }
+  if (!(await panel.isVisible())) {
+    await openMore(page);
+    await page.getByRole('menuitem', { name: /^Staging and sign-off/ }).click();
+  }
+  await expect(panel).toBeVisible();
+  return panel;
 }
 
-/** Closes the sheet `openWorkflow` opened; a no-op on desktop. */
+/** Closes what `openWorkflow` opened: the phone's sheet by its button, the desktop's popover with Escape. */
 export async function closeWorkflow(page: Page): Promise<void> {
-  if (onPhone()) await page.getByRole('dialog', { name: 'Staging and sign-off' }).getByRole('button', { name: 'Close' }).click();
+  const panel = page.getByRole('dialog', { name: 'Staging and sign-off' });
+  if (onPhone()) await panel.getByRole('button', { name: 'Close' }).click();
+  else if (await panel.isVisible()) await page.keyboard.press('Escape');
 }
 
 /**

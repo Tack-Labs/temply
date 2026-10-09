@@ -12,6 +12,7 @@ import { copyOf } from '~/lib/template-stage';
 import { httpPost } from '~/lib/http';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
+import { Label } from './ui/label';
 import { Reveal } from './ui/surfaces';
 import { hasPreviewKeys, initialPreviewData, PreviewDataPanel, toPayload } from './preview-data-panel';
 
@@ -42,11 +43,11 @@ export function StagedTestSend({ template }: { template: WorkflowTemplate }) {
       <Button variant="secondary" size="sm" aria-expanded={open} onClick={() => setOpen((value) => !value)}><SendIcon />Send a test</Button>
       <Reveal open={open}>
         <form className="space-y-3 pt-3" onSubmit={(event) => { event.preventDefault(); mutation.mutate(); }}>
-          <p className="text-xs text-muted">Send this staged copy to check it in your inbox. Sample values apply only to this test.</p>
-          <label className="block space-y-1.5 text-xs font-medium text-ink">Test recipients<Input value={to} onChange={(event) => setTo(event.target.value)} required placeholder="you@example.com" disabled={mutation.isPending} /></label>
+          <p className="text-sm text-muted">Send this staged copy to check it in your inbox. Sample values apply only to this test.</p>
+          <Label className="space-y-2 leading-normal">Test recipients<Input value={to} onChange={(event) => setTo(event.target.value)} required placeholder="you@example.com" disabled={mutation.isPending} className="font-normal" /></Label>
           {keys ? <PreviewDataPanel keys={keys} data={data} onChange={setData} /> : null}
-          {errors.length > 0 ? <p className="text-xs text-danger-ink">Fix the errors in this staged copy before sending a test.</p> : null}
-          {mutation.isError ? <p role="alert" className="text-xs text-danger-ink">{mutation.error.message || 'Could not send this test.'}</p> : null}
+          {errors.length > 0 ? <p className="text-sm text-danger-ink">Fix the errors in this staged copy before sending a test.</p> : null}
+          {mutation.isError ? <p role="alert" className="text-sm text-danger-ink">{mutation.error.message || 'Could not send this test.'}</p> : null}
           <Button type="submit" size="sm" disabled={!candidate || !to.trim() || errors.length > 0 || mutation.isPending} aria-busy={mutation.isPending}>
             {mutation.isPending ? <Loader2Icon className="animate-spin motion-reduce:animate-none" /> : <SendIcon />}Send staged test
           </Button>

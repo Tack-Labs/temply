@@ -45,23 +45,24 @@ export function EditorViewSwitch({ model }: { model: TemplateEditorModel }) {
               {hasPreviewData && (
                 <Popover>
                   <PopoverTrigger asChild>
-                    <Button variant="ghost" size="icon-sm" aria-label="Preview data" title="Preview data">
+                    <Button variant="ghost" size="icon" className="size-10 [&_svg]:size-5" aria-label="Preview data" title="Preview data">
                       <SlidersHorizontalIcon />
                     </Button>
                   </PopoverTrigger>
-                  <PopoverContent align="end" className="w-80 p-3">
+                  <PopoverContent align="end" className="p-4">
                     <PreviewDataPanel keys={previewKeys} data={previewData} onChange={setPreviewData} />
                   </PopoverContent>
                 </Popover>
               )}
               <Button
                 variant="ghost"
-                size="icon-sm"
+                size="icon"
                 aria-label="Preview as a client that forces dark mode"
                 aria-pressed={forceDark}
                 title="Forced dark"
                 onClick={() => setForceDark((current) => !current)}
-                className={cn(forceDark && 'bg-accent-wash text-accent-ink hover:bg-accent-wash hover:text-accent-ink')}
+                // 40px, the height of the view switch's pills beside it.
+                className={cn('size-10 [&_svg]:size-5', forceDark && 'bg-accent-wash text-accent-ink hover:bg-accent-wash hover:text-accent-ink')}
               >
                 <MoonIcon />
               </Button>

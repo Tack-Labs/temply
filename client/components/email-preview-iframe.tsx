@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { MailOpenIcon } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '~/lib/classname';
@@ -10,6 +10,15 @@ type EmailPreviewIFrameProps = {
   wrapperClassName?: string;
   /** Render the email the way a client that forces dark mode would. */
   forceDark?: boolean;
+  /**
+   * Size the frame to the email, so the page scrolls and the frame never
+   * does: for the editor's Preview, where a second scrollbar inside the
+   * email's card read as a fault. The frame keeps `allow-same-origin` and no
+   * `allow-scripts`, which is what lets the app measure the document while
+   * leaving it unable to run anything; the two together are the pairing
+   * that would undo the sandbox, and that is never granted.
+   */
+  autoHeight?: boolean;
 } & React.HTMLProps<HTMLIFrameElement>;
 
 /**
@@ -66,10 +75,63 @@ export function EmailPreviewIFrame(props: EmailPreviewIFrameProps) {
     showOpenInNewTab = true,
     wrapperClassName,
     forceDark = false,
+    autoHeight = false,
+    style,
     ...defaultProps
   } = props;
 
   const document = useMemo(() => emailDocument(innerHTML, forceDark), [innerHTML, forceDark]);
+
+  // The email's own height, read from the frame once it has loaded and again
+  // as it settles: images arriving and fonts swapping both move it after the
+  // load event. An email's body is often pinned to the frame's height, so
+  // the observer watches the tables inside it too, and the tallest of the
+  // document's measures is taken, since which one the email's markup grows
+  // depends on how it is built.
+  const frameRef = useRef<HTMLIFrameElement>(null);
+  const [height, setHeight] = useState<number>();
+  useEffect(() => {
+    if (!autoHeight) return;
+    const frame = frameRef.current;
+    if (!frame) return;
+    let observer: ResizeObserver | undefined;
+    const timers: ReturnType<typeof setTimeout>[] = [];
+    const measure = () => {
+      const doc = frame.contentDocument;
+      const root = doc?.documentElement;
+      if (!root) return;
+      const body = doc.body;
+      setHeight(Math.ceil(Math.max(root.scrollHeight, root.offsetHeight, body?.scrollHeight ?? 0, body?.offsetHeight ?? 0)));
+    };
+    const watch = () => {
+      measure();
+      observer?.disconnect();
+      for (const timer of timers) clearTimeout(timer);
+      timers.length = 0;
+      const doc = frame.contentDocument;
+      if (!doc) return;
+      if (typeof ResizeObserver !== 'undefined') {
+        observer = new ResizeObserver(measure);
+        observer.observe(doc.documentElement);
+        if (doc.body) {
+          observer.observe(doc.body);
+          for (const child of doc.body.children) observer.observe(child);
+        }
+      }
+      // A font that swaps in late moves text without resizing any box the
+      // observer watches, so the height is read again on a short tail.
+      for (const delay of [250, 1000, 2500]) timers.push(setTimeout(measure, delay));
+      doc.addEventListener('load', measure, true);
+    };
+    frame.addEventListener('load', watch);
+    if (frame.contentDocument?.readyState === 'complete') watch();
+    return () => {
+      frame.removeEventListener('load', watch);
+      frame.contentDocument?.removeEventListener('load', measure, true);
+      observer?.disconnect();
+      for (const timer of timers) clearTimeout(timer);
+    };
+  }, [autoHeight, document]);
 
   // The new tab is the app's own page around a frame on the same terms as
   // the one below — a popup written the email directly would be back on the
@@ -101,11 +163,21 @@ export function EmailPreviewIFrame(props: EmailPreviewIFrameProps) {
 
   return (
     <div className={cn('relative', wrapperClassName)}>
-      <iframe title="Email preview" {...defaultProps} sandbox="" srcDoc={document} />
+      <iframe
+        ref={frameRef}
+        title="Email preview"
+        {...defaultProps}
+        sandbox={autoHeight ? 'allow-same-origin' : ''}
+        // The frame never scrolls when it is sized to the email; the
+        // attribute is the one way to say so to a document CSS cannot reach.
+        scrolling={autoHeight ? 'no' : undefined}
+        style={autoHeight && height !== undefined ? { ...style, height } : style}
+        srcDoc={document}
+      />
 
       {/* The button is the compact size: 32px, and 44px on a coarse
           pointer, where it covers 12px more of the frame's corner. The frame
-          scrolls, so nothing beneath it is out of reach. */}
+          scrolls, or the page does, so nothing beneath it is out of reach. */}
       {showOpenInNewTab ? (
         <Button
           className="absolute right-0 bottom-0 gap-1.5 rounded-none rounded-tl-md border-t border-l border-line text-sm font-normal"

@@ -35,7 +35,7 @@ export function DownloadButton({ content, filename, mimeType, label }: { content
     setTimeout(() => URL.revokeObjectURL(url), 1000);
   };
   return (
-    <Button variant="ghost" size="icon-sm" aria-label={label} title={label} onClick={download} disabled={!content}>
+    <Button variant="ghost" size="icon" className="size-10 [&_svg]:size-5" aria-label={label} title={label} onClick={download} disabled={!content}>
       <DownloadIcon />
     </Button>
   );
@@ -53,13 +53,13 @@ export function CopyHtmlButton({ html, label = 'Copy HTML' }: { html: string; la
   return (
     <Button
       variant="ghost"
-      size="icon-sm"
+      size="icon"
       aria-label={copied ? 'Copied' : label}
       title={copied ? 'Copied' : label}
       onClick={async () => {
         if (!(await copy(html))) toast.error('Could not copy. This browser blocks clipboard access.');
       }}
-      className={cn(copied && 'text-accent-ink hover:text-accent-ink')}
+      className={cn('size-10 [&_svg]:size-5', copied && 'text-accent-ink hover:text-accent-ink')}
     >
       {copied ? <CheckIcon /> : <CopyIcon />}
     </Button>

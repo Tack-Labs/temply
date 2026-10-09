@@ -73,7 +73,9 @@ export function PreflightPanel({
     >
       <div className="overflow-hidden">
         <div className="border-b border-line p-3">
-          <div className="item-motion overflow-hidden rounded-lg border border-line bg-raised shadow-sm">
+          {/* A step inside the email's own corner, which the 12px around it
+              leaves at 16. */}
+          <div className="item-motion overflow-hidden rounded-xl border border-line bg-raised shadow-sm">
             {/* The header is the disclosure's whole target, so it answers the
                 pointer the way a Row does: a tint, a press, an inset ring.
                 Where it toggles nothing it is a plain row instead — the
@@ -82,7 +84,7 @@ export function PreflightPanel({
               {...(collapsible ? { type: 'button' as const, 'aria-expanded': expanded, onClick: onToggle } : {})}
               className={
                 collapsible
-                  ? 'flex w-full cursor-pointer items-center justify-between gap-3 px-3.5 py-2.5 text-left transition-colors hover:bg-hover active:bg-active focus-visible:-outline-offset-2 motion-reduce:transition-none'
+                  ? 'flex w-full cursor-pointer items-center justify-between gap-3 px-3.5 py-2.5 text-left transition-colors duration-fast ease-out hover:bg-hover active:bg-active focus-visible:-outline-offset-2 motion-reduce:transition-none'
                   : 'flex w-full items-center justify-between gap-3 px-3.5 py-2.5 text-left'
               }
             >
@@ -109,7 +111,7 @@ export function PreflightPanel({
               </span>
               <span className="flex shrink-0 items-center gap-3">
                 {kb != null && (
-                  <span className="text-2xs text-muted tabular-nums">~{kb} KB</span>
+                  <span className="text-xs text-muted tabular-nums">~{kb} KB</span>
                 )}
                 {collapsible ? (
                   <ChevronDownIcon
@@ -161,7 +163,7 @@ export function PreflightPanel({
                             <button
                               type="button"
                               onClick={() => onSelect(pos)}
-                              className="flex min-h-11 w-full items-baseline gap-3 px-3.5 py-2 text-left transition-colors hover:bg-hover active:bg-active focus-visible:-outline-offset-2 motion-reduce:transition-none"
+                              className="flex min-h-11 w-full items-baseline gap-3 px-3.5 py-2 text-left transition-colors duration-fast ease-out hover:bg-hover active:bg-active focus-visible:-outline-offset-2 motion-reduce:transition-none"
                             >
                               {label}
                             </button>
@@ -178,7 +180,7 @@ export function PreflightPanel({
 
                   {bytes != null && kb != null && (
                     <div className="border-t border-line px-3.5 py-2.5">
-                      <div className="flex items-baseline justify-between gap-3 text-2xs text-muted">
+                      <div className="flex items-baseline justify-between gap-3 text-xs text-muted">
                         <span>Email size</span>
                         <span className="tabular-nums">
                           ~{kb} KB of {limitKb} KB before Gmail clips

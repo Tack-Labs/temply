@@ -172,6 +172,9 @@
   --ds-shadow-lg: 0 16px 40px rgb(60 40 140 / 0.16);
   --ds-shadow-xl: 0 24px 56px rgb(60 40 140 / 0.2), 0 8px 16px rgb(60 40 140 / 0.08);
   --ds-shadow-cta: 0 8px 20px rgb(91 69 224 / 0.28);
+  /* The same glow, lifted: wider and softer under the pointer, so the button
+     reads as rising toward the hand rather than changing colour alone. */
+  --ds-shadow-cta-hover: 0 16px 36px rgb(91 69 224 / 0.18), 0 4px 10px rgb(91 69 224 / 0.05);
 
   --ds-shadow-canvas: 0 1px 2px rgb(11 18 32 / 0.04), 0 8px 24px rgb(11 18 32 / 0.06);
 
@@ -251,6 +254,7 @@
   --ds-shadow-lg: 0 12px 32px rgb(2 6 16 / 0.6), 0 4px 8px rgb(2 6 16 / 0.45);
   --ds-shadow-xl: 0 24px 48px rgb(2 6 16 / 0.7), 0 8px 16px rgb(2 6 16 / 0.5);
   --ds-shadow-cta: 0 6px 16px rgb(2 6 16 / 0.5);
+  --ds-shadow-cta-hover: 0 14px 32px rgb(2 6 16 / 0.4), 0 4px 10px rgb(91 69 224 / 0.12);
 
   --ds-shadow-canvas: 0 1px 2px rgb(2 6 16 / 0.4), 0 8px 32px rgb(2 6 16 / 0.45);
   color-scheme: dark;
@@ -361,6 +365,7 @@
   --shadow-lg: var(--ds-shadow-lg);
   --shadow-xl: var(--ds-shadow-xl);
   --shadow-cta: var(--ds-shadow-cta);
+  --shadow-cta-hover: var(--ds-shadow-cta-hover);
 
   /* Tailwind's own ease-out / ease-in are replaced, not extended, so every
      existing `ease-out` class already moves on the token; a bare
@@ -935,7 +940,16 @@ html {
    10px left of the icons under it. Less the 1.5px border, 12.5px lands it on
    theirs. The height and radius are a nav row's, which is already the 44px
    target for every pointer. */
+/* The whole column, with the chevron at the far end: Clerk sizes its root
+   box and the trigger to their content, and the `w-full` handed to either
+   loses to Clerk's own stylesheet. */
+.cl-organizationSwitcher-root {
+  display: flex;
+  width: 100%;
+}
 .cl-organizationSwitcherTrigger {
+  width: 100%;
+  justify-content: space-between;
   padding-inline: calc(var(--spacing) * 3.5 - 1.5px);
   min-height: calc(var(--spacing) * 11);
   border: 1.5px solid var(--ds-line);
@@ -966,6 +980,22 @@ html {
 .cl-organizationSwitcherTrigger .cl-organizationPreview {
   gap: calc(var(--spacing) * 3);
 }
+/* The workspace's mark at 28px: a step above the nav icons' 20px, and 8px
+   clear of the 44px row's top and bottom, where 32px pressed against the
+   border. Its name is at the nav rows' size and weight, so the switcher
+   reads as the first row of the column and not as a widget from another
+   kit. */
+.cl-organizationSwitcherTrigger .cl-organizationPreviewAvatarBox,
+.cl-organizationSwitcherTrigger .cl-avatarBox {
+  width: calc(var(--spacing) * 7);
+  height: calc(var(--spacing) * 7);
+  border-radius: var(--radius-sm);
+}
+.cl-organizationSwitcherTrigger .cl-organizationPreviewMainIdentifier {
+  font-size: var(--text-ui);
+  line-height: var(--text-ui--line-height);
+  font-weight: 600;
+}
 
 /* ---------------------------------------------------------------------------
    Toasts
@@ -983,7 +1013,8 @@ html [data-sonner-toaster][data-sonner-theme] {
   --normal-border: var(--ds-line);
   --normal-border-hover: var(--ds-line-strong);
   --normal-text: var(--ds-ink);
-  --border-radius: var(--radius-md);
+  /* The popover's corner: a toast is one more anchored panel. */
+  --border-radius: var(--radius-xl);
 }
 html [data-sonner-toast][data-styled] {
   /* A menu's rung: it floats over the page without a scrim. */

@@ -5,7 +5,7 @@ import { TemplateFrame } from '~/components/template-frame';
 import { RefreshErrorState } from '~/components/dashboard/refresh-error-state';
 import { serverFetch } from '~/lib/server-fetch';
 
-export const metadata = { title: 'Sign-off | Temply', robots: 'noindex' };
+export const metadata = { title: 'Sign-off', robots: 'noindex' };
 
 export default async function ReviewPage({ params }: { params: Promise<{ id: string }> }) {
   const { userId, orgRole } = await auth();

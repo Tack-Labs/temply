@@ -47,7 +47,7 @@ export function PageLoading({
           ))}
         </g>
       </svg>
-      <span className="text-xs text-muted">{label}</span>
+      <span className="text-sm text-muted">{label}</span>
     </div>
   );
 }

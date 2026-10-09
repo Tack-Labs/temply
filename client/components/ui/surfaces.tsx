@@ -69,7 +69,10 @@ export function PageHeader({
  * An empty screen is an invitation to act, so the action is part of the state
  * rather than something the page has to remember to put nearby. It and
  * ErrorState take Card's radius because they stand where a Card would, and
- * a page that swaps one for the other should not change its corners.
+ * a page that swaps one for the other should not change its corners. The
+ * icon sits in the same tile the next-step banner draws, the title is the
+ * rail's heading and the copy the UI size, so an empty page reads as a page
+ * and not as a caption in a box.
  */
 export function EmptyState({
   icon: Icon,
@@ -83,11 +86,13 @@ export function EmptyState({
   action?: React.ReactNode;
 }) {
   return (
-    <div className="flex flex-col items-center justify-center rounded-card border border-dashed border-line px-6 py-14 text-center">
-      <Icon className="size-5 text-muted" />
-      <p className="mt-3 text-base font-medium text-ink">{title}</p>
-      <p className="mt-1 max-w-sm text-sm text-muted">{description}</p>
-      {action ? <div className="mt-4">{action}</div> : null}
+    <div className="flex flex-col items-center justify-center rounded-card border-[1.5px] border-dashed border-line-strong px-6 py-16 text-center">
+      <span aria-hidden="true" className="grid size-14 place-items-center rounded-2xl bg-accent-wash text-accent-ink">
+        <Icon className="size-6" />
+      </span>
+      <p className="mt-5 font-display text-xl font-bold tracking-display text-ink">{title}</p>
+      <p className="mt-1.5 max-w-md text-ui text-muted">{description}</p>
+      {action ? <div className="mt-6">{action}</div> : null}
     </div>
   );
 }
@@ -108,11 +113,11 @@ export function ErrorState({
   onRetry?: () => void;
 }) {
   return (
-    <div className="flex flex-col items-center justify-center rounded-card border border-line bg-danger-wash px-6 py-14 text-center">
-      <p className="text-base font-medium text-danger-ink">{title}</p>
-      <p className="mt-1 max-w-sm text-sm text-muted">{description}</p>
+    <div className="flex flex-col items-center justify-center rounded-card bg-danger-wash px-6 py-16 text-center">
+      <p className="font-display text-xl font-bold tracking-display text-danger-ink">{title}</p>
+      <p className="mt-1.5 max-w-md text-ui text-muted">{description}</p>
       {onRetry ? (
-        <Button onClick={onRetry} className="mt-4">
+        <Button onClick={onRetry} className="mt-6">
           Try again
         </Button>
       ) : null}
@@ -195,6 +200,10 @@ export function Badge({
  * Collapsed, it is inert as well as hidden, so neither the tab order nor a
  * screen reader lands on something that isn't there. Spacing belongs inside
  * the children: a margin on the wrapper would stay behind when it closes.
+ *
+ * The clip reaches 8px past the box, so a Card inside keeps its shadow at
+ * the edges the content touches instead of being cut to a flat outline;
+ * closed, the 8px that would show is at opacity 0 with the rest.
  */
 export function Reveal({
   open,
@@ -213,7 +222,7 @@ export function Reveal({
         className,
       )}
     >
-      <div className="min-h-0 overflow-hidden" aria-hidden={!open} inert={!open}>
+      <div className="min-h-0 overflow-clip [overflow-clip-margin:0.5rem]" aria-hidden={!open} inert={!open}>
         {children}
       </div>
     </div>

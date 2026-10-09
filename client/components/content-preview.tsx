@@ -38,7 +38,7 @@ export function ContentPreview({
       className={cn('flex flex-col gap-3 bg-sunken p-3.5', className)}
       style={{ minHeight: minHeight ? `${minHeight}px` : undefined }}
     >
-      <div className="flex items-start gap-3 rounded-lg border border-line bg-raised p-3">
+      <div className="flex items-start gap-3 rounded-xl border border-line bg-raised p-3">
         <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-hover text-sm font-medium text-muted">
           {senderInitial}
         </div>
@@ -52,13 +52,15 @@ export function ContentPreview({
         </div>
       </div>
 
-      <div className="relative flex w-full flex-1 overflow-hidden rounded-lg border border-line bg-canvas">
-
+      {/* The frame grows with the email and the page scrolls, so the card
+          has one scrollbar, the frame's own, and not a second inside it. */}
+      <div className="relative flex w-full flex-1 overflow-hidden rounded-xl border border-line bg-canvas">
         <EmailPreviewIFrame
           wrapperClassName="w-full"
-          className="h-full w-full grow"
+          className="block w-full"
           innerHTML={html}
           forceDark={forceDark}
+          autoHeight
         />
         {isPending && (
           <div className="absolute inset-0 flex items-center justify-center bg-canvas/60">

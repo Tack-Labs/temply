@@ -36,7 +36,9 @@ export default function SettingsLayout({ children }: { children: React.ReactNode
         description={isAdmin ? 'Your account, team, plan and API access.' : 'Your account and your team.'}
       />
 
-      <nav className="flex gap-5 border-b border-line" aria-label="Settings">
+      {/* The same tab row as a template's sections: a bold tab on a 3px
+          violet underline, over a 1.5px rule. */}
+      <nav className="-mx-2 flex max-w-full gap-1.5 overflow-x-auto border-b-[1.5px] border-line px-2" aria-label="Settings">
         {tabs.map((tab) => {
           // Clerk routes its own pages as sub-paths of the tab that embeds
           // it — Members and Invitations under Team, Security under Account
@@ -56,18 +58,18 @@ export default function SettingsLayout({ children }: { children: React.ReactNode
               href={tab.href}
               aria-current={isActive ? 'page' : undefined}
               className={cn(
-                // The active line is a pseudo-element, not a bottom border:
-                // a border follows the tab's corners and the press scale, and
-                // it sat a pixel above the rail. This one is square and lies
-                // on the rail itself.
-                'relative flex h-9 items-center px-1 text-sm',
+                'relative inline-flex h-12 shrink-0 items-center rounded-field px-3.5 text-lg',
                 pressable,
-                isActive
-                  ? 'font-medium text-ink after:absolute after:inset-x-0 after:-bottom-px after:h-0.5 after:bg-accent'
-                  : 'text-muted hover:text-ink',
+                isActive ? 'font-bold text-ink' : 'font-semibold text-muted hover:text-ink',
               )}
             >
               {tab.label}
+              {isActive ? (
+                <span
+                  aria-hidden="true"
+                  className="fade-in-mount absolute inset-x-3.5 bottom-0 h-[3px] rounded-t-[3px] bg-accent motion-reduce:transition-none"
+                />
+              ) : null}
             </Link>
           );
         })}

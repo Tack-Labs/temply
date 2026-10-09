@@ -1,6 +1,6 @@
 import { JsonLd } from '~/components/json-ld';
 import { publicPageMetadata, publicPageSchema } from '~/lib/seo';
-import { LegalPage, List, P, Section, Strong } from '~/components/legal/legal-page';
+import { A, LegalPage, List, P, Section, Strong } from '~/components/legal/legal-page';
 import { LEGAL, PROCESSORS } from '~/lib/legal';
 
 export const metadata = publicPageMetadata('/privacy');
@@ -17,9 +17,7 @@ export default function PrivacyPage() {
         <P>
           {LEGAL.operator} runs {LEGAL.product} and is the controller of the personal data described here. Reach us
           at{' '}
-          <a href={`mailto:${LEGAL.contactEmail}`} className="text-accent-ink underline-offset-4 hover:underline">
-            {LEGAL.contactEmail}
-          </a>
+          <A href={`mailto:${LEGAL.contactEmail}`}>{LEGAL.contactEmail}</A>
           .
         </P>
       </Section>
@@ -84,9 +82,7 @@ export default function PrivacyPage() {
         <List
           items={PROCESSORS.map((p) => (
             <>
-              <a href={p.site} className="text-accent-ink underline-offset-4 hover:underline" rel="noreferrer">
-                {p.name}
-              </a>: {p.purpose}.
+              <A href={p.site} rel="noreferrer">{p.name}</A>: {p.purpose}.
             </>
           ))}
         />

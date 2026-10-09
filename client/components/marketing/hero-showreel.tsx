@@ -174,7 +174,7 @@ const ANIMATION_CSS = `
   position: relative;
   width: 100%;
   height: calc(var(--h-img) - 16px);
-  border-radius: 8px;
+  border-radius: 12px;
   overflow: hidden;
   background-color: var(--ds-canvas-well);
 }
@@ -220,7 +220,7 @@ const ANIMATION_CSS = `
 .reel-btn-shadow {
   position: absolute;
   inset: 0;
-  border-radius: 8px;
+  border-radius: 12px;
   box-shadow: 0 14px 26px color-mix(in srgb, var(--canvas-ink) 22%, transparent), 0 3px 8px color-mix(in srgb, var(--canvas-ink) 12%, transparent);
   opacity: 0;
 }
@@ -231,7 +231,7 @@ const ANIMATION_CSS = `
   align-items: center;
   height: 40px;
   padding: 0 22px;
-  border-radius: 8px;
+  border-radius: 12px;
   background-color: var(--brand);
   color: var(--ds-canvas-on-accent);
   font-size: 14px;
@@ -248,7 +248,7 @@ const ANIMATION_CSS = `
   gap: 6px;
   height: 24px;
   padding: 0 9px;
-  border-radius: 6px;
+  border-radius: 8px;
   background-color: var(--ds-raised);
   box-shadow: var(--ds-shadow-md), 0 0 0 1px var(--ds-line);
   font-size: 11px;

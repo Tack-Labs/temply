@@ -21,6 +21,8 @@
  */
 
 import { BRAND_PRESETS } from '@temply/shared/brand-presets';
+import { docsPanelRows } from '~/components/docs/panel';
+import { cn } from '~/lib/classname';
 
 /** The mock card is about 45% of a real 600px email, so the preset paddings are
  *  scaled to match. The radius is not scaled — a 10px corner reads as a 10px
@@ -45,7 +47,7 @@ function look(id: string, name: string) {
     button: theme?.button?.backgroundColor ?? 'var(--ds-canvas-ink)',
     buttonInk: theme?.button?.color ?? 'var(--ds-canvas-on-accent)',
     link: theme?.link?.color ?? 'var(--ds-canvas-accent-ink)',
-    radius: theme?.container?.borderRadius ?? '6px',
+    radius: theme?.container?.borderRadius ?? '12px',
     cardPad: px(theme?.container?.paddingTop, 40),
     pagePad: px(theme?.body?.paddingTop, 50),
   };
@@ -147,7 +149,7 @@ export function DemoBrands() {
     <figure className="mt-8 max-w-xl">
       <style>{ANIMATION_CSS}</style>
 
-      <div className="overflow-hidden rounded-lg border border-line bg-raised">
+      <div className={cn(docsPanelRows, 'overflow-hidden')}>
         {/* Decoration: the figcaption below carries the point for anyone not
             looking at it. */}
         <div className="docs-brand-stage" aria-hidden>
@@ -194,7 +196,7 @@ export function DemoBrands() {
           {LOOKS.map((brand, i) => (
             <span
               key={brand.id}
-              className={`docs-brand-name ${LAYER_CLASS[i]} py-2.5 font-mono text-xs text-muted`}
+              className={`docs-brand-name ${LAYER_CLASS[i]} py-2.5 font-mono text-sm text-muted`}
             >
               {brand.name}
             </span>
@@ -202,7 +204,7 @@ export function DemoBrands() {
         </div>
       </div>
 
-      <figcaption className="mt-3 text-sm text-muted">
+      <figcaption className="mt-4 text-base text-muted">
         One email with three presets: Classic, Warm, and Slate. The
         content never changes; the page and card colours, the button and link
         colour, the corner radius and the padding do. Applying a brand copies

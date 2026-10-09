@@ -66,10 +66,10 @@ describe('Sidebar', () => {
     }
   });
 
-  it('draws the brand as the 35px lockup, 8px in from the column, in a 44px row', () => {
+  it('draws the brand as the 30px lockup, 14px in from the column on the nav icons\' line, in a 44px row', () => {
     const brand = render(<Sidebar />).getByRole('link', { name: 'Temply' });
     expect(brand.getAttribute('href')).toBe('/dashboard');
-    for (const needed of ['h-11', 'px-2', 'items-center']) expect(brand.className).toContain(needed);
+    for (const needed of ['h-11', 'px-3.5', 'items-center']) expect(brand.className).toContain(needed);
     // The wordmark is the pack's image, not text in a face of the app's.
     expect(brand.className).not.toContain('font-display');
     expect(brand.textContent).toBe('');
@@ -78,7 +78,7 @@ describe('Sidebar', () => {
       '/brand/temply-logo-horizontal.svg',
       '/brand/temply-logo-horizontal-on-dark.svg',
     ]);
-    for (const image of [light, dark]) expect(image?.className).toContain('h-8.75');
+    for (const image of [light, dark]) expect(image?.className).toContain('h-7.5');
     expect(brand.querySelector('svg')).toBeNull();
   });
 

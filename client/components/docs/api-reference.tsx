@@ -16,17 +16,19 @@ import { FigureDataMap } from '~/components/docs/figure-data-map';
 import { FigureKeys } from '~/components/docs/figure-keys';
 import { Block, Caching, Code, H2, H3, P } from '~/components/docs/docs-content';
 import { API_ORIGIN, errorSnippets, listSnippet, metaSnippet, renderSnippets, sendSnippets, SNIPPET_LANGUAGES } from '~/lib/api-snippets';
+import { docsPanelRows } from '~/components/docs/panel';
+import { cn } from '~/lib/classname';
 
 const EXAMPLE = 'tpl_AbCd1234';
 
 /** A definition list for fields and codes: term, then what it means. */
 function Fields({ rows }: { rows: [string, string][] }) {
   return (
-    <dl className="mt-5 max-w-2xl divide-y divide-line rounded-md border border-line bg-raised">
+    <dl className={cn(docsPanelRows, 'mt-5 max-w-2xl divide-y divide-line')}>
       {rows.map(([term, meaning]) => (
-        <div key={term} className="grid gap-1 px-4 py-2.5 sm:grid-cols-[10rem_minmax(0,1fr)] sm:gap-4">
-          <dt className="font-mono text-sm text-ink">{term}</dt>
-          <dd className="text-sm text-muted">{meaning}</dd>
+        <div key={term} className="grid gap-1 px-4 py-3 sm:grid-cols-[10rem_minmax(0,1fr)] sm:gap-4">
+          <dt className="font-mono text-ui text-ink">{term}</dt>
+          <dd className="text-ui text-muted">{meaning}</dd>
         </div>
       ))}
     </dl>
@@ -41,7 +43,7 @@ const enterprise = limitsFor('enterprise');
 
 function Anchor({ href, children }: { href: string; children: ReactNode }) {
   return (
-    <a href={href} className="text-accent-ink underline-offset-4 hover:underline">
+    <a href={href} className="text-accent-ink underline-offset-4 transition-colors duration-fast ease-out hover:underline motion-reduce:transition-none">
       {children}
     </a>
   );

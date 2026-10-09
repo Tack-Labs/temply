@@ -52,15 +52,16 @@ function mount(model: TemplateEditorModel) {
 }
 
 describe('EditorActions', () => {
-  it('offers History, Share, Send a test and Publish, with the rest behind one menu', () => {
+  it('offers Send a test and Publish, with History, Share and Delete behind one menu', () => {
     const view = mount(modelWith());
-    expect(view.getByRole('button', { name: 'History' })).toBeTruthy();
-    expect(view.getByRole('button', { name: 'Share a review link' })).toBeTruthy();
     expect(view.getByRole('button', { name: 'Send a test', exact: true })).toBeTruthy();
     expect(view.getByRole('button', { name: 'Publish', exact: true })).toBeTruthy();
     const more = view.getByRole('button', { name: 'More actions' });
     expect(more.getAttribute('aria-haspopup')).toBe('menu');
-    // Delete is not on the bar: it is one slip from losing the template.
+    // The rarer actions are not on the bar: History and Share are a few
+    // clicks in a template's life, and Delete is one slip from losing it.
+    expect(view.queryByRole('button', { name: 'History' })).toBeNull();
+    expect(view.queryByRole('button', { name: 'Share a review link' })).toBeNull();
     expect(view.queryByRole('button', { name: 'Delete' })).toBeNull();
   });
 

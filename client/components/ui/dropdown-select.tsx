@@ -48,7 +48,8 @@ export function DropdownSelect({
   options: DropdownOption[];
   value: string;
   onValueChange: (value: string) => void;
-  /** `sm` fits the editor's bubble-menu chrome, `md` an app form row. */
+  /** `sm` fits the editor's bubble-menu chrome; `md` is a form field, the
+   *  same box as `Input`, so a dropdown under a text field lines up with it. */
   size?: 'sm' | 'md';
   /** `plain` drops the border and background — for toolbars, where a boxed
    *  control per option would fight the row it sits in. */
@@ -76,6 +77,9 @@ export function DropdownSelect({
   keepFocus?: boolean;
 }) {
   const selected = options.find((option) => option.value === value);
+  // The form field is already a thumb's height, so `touch` only changes the
+  // dense one; the rows below grow for either.
+  const dense = size === 'sm' && !touch;
 
   return (
     <DropdownMenu>
@@ -84,14 +88,22 @@ export function DropdownSelect({
           type="button"
           aria-label={label}
           className={cn(
-            'flex max-w-full items-center gap-1.5 rounded-sm text-ink hover:bg-hover',
-            variant === 'bordered' ? 'border border-line bg-raised' : 'bg-transparent',
-            touch ? 'h-11 px-2.5 text-sm' : size === 'sm' ? 'h-7 px-1.5 text-sm' : 'h-8 px-2.5 text-sm',
+            'flex max-w-full items-center gap-1.5 text-ink hover:bg-hover',
+            dense
+              ? 'h-7 rounded-sm px-1.5 text-sm'
+              : size === 'sm'
+                ? 'h-11 rounded-sm px-2.5 text-sm'
+                : 'h-12 rounded-field px-4 text-lg',
+            variant === 'bordered'
+              ? dense || size === 'sm'
+                ? 'border border-line bg-raised'
+                : 'border-[1.5px] border-line-strong bg-raised'
+              : 'bg-transparent',
             pressable,
             className
           )}
         >
-          {Icon && <Icon className={cn('size-3.5 shrink-0 text-faint', iconClassName)} />}
+          {Icon && <Icon className={cn('shrink-0 text-faint', dense ? 'size-3.5' : 'size-4', iconClassName)} />}
           {selected?.leading}
           <span className="flex-1 truncate text-left">
             {selected?.label ?? placeholder ?? ''}
@@ -101,20 +113,25 @@ export function DropdownSelect({
         </button>
       </DropdownMenuTrigger>
 
+      {/* The dense dropdown keeps the tighter box of the editor's chrome;
+          the form one takes the menu's own card and rows. */}
       <DropdownMenuContent
         align={align}
-        className="max-h-72 w-[var(--radix-dropdown-menu-trigger-width)] min-w-[11rem] overflow-y-auto"
+        className={cn(
+          'max-h-72 w-[var(--radix-dropdown-menu-trigger-width)] min-w-[11rem] overflow-y-auto',
+          dense && 'rounded-xl p-1.5',
+        )}
         {...(keepFocus ? KEEP_FOCUS : {})}
       >
         <DropdownMenuPrimitive.RadioGroup value={value} onValueChange={onValueChange}>
           {options.map((option) => (
             <div key={option.value}>
-              {option.separatorBefore && <div className="-mx-1 my-1 h-px bg-line" />}
+              {option.separatorBefore && <div className={cn('h-px bg-line', dense ? '-mx-1.5 my-1.5' : '-mx-2 my-2')} />}
               <DropdownMenuPrimitive.RadioItem
                 value={option.value}
                 className={cn(
-                  'flex cursor-pointer items-center gap-2 rounded-sm px-2 text-sm outline-none transition-colors',
-                  touch ? 'h-11' : 'h-8',
+                  'flex cursor-pointer items-center gap-2 outline-none transition-colors duration-fast ease-out motion-reduce:transition-none',
+                  dense ? 'h-8 rounded-md px-2.5 text-sm' : 'h-11 rounded-field px-3.5 text-ui',
                   option.value === value
                     ? 'bg-accent-wash text-accent-ink'
                     : 'text-ink hover:bg-hover focus:bg-hover'
@@ -143,6 +160,6 @@ const KEEP_FOCUS = { onOpenAutoFocus: keepFocusEvent, onCloseAutoFocus: keepFocu
 
 function Tag({ children }: { children: ReactNode }) {
   return (
-    <span className="shrink-0 rounded-xs bg-hover px-1.5 text-2xs text-muted">{children}</span>
+    <span className="shrink-0 rounded-sm bg-sunken px-1.5 text-xs text-muted">{children}</span>
   );
 }

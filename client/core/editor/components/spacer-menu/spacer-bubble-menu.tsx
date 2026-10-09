@@ -51,7 +51,7 @@ export function SpacerBubbleMenu(props: EditorBubbleMenuProps) {
         <MenuToolbar
           editor={editor}
           label="Spacer"
-          className="mly:flex mly:gap-0.5 mly:rounded-lg mly:border mly:border-gray-200 mly:bg-panel mly:p-0.5 mly:shadow-md"
+          className="mly:flex mly:gap-0.5 mly:rounded-xl mly:bg-panel mly:p-1 mly:shadow-lg"
         >
           <SpacerMenuContent editor={editor} />
         </MenuToolbar>

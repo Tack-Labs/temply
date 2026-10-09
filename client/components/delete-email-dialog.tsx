@@ -67,7 +67,7 @@ export function DeleteEmailDialog(props: DeleteEmailDialogProps) {
     <Dialog open={open} onOpenChange={onOpenChange}>
       {trigger ? <DialogTrigger asChild>{trigger}</DialogTrigger> : null}
 
-      <DialogContent className="max-w-xs p-4" onCloseAutoFocus={onCloseAutoFocus}>
+      <DialogContent className="max-w-xs p-5" onCloseAutoFocus={onCloseAutoFocus}>
         <DialogHeader>
           <DialogTitle>Are you absolutely sure?</DialogTitle>
           <DialogDescription>
@@ -88,7 +88,7 @@ export function DeleteEmailDialog(props: DeleteEmailDialogProps) {
             disabled={isDeleteTemplatePending || !templateId}
             onClick={() => deleteTemplate()}
           >
-            {isDeleteTemplatePending ? <Loader2Icon className="animate-spin" /> : null}
+            {isDeleteTemplatePending ? <Loader2Icon className="animate-spin motion-reduce:animate-none" /> : null}
             Delete
           </Button>
         </div>

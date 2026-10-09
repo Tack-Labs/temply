@@ -88,14 +88,14 @@ describe('Dialog close button', () => {
 
   it('finds the compact dialogs that override the padding, so the check above covers them', () => {
     const found = paddings();
-    expect([...found.keys()].sort((a, b) => a - b)).toEqual([16, 20]);
-    expect(found.get(16)!.length).toBeGreaterThanOrEqual(5);
+    expect([...found.keys()].sort((a, b) => a - b)).toEqual([20, 24]);
+    expect(found.get(20)!.length).toBeGreaterThanOrEqual(5);
   });
 
   // The compact dialogs have only 4px to spare here, no overlap but no more.
   it('keeps the title out from under the 28px button on a fine pointer', () => {
     const buttonLeftEdge = space(closeClasses, 'right-') + space(buttonClasses, 'size-');
-    expect(buttonLeftEdge).toBe(44);
+    expect(buttonLeftEdge).toBe(48);
     for (const padding of paddings().keys()) {
       expect(padding + space(headerClasses, 'pr-') - buttonLeftEdge).toBeGreaterThanOrEqual(4);
     }

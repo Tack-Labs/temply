@@ -16,7 +16,7 @@ export function DesktopOnlyBanner({ playground }: { playground: boolean }) {
   return (
     <div className="flex items-center gap-2 border-b border-line bg-accent-wash px-2 py-1.5">
       <MonitorIcon className="size-4 shrink-0 text-accent-ink" aria-hidden />
-      <p className="min-w-0 flex-1 text-xs text-accent-ink">
+      <p className="min-w-0 flex-1 text-sm text-accent-ink">
         {playground ? (
           'Open on a desktop to try the editor.'
         ) : (

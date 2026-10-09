@@ -3,6 +3,7 @@
 import { MinusIcon, PlusIcon } from 'lucide-react';
 import { LIST_ITEMS_DEFAULT, LIST_ITEMS_MAX, type TemplateDataKeys } from '@temply/shared/template-data';
 import { Button } from '~/components/ui/button';
+import { Input } from '~/components/ui/input';
 
 /**
  * The data a preview should render with.
@@ -75,8 +76,10 @@ export function PreviewDataPanel({
   // two columns there left each field a few characters wide.
   const variableRow = (key: string) => (
     <label key={key} className="flex items-center gap-2">
-      <span className="w-24 shrink-0 truncate font-mono text-xs text-muted">{key}</span>
-      <input
+      <span className="w-24 shrink-0 truncate font-mono text-sm text-muted">{key}</span>
+      {/* The field, a size down: this sits in a 320px popover and a sheet,
+          where the full 48px row would leave three fields on a screen. */}
+      <Input
         type="text"
         value={data.variables[key] ?? ''}
         placeholder={`{{${key}}}`}
@@ -86,7 +89,7 @@ export function PreviewDataPanel({
             variables: { ...data.variables, [key]: event.target.value },
           })
         }
-        className="h-7 min-w-0 flex-1 rounded-xs border border-line bg-raised px-2 text-sm text-ink placeholder:text-muted"
+        className="h-10 min-w-0 flex-1 px-3 text-base"
       />
     </label>
   );
@@ -98,18 +101,18 @@ export function PreviewDataPanel({
     // bordered popover reads as two panels with mismatched corners.
     <div className="space-y-3">
       <div>
-        <p className="text-sm font-medium text-ink">Preview data</p>
-        <p className="text-xs text-muted">
+        <p className="text-base font-bold text-ink">Preview data</p>
+        <p className="text-sm text-muted">
           The values your app would send. Nothing here is saved with the template.
         </p>
       </div>
 
       {keys.conditions.length > 0 && (
         <div className="space-y-1.5">
-          <p className="text-2xs font-medium tracking-wide text-muted uppercase">Conditions</p>
+          <p className="text-xs font-bold tracking-widest text-muted uppercase">Conditions</p>
           <div className="flex flex-wrap gap-x-4 gap-y-1.5">
             {keys.conditions.map((key) => (
-              <label key={key} className="flex items-center gap-1.5 text-sm text-ink">
+              <label key={key} className="flex items-center gap-2 text-base text-ink">
                 <input
                   type="checkbox"
                   checked={data.conditions[key] ?? true}
@@ -119,9 +122,9 @@ export function PreviewDataPanel({
                       conditions: { ...data.conditions, [key]: event.target.checked },
                     })
                   }
-                  className="size-3.5 accent-accent"
+                  className="size-4 accent-accent"
                 />
-                <span className="font-mono text-xs">{key}</span>
+                <span className="font-mono text-sm">{key}</span>
               </label>
             ))}
           </div>
@@ -130,7 +133,7 @@ export function PreviewDataPanel({
 
       {topLevel.length > 0 && (
         <div className="space-y-1.5">
-          <p className="text-2xs font-medium tracking-wide text-muted uppercase">Variables</p>
+          <p className="text-xs font-bold tracking-widest text-muted uppercase">Variables</p>
           <div className="grid gap-2">{topLevel.map(variableRow)}</div>
         </div>
       )}
@@ -140,7 +143,7 @@ export function PreviewDataPanel({
         return (
           <div key={list} className="space-y-1.5">
             <div className="flex items-center justify-between gap-3">
-              <p className="text-2xs font-medium tracking-wide text-muted uppercase">
+              <p className="text-xs font-bold tracking-widest text-muted uppercase">
                 Repeat over <span className="font-mono normal-case tracking-normal">{list}</span>
               </p>
               {/* A count, not a list editor: the rows share one set of sample
@@ -152,7 +155,7 @@ export function PreviewDataPanel({
                 <Button type="button" variant="ghost" size="icon-sm" touch aria-label={`Fewer ${list}`} disabled={count <= 0} onClick={() => setCount(list, count - 1)}>
                   <MinusIcon />
                 </Button>
-                <span className="min-w-14 text-center text-xs text-ink tabular-nums" aria-live="polite">
+                <span className="min-w-14 text-center text-sm text-ink tabular-nums" aria-live="polite">
                   {count === 1 ? '1 item' : `${count} items`}
                 </span>
                 <Button type="button" variant="ghost" size="icon-sm" touch aria-label={`More ${list}`} disabled={count >= LIST_ITEMS_MAX} onClick={() => setCount(list, count + 1)}>
@@ -163,7 +166,7 @@ export function PreviewDataPanel({
             {variables.length > 0 ? (
               <div className="grid gap-2">{variables.map(variableRow)}</div>
             ) : (
-              <p className="text-xs text-muted">No variables inside it yet, so every item reads the same.</p>
+              <p className="text-sm text-muted">No variables inside it yet, so every item reads the same.</p>
             )}
           </div>
         );

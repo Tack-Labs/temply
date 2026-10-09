@@ -2,7 +2,9 @@
 
 import { CheckIcon, CopyIcon } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import { Button, pressable } from '~/components/ui/button';
+import { Button } from '~/components/ui/button';
+import { SegmentedControl } from '~/components/ui/segmented-control';
+import { docsPanelRows } from '~/components/docs/panel';
 import { cn } from '~/lib/classname';
 import type { SnippetLanguage } from '~/lib/api-snippets';
 
@@ -57,37 +59,23 @@ export function CodeTabs({
   };
 
   return (
-    <div className="mt-5 max-w-2xl overflow-hidden rounded-md border border-line bg-raised">
-      <div className="flex items-center justify-between gap-2 border-b border-line px-2 py-1.5">
-        <div role="tablist" aria-label="Language" className="flex items-center gap-0.5">
-          {languages.map((entry) => {
-            const active = entry.id === language;
-            return (
-              <button
-                key={entry.id}
-                type="button"
-                role="tab"
-                aria-selected={active}
-                onClick={() => choose(entry.id)}
-                className={cn(
-                  'h-7 rounded-sm px-2 text-xs font-medium',
-                  pressable,
-                  active ? 'bg-accent-wash text-accent-ink' : 'text-muted hover:bg-hover hover:text-ink',
-                )}
-              >
-                {entry.label}
-              </button>
-            );
-          })}
-        </div>
-        <Button variant="ghost" size="sm" onClick={copy} aria-label={copied ? 'Copied' : 'Copy code'}>
+    <div className={cn(docsPanelRows, 'mt-5 max-w-2xl overflow-hidden')}>
+      <div className="flex items-center justify-between gap-2 border-b border-line px-2.5 py-2">
+        <SegmentedControl
+          size="sm"
+          label="Language"
+          value={language}
+          onValueChange={choose}
+          options={languages.map((entry) => ({ value: entry.id, label: entry.label }))}
+        />
+        <Button variant="ghost" size="compact" onClick={copy} aria-label={copied ? 'Copied' : 'Copy code'}>
           {copied ? <CheckIcon /> : <CopyIcon />}
           {copied ? 'Copied' : 'Copy'}
         </Button>
       </div>
       {/* overflow-x-auto keeps a long URL inside the block instead of widening
           the page. */}
-      <pre className="overflow-x-auto p-4 font-mono text-sm leading-relaxed text-ink">
+      <pre className="overflow-x-auto p-4 font-mono text-ui leading-relaxed text-ink">
         <code>{snippets[language]}</code>
       </pre>
     </div>

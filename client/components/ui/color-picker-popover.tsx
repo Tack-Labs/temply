@@ -17,7 +17,7 @@ export function ColorPickerPopover({
   value,
   onChange,
   swatchClassName = 'size-6',
-  hexClassName = 'text-2xs text-muted',
+  hexClassName = 'text-ui text-ink',
   touch = false,
 }: {
   id?: string;
@@ -40,20 +40,30 @@ export function ColorPickerPopover({
       <PopoverTrigger asChild>
         {/* Named here rather than left to a `<label for>`: the swatch is
             decorative and the only text inside is the hex value, so a trigger
-            that loses its label announces itself as "#FFFFFF". */}
-        <button id={id} type="button" aria-label={label} className="flex items-center gap-1.5 rounded-xs">
+            that loses its label announces itself as "#FFFFFF". It is the
+            field's box, since it sits in forms beside Input and the number
+            boxes and has to read as one of them. */}
+        <button
+          id={id}
+          type="button"
+          aria-label={label}
+          className={cn(
+            'flex h-12 w-full items-center gap-3 rounded-field border-[1.5px] border-line-strong bg-raised px-3 text-left hover:bg-hover',
+            pressable,
+          )}
+        >
           <span
             aria-hidden
-            className={`shrink-0 rounded-xs border border-line ${swatchClassName}`}
+            className={`shrink-0 rounded-lg border border-line ${swatchClassName}`}
             style={{ backgroundColor: value }}
           />
           <span className={`font-mono uppercase ${hexClassName}`}>{value}</span>
         </button>
       </PopoverTrigger>
-      {/* w-56 minus p-3 leaves exactly the 200px react-colorful renders at; the
+      {/* w-58 minus p-4 leaves exactly the 200px react-colorful renders at; the
           touch popover is widened to fit a row of five 44px targets instead,
           and stretches the picker to match. */}
-      <PopoverContent align="start" className={cn('p-3', touch ? 'w-[17rem]' : 'w-56')}>
+      <PopoverContent align="start" className={cn('p-4', touch ? 'w-[18rem]' : 'w-58')}>
         <div className="grid grid-cols-5 gap-1.5">
           {COLOR_PRESETS.map((preset) => {
             const active = value.toUpperCase() === preset;
@@ -92,8 +102,8 @@ export function ColorPickerPopover({
           onChange={(next) => onChange(next.toUpperCase())}
           aria-label={`${label} hex value`}
           className={cn(
-            'mt-3 w-full rounded-xs border border-line bg-raised px-2 font-mono text-ink uppercase',
-            touch ? 'h-11 text-sm' : 'h-7 text-xs',
+            'mt-3 w-full rounded-md border-[1.5px] border-line-strong bg-raised px-2.5 font-mono text-ink uppercase',
+            touch ? 'h-11 text-base' : 'h-8 text-sm',
           )}
         />
       </PopoverContent>

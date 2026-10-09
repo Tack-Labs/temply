@@ -127,8 +127,11 @@ export function Tile({
     <li
       aria-busy={busy || undefined}
       className={cn(
+        // At rest the tile sits on its fill and shadow like a Card, and the
+        // edge is drawn only under the pointer (`lift`); busy keeps a dashed
+        // edge, since a dashed shadow is not a thing.
         'group flex flex-col overflow-hidden rounded-card border bg-raised',
-        busy ? 'item-motion border-dashed border-line-strong' : 'border-line shadow-sm',
+        busy ? 'item-motion border-dashed border-line-strong' : 'border-transparent shadow-sm',
         interactive ? lift : 'item-motion',
         // A focused action inside the tile lights the border the way hover does.
         interactive && 'focus-within:border-line-strong',
@@ -176,11 +179,13 @@ export function Tile({
   );
 }
 
-/** The container Rows sit in: one bordered panel, rows divided by hairlines. */
+/** The container Rows sit in: one panel on its fill and shadow, like a Card,
+ *  rows divided by hairlines. The clip keeps a row's hover tint inside the
+ *  panel's corners. */
 export function List({ className, ...props }: React.HTMLAttributes<HTMLUListElement>) {
   return (
     <ul
-      className={cn('divide-y divide-line overflow-hidden rounded-card border border-line bg-raised shadow-sm', className)}
+      className={cn('divide-y divide-line overflow-hidden rounded-card border border-transparent bg-raised shadow-sm', className)}
       {...props}
     />
   );
@@ -261,6 +266,9 @@ export function Row({
       aria-busy={busy || undefined}
       className={cn(
         leaving === undefined ? 'group group/row flex items-center item-motion' : 'group group/row item-motion',
+        // A row tints under the pointer rather than rising: it is a line in a
+        // listing, not a thing of its own, and the list's corners clip the
+        // tint on its first and last rows.
         interactive && 'hover:bg-hover active:bg-active',
         selected && 'bg-accent-wash',
         busy && 'opacity-80',

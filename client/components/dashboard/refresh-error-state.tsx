@@ -55,7 +55,7 @@ export function RefreshErrorState({ title, description }: { title?: string; desc
       >
         <div className="min-h-0 overflow-hidden">
           {/* The gap is padding, not a margin on the track, so it closes with it. */}
-          <p role="status" className="pt-2 text-center text-xs text-muted">
+          <p role="status" className="pt-2 text-center text-sm text-muted">
             {outcome}
           </p>
         </div>

@@ -136,10 +136,11 @@ describe('RecentTemplates', () => {
     expect(view.container.innerHTML).not.toContain('Invalid');
   });
 
-  it('lets the pill and the time wrap rather than overflow a narrow card', () => {
+  it('stacks the pill over the time, so a narrow card never overflows and every card sets the date at the same height', () => {
     const view = setup();
     const pill = view.getByText('Published');
-    expect(pill.parentElement?.className).toContain('flex-wrap');
+    expect(pill.parentElement?.className).toContain('flex-col');
+    expect(pill.parentElement?.className).not.toContain('flex-wrap');
   });
 
   it('lifts as one card under the pointer, with the link the whole of it', () => {

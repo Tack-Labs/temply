@@ -63,14 +63,14 @@ export function NewTemplateButton({ disabled = false }: { disabled?: boolean } =
                       {starter.id === 'blank' ? (
                         <div className="flex aspect-[8/5] flex-col items-center justify-center gap-1.5 bg-sunken">
                           <FileTextIcon className="size-5 text-faint" />
-                          <span className="text-xs text-muted">An empty page</span>
+                          <span className="text-sm text-muted">An empty page</span>
                         </div>
                       ) : (
                         <StarterThumbnail starter={starter} />
                       )}
                       {busy ? (
                         <div className="absolute inset-0 flex items-center justify-center bg-raised/70">
-                          <Loader2Icon className="size-5 animate-spin text-faint" />
+                          <Loader2Icon className="size-5 animate-spin text-faint motion-reduce:animate-none" />
                         </div>
                       ) : null}
                     </div>

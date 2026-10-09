@@ -35,19 +35,19 @@ export default async function SharePage({ params }: { params: Promise<{ token: s
 
   return (
     <div className="flex min-h-screen flex-col bg-sunken">
-      <header className="flex h-12 shrink-0 items-center justify-between gap-3 border-b border-line bg-raised px-4">
-        <div className="flex min-w-0 items-center gap-2">
+      <header className="flex h-14 shrink-0 items-center justify-between gap-3 border-b-[1.5px] border-line bg-raised px-4">
+        <div className="flex min-w-0 items-center gap-2.5">
           <BrandMark className="h-6 w-auto shrink-0" />
-          <span className="truncate text-sm font-medium text-ink">{preview.title}</span>
+          <span className="truncate text-ui font-bold text-ink">{preview.title}</span>
           <Badge tone="neutral">Preview</Badge>
         </div>
-        <Link href="/" className="shrink-0 text-xs text-muted transition-colors hover:text-ink">
+        <Link href="/" className="shrink-0 text-sm text-muted transition-colors duration-fast ease-out hover:text-ink motion-reduce:transition-none">
           Made with Temply
         </Link>
       </header>
       <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col p-4 lg:p-6">
         {preview.previewText ? (
-          <p className="mb-3 text-xs text-muted">
+          <p className="mb-3 text-sm text-muted">
             Preview text: <span className="text-ink">{preview.previewText}</span>
           </p>
         ) : null}
@@ -57,7 +57,7 @@ export default async function SharePage({ params }: { params: Promise<{ token: s
           title={`Preview of ${preview.title}`}
           sandbox=""
           srcDoc={preview.html}
-          className="min-h-[70vh] w-full flex-1 rounded-lg border border-line bg-white shadow-canvas"
+          className="min-h-[70vh] w-full flex-1 rounded-card border border-line bg-canvas shadow-canvas"
         />
       </main>
     </div>

@@ -223,42 +223,7 @@ describe('the staging controls', () => {
   });
 });
 
-describe('the staging controls, compact', () => {
-  const compact = (m: TemplateEditorModel) => render(withQuery(<TemplateWorkflowControls model={m} copy="draft" onCopy={() => {}} compact />));
-
-  it('keeps every control the full layout has, under the same names', () => {
-    const view = compact(model(row({ staged_at: 's', staged_content: doc }), { unpublished: true }));
-    expect(view.getByRole('radiogroup', { name: 'Template copy' })).toBeTruthy();
-    expect(view.getByRole('radio', { name: 'Draft' })).toBeTruthy();
-    expect((view.getByRole('radio', { name: 'Staged copy' }) as HTMLButtonElement).disabled).toBe(false);
-    expect(view.getByRole('list', { name: 'Template stages' })).toBeTruthy();
-    expect(view.getByRole('button', { name: 'Update staged copy' })).toBeTruthy();
-    expect(view.getByRole('button', { name: 'Remove staged copy' })).toBeTruthy();
-    expect(view.getByRole('link', { name: 'Review and rollback' })).toBeTruthy();
-  });
-
-  it('says the status once, with its detail beside it', () => {
-    const view = compact(model(row()));
-    expect(view.getAllByText('This template is live')).toHaveLength(1);
-    expect(view.getByText('Customers receive this copy. Edit the draft to start your next change.')).toBeTruthy();
-  });
-
-  it('shows the note a reviewer sent back in full, not cut to a line', () => {
-    const note = 'Check the footer link, and the unsubscribe wording.';
-    const view = compact(model(row({ returned_at: 'r', return_note: note }), { unpublished: true }));
-    expect(view.getByText('Sent back for changes')).toBeTruthy();
-    const shown = view.getByText(note);
-    expect(shown.className).not.toContain('truncate');
-    expect(shown.className).not.toContain('line-clamp');
-  });
-
-  it('puts each stage\'s version beside its name on one line', () => {
-    const view = compact(model(row()));
-    const live = view.getByRole('list', { name: 'Template stages' }).querySelector('li[aria-current="step"]') as HTMLElement;
-    expect(live.textContent).toContain('v2');
-    expect((live.querySelector('span') as HTMLElement).className).toContain('whitespace-nowrap');
-  });
-
+describe('the stage track', () => {
   it('stacks the version under the name in the full layout', () => {
     const view = render(withQuery(<TemplateWorkflowControls model={model(row())} copy="draft" onCopy={() => {}} />));
     const live = view.getByRole('list', { name: 'Template stages' }).querySelector('li[aria-current="step"]') as HTMLElement;

@@ -1,13 +1,14 @@
 'use client';
 
-import { useRef } from 'react';
+import { useRef, useState } from 'react';
+import type { TemplateCopy } from '~/lib/template-stage';
 import { PageLoading } from './ui/page-loading';
 import { useHydrated } from '~/hooks/use-hydrated';
 import { useMediaQuery } from '~/hooks/use-media-query';
 import { DesktopEditorLayout } from './editor/desktop-layout';
 import { MobileEditorLayout } from './editor/mobile-layout';
 import { useTemplateEditor, type EmailEditorSandboxProps } from './editor/use-template-editor';
-import { TemplateWorkflowPanel } from './template-workflow-panel';
+import { TemplateWorkflowPanel, TemplateWorkflowPopover, visibleCopy } from './template-workflow-panel';
 import { EditorHeader } from './editor-header';
 import { TemplateNavigation } from './template-navigation';
 import { EditorActions, EditorStatus } from './editor/editor-actions';
@@ -28,6 +29,11 @@ export function EmailEditorSandbox(props: EmailEditorSandboxProps) {
   // first effect, before the editor has mounted.
   const phone = useMediaQuery('(max-width: 639px)');
   const hydrated = useHydrated();
+  // Which copy the desktop frame shows: the draft in the editor, or the
+  // staged or live copy in its place. Chosen in the header's popover and
+  // read by the panel under it, so it lives between the two.
+  const [copy, setCopy] = useState<TemplateCopy>('draft');
+  const shown = model.template ? visibleCopy(model.template, copy) : 'draft';
   // The two shells are different trees, so crossing 640px unmounts one editor
   // and mounts another from `model.editorContent` — which the autosave only
   // refreshes on a 1000 ms debounce. Rotating a phone within a second of the
@@ -80,7 +86,12 @@ export function EmailEditorSandbox(props: EmailEditorSandboxProps) {
       <div className={wrapper}>
         <EditorHeader
           title={model.subject}
-          status={<EditorStatus model={model} />}
+          status={
+            <>
+              <EditorStatus model={model} />
+              <TemplateWorkflowPopover model={model} copy={shown} onCopy={setCopy} />
+            </>
+          }
           actions={<EditorActions model={model} />}
           beforeNavigate={model.beforeStage}
         />
@@ -92,7 +103,7 @@ export function EmailEditorSandbox(props: EmailEditorSandboxProps) {
         {/* From `lg` this is a fixed shell: the docked bar and the canvas under
             it scroll themselves. Below it the page scrolls as one. */}
         <main id="main-content" className="flex min-h-0 flex-1 flex-col overflow-y-auto bg-sunken lg:overflow-hidden">
-          <TemplateWorkflowPanel model={model}>
+          <TemplateWorkflowPanel model={model} copy={shown} onCopy={setCopy}>
             <DesktopEditorLayout model={model} autofocus={autofocus} imageUploads={imageUploads} framed />
           </TemplateWorkflowPanel>
         </main>

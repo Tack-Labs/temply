@@ -36,15 +36,17 @@ export default function GlobalError({ error, reset }: { error: Error & { digest?
           <button
             type="button"
             onClick={reset}
+            // The primary button's shape, in the only values this page can
+            // carry: a 48px pill in the accent.
             style={{
-              height: '2rem',
-              padding: '0 0.75rem',
-              borderRadius: '0.375rem',
+              height: '3rem',
+              padding: '0 1.5rem',
+              borderRadius: '9999px',
               border: 0,
               background: '#5b45e0',
               color: '#fff',
-              fontSize: '0.875rem',
-              fontWeight: 500,
+              fontSize: '1rem',
+              fontWeight: 600,
               cursor: 'pointer',
             }}
           >

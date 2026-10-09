@@ -19,7 +19,11 @@ const DropdownMenuContent = React.forwardRef<
       ref={ref}
       sideOffset={sideOffset}
       className={cn(
-        'overlay-panel z-50 min-w-[12rem] overflow-hidden rounded-md border border-line bg-raised p-1 shadow-lg',
+        // A menu is a short list of nav rows: it wears the card's corners,
+        // and the rows inside wear the field's, which is the card's less this
+        // padding, so a hovered row follows the menu's own curve. The account
+        // menu opens beside the sidebar's rows and has to read as their kin.
+        'overlay-panel z-50 min-w-[14rem] overflow-hidden rounded-card bg-raised p-2 shadow-lg',
         className
       )}
       {...props}
@@ -35,7 +39,10 @@ const DropdownMenuItem = React.forwardRef<
   <DropdownMenuPrimitive.Item
     ref={ref}
     className={cn(
-      'flex h-8 cursor-pointer items-center gap-2 rounded-sm px-2 text-sm text-ink outline-none transition-colors hover:bg-hover focus:bg-hover data-[disabled]:pointer-events-none data-[disabled]:text-disabled [&_svg]:size-4 [&_svg]:shrink-0 [&_svg]:text-faint data-[disabled]:[&_svg]:text-disabled',
+      // The sidebar's nav row (nav-items.tsx), without the active state a
+      // menu has no use for: 44px for every pointer, the UI text size in
+      // semibold, a 20px icon in the muted ink.
+      'flex h-11 cursor-pointer items-center gap-3 rounded-field px-3.5 text-ui font-semibold text-ink outline-none transition-colors duration-fast ease-out hover:bg-hover focus:bg-hover data-[disabled]:pointer-events-none data-[disabled]:text-disabled [&_svg]:size-5 [&_svg]:shrink-0 [&_svg]:text-muted data-[disabled]:[&_svg]:text-disabled',
       className
     )}
     {...props}
@@ -49,7 +56,7 @@ const DropdownMenuLabel = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <DropdownMenuPrimitive.Label
     ref={ref}
-    className={cn('px-2 py-1.5 text-xs text-muted', className)}
+    className={cn('px-3.5 py-2 text-ui text-muted', className)}
     {...props}
   />
 ));
@@ -61,7 +68,7 @@ const DropdownMenuSeparator = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <DropdownMenuPrimitive.Separator
     ref={ref}
-    className={cn('-mx-1 my-1 h-px bg-line', className)}
+    className={cn('-mx-2 my-2 h-px bg-line', className)}
     {...props}
   />
 ));

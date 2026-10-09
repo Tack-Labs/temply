@@ -199,7 +199,7 @@ const CommandList = forwardRef<SuggestionListRef, CommandListProps>((props, ref)
         aria-label="Block menu"
         data-state="open"
         data-side="top"
-        className="overlay-panel mly:z-50 mly:w-72 mly:rounded-md mly:border mly:border-gray-200 mly:bg-panel mly:p-2 mly:text-sm mly:text-gray-500 mly:shadow-md"
+        className="overlay-panel mly:z-50 mly:w-72 mly:rounded-xl mly:bg-panel mly:p-3 mly:text-sm mly:text-gray-500 mly:shadow-lg"
       >
         No block matches
       </div>
@@ -211,7 +211,7 @@ const CommandList = forwardRef<SuggestionListRef, CommandListProps>((props, ref)
       <div
         data-state="open"
         data-side="top"
-        className="overlay-panel mly:z-50 mly:w-72 mly:overflow-hidden mly:rounded-md mly:border mly:border-gray-200 mly:bg-panel mly:shadow-md"
+        className="overlay-panel mly:z-50 mly:w-72 mly:overflow-hidden mly:rounded-xl mly:bg-panel mly:shadow-lg"
       >
         {/* The caret never leaves the canvas — the rows are driven with the
             arrow keys and pressed with Enter — so the highlighted row is
@@ -265,10 +265,10 @@ const CommandList = forwardRef<SuggestionListRef, CommandListProps>((props, ref)
         <div className="mly:border-t mly:border-gray-200 mly:px-1 mly:py-3 mly:pl-4">
           <div className="mly:flex mly:items-center">
             <p className="mly:text-center mly:text-xs mly:text-gray-400">
-              <kbd className="mly:rounded mly:border mly:border-gray-200 mly:p-1 mly:px-2 mly:font-medium">
+              <kbd className="mly:rounded-md mly:border mly:border-gray-200 mly:p-1 mly:px-2 mly:font-medium">
                 ↑
               </kbd>
-              <kbd className="mly:ml-1 mly:rounded mly:border mly:border-gray-200 mly:p-1 mly:px-2 mly:font-medium">
+              <kbd className="mly:ml-1 mly:rounded-md mly:border mly:border-gray-200 mly:p-1 mly:px-2 mly:font-medium">
                 ↓
               </kbd>{' '}
               to navigate
@@ -277,7 +277,7 @@ const CommandList = forwardRef<SuggestionListRef, CommandListProps>((props, ref)
               ·
             </span>
             <p className="mly:text-center mly:text-xs mly:text-gray-400">
-              <kbd className="mly:rounded mly:border mly:border-gray-200 mly:p-1 mly:px-1.5 mly:font-medium">
+              <kbd className="mly:rounded-md mly:border mly:border-gray-200 mly:p-1 mly:px-1.5 mly:font-medium">
                 Enter
               </kbd>{' '}
               to select

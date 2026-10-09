@@ -34,7 +34,7 @@ export function OrganizationDirectory({ data, query }: { data: AdminOrganization
         <p className="font-medium text-ink">{count(data.totalCount)} {query ? 'matching ' : ''}organisations</p>
         <p className="text-muted">API usage for {month} · Europe/London</p>
       </div>
-      <p className="text-xs text-muted">Members are counted per organisation. Usage counts successful API calls.</p>
+      <p className="text-sm text-muted">Members are counted per organisation. Usage counts successful API calls.</p>
 
       {data.organizations.length ? (
         <ul className="space-y-3">
@@ -45,15 +45,15 @@ export function OrganizationDirectory({ data, query }: { data: AdminOrganization
                 <Card className="grid gap-4 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,.6fr)_minmax(0,1fr)_minmax(0,1fr)]">
                   <div className="min-w-0">
                     <h2 className="break-words font-display text-base font-semibold tracking-display text-ink">{organization.name}</h2>
-                    <p className="mt-1 break-all font-mono text-2xs text-muted">{organization.id}</p>
-                    <p className="mt-2 text-xs text-muted">Joined {date(organization.createdAt)}</p>
+                    <p className="mt-1 break-all font-mono text-sm text-muted">{organization.id}</p>
+                    <p className="mt-2 text-sm text-muted">Joined {date(organization.createdAt)}</p>
                   </div>
                   <div>
-                    <p className="text-xs text-muted">Members</p>
+                    <p className="text-sm text-muted">Members</p>
                     <p className="mt-1 font-display text-xl font-semibold tabular-nums text-ink">
                       {organization.members === null ? 'Unavailable' : count(organization.members)}
                     </p>
-                    {sub.seats !== null ? <p className="mt-1 text-xs text-muted">{count(sub.seats)} subscription seats</p> : null}
+                    {sub.seats !== null ? <p className="mt-1 text-sm text-muted">{count(sub.seats)} subscription seats</p> : null}
                   </div>
                   <dl className="grid content-start grid-cols-[1fr_auto] gap-x-3 gap-y-1 text-sm tabular-nums">
                     <dt className="text-muted">Live API calls</dt><dd className="text-ink">{count(organization.usage.liveCalls)}</dd>
@@ -61,7 +61,7 @@ export function OrganizationDirectory({ data, query }: { data: AdminOrganization
                     <dt className="text-muted">Templates</dt><dd className="text-ink">{count(organization.usage.templates)}</dd>
                     <dt className="text-muted">Storage</dt><dd className="text-ink">{formatBytes(organization.usage.storageBytes)}</dd>
                   </dl>
-                  <div className="space-y-1.5 text-xs text-muted">
+                  <div className="space-y-1.5 text-sm text-muted">
                     <div className="flex flex-wrap gap-1.5">
                       <Badge tone={sub.plan === 'lapsed' ? 'warn' : sub.plan === 'not-started' ? 'neutral' : 'accent'}>{PLAN_LABELS[sub.plan]}</Badge>
                       {sub.status ? <Badge tone={sub.status === 'past_due' ? 'warn' : 'neutral'}>{sub.status.replaceAll('_', ' ')}</Badge> : null}
@@ -82,7 +82,7 @@ export function OrganizationDirectory({ data, query }: { data: AdminOrganization
       )}
 
       <nav aria-label="Organisation pages" className="flex flex-wrap items-center justify-between gap-3 pt-1">
-        <p className="text-xs text-muted">{data.organizations.length ? `${count(first)}–${count(last)} of ${count(data.totalCount)}` : `Page ${count(data.page)}`}</p>
+        <p className="text-sm text-muted">{data.organizations.length ? `${count(first)}–${count(last)} of ${count(data.totalCount)}` : `Page ${count(data.page)}`}</p>
         <div className="flex gap-2">
           {data.page > 1 ? <Button variant="secondary" size="sm" touch asChild><Link href={pageHref(data.page - 1, query)}>Previous</Link></Button> : null}
           {data.page * data.pageSize < data.totalCount ? <Button variant="secondary" size="sm" touch asChild><Link href={pageHref(data.page + 1, query)}>Next</Link></Button> : null}

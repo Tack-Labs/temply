@@ -22,7 +22,7 @@ export function BrandPreview({ theme }: { theme: RendererThemeOptions }) {
   const link = theme.link?.color ?? '#346FE4';
 
   return (
-    <div className="overflow-hidden rounded-md border border-line">
+    <div className="overflow-hidden rounded-xl border border-line">
       <div className="flex min-h-[320px] items-start justify-center p-5" style={{ background: page }}>
         <div
           className="w-full"

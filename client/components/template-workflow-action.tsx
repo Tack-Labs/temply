@@ -14,7 +14,7 @@ import { ConfirmDialog } from './ui/confirm-dialog';
 
 export function TemplateWorkflowAction({ id, stage, isAdmin, disabled = false, beforeStage, onChanged, title, label, size = 'sm', variant = 'primary', inEditor = false }: {
   id: string; stage: TemplateStage; isAdmin: boolean; disabled?: boolean; title?: string; label?: string;
-  beforeStage?: () => Promise<boolean>; onChanged?: (row: WorkflowTemplate) => void; size?: 'sm' | 'md';
+  beforeStage?: () => Promise<boolean>; onChanged?: (row: WorkflowTemplate) => void; size?: 'sm' | 'compact' | 'md';
   variant?: 'primary' | 'secondary';
   /** On the template's own page the draft is already in front of the reader, so
    *  "Edit draft" has nowhere to go and is left out. */
@@ -81,7 +81,7 @@ export function TemplateUnstageAction({ id, waiting, disabled = false, onChanged
       confirmLabel="Remove"
       onConfirm={() => mutation.mutate()}
     >
-      <Button variant="ghost" size="sm" disabled={disabled || mutation.isPending} aria-busy={mutation.isPending}>
+      <Button variant="ghost" size="compact" disabled={disabled || mutation.isPending} aria-busy={mutation.isPending}>
         Remove staged copy
       </Button>
     </ConfirmDialog>

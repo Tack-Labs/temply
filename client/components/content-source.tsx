@@ -27,7 +27,7 @@ export function ContentSource({
     >
       <pre
         className={cn(
-          'flex-1 overflow-auto rounded-lg border border-line bg-raised p-3 font-mono text-2xs leading-relaxed text-ink',
+          'flex-1 overflow-auto rounded-xl border border-line bg-raised p-4 font-mono text-sm leading-relaxed text-ink',
           wrap && 'break-words whitespace-pre-wrap'
         )}
       >

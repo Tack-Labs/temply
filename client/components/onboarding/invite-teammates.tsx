@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { toast } from 'sonner';
 import { Button } from '~/components/ui/button';
+import { Label } from '~/components/ui/label';
 import { Card } from '~/components/ui/surfaces';
 import { Textarea } from '~/components/ui/textarea';
 import { isEmailAddress } from '@temply/shared/email';
@@ -44,17 +45,15 @@ export function InviteTeammates() {
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       <div className="text-center">
-        <h1 className="font-display text-xl font-semibold tracking-display text-ink">Invite your team</h1>
-        <p className="mt-1 text-sm text-muted">
+        <h1 className="font-display text-2xl font-bold tracking-display text-balance text-ink">Invite your team</h1>
+        <p className="mt-2 text-base text-pretty text-muted">
           They can build and publish emails with you. You can do this later from Settings → Team.
         </p>
       </div>
-      <Card className="space-y-3">
-        <label htmlFor="invite-emails" className="block text-sm font-medium text-ink">
-          Email addresses
-        </label>
+      <Card className="flex flex-col gap-4 p-8">
+        <Label htmlFor="invite-emails">Email addresses</Label>
         <Textarea
           id="invite-emails"
           value={raw}
@@ -63,16 +62,16 @@ export function InviteTeammates() {
           rows={3}
         />
         {invalid.length > 0 ? (
-          <p className="text-xs text-danger-ink">Not an email address: {invalid.join(', ')}</p>
+          <p className="text-sm text-danger-ink">Not an email address: {invalid.join(', ')}</p>
         ) : (
-          <p className="text-xs text-muted">Separate several with commas or new lines.</p>
+          <p className="text-sm text-muted">Separate several with commas or new lines.</p>
         )}
-        <div className="flex items-center justify-between gap-2">
-          <Button size="compact" variant="ghost" onClick={() => router.push('/dashboard')} disabled={sending}>
+        <div className="mt-2 flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <Button variant="ghost" onClick={() => router.push('/dashboard')} disabled={sending}>
             Skip for now
           </Button>
-          <Button size="compact" variant="primary" onClick={send} disabled={sending || valid.length === 0 || invalid.length > 0}>
-            {sending ? <Loader2Icon className="animate-spin" /> : <SendIcon />}
+          <Button variant="primary" onClick={send} disabled={sending || valid.length === 0 || invalid.length > 0}>
+            {sending ? <Loader2Icon className="animate-spin motion-reduce:animate-none" /> : <SendIcon />}
             {valid.length > 1 ? `Send ${valid.length} invites` : 'Send invite'}
           </Button>
         </div>
