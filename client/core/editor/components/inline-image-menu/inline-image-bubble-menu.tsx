@@ -37,7 +37,7 @@ export function InlineImageBubbleMenu(props: EditorBubbleMenuProps) {
         <MenuToolbar
           editor={editor}
           label="Inline image"
-          className="mly:flex mly:rounded-xl mly:bg-panel mly:p-1 mly:shadow-lg"
+          className="mly:flex mly:rounded-xl mly:bg-panel mly:p-[3px] mly:shadow-lg"
         >
           <InlineImageMenuContent editor={editor} />
         </MenuToolbar>

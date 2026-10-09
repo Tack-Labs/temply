@@ -43,7 +43,7 @@ export function ImageBubbleMenu(props: EditorBubbleMenuProps) {
         <MenuToolbar
           editor={editor}
           label="Image"
-          className="mly:flex mly:rounded-xl mly:bg-panel mly:p-1 mly:shadow-lg"
+          className="mly:flex mly:rounded-xl mly:bg-panel mly:p-[3px] mly:shadow-lg"
         >
           <ImageMenuContent editor={editor} />
         </MenuToolbar>

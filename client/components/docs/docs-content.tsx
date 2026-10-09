@@ -105,7 +105,7 @@ export function Block({ children }: { children: string }) {
 
 export function Code({ children }: { children: ReactNode }) {
   return (
-    <code className="rounded-sm bg-sunken px-1.5 py-0.5 font-mono text-ui text-ink">
+    <code className="rounded-sm bg-sunken px-1.5 py-0.5 font-mono text-ui break-words text-ink [overflow-wrap:anywhere]">
       {children}
     </code>
   );

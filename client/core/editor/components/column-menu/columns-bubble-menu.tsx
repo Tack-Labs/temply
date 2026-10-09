@@ -65,7 +65,7 @@ export function ColumnsBubbleMenu(props: EditorBubbleMenuProps) {
         <MenuToolbar
           editor={editor}
           label="Columns"
-          className="mly:rounded-xl mly:bg-panel mly:p-1 mly:shadow-lg"
+          className="mly:rounded-xl mly:bg-panel mly:p-[3px] mly:shadow-lg"
         >
           <ColumnsMenuContent editor={editor} />
         </MenuToolbar>

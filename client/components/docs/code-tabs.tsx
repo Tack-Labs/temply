@@ -60,7 +60,7 @@ export function CodeTabs({
 
   return (
     <div className={cn(docsPanelRows, 'mt-5 max-w-2xl overflow-hidden')}>
-      <div className="flex items-center justify-between gap-2 border-b border-line px-2.5 py-2">
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-line px-2.5 py-2">
         <SegmentedControl
           size="sm"
           label="Language"

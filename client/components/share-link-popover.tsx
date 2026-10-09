@@ -7,7 +7,7 @@ import { toast } from 'sonner';
 import { Button } from '~/components/ui/button';
 import { ConfirmDialog } from '~/components/ui/confirm-dialog';
 import { Input } from '~/components/ui/input';
-import { Popover, PopoverContent, PopoverTrigger } from '~/components/ui/popover';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '~/components/ui/dialog';
 import { httpDelete, httpPost } from '~/lib/http';
 import { useBilling } from '~/lib/billing';
 import { useCopyToClipboard } from '~/hooks/use-copy-to-clipboard';
@@ -18,6 +18,11 @@ import { useCopyToClipboard } from '~/hooks/use-copy-to-clipboard';
  * collaboration — no members, no roles — and the one most small teams
  * actually need. The link can be turned off; making a new one afterwards
  * is a new secret, so the old one stays dead.
+ *
+ * A dialog, not a popover, because it opens from an item of the ⋯ menu: a
+ * popover anchored to a menu item lost its focus to the menu the moment the
+ * pointer left the item, and closed before the link could be copied. A
+ * dialog holds focus until it is dismissed, on every pointer.
  */
 export function ShareLinkPopover({
   templateId,
@@ -26,8 +31,8 @@ export function ShareLinkPopover({
 }: {
   templateId: string;
   initialToken: string | null;
-  /** Replaces the default button — the phone opens this from a menu item, and
-   *  a popover trigger has to be the item itself or it has nothing to anchor to. */
+  /** Replaces the default button: the ⋯ menus open this from an item, and
+   *  the dialog's trigger has to be the item itself or the menu eats the press. */
   trigger?: React.ReactElement;
 }) {
   const [token, setToken] = useState<string | null>(initialToken);
@@ -72,21 +77,23 @@ export function ShareLinkPopover({
   };
 
   return (
-    <Popover>
-      <PopoverTrigger asChild>
+    <Dialog>
+      <DialogTrigger asChild>
         {trigger ?? (
           <Button size="compact" aria-label="Share a review link">
             <Link2Icon />
             <span className="hidden sm:inline">Share</span>
           </Button>
         )}
-      </PopoverTrigger>
-      <PopoverContent align="start">
-        <p className="font-display text-xl font-bold tracking-display text-ink">Review link</p>
-        <p className="mt-1.5 text-ui text-muted">
-          Anyone with the link can see this email without signing in. It shows your
-          draft, so what they see follows your edits.
-        </p>
+      </DialogTrigger>
+      <DialogContent className="max-w-md p-5">
+        <DialogHeader>
+          <DialogTitle>Review link</DialogTitle>
+          <DialogDescription>
+            Anyone with the link can see this email without signing in. It shows your
+            draft, so what they see follows your edits.
+          </DialogDescription>
+        </DialogHeader>
         {token ? (
           <>
             <div className="mt-4 flex items-center gap-2">
@@ -126,7 +133,7 @@ export function ShareLinkPopover({
             </Button>
           </div>
         )}
-      </PopoverContent>
-    </Popover>
+      </DialogContent>
+    </Dialog>
   );
 }

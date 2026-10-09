@@ -100,6 +100,13 @@ export function Editor(props: EditorProps) {
   }, [contentHtml, contentJson]);
 
   const menuContainerRef = useRef(null);
+  // An editor that attaches after the page is already in use must not take
+  // the focus: a popover or menu the reader has opened closes the moment
+  // focus leaves it. Read once, at creation, which is the only time the
+  // option is applied; a fresh page has the body focused and keeps the
+  // caret it was promised.
+  const focusIsFree =
+    typeof document === 'undefined' || !document.activeElement || document.activeElement === document.body;
   const editor = useEditor({
     editorProps: {
       scrollThreshold,
@@ -125,7 +132,7 @@ export function Editor(props: EditorProps) {
       isLibraryImage,
     }),
     content: formattedContent,
-    autofocus,
+    autofocus: focusIsFree ? autofocus : false,
     editable,
   });
 

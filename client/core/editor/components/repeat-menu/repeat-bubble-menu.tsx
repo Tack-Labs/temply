@@ -89,7 +89,7 @@ export function RepeatBubbleMenu(props: EditorBubbleMenuProps) {
         <MenuToolbar
           editor={editor}
           label="Repeat"
-          className="mly:flex mly:items-stretch mly:rounded-xl mly:bg-panel mly:p-1 mly:shadow-lg"
+          className="mly:flex mly:items-stretch mly:rounded-xl mly:bg-panel mly:p-[3px] mly:shadow-lg"
         >
           <RepeatMenuContent editor={editor} />
         </MenuToolbar>

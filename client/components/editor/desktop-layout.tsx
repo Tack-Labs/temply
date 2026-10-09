@@ -195,19 +195,23 @@ function FramedLayout({
 
       {/* CANVAS SURROUND. The app's sunken surface, so it follows the app
           theme; the email on it is painted from the template's own theme
-          and does not. Each side pads itself to where a 760px email centred
-          in the frame would start, less the rail on that side, so the email
-          holds the centre line and a fold leaves its room empty; the 16px
-          either side of the 760 is slack for rounding. Short of that room the
-          padding is the 24px minimum and the email takes the space between
-          the rails. The percentages are of the frame's width, so the
-          scrollbar at its edge is already left out. */}
+          and does not. When both sides have the room, each pads itself to
+          where a 760px email centred in the frame would start, less the rail
+          on that side, so the email holds the frame's centre line and a fold
+          leaves its room empty; the 16px either side of the 760 is slack for
+          rounding. Short of that room on either side, both pad the 24px
+          minimum and the email sits centred between the rails, taking the
+          space a fold frees. The switch is arithmetic: the other side's
+          room, scaled by a thousand, is added to this side's, so one side
+          below the minimum drags both to it. The percentages are of the
+          frame's width, so the scrollbar at its edge is already left out. */}
       <section
         ref={canvas}
         aria-label="Email canvas"
         className={cn(
           'min-w-0 flex-1 bg-sunken px-6 pt-8 pb-12',
-          'lg:pl-[max(1.5rem,calc(50%_-_396px_-_var(--rail-left)_-_0.75rem))] lg:pr-[max(1.5rem,calc(50%_-_396px_-_var(--rail-right)_-_0.75rem))]',
+          'lg:[--room-left:calc(50%_-_396px_-_var(--rail-left)_-_0.75rem)] lg:[--room-right:calc(50%_-_396px_-_var(--rail-right)_-_0.75rem)]',
+          'lg:pl-[max(1.5rem,min(var(--room-left),var(--room-left)_+_(var(--room-right)_-_1.5rem)_*_1000))] lg:pr-[max(1.5rem,min(var(--room-right),var(--room-right)_+_(var(--room-left)_-_1.5rem)_*_1000))]',
           (left.animate || right.animate) && canvasEase,
         )}
       >
@@ -248,7 +252,7 @@ function FramedLayout({
 
 function ClickHint() {
   return (
-    <div className="rounded-xl bg-accent-wash px-4 py-3.5 text-base text-accent-ink">
+    <div className="rounded-xl bg-accent-wash px-4 py-3 text-base text-accent-ink">
       Click the email to change its words. Select text or a block to see its formatting options.
     </div>
   );
