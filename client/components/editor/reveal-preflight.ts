@@ -1,8 +1,9 @@
 /**
  * What `scrollIntoView` should be told for a scroll the reader did not make
- * with their hands. The canvas is the scroller and carries no `scroll-behavior`
- * of its own (the stylesheet's smooth scrolling is on `html`, which is not the
- * box being scrolled), so a call that leaves `behavior` out always jumps.
+ * with their hands. The editor's frame is the scroller and carries no
+ * `scroll-behavior` of its own (the stylesheet's smooth scrolling is on
+ * `html`, which is not the box being scrolled), so a call that leaves
+ * `behavior` out always jumps.
  * Easing is asked for only where the rest of the app eases: once the page has
  * raised `html[data-smooth-scroll]` and the reader has not asked for reduced
  * motion. Before the flag a scroll is aimed at a layout the web fonts have

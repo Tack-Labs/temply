@@ -182,7 +182,7 @@ test.describe('editor on the phone', () => {
     const before = (await api.getTemplate(t.id)).theme;
     await phone.bar(page).button('Brand').click();
     const sheet = phone.sheet(page, 'Brand');
-    await sheet.getByRole('button', { name: 'Round' }).click();
+    await sheet.getByRole('radio', { name: 'Round' }).click();
     // The row's theme is a JSON blob whose encoding of "Round" is the knob's
     // business, not this case's: that the choice reached the row at all is
     // what the phone is being asked to still do.

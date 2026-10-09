@@ -9,7 +9,7 @@ interface TemplatePageProps {
 }
 
 export const metadata = {
-  title: 'Template | Temply',
+  title: 'Template',
   description: 'Edit your template.',
   robots: 'noindex',
 };

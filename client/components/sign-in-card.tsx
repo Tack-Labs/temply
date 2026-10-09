@@ -2,6 +2,7 @@
 
 import { SignIn, useAuth } from '@clerk/nextjs';
 import { useEffect, useRef } from 'react';
+import { authElements } from '~/components/auth-appearance';
 import { useTheme } from '~/components/theme-provider';
 import { SIGNED_IN_HOME } from '~/lib/routes';
 
@@ -54,9 +55,8 @@ export function SignInCard() {
       appearance={{
         ...clerkAppearance,
         elements: {
-          ...(clerkAppearance.elements as Record<string, string>),
-          cardBox: 'shadow-none border border-line rounded-lg',
-          card: 'shadow-none',
+          ...(clerkAppearance.elements as Record<string, unknown>),
+          ...authElements,
         },
       }}
     />

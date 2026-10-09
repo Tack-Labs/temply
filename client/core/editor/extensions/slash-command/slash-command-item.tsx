@@ -143,13 +143,13 @@ export function SlashCommandItem(props: SlashCommandItemProps) {
       <TooltipContent
         side="right"
         sideOffset={10}
-        className="mly:w-52 mly:rounded-lg mly:border-none mly:p-1 mly:shadow"
+        className="mly:w-52 mly:rounded-xl mly:border-none mly:p-1.5 mly:shadow-lg"
       >
         {typeof item.preview === 'function' ? (
           item?.preview(editor)
         ) : (
           <>
-            <figure className="mly:relative mly:aspect-[2.5] mly:w-full mly:overflow-hidden mly:rounded-md mly:border mly:border-gray-200">
+            <figure className="mly:relative mly:aspect-[2.5] mly:w-full mly:overflow-hidden mly:rounded-lg mly:border mly:border-gray-200">
               <img
                 src={item?.preview}
                 alt={item?.title}

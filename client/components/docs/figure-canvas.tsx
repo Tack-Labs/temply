@@ -6,24 +6,26 @@
  * header, caption — uses the app's tokens.
  */
 import type { CSSProperties, ReactNode } from 'react';
+import { docsPanelRows } from '~/components/docs/panel';
+import { cn } from '~/lib/classname';
 
 export const CANVAS: Record<string, CSSProperties> = {
-  card: { backgroundColor: 'var(--ds-canvas)', color: 'var(--ds-canvas-ink)', borderRadius: 8, padding: '14px 16px', fontSize: 12.5, lineHeight: 1.5 },
+  card: { backgroundColor: 'var(--ds-canvas)', color: 'var(--ds-canvas-ink)', borderRadius: 12, padding: '14px 16px', fontSize: 12.5, lineHeight: 1.5 },
   muted: { color: 'var(--ds-canvas-body)' },
   faint: { color: 'var(--ds-canvas-quiet)' },
   pill: { display: 'inline-block', padding: '0 6px', borderRadius: 999, backgroundColor: 'var(--ds-canvas-accent-wash)', color: 'var(--ds-canvas-accent-ink)', fontFamily: 'ui-monospace, monospace', fontSize: 11, lineHeight: '18px', verticalAlign: 'baseline' },
-  logo: { width: 22, height: 22, borderRadius: 6, backgroundColor: 'var(--ds-accent)' },
+  logo: { width: 22, height: 22, borderRadius: 8, backgroundColor: 'var(--ds-accent)' },
   heading: { display: 'block', marginTop: 10, height: 9, width: '62%', borderRadius: 999, backgroundColor: 'var(--ds-canvas-ink)' },
   line: { display: 'block', marginTop: 7, height: 6, borderRadius: 999, backgroundColor: 'var(--ds-canvas-accent-bar)' },
-  button: { display: 'inline-block', marginTop: 12, padding: '5px 12px', borderRadius: 6, backgroundColor: 'var(--ds-canvas-ink)', color: 'var(--ds-canvas-on-accent)', fontSize: 11, fontWeight: 600 },
+  button: { display: 'inline-block', marginTop: 12, padding: '5px 12px', borderRadius: 12, backgroundColor: 'var(--ds-canvas-ink)', color: 'var(--ds-canvas-on-accent)', fontSize: 11, fontWeight: 600 },
 };
 
 /** A panel with a header strip, the shape every figure shares. */
 export function Panel({ title, children, className }: { title: ReactNode; children: ReactNode; className?: string }) {
   return (
-    <div className={['flex min-w-0 flex-col overflow-hidden rounded-md border border-line bg-raised', className].filter(Boolean).join(' ')}>
-      <div className="border-b border-line px-2.5 py-1.5 text-2xs font-medium text-ink">{title}</div>
-      <div className="flex-1 p-2.5">{children}</div>
+    <div className={cn(docsPanelRows, 'flex min-w-0 flex-col overflow-hidden', className)}>
+      <div className="border-b border-line px-3 py-2 text-xs font-semibold text-ink">{title}</div>
+      <div className="flex-1 p-3">{children}</div>
     </div>
   );
 }

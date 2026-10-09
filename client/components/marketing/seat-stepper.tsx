@@ -29,7 +29,7 @@ export function SeatStepper() {
   const { users, product, total } = seatSum(seats);
 
   return (
-    <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 rounded-2xl bg-sunken py-3 pr-3.5 pl-5">
+    <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 rounded-xl bg-sunken py-3 pr-3.5 pl-5">
       <p aria-live="polite" aria-atomic="true" className="min-w-0 text-lg font-semibold text-ink tabular-nums">
         {product} <span className="font-medium whitespace-nowrap text-muted">= {total}</span>
       </p>

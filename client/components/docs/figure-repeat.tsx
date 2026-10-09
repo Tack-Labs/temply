@@ -32,8 +32,8 @@ export function FigureRepeat() {
             </div>
           </div>
         </Panel>
-        <div className="flex items-center justify-center px-1 text-xs font-medium text-muted">
-          <span className="rounded-full border border-line bg-raised px-2 py-0.5">× items</span>
+        <div className="flex items-center justify-center px-1 text-sm font-semibold text-muted">
+          <span className="rounded-full bg-sunken px-2.5 py-0.5">× items</span>
         </div>
         <Panel title="Sent with 2 items">
           <div style={CANVAS.card}>
@@ -42,7 +42,7 @@ export function FigureRepeat() {
           </div>
         </Panel>
       </div>
-      <figcaption className="mt-4 max-w-xl text-sm text-pretty text-muted">
+      <figcaption className="mt-4 max-w-xl text-base text-pretty text-muted">
         Build the row once with pills; the list decides how many times it appears.
       </figcaption>
     </figure>

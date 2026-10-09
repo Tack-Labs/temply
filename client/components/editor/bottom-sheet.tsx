@@ -54,15 +54,16 @@ export function BottomSheet({
             (event.currentTarget as HTMLElement).focus();
           }}
           className={cn(
-            'sheet-up inset-x-0 bottom-0 z-50 flex flex-col rounded-t-xl border-t border-line bg-raised shadow-xl outline-none',
+            // A dialog's corners and, over the scrim, no edge of its own.
+            'sheet-up inset-x-0 bottom-0 z-50 flex flex-col rounded-t-card bg-raised shadow-xl outline-none',
             frame ? 'absolute' : 'fixed',
             // The height transition covers a sheet growing when Advanced opens.
             'transition-[max-height] duration-base ease-out motion-reduce:transition-none',
             height === 'half' ? (frame ? 'max-h-[55%]' : 'max-h-[55dvh]') : frame ? 'max-h-[92%]' : 'max-h-[92dvh]',
           )}
         >
-          <div className="flex shrink-0 items-center justify-between gap-2 pt-1 pr-1 pl-4">
-            <DialogPrimitive.Title className={cn('py-2 text-sm font-medium text-ink', !showTitle && 'sr-only')}>
+          <div className="flex shrink-0 items-center justify-between gap-2 pt-2 pr-1 pl-5">
+            <DialogPrimitive.Title className={cn('py-2 font-display text-xl font-bold tracking-display text-ink', !showTitle && 'sr-only')}>
               {title}
             </DialogPrimitive.Title>
             <DialogPrimitive.Close asChild>

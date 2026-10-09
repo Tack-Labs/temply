@@ -1,6 +1,7 @@
 'use client';
 
 import { SignUp } from '@clerk/nextjs';
+import { authElements } from '~/components/auth-appearance';
 import { useTheme } from '~/components/theme-provider';
 
 export function SignUpCard() {
@@ -13,9 +14,8 @@ export function SignUpCard() {
       appearance={{
         ...clerkAppearance,
         elements: {
-          ...(clerkAppearance.elements as Record<string, string>),
-          cardBox: 'shadow-none border border-line rounded-lg',
-          card: 'shadow-none',
+          ...(clerkAppearance.elements as Record<string, unknown>),
+          ...authElements,
         },
       }}
     />

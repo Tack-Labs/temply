@@ -70,7 +70,7 @@ export function TemplateThumbnail({ templateId, updatedAt, aspect = THUMBNAIL_AS
       {isError ? (
         <div className="flex h-full flex-col items-center justify-center gap-1.5">
           <MailIcon className="size-5 text-faint" />
-          <span className="text-xs text-muted">Preview unavailable</span>
+          <span className="text-sm text-muted">Preview unavailable</span>
         </div>
       ) : data && scale !== null ? (
         // biome-ignore lint/a11y/useIframeTitle: decoration, aria-hidden — the card's link carries the name

@@ -118,10 +118,10 @@ export default function AssetsPage() {
           dragging ? 'opacity-100' : 'opacity-0',
         )}
       >
-        <div className="flex flex-col items-center gap-2 rounded-lg border-2 border-dashed border-accent bg-raised px-10 py-8 text-center shadow-lg">
+        <div className="flex flex-col items-center gap-2 rounded-card border-2 border-dashed border-accent bg-raised px-10 py-8 text-center shadow-xl">
           <ImagePlusIcon className="size-6 text-accent-ink" />
-          <p className="text-sm font-medium text-ink">Drop images to upload</p>
-          <p className="text-2xs text-muted">JPEG, PNG, GIF or WebP · up to {formatBytes(MAX_IMAGE_BYTES)} each</p>
+          <p className="text-base font-bold text-ink">Drop images to upload</p>
+          <p className="text-sm text-muted">JPEG, PNG, GIF or WebP · up to {formatBytes(MAX_IMAGE_BYTES)} each</p>
         </div>
       </div>
 
@@ -138,8 +138,8 @@ export default function AssetsPage() {
               className="hidden"
               onChange={(event) => { void uploadFiles(event.target.files); event.target.value = ''; }}
             />
-            <Button size="compact" variant="primary" disabled={upload.isPending || readOnly} onClick={() => fileInput.current?.click()}>
-              {upload.isPending ? <Loader2Icon className="animate-spin" /> : <UploadIcon />}
+            <Button variant="primary" disabled={upload.isPending || readOnly} onClick={() => fileInput.current?.click()}>
+              {upload.isPending ? <Loader2Icon className="animate-spin motion-reduce:animate-none" /> : <UploadIcon />}
               Upload
             </Button>
           </>
@@ -149,10 +149,10 @@ export default function AssetsPage() {
       {/* Only a trial has more storage to move to; on Team the room is made
           by deleting. */}
       {limit && ratio >= 0.8 && !readOnly ? (
-        <p className={cn('text-sm', ratio >= 1 ? 'text-danger-ink' : 'text-warn-ink')}>
+        <p className={cn('text-base', ratio >= 1 ? 'text-danger-ink' : 'text-warn-ink')}>
           {ratio >= 1 ? 'Storage is full.' : 'Storage is almost full.'}{' '}
           {billing?.plan === 'trial' ? (
-            <Link href={PLAN_PAGE} className="underline underline-offset-2">
+            <Link href={PLAN_PAGE} className="font-semibold underline underline-offset-4">
               Delete images, or subscribe for 1 GB
             </Link>
           ) : (
@@ -186,7 +186,7 @@ export default function AssetsPage() {
           icon={ImageIcon}
           title={search ? 'No images match' : 'No images yet'}
           description={search ? 'Try a different file name.' : 'Upload one to reuse it across templates, or drop images anywhere on this page'}
-          action={search ? undefined : <Button size="compact" variant="primary" disabled={readOnly} onClick={() => fileInput.current?.click()}>Upload</Button>}
+          action={search ? undefined : <Button variant="primary" disabled={readOnly} onClick={() => fileInput.current?.click()}><UploadIcon />Upload</Button>}
         />
       ) : (
         <AssetGrid

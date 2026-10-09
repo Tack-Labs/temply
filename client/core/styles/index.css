@@ -88,6 +88,14 @@
   --radius-md: 10px;
   --radius-lg: 12px;
   --radius-xl: 16px;
+
+  /* The app's shadow ladder, so a bubble menu over the email is lifted the
+     way a menu over the dashboard is: md for a tooltip, lg for a toolbar or
+     a popover. The colours follow the theme through the --ds-* tokens. */
+  --shadow-sm: var(--ds-shadow-sm);
+  --shadow-md: var(--ds-shadow-md);
+  --shadow-lg: var(--ds-shadow-lg);
+  --shadow-xl: var(--ds-shadow-xl);
 }
 
 /* The app's hover and line tokens are tuned for its own surfaces; on the

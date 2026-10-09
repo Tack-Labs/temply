@@ -26,6 +26,8 @@
  * they do over the real canvas in dark mode. The one literal hex is the colour
  * the bubble restyles the button to, which depicts a customer's brand colour.
  */
+import { docsPanelRows } from '~/components/docs/panel';
+import { cn } from '~/lib/classname';
 
 /* An inline <style> rather than globals.css on purpose: these keyframes belong
    to this one figure, and their `docs-editor-` prefix makes them collision-proof. */
@@ -46,7 +48,7 @@ const ANIMATION_CSS = `
   position: relative;
   max-width: 320px;
   margin-inline: auto;
-  border-radius: 10px;
+  border-radius: 12px;
   background-color: var(--ds-canvas);
   box-shadow: var(--ds-shadow-canvas);
   padding: var(--pad) var(--pad) 24px;
@@ -99,7 +101,7 @@ const ANIMATION_CSS = `
   top: calc(var(--pad) + var(--h-text) + 2px);
   width: 168px;
   padding: 6px;
-  border-radius: 8px;
+  border-radius: 12px;
   background-color: var(--ds-raised);
   box-shadow: var(--ds-shadow-lg), 0 0 0 1px var(--ds-line);
   opacity: 0;
@@ -114,7 +116,7 @@ const ANIMATION_CSS = `
   left: 0;
   width: 100%;
   height: var(--row-menu);
-  border-radius: 6px;
+  border-radius: 8px;
   background-color: var(--ds-accent-wash);
   opacity: 0;
 }
@@ -144,7 +146,7 @@ const ANIMATION_CSS = `
   align-items: center;
   height: 32px;
   padding: 0 16px;
-  border-radius: 7px;
+  border-radius: 12px;
   background-color: var(--ds-accent);
   font-size: 12px;
   font-weight: 500;
@@ -155,7 +157,7 @@ const ANIMATION_CSS = `
 .docs-editor-btn-alt {
   position: absolute;
   inset: 0;
-  border-radius: 7px;
+  border-radius: 12px;
   background-color: #b85a33;
   opacity: 0;
 }
@@ -308,7 +310,7 @@ export function DemoEditor() {
     <figure className="mt-8 max-w-xl">
       <style>{ANIMATION_CSS}</style>
 
-      <div className="overflow-hidden rounded-lg border border-line bg-raised">
+      <div className={cn(docsPanelRows, 'overflow-hidden')}>
         {/* Decoration: the figcaption below says everything a reader who is not
             looking at it needs. */}
         <div className="docs-editor-stage bg-sunken" aria-hidden>
@@ -363,9 +365,9 @@ export function DemoEditor() {
         </div>
       </div>
 
-      <figcaption className="mt-3 text-sm text-muted">
+      <figcaption className="mt-4 text-base text-muted">
         The editing loop, on repeat: a line is typed on the canvas,{' '}
-        <span className="font-mono text-xs text-ink">/</span> opens the slash
+        <span className="font-mono text-sm text-ink">/</span> opens the slash
         menu, Button inserts a button block, and the bubble menu that appears
         with it changes the button&apos;s colour.
       </figcaption>

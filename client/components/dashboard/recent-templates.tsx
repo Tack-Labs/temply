@@ -36,12 +36,15 @@ function RecentCard({ template, hydrated }: { template: TemplateListItem; hydrat
               <p className="truncate text-18 font-bold text-ink">{template.title}</p>
               <p className="truncate text-ui text-muted">{template.preview_text || 'No preview text'}</p>
             </div>
-            <div className="mt-auto flex flex-wrap items-center justify-between gap-x-3 gap-y-1.5">
+            {/* The pill on one line and the date under it on every card: side
+                by side they fit beside a short pill and wrap under a long one,
+                so two cards in a row would set the date at different heights. */}
+            <div className="mt-auto flex flex-col items-start gap-1.5">
               <Badge dot tone={pill.tone}>
                 {pill.label}
               </Badge>
               {edited && template.updated_at ? (
-                <span className="fade-in-mount text-sm text-muted tabular-nums motion-reduce:transition-none">
+                <span className="fade-in-mount text-base text-muted tabular-nums motion-reduce:transition-none">
                   Edited{' '}
                   <time dateTime={template.updated_at} title={exactTime(template.updated_at) ?? undefined}>
                     {edited}

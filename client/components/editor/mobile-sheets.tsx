@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { BracesIcon } from 'lucide-react';
-import { Button } from '~/components/ui/button';
+import { Button, pressable } from '~/components/ui/button';
 import { Input } from '~/components/ui/input';
 import { Label } from '~/components/ui/label';
 import { ContentPreview } from '~/components/content-preview';
@@ -163,7 +163,8 @@ export function MobileSheets({
 
       <BottomSheet open={open === 'eye'} onOpenChange={close} title="Preview" showTitle={false} height="full">
         <div className="sticky top-0 z-10 -mx-4 flex items-center justify-between gap-2 border-b border-line bg-raised px-4 pb-2">
-          <div role="tablist" aria-label="View" className="flex gap-1">
+          {/* The desktop's view switch, as tabs: a raised pill in a track. */}
+          <div role="tablist" aria-label="View" className="flex gap-0.5 rounded-full bg-track p-1">
             {(['preview', 'html', 'text'] as const).map((tab) => (
               <button
                 type="button"
@@ -175,8 +176,9 @@ export function MobileSheets({
                 // the wire before the first had answered.
                 onClick={() => setEyeTab(tab)}
                 className={cn(
-                  'h-11 rounded-md px-3 text-sm font-medium transition-colors duration-fast ease-out motion-reduce:transition-none',
-                  eyeTab === tab ? 'bg-accent-wash text-accent-ink' : 'text-muted hover:bg-hover hover:text-ink',
+                  'h-11 rounded-full px-4 text-ui font-semibold',
+                  pressable,
+                  eyeTab === tab ? 'bg-raised text-ink shadow-xs' : 'text-ink-soft hover:text-ink',
                 )}
               >
                 {tab === 'preview' ? 'Preview' : tab === 'html' ? 'HTML' : 'Text'}

@@ -33,9 +33,9 @@ export function EditorBottomBar({
   const badge = checksCount.errors > 0 ? { n: checksCount.errors, tone: 'danger' as const } : checksCount.warnings > 0 ? { n: checksCount.warnings, tone: 'warn' as const } : null;
 
   return (
-    <div data-editor-bottom-bar className="relative z-40 shrink-0 border-t border-line bg-raised pb-[env(safe-area-inset-bottom)]">
+    <div data-editor-bottom-bar className="relative z-40 shrink-0 border-t-[1.5px] border-line bg-raised pb-[env(safe-area-inset-bottom)]">
       <nav aria-label="Editor sections" className="flex min-h-14 items-stretch justify-around">
-        <span className="flex min-w-16 flex-col items-center justify-center gap-0.5 text-2xs font-medium text-accent-ink">
+        <span className="flex min-w-16 flex-col items-center justify-center gap-0.5 text-xs font-bold text-accent-ink">
           <LayoutTemplateIcon className="size-5" />
           Content
         </span>
@@ -49,7 +49,7 @@ export function EditorBottomBar({
             aria-haspopup="dialog"
             aria-expanded={openTab === tab.id}
             onClick={() => onOpenTab(tab.id)}
-            className={cn('relative flex min-w-16 flex-col items-center justify-center gap-0.5 text-2xs text-muted hover:text-ink', pressable)}
+            className={cn('relative flex min-w-16 flex-col items-center justify-center gap-0.5 text-xs font-medium text-muted hover:text-ink', pressable)}
           >
             <tab.icon className="size-5" />
             {tab.label}

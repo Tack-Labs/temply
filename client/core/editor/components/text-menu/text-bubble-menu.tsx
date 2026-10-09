@@ -119,7 +119,7 @@ export function TextBubbleMenu(props: TextBubbleMenuProps) {
         <MenuToolbar
           editor={editor}
           label="Text formatting"
-          className="mly:flex mly:gap-0.5 mly:rounded-lg mly:border mly:border-gray-200 mly:bg-panel mly:p-0.5 mly:shadow-md"
+          className="mly:flex mly:gap-0.5 mly:rounded-xl mly:bg-panel mly:p-[3px] mly:shadow-lg"
         >
           <TurnIntoBlock options={turnIntoBlockOptions} />
 

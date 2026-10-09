@@ -320,7 +320,7 @@ test.describe('marketing', () => {
     });
   });
 
-  test('every pricing card is drawn at the 2xl radius', async ({ page }) => {
+  test('every pricing card is drawn at the card radius', async ({ page }) => {
     await page.goto('/');
     // The token is read through a probe, as the theme cases read the colour
     // ones, so retuning the radius scale cannot break this and only a card
@@ -328,7 +328,7 @@ test.describe('marketing', () => {
     const token = await page.evaluate(() => {
       const probe = document.createElement('div');
       document.body.append(probe);
-      probe.style.cssText = 'border-top-left-radius: var(--radius-2xl)';
+      probe.style.cssText = 'border-top-left-radius: var(--radius-card)';
       const radius = getComputedStyle(probe).borderTopLeftRadius;
       probe.remove();
       return radius;
@@ -706,14 +706,16 @@ test.describe('marketing', () => {
     const curl = page.getByText(/^curl /);
     await expect(js).toHaveCount(0);
     const curlBefore = await curl.count();
-    const first = page.getByRole('tablist', { name: 'Language' }).first();
-    await first.getByRole('tab', { name: 'JavaScript' }).click();
-    await expect(first.getByRole('tab', { name: 'JavaScript' })).toHaveAttribute('aria-selected', 'true');
+    // The switch is the app's segmented control: a radiogroup, one radio per
+    // language.
+    const first = page.getByRole('radiogroup', { name: 'Language' }).first();
+    await first.getByRole('radio', { name: 'JavaScript' }).click();
+    await expect(first.getByRole('radio', { name: 'JavaScript' })).toHaveAttribute('aria-checked', 'true');
     await expect(js).toHaveCount(1);
     await expect(curl).toHaveCount(curlBefore - 1);
     // The choice is read from storage on mount only, so the other blocks
     // follow on reload rather than live.
     await page.reload();
-    await expect(page.getByRole('tab', { name: 'JavaScript', selected: true })).toHaveCount(3);
+    await expect(page.getByRole('radio', { name: 'JavaScript', checked: true })).toHaveCount(3);
   });
 });

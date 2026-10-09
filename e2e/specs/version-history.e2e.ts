@@ -1,6 +1,6 @@
 import type { Page } from '@playwright/test';
 import { test, expect } from '../fixtures/test';
-import { onPhone, renameTo, openMore, publish, subjectField } from '../fixtures/editor';
+import { onPhone, renameTo, publish, subjectField } from '../fixtures/editor';
 
 /**
  * Publishes, waits for the server to have kept the version, and reads the
@@ -37,12 +37,10 @@ test.describe('version history', () => {
     await renameTo(page, id, second);
     await publishAndSee(page, id);
 
-    if (onPhone()) {
-      await openMore(page);
-      await page.getByRole('menuitem', { name: 'History' }).click();
-    } else {
-      await page.getByRole('button', { name: 'History' }).click();
-    }
+    // History is behind the ⋯ menu on both shells: "More" on the phone,
+    // "More actions" on the desktop.
+    await page.getByRole('button', { name: onPhone() ? 'More' : 'More actions', exact: true }).click();
+    await page.getByRole('menuitem', { name: 'History' }).click();
     const dialog = page.getByRole('dialog', { name: 'Version history' });
     await expect(dialog.getByRole('button', { name: 'Preview version 2' })).toBeVisible();
     await expect(dialog.getByRole('button', { name: 'Preview version 1' })).toBeVisible();
@@ -96,12 +94,8 @@ test.describe('version history', () => {
     const pm = page.locator('.ProseMirror');
     await expect(pm.getByText('The newer draft')).toBeVisible();
 
-    if (onPhone()) {
-      await openMore(page);
-      await page.getByRole('menuitem', { name: 'History' }).click();
-    } else {
-      await page.getByRole('button', { name: 'History' }).click();
-    }
+    await page.getByRole('button', { name: onPhone() ? 'More' : 'More actions', exact: true }).click();
+    await page.getByRole('menuitem', { name: 'History' }).click();
     const dialog = page.getByRole('dialog', { name: 'Version history' });
     const row = dialog.getByRole('listitem').filter({ has: page.getByRole('button', { name: 'Preview version 1' }) });
     await row.getByRole('button', { name: 'Restore' }).click();

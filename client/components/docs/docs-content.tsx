@@ -39,6 +39,8 @@ import { FigureVariable } from '~/components/docs/figure-variable';
 import { FigureAnatomy } from '~/components/docs/figure-anatomy';
 import { FigureFlow } from '~/components/docs/figure-flow';
 import { ShortcutTable } from '~/components/docs/shortcut-table';
+import { docsPanel } from '~/components/docs/panel';
+import { cn } from '~/lib/classname';
 
 /* --------------------------------------------------------------- primitives */
 
@@ -95,7 +97,7 @@ export function P({ children }: { children: ReactNode }) {
 /** A request or response shape, shown as it is sent or arrives. */
 export function Block({ children }: { children: string }) {
   return (
-    <pre className="mt-5 max-w-2xl overflow-x-auto rounded-md border border-line bg-raised p-4 font-mono text-sm leading-relaxed text-ink">
+    <pre className={cn(docsPanel, 'mt-5 max-w-2xl overflow-x-auto p-4 font-mono text-ui leading-relaxed text-ink')}>
       <code>{children}</code>
     </pre>
   );
@@ -103,7 +105,7 @@ export function Block({ children }: { children: string }) {
 
 export function Code({ children }: { children: ReactNode }) {
   return (
-    <code className="rounded-xs border border-line bg-raised px-1.5 py-0.5 font-mono text-sm text-ink">
+    <code className="rounded-sm bg-sunken px-1.5 py-0.5 font-mono text-ui break-words text-ink [overflow-wrap:anywhere]">
       {children}
     </code>
   );

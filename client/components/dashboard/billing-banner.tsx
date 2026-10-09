@@ -13,8 +13,10 @@ import { cn } from '~/lib/classname';
 
 /**
  * A billing state worth knowing from anywhere. Danger is for what already
- * blocks work (read-only); warn is for what will unless someone acts. The
- * colour is a stripe and an icon, never the text: warn is a fill.
+ * blocks work (read-only); warn is for what will unless someone acts. It is
+ * the page-level notice the templates list draws for a pending sign-off: the
+ * tone's wash on the card's corners, its ink on the title, so the two read
+ * as one kind of thing wherever they appear.
  */
 export function BillingNotice({
   tone,
@@ -30,20 +32,20 @@ export function BillingNotice({
   onDismiss?: () => void;
 }) {
   const Icon = tone === 'danger' ? LockIcon : ClockIcon;
+  const ink = tone === 'danger' ? 'text-danger-ink' : 'text-warn-ink';
   return (
     <div
       role="status"
-      className="relative flex flex-wrap items-center justify-between gap-3 overflow-hidden rounded-lg border border-line bg-raised py-3 pl-4 pr-3 shadow-sm"
+      className={cn(
+        'flex flex-wrap items-center justify-between gap-x-6 gap-y-3 rounded-card px-6 py-4',
+        tone === 'danger' ? 'bg-danger-wash' : 'bg-warn-wash',
+      )}
     >
-      <span aria-hidden className={cn('absolute inset-y-0 left-0 w-1', tone === 'danger' ? 'bg-danger' : 'bg-warn')} />
-      <div className="flex min-w-0 flex-1 basis-64 items-start gap-2.5">
-        <Icon
-          aria-hidden
-          className={cn('mt-0.5 size-4 shrink-0', tone === 'danger' ? 'text-danger-ink' : 'text-warn-ink')}
-        />
+      <div className="flex min-w-0 flex-1 basis-64 items-start gap-3">
+        <Icon aria-hidden className={cn('mt-1 size-5 shrink-0', ink)} />
         <div className="min-w-0">
-          <p className="text-sm font-medium text-ink">{title}</p>
-          <p className="mt-0.5 text-sm text-muted">{detail}</p>
+          <p className={cn('text-18 font-bold', ink)}>{title}</p>
+          <p className="mt-0.5 text-ui text-muted">{detail}</p>
         </div>
       </div>
       {action || onDismiss ? (
@@ -89,7 +91,7 @@ function UpdateCardButton() {
   const portal = usePortal();
   return (
     <Button variant="primary" size="sm" touch onClick={() => portal.mutate()} disabled={portal.isPending}>
-      {portal.isPending ? <Loader2Icon className="animate-spin" /> : null}
+      {portal.isPending ? <Loader2Icon className="animate-spin motion-reduce:animate-none" /> : null}
       Update card
     </Button>
   );

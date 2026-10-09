@@ -100,7 +100,7 @@ export function AssetGrid(props: Props) {
           busy
           media={
             <div className="flex aspect-[4/3] items-center justify-center bg-sunken">
-              <Loader2Icon className="size-5 animate-spin text-faint" />
+              <Loader2Icon className="size-5 animate-spin text-faint motion-reduce:animate-none" />
             </div>
           }
           title={file.name}
@@ -158,18 +158,18 @@ function AssetList(props: Props) {
           key={file.id}
           busy
           leading={
-            <div className="flex size-10 items-center justify-center rounded-sm bg-sunken">
-              <Loader2Icon className="size-4 animate-spin text-faint" />
+            <div className="flex size-10 items-center justify-center rounded-lg bg-sunken">
+              <Loader2Icon className="size-4 animate-spin text-faint motion-reduce:animate-none" />
             </div>
           }
           title={<span title={file.name}>{file.name}</span>}
-          meta={<p className="shrink-0 text-2xs text-muted tabular-nums">Uploading · {formatBytes(file.bytes)}</p>}
+          meta={<p className="shrink-0 text-sm text-muted tabular-nums">Uploading · {formatBytes(file.bytes)}</p>}
         />
       ))}
       {assets.map((asset) => {
         const slots = {
           leading: (
-            <div className="flex size-10 items-center justify-center overflow-hidden rounded-sm bg-sunken">
+            <div className="flex size-10 items-center justify-center overflow-hidden rounded-lg bg-sunken">
               <img
                 src={withTransform(asset.url, THUMB_TRANSFORM)}
                 alt=""
@@ -181,8 +181,8 @@ function AssetList(props: Props) {
           title: <span title={asset.name}>{asset.name}</span>,
           meta: (
             <>
-              <p className="hidden w-32 shrink-0 truncate text-2xs text-muted tabular-nums sm:block">{assetMeta(asset)}</p>
-              <p className="hidden w-24 shrink-0 text-2xs text-muted tabular-nums md:block">{assetDate(asset)}</p>
+              <p className="hidden w-36 shrink-0 truncate text-sm text-muted tabular-nums sm:block">{assetMeta(asset)}</p>
+              <p className="hidden w-28 shrink-0 text-sm text-muted tabular-nums md:block">{assetDate(asset)}</p>
             </>
           ),
         };

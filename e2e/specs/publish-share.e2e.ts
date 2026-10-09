@@ -72,25 +72,17 @@ test.describe('publish and share', () => {
     const title = name('shared');
     const { id } = await api.createTemplate({ title });
     await open(page, id);
-    // The phone is driven by touch here, not by the emulated mouse: the ⋯
-    // menu hands focus to its own content when a mouse pointer leaves an
-    // item, and the popover anchored to that item reads the move as focus
-    // outside itself and closes. A finger never hovers, so a tap keeps the
-    // popover up the way it stays up for a customer.
+    // The phone is driven by touch, as a customer drives it.
     const press = (target: Locator) => (onPhone() ? target.tap() : target.click());
-    // The popover carries no name of its own; its heading is what tells it
-    // apart. On the phone it anchors to a menu item and the menu stays open
-    // under it, so it is opened only when it is not already up: a second tap
-    // on ⋯ would close the menu instead.
+    // The dialog is told apart by its title. On both shells it opens from an
+    // item of the ⋯ menu ("More" on the phone, "More actions" on the desktop)
+    // and the menu stays open under it, so it is opened only when it is not
+    // already up: a second press on ⋯ would close the menu instead.
     const share = page.getByRole('dialog').filter({ hasText: 'Review link' });
     const openShare = async () => {
       if (await share.isVisible()) return share;
-      if (onPhone()) {
-        await openMore(page);
-        await press(page.getByRole('menuitem', { name: 'Share link' }));
-      } else {
-        await page.getByRole('button', { name: 'Share a review link' }).click();
-      }
+      await press(page.getByRole('button', { name: onPhone() ? 'More' : 'More actions', exact: true }));
+      await press(page.getByRole('menuitem', { name: 'Share link' }));
       return share;
     };
     let popover = await openShare();

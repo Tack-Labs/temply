@@ -1,5 +1,7 @@
 import { Code, H2, P } from '~/components/docs/docs-content';
 import { FigureDarkMode } from '~/components/docs/figure-dark-mode';
+import { docsPanelRows } from '~/components/docs/panel';
+import { cn } from '~/lib/classname';
 
 /**
  * What a dark inbox does to an email, and which part of that Temply can
@@ -44,23 +46,23 @@ export function DarkMode() {
         depends on which of three kinds of client opens it.
       </P>
 
-      <div className="mt-5 max-w-2xl overflow-x-auto rounded-md border border-line bg-raised">
+      <div className={cn(docsPanelRows, 'mt-5 max-w-2xl overflow-x-auto')}>
         {/* Wider than a phone on purpose: three columns squeezed to 390px read
             as a list of syllables. The wrapper scrolls it instead. */}
-        <table className="w-full min-w-[36rem] text-sm">
+        <table className="w-full min-w-[36rem] text-ui">
           <thead>
             <tr className="border-b border-line text-left text-2xs font-medium tracking-wide text-muted uppercase">
-              <th className="px-4 py-2.5 font-medium">The client</th>
-              <th className="px-4 py-2.5 font-medium">In dark mode</th>
-              <th className="px-4 py-2.5 font-medium">For example</th>
+              <th className="px-4 py-3 font-medium">The client</th>
+              <th className="px-4 py-3 font-medium">In dark mode</th>
+              <th className="px-4 py-3 font-medium">For example</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-line">
             {KINDS.map((row) => (
               <tr key={row.kind} className="align-top">
-                <td className="px-4 py-2.5 font-medium whitespace-nowrap text-ink">{row.kind}</td>
-                <td className="px-4 py-2.5 text-muted">{row.does}</td>
-                <td className="px-4 py-2.5 text-muted">{row.examples}</td>
+                <td className="px-4 py-3 font-medium whitespace-nowrap text-ink">{row.kind}</td>
+                <td className="px-4 py-3 text-muted">{row.does}</td>
+                <td className="px-4 py-3 text-muted">{row.examples}</td>
               </tr>
             ))}
           </tbody>

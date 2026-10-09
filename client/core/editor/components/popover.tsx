@@ -32,7 +32,9 @@ const PopoverContent = React.forwardRef<
           // A popover opened from inside a heading is still a form, not a
           // heading: reset the type it would otherwise inherit from the node
           // it sits in, since it is not portaled out of the document.
-          'mly:z-9999 mly:w-72 mly:rounded-md mly:border mly:border-gray-200 mly:bg-panel mly:p-4 mly:text-sm mly:font-normal mly:leading-normal mly:not-italic mly:text-gray-950 mly:shadow-md ',
+          // The app's anchored panel (components/ui/popover.tsx): 16px
+          // corners, no hairline, the menu's rung on the shadow ladder.
+          'mly:z-9999 mly:w-72 mly:rounded-xl mly:bg-panel mly:p-4 mly:text-sm mly:font-normal mly:leading-normal mly:not-italic mly:text-gray-950 mly:shadow-lg ',
           'mly-editor',
           className
         )}

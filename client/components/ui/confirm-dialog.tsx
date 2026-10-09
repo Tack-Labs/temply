@@ -53,7 +53,7 @@ export function ConfirmDialog({
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       {children ? <DialogTrigger asChild>{children}</DialogTrigger> : null}
-      <DialogContent className="max-w-xs p-4" onCloseAutoFocus={onCloseAutoFocus}>
+      <DialogContent className="max-w-xs p-5" onCloseAutoFocus={onCloseAutoFocus}>
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
           <DialogDescription>{description}</DialogDescription>

@@ -231,7 +231,7 @@ export default function HomeContent() {
               </h2>
               <p className="mt-4 max-w-xl text-lg text-pretty text-ink-soft">
                 Press{' '}
-                <kbd className="rounded-md border border-line bg-raised px-1.5 py-0.5 font-mono text-sm text-ink">
+                <kbd className="rounded-sm bg-raised px-1.5 py-0.5 font-mono text-base text-ink shadow-xs">
                   /
                 </kbd>{' '}
                 anywhere on the canvas and the whole set is one keystroke away.
@@ -305,7 +305,7 @@ export default function HomeContent() {
               inset={false}
               role="group"
               aria-labelledby="tier-free-trial"
-              className="grid min-w-0 grid-cols-1 gap-x-12 gap-y-5.5 rounded-2xl border-[1.5px] p-6 shadow-none sm:p-9 lg:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]"
+              className="grid min-w-0 grid-cols-1 gap-x-12 gap-y-5.5 rounded-card border-[1.5px] p-6 shadow-none sm:p-9 lg:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]"
             >
               <div className="flex min-w-0 flex-col gap-5.5 lg:row-span-2">
                 <h3 id="tier-free-trial" className="font-display text-26 font-bold tracking-display text-ink">
@@ -342,7 +342,7 @@ export default function HomeContent() {
                 inset={false}
                 role="group"
                 aria-labelledby="tier-team"
-                className="flex min-w-0 flex-col gap-5.5 rounded-2xl border-transparent p-6 shadow-md sm:p-9"
+                className="flex min-w-0 flex-col gap-5.5 rounded-card border-transparent p-6 shadow-md sm:p-9"
               >
                 <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
                   <h3 id="tier-team" className="font-display text-26 font-bold tracking-display text-ink">
@@ -384,7 +384,7 @@ export default function HomeContent() {
                 inset={false}
                 role="group"
                 aria-labelledby="tier-enterprise"
-                className="flex min-w-0 flex-col gap-5.5 rounded-2xl border-[1.5px] p-6 shadow-none sm:p-9"
+                className="flex min-w-0 flex-col gap-5.5 rounded-card border-[1.5px] p-6 shadow-none sm:p-9"
               >
                 <h3 id="tier-enterprise" className="font-display text-26 font-bold tracking-display text-ink">
                   Enterprise
@@ -413,7 +413,7 @@ export default function HomeContent() {
             inset={false}
             role="group"
             aria-labelledby="tier-template-pack"
-            className="mt-5 flex min-w-0 flex-wrap items-center justify-between gap-x-8 gap-y-4 rounded-2xl border-transparent bg-warn-wash px-5 py-5 shadow-none sm:px-7"
+            className="mt-5 flex min-w-0 flex-wrap items-center justify-between gap-x-8 gap-y-4 rounded-card border-transparent bg-warn-wash px-5 py-5 shadow-none sm:px-7"
           >
             <div className="flex max-w-160 min-w-0 flex-col gap-1">
               <div className="flex flex-wrap items-center gap-x-2 gap-y-1.5">
@@ -444,7 +444,7 @@ export default function HomeContent() {
             <strong className="font-semibold text-ink">Every render counts as a call, repeats included.</strong>{' '}
             Render a broadcast once and send the same HTML to everyone, and cache
             on the template&apos;s{' '}
-            <code className="rounded-xs border border-line bg-raised px-1 py-0.5 font-mono text-xs text-ink">
+            <code className="rounded-sm bg-raised px-1.5 py-0.5 font-mono text-sm text-ink shadow-xs">
               updatedAt
             </code>{' '}
             instead of rendering on every send.{' '}

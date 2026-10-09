@@ -66,15 +66,17 @@ export function Sidebar({
     >
       <div className="flex shrink-0 flex-col gap-4">
         <div className="flex items-center justify-between gap-2">
-          {/* 8px in from the column's padding puts the mark on the line the
-              user block's avatar sits on, and the 44px row is the target. */}
+          {/* The lockup at the 30px the marketing header draws it, 14px in
+              from the column's padding so the mark stands on the line the
+              nav icons, the workspace's avatar and the user block's avatar
+              share; the 44px row is the target. */}
           <Link
             href="/dashboard"
             aria-label="Temply"
             onClick={onNavigate}
-            className={cn('flex h-11 items-center rounded-field px-2', pressable)}
+            className={cn('flex h-11 items-center rounded-field px-3.5', pressable)}
           >
-            <BrandLogo className="h-8.75 w-auto" />
+            <BrandLogo className="h-7.5 w-auto" />
           </Link>
           {headerAction}
         </div>

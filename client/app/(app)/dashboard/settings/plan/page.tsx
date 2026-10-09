@@ -22,7 +22,8 @@ import {
 import { Button } from '~/components/ui/button';
 import { ConfirmDialog } from '~/components/ui/confirm-dialog';
 import { PageLoading } from '~/components/ui/page-loading';
-import { Badge, Card, ErrorState, Reveal } from '~/components/ui/surfaces';
+import { SectionHeading } from '~/components/dashboard/section-heading';
+import { Badge, Card, ErrorState, Reveal, StatTile, type StatBarTone } from '~/components/ui/surfaces';
 import { useMinimumDisplay } from '~/hooks/use-minimum-display';
 import {
   type Billing,
@@ -34,7 +35,6 @@ import {
   usePortal,
   useSetTemplatePacks,
 } from '~/lib/billing';
-import { cn } from '~/lib/classname';
 import { SALES_EMAIL } from '~/lib/site';
 
 /**
@@ -52,14 +52,13 @@ const approxUsd = (usd: number) => (usd > 0 && usd < 0.01 ? 'under $0.01' : form
 
 const ADMIN_ONLY = 'Ask an admin to change the plan.';
 
-type Tone = 'accent' | 'warn' | 'danger';
-const FILLS: Record<Tone, string> = { accent: 'bg-accent', warn: 'bg-warn', danger: 'bg-danger' };
+type Tone = Extract<StatBarTone, 'accent' | 'warn' | 'danger'>;
 
 function PortalButton({ label, variant = 'secondary' }: { label: string; variant?: 'primary' | 'secondary' }) {
   const portal = usePortal();
   return (
-    <Button size="compact" variant={variant} onClick={() => portal.mutate()} disabled={portal.isPending}>
-      {portal.isPending ? <Loader2Icon className="animate-spin" /> : null}
+    <Button variant={variant} onClick={() => portal.mutate()} disabled={portal.isPending}>
+      {portal.isPending ? <Loader2Icon className="animate-spin motion-reduce:animate-none" /> : null}
       {label}
     </Button>
   );
@@ -137,23 +136,23 @@ function PlanSummary({ billing, isAdmin }: { billing: Billing; isAdmin: boolean 
           {plan === 'team' ? (
             <div>
               <p className="flex items-baseline gap-1">
-                <span className="font-display text-2xl font-semibold tracking-display tabular-nums text-ink">
+                <span className="font-display text-34 font-bold tracking-display tabular-nums text-ink">
                   {formatUsd(monthlyUsd(seats, packs))}
                 </span>
-                <span className="text-sm text-muted">a month</span>
+                <span className="text-ui text-muted">a month</span>
               </p>
-              <p className="text-xs tabular-nums text-muted">
+              <p className="text-base tabular-nums text-muted">
                 {plural(seats, 'member')} × {formatUsd(PRICES_USD.seat)}
                 {packs > 0 ? ` + ${plural(packs, 'template pack')} × ${formatUsd(PRICES_USD.templatePack)}` : ''}
                 , plus {formatUsd(PRICES_USD.overagePer1000Calls)} per 1,000 API calls past {count(INCLUDED.apiCalls)}
               </p>
             </div>
           ) : null}
-          <p className="max-w-prose text-sm text-muted">{detail}</p>
+          <p className="max-w-prose text-ui text-muted">{detail}</p>
         </div>
         {action ? <div className="shrink-0">{action}</div> : null}
       </div>
-      {paid && !isAdmin ? <p className="mt-3 text-xs text-muted">{ADMIN_ONLY}</p> : null}
+      {paid && !isAdmin ? <p className="mt-3 text-base text-muted">{ADMIN_ONLY}</p> : null}
     </Card>
   );
 }
@@ -168,24 +167,24 @@ function PackStepper({
   disabled?: boolean;
 }) {
   return (
-    <div role="group" aria-label="Template packs" className="inline-flex items-center gap-0.5 rounded-md border border-line bg-raised p-0.5">
+    // The stepper sits in the same track the segmented control cuts into
+    // the page, so the two kinds of small chooser read as one family.
+    <div role="group" aria-label="Template packs" className="inline-flex items-center gap-0.5 rounded-full bg-track p-1">
       <Button
         variant="ghost"
-        size="icon-sm"
-        touch
+        size="icon"
         aria-label="Remove a pack"
         disabled={disabled || value <= 0}
         onClick={() => onChange(value - 1)}
       >
         <MinusIcon />
       </Button>
-      <output aria-live="polite" className="w-7 text-center text-sm font-medium tabular-nums text-ink">
+      <output aria-live="polite" className="w-8 text-center text-ui font-bold tabular-nums text-ink">
         {value}
       </output>
       <Button
         variant="ghost"
-        size="icon-sm"
-        touch
+        size="icon"
         aria-label="Add a pack"
         disabled={disabled || value >= MAX_TEMPLATE_PACKS}
         onClick={() => onChange(value + 1)}
@@ -198,12 +197,12 @@ function PackStepper({
 
 function LineItem({ label, detail, children }: { label: string; detail: string; children: React.ReactNode }) {
   return (
-    <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 py-3 first:pt-0">
+    <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 py-3.5 first:pt-0">
       <div className="min-w-0 flex-1 basis-56">
-        <dt className="text-sm font-medium text-ink">{label}</dt>
-        <p className="text-xs text-muted">{detail}</p>
+        <dt className="text-ui font-bold text-ink">{label}</dt>
+        <p className="mt-0.5 text-base text-muted">{detail}</p>
       </div>
-      <dd className="text-sm tabular-nums text-ink">{children}</dd>
+      <dd className="text-ui tabular-nums text-ink">{children}</dd>
     </div>
   );
 }
@@ -220,8 +219,8 @@ function SubscribePanel({ billing, isAdmin }: { billing: Billing; isAdmin: boole
 
   return (
     <Card>
-      <h2 className="text-sm font-semibold text-ink">Subscribe to Team</h2>
-      <p className="mt-1 text-sm text-muted">
+      <h2 className="font-display text-lg font-semibold tracking-display text-ink">Subscribe to Team</h2>
+      <p className="mt-1 text-ui text-muted">
         {billing.plan === 'lapsed'
           ? 'Subscribing makes the workspace editable again straight away, with everything as you left it.'
           : 'Subscribing ends the trial now; your templates, keys and history carry straight over.'}
@@ -245,57 +244,43 @@ function SubscribePanel({ billing, isAdmin }: { billing: Billing; isAdmin: boole
         </LineItem>
       </dl>
 
-      <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-line pt-4">
+      {/* The rule above the total is one more of the list's dividers, at the
+          same distance from the row above it. */}
+      <div className="flex flex-wrap items-center justify-between gap-3 border-t border-line pt-4">
         <div>
           <p className="flex items-baseline gap-1">
-            <span className="font-display text-2xl font-semibold tracking-display tabular-nums text-ink">{formatUsd(total)}</span>
-            <span className="text-sm text-muted">a month</span>
+            <span className="font-display text-34 font-bold tracking-display tabular-nums text-ink">{formatUsd(total)}</span>
+            <span className="text-ui text-muted">a month</span>
           </p>
-          <p className="text-xs text-muted">Charged today for the rest of the month, then on the 1st.</p>
+          <p className="text-base text-muted">Charged today for the rest of the month, then on the 1st.</p>
         </div>
         {isAdmin ? (
           <Button
-            size="compact"
             variant="primary"
             onClick={() => checkout.mutate(packs)}
             disabled={checkout.isPending || !billing.billingConfigured}
           >
-            {checkout.isPending ? <Loader2Icon className="animate-spin" /> : null}
+            {checkout.isPending ? <Loader2Icon className="animate-spin motion-reduce:animate-none" /> : null}
             Subscribe · {formatUsd(total)}/month
           </Button>
         ) : (
-          <p className="text-sm text-muted">Ask an admin to subscribe.</p>
+          <p className="text-ui text-muted">Ask an admin to subscribe.</p>
         )}
       </div>
       {isAdmin && !billing.billingConfigured ? (
-        <p className="mt-2 text-xs text-muted">Billing isn’t set up on this server, so nothing can be bought here.</p>
+        <p className="mt-2 text-base text-muted">Billing isn’t set up on this server, so nothing can be bought here.</p>
       ) : null}
     </Card>
   );
 }
 
-function UsageTile({
-  label,
-  value,
-  className,
-  children,
-}: {
-  label: string;
-  value: React.ReactNode;
-  className?: string;
-  children?: React.ReactNode;
-}) {
-  return (
-    <Card className={cn('p-3.5', className)}>
-      <div className="flex flex-wrap items-baseline justify-between gap-x-2 gap-y-0.5">
-        <p className="text-xs text-muted">{label}</p>
-        <p className="text-sm tabular-nums text-ink">{value}</p>
-      </div>
-      {children}
-    </Card>
-  );
+/** The count beside its ceiling, as the dashboard home's tiles print it. */
+function Caption({ children }: { children: React.ReactNode }) {
+  return <span className="font-sans text-ui font-medium tracking-normal text-muted">{children}</span>;
 }
 
+/** The same tile the dashboard home draws for these numbers, so the two
+ *  pages agree on what a usage figure looks like. */
 function Meter({
   label,
   used,
@@ -318,37 +303,20 @@ function Meter({
   className?: string;
 }) {
   const fill = tone ?? (limit !== null && used >= limit ? 'danger' : 'accent');
-  const pct = limit ? Math.min(100, (used / limit) * 100) : 0;
-  const of = limit === null ? '· no limit' : `of ${format(limit)}${limitSuffix}`;
+  const of = limit === null ? 'no limit' : `of ${format(limit)}${limitSuffix}`;
 
   return (
-    <UsageTile
+    <StatTile
       label={label}
       className={className}
       value={
         <>
-          {format(used)} <span className="text-muted">{of}</span>
+          {format(used)} <Caption>{of}</Caption>
         </>
       }
-    >
-      {limit !== null ? (
-        <div
-          role="progressbar"
-          aria-label={label}
-          aria-valuemin={0}
-          aria-valuemax={limit}
-          aria-valuenow={Math.min(used, limit)}
-          aria-valuetext={`${format(used)} ${of}`}
-          className="mt-2.5 h-1.5 overflow-hidden rounded-full bg-hover"
-        >
-          <div
-            className={cn('h-full rounded-full transition-[width] duration-slow ease-out motion-reduce:transition-none', FILLS[fill])}
-            style={{ width: `${pct}%` }}
-          />
-        </div>
-      ) : null}
-      {hint ? <p className="mt-2 text-xs text-muted">{hint}</p> : null}
-    </UsageTile>
+      bar={limit !== null ? { value: used / limit, tone: fill, text: `${format(used)} ${of}` } : undefined}
+      hint={hint}
+    />
   );
 }
 
@@ -401,11 +369,9 @@ function Usage({ billing }: { billing: Billing }) {
     storageLimit !== null && usage.storageBytes < storageLimit && usage.storageBytes >= storageLimit * 0.9 ? 'warn' : undefined;
 
   return (
-    <section aria-labelledby="usage-heading" className="space-y-2.5">
-      <h2 id="usage-heading" className="text-sm font-semibold text-ink">
-        Usage
-      </h2>
-      <div className="grid gap-3 sm:grid-cols-2">
+    <section aria-labelledby="usage-heading" className="space-y-3.5">
+      <SectionHeading id="usage-heading">Usage</SectionHeading>
+      <div className="grid gap-4.5 sm:grid-cols-2">
         <Meter
           className="sm:col-span-2"
           label="Live API calls this month"
@@ -416,17 +382,23 @@ function Usage({ billing }: { billing: Billing }) {
           hint={apiHint}
         />
         <Meter label="Templates" used={usage.templates} limit={limits.maxTemplates} hint={templatesHint} />
-        <UsageTile
+        <StatTile
           label="Versions kept"
-          value={limits.maxVersions === null ? 'No limit' : `${count(limits.maxVersions)} per template`}
-        >
-          <p className="mt-2 text-xs text-muted">
-            The oldest goes when a publish passes it.
-            {plan !== 'enterprise' && limits.maxVersions !== TEMPLATE_PACK.versionsPerTemplate
+          value={
+            limits.maxVersions === null ? (
+              'No limit'
+            ) : (
+              <>
+                {count(limits.maxVersions)} <Caption>per template</Caption>
+              </>
+            )
+          }
+          hint={`The oldest goes when a publish passes it.${
+            plan !== 'enterprise' && limits.maxVersions !== TEMPLATE_PACK.versionsPerTemplate
               ? ` ${TEMPLATE_PACK.versionsPerTemplate} with any template pack.`
-              : ''}
-          </p>
-        </UsageTile>
+              : ''
+          }`}
+        />
         <Meter label="Live API keys" used={usage.apiKeys} limit={limits.maxApiKeys} hint="Test keys don’t count." />
         <Meter
           label="Image storage"
@@ -460,8 +432,8 @@ function TemplatePacks({ billing, isAdmin }: { billing: Billing; isAdmin: boolea
     <Card>
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0 flex-1 basis-64">
-          <h2 className="text-sm font-semibold text-ink">Template packs</h2>
-          <p className="mt-1 text-sm text-muted">
+          <h2 className="font-display text-lg font-semibold tracking-display text-ink">Template packs</h2>
+          <p className="mt-1 text-ui text-muted">
             Each pack adds {TEMPLATE_PACK.templates} templates for {formatUsd(PRICES_USD.templatePack)} a month. Any
             pack keeps {TEMPLATE_PACK.versionsPerTemplate} versions of every template instead of{' '}
             {INCLUDED.versionsPerTemplate}.
@@ -470,19 +442,19 @@ function TemplatePacks({ billing, isAdmin }: { billing: Billing; isAdmin: boolea
         {isAdmin ? (
           <PackStepper value={draft} onChange={setDraft} disabled={setPacks.isPending} />
         ) : (
-          <p className="text-sm tabular-nums text-ink">{plural(current, 'pack')}</p>
+          <p className="text-ui tabular-nums text-ink">{plural(current, 'pack')}</p>
         )}
       </div>
 
       <Reveal open={isAdmin && draft !== current}>
         <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-line pt-4">
           {toDelete > 0 ? (
-            <p className="text-sm text-danger-ink">
+            <p className="text-base text-danger-ink">
               You have {plural(billing.usage.templates, 'template')} and {plural(draft, 'pack')} allow {allows}.
               Delete {plural(toDelete, 'template')} first.
             </p>
           ) : (
-            <p className="text-sm text-muted">
+            <p className="text-base text-muted">
               {allows} templates ·{' '}
               <span className="tabular-nums text-ink">
                 {formatUsd(monthlyUsd(seats, current))} → {formatUsd(monthlyUsd(seats, draft))}
@@ -501,14 +473,14 @@ function TemplatePacks({ billing, isAdmin }: { billing: Billing; isAdmin: boolea
               disabled={toDelete > 0 || setPacks.isPending}
               onClick={() => (current > 0 && draft === 0 ? setConfirmOpen(true) : save())}
             >
-              {setPacks.isPending ? <Loader2Icon className="animate-spin" /> : null}
+              {setPacks.isPending ? <Loader2Icon className="animate-spin motion-reduce:animate-none" /> : null}
               Update packs
             </Button>
           </div>
         </div>
       </Reveal>
 
-      {!isAdmin ? <p className="mt-3 text-xs text-muted">{ADMIN_ONLY}</p> : null}
+      {!isAdmin ? <p className="mt-3 text-base text-muted">{ADMIN_ONLY}</p> : null}
 
       <ConfirmDialog
         open={confirmOpen}
@@ -526,17 +498,17 @@ function TemplatePacks({ billing, isAdmin }: { billing: Billing; isAdmin: boolea
 function CachingTip() {
   return (
     <Card className="flex gap-3">
-      <ZapIcon className="mt-0.5 size-4 shrink-0 text-accent-ink" aria-hidden />
+      <ZapIcon className="mt-1 size-5 shrink-0 text-accent-ink" aria-hidden />
       <div className="min-w-0 space-y-1">
-        <p className="text-sm font-medium text-ink">Cache renders to make fewer calls</p>
-        <p className="text-sm text-muted">
+        <p className="text-base font-bold text-ink">Cache renders to make fewer calls</p>
+        <p className="text-ui text-muted">
           Every live call counts, repeats included. Render a broadcast once and send the same HTML to everyone, and
-          keep renders under the template’s <code className="font-mono text-xs">updatedAt</code>. It only changes when
+          keep renders under the template’s <code className="rounded-sm bg-sunken px-1.5 py-0.5 font-mono text-sm text-ink">updatedAt</code>. It only changes when
           someone publishes.
         </p>
         <Link
           href="/docs#caching"
-          className="inline-block text-sm font-medium text-accent-ink underline-offset-4 hover:underline"
+          className="inline-block text-ui font-semibold text-accent-ink underline-offset-4 transition-colors duration-fast ease-out hover:underline motion-reduce:transition-none"
         >
           How to cache renders
         </Link>
@@ -549,14 +521,14 @@ function EnterpriseCard() {
   return (
     <Card className="flex flex-wrap items-center justify-between gap-3">
       <div className="min-w-0 flex-1 basis-64">
-        <p className="text-sm font-medium text-ink">Enterprise</p>
-        <p className="mt-0.5 text-sm text-muted">
+        <p className="text-base font-bold text-ink">Enterprise</p>
+        <p className="mt-0.5 text-ui text-muted">
           Unlimited templates, keys and API calls, with 100 versions per template. Priced with you.
         </p>
       </div>
       {/* Enterprise is arranged by hand, never through checkout — whatever
           plan the reader is on, the way in is a conversation. */}
-      <Button size="compact" asChild>
+      <Button asChild>
         <a href={`mailto:${SALES_EMAIL}?subject=Temply%20Enterprise`}>Contact sales</a>
       </Button>
     </Card>
@@ -621,7 +593,7 @@ function PlanContent() {
           <div className="pb-5">
             <Card className="flex items-center gap-3" role="status">
               <Loader2Icon className="size-4 shrink-0 animate-spin text-accent-ink" aria-hidden />
-              <p className="text-sm text-ink">Confirming your subscription with Stripe…</p>
+              <p className="text-ui text-ink">Confirming your subscription with Stripe…</p>
             </Card>
           </div>
         </Reveal>

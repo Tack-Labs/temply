@@ -36,7 +36,7 @@ export function VariableBubbleMenu(props: EditorBubbleMenuProps) {
         <MenuToolbar
           editor={editor}
           label="Variable"
-          className="mly:flex mly:gap-0.5 mly:rounded-lg mly:border mly:border-slate-200 mly:bg-panel mly:p-0.5 mly:shadow-md"
+          className="mly:flex mly:gap-0.5 mly:rounded-xl mly:bg-panel mly:p-[3px] mly:shadow-lg"
         >
           <VariableMenuContent editor={editor} />
         </MenuToolbar>

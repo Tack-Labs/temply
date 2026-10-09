@@ -82,11 +82,11 @@ export function ThemeIssueHint({ issues }: { issues: ContrastIssue[] }) {
           <AlertTriangleIcon className="size-3" />
         </button>
       </PopoverTrigger>
-      <PopoverContent className="w-72">
-        <p className="text-sm font-medium text-ink">Hard to read with this colour</p>
-        <ul className="mt-1.5 space-y-1">
+      <PopoverContent>
+        <p className="text-base font-bold text-ink">Hard to read with this colour</p>
+        <ul className="mt-2 space-y-1.5">
           {issues.map((issue) => (
-            <li key={`${issue.subject}-${issue.where}`} className="text-xs text-muted">
+            <li key={`${issue.subject}-${issue.where}`} className="text-sm text-muted">
               <span className="text-ink">{issue.subject}</span> sit
               {issue.subject.endsWith('s') ? '' : 's'} at{' '}
               <span className="font-mono tabular-nums">{issue.ratio}:1</span> against the background

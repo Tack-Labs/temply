@@ -24,7 +24,7 @@ export function FigureDarkMode() {
           </div>
         </Panel>
       </div>
-      <figcaption className="mt-4 max-w-xl text-sm text-pretty text-muted">
+      <figcaption className="mt-4 max-w-xl text-base text-pretty text-muted">
         Two of three show what you designed. The third is the inversion the
         Forced dark preview draws, with the logo kept the right way round.
       </figcaption>

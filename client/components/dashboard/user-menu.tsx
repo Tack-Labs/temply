@@ -64,7 +64,9 @@ export function UserMenu({ align = 'end', showLabel = true }: UserMenuProps) {
           aria-label={showLabel ? `Account: ${user?.fullName ?? 'User'}` : 'Account'}
           className={cn(
             'flex w-full items-center gap-3 text-ui text-ink hover:bg-hover pointer-coarse:min-h-11',
-            showLabel ? 'rounded-field px-2 py-1.5' : 'rounded-full p-1.5 pointer-coarse:min-w-11',
+            // 14px in, the nav rows' inset, so the avatar stands on the line
+            // the icons above it do.
+            showLabel ? 'rounded-field px-3.5 py-1.5' : 'rounded-full p-1.5 pointer-coarse:min-w-11',
             pressable,
           )}
         >
@@ -73,7 +75,7 @@ export function UserMenu({ align = 'end', showLabel = true }: UserMenuProps) {
           <span
             className={cn(
               'flex shrink-0 items-center justify-center rounded-full bg-peach-wash font-bold text-peach-ink',
-              showLabel ? 'size-10 text-ui' : 'size-7 text-xs',
+              'size-10 text-ui',
             )}
           >
             {initials}
@@ -86,18 +88,19 @@ export function UserMenu({ align = 'end', showLabel = true }: UserMenuProps) {
           )}
         </button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align={align} className="w-56">
+      <DropdownMenuContent align={align} className="w-62">
+        {/* The user block again, in the same two lines the trigger draws. */}
         <DropdownMenuLabel>
-          <div className="flex flex-col">
-            <span className="font-medium text-ink">{user?.fullName ?? 'User'}</span>
-            <span className="text-xs font-normal text-muted">{email}</span>
+          <div className="flex flex-col leading-tight">
+            <span className="truncate font-bold text-ink">{user?.fullName ?? 'User'}</span>
+            <span className="truncate text-base text-muted">{email}</span>
           </div>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
         {/* Navigation lives in the sidebar; this menu is about the account. */}
         <DropdownMenuItem asChild>
-          <Link href="/dashboard/settings" className="flex cursor-pointer items-center gap-2">
-            <SettingsIcon className="h-4 w-4" />
+          <Link href="/dashboard/settings">
+            <SettingsIcon />
             Settings
           </Link>
         </DropdownMenuItem>
@@ -106,20 +109,20 @@ export function UserMenu({ align = 'end', showLabel = true }: UserMenuProps) {
             taken at sign-up; these are for reading it again, in a new tab so
             the work on screen stays where it is. */}
         <DropdownMenuItem asChild>
-          <Link href="/terms" target="_blank" rel="noreferrer" className="flex cursor-pointer items-center gap-2 text-muted">
-            <ScrollTextIcon className="h-4 w-4" />
+          <Link href="/terms" target="_blank" rel="noreferrer" className="text-muted hover:text-ink">
+            <ScrollTextIcon />
             Terms
           </Link>
         </DropdownMenuItem>
         <DropdownMenuItem asChild>
-          <Link href="/privacy" target="_blank" rel="noreferrer" className="flex cursor-pointer items-center gap-2 text-muted">
-            <ShieldIcon className="h-4 w-4" />
+          <Link href="/privacy" target="_blank" rel="noreferrer" className="text-muted hover:text-ink">
+            <ShieldIcon />
             Privacy
           </Link>
         </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={() => signOut({ redirectUrl: '/' })}>
-          <LogOutIcon className="h-4 w-4" />
+          <LogOutIcon />
           Sign out
         </DropdownMenuItem>
       </DropdownMenuContent>

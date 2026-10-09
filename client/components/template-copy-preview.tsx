@@ -29,5 +29,5 @@ export function TemplateCopyPreview({ template, copy }: { template: WorkflowTemp
   if (preview.isError) return <ErrorState description={preview.error.message || 'Could not load this preview.'} onRetry={() => void preview.refetch()} />;
   if (!preview.data) return <PageLoading label="Loading the preview…" />;
   return <EmailPreviewIFrame title={`${copy === 'staged' ? 'Staged' : copy === 'live' ? 'Live' : 'Draft'} email preview`}
-    innerHTML={preview.data.html} className="h-[32rem] w-full rounded-lg border border-line bg-canvas" />;
+    innerHTML={preview.data.html} className="h-[32rem] w-full rounded-xl border border-line bg-canvas" />;
 }

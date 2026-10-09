@@ -98,7 +98,7 @@ export const VariableSuggestionsPopover: VariableSuggestionsPopoverType =
       <div
         data-state="open"
         data-side="bottom"
-        className="overlay-panel mly:z-50 mly:w-64 mly:rounded-lg mly:border mly:border-gray-200 mly:bg-panel mly:shadow-md"
+        className="overlay-panel mly:z-50 mly:w-64 mly:overflow-hidden mly:rounded-xl mly:bg-panel mly:shadow-lg"
       >
         <div className="mly:flex mly:items-center mly:justify-between mly:gap-2 mly:border-b mly:border-gray-200 mly:bg-soft-gray/40 mly:px-1 mly:py-1.5 mly:text-gray-500">
           <span className="mly:text-xs mly:uppercase">Variables</span>

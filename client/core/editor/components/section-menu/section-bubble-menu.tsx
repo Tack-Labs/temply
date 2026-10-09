@@ -132,7 +132,7 @@ export function SectionBubbleMenu(props: EditorBubbleMenuProps) {
         <MenuToolbar
           editor={editor}
           label="Section"
-          className="mly:flex mly:items-stretch mly:rounded-lg mly:border mly:border-gray-200 mly:bg-panel mly:p-0.5 mly:shadow-md"
+          className="mly:flex mly:items-stretch mly:rounded-xl mly:bg-panel mly:p-[3px] mly:shadow-lg"
         >
           <SectionMenuContent editor={editor} />
         </MenuToolbar>

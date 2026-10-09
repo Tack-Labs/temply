@@ -40,14 +40,15 @@ export function EditorCheatsheet({ className }: { className?: string }) {
       <DialogTrigger asChild>
         <Button
           variant="ghost"
-          size="icon-sm"
+          size="icon"
           aria-label="Keyboard shortcuts"
           title={
             isApple === null
               ? 'Keyboard shortcuts'
               : `Keyboard shortcuts (${isApple ? '⌘/' : 'Ctrl+/'})`
           }
-          className={className}
+          // 40px, the height of the view switch's pills it sits beside.
+          className={cn('size-10 [&_svg]:size-5', className)}
         >
           <HelpCircleIcon />
         </Button>
@@ -61,26 +62,27 @@ export function EditorCheatsheet({ className }: { className?: string }) {
           </DialogDescription>
         </DialogHeader>
 
-        <div className="grid gap-x-8 gap-y-6 sm:grid-cols-2">
+        <div className="grid gap-x-10 gap-y-8 sm:grid-cols-2">
           {EDITOR_SHORTCUTS.map((group) => (
             <section key={group.title}>
-              <h3 className="text-2xs font-medium tracking-wide text-muted uppercase">
+              <h3 className="text-xs font-bold tracking-widest text-muted uppercase">
                 {group.title}
               </h3>
-              <dl className="mt-2 space-y-1.5">
+              <dl className="mt-3 space-y-2.5">
                 {group.items.map((item) => (
                   <div key={item.keys} className="flex items-baseline gap-3">
                     <dt className="shrink-0">
+                      {/* A key cap: the field's border on a small raised box. */}
                       <kbd
                         className={cn(
-                          'rounded-xs border border-line bg-surface px-1.5 py-0.5 font-mono text-2xs text-ink',
+                          'inline-block rounded-md border-[1.5px] border-line-strong bg-raised px-2 py-0.5 font-mono text-sm text-ink',
                           isApple === null && 'opacity-0'
                         )}
                       >
                         {formatKeys(item.keys, isApple ?? true)}
                       </kbd>
                     </dt>
-                    <dd className="text-sm text-muted">{item.what}</dd>
+                    <dd className="text-ui text-ink-soft">{item.what}</dd>
                   </div>
                 ))}
               </dl>

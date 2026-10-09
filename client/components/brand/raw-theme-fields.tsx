@@ -4,11 +4,12 @@ import type { ReactNode } from 'react';
 import type { RendererThemeOptions } from '@temply/shared/theme';
 import { DEFAULT_RENDERER_THEME } from '@temply/shared/theme';
 import { ColorPickerPopover } from '~/components/ui/color-picker-popover';
+import { Input } from '~/components/ui/input';
 import { issuesForField, ThemeIssueHint } from '~/components/theme-warnings';
 
 type Theme = RendererThemeOptions;
 
-const SWATCH_LABEL = 'text-xs text-muted';
+const SWATCH_LABEL = 'text-base font-bold text-ink';
 
 function ColorField({
   label,
@@ -38,7 +39,7 @@ function ColorField({
   const id = `theme-${name.toLowerCase().replace(/\s+/g, '-')}`;
 
   return (
-    <div className="space-y-1">
+    <div className="space-y-1.5">
       <span className="flex items-center gap-1">
         <label htmlFor={id} className={SWATCH_LABEL}>
           {label}
@@ -73,11 +74,11 @@ function NumberField({
   const id = `theme-${name.toLowerCase().replace(/\s+/g, '-')}`;
 
   return (
-    <div className="space-y-1">
+    <div className="space-y-1.5">
       <label htmlFor={id} className={SWATCH_LABEL}>
         {label}
       </label>
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-3">
         {/* The slider moves in 4px steps for quick coarse setting; the box
             beside it accepts any exact value and stays the source of truth. */}
         <input
@@ -88,18 +89,18 @@ function NumberField({
           value={current}
           aria-label={`${name} slider`}
           onChange={(event) => onChange(`${event.target.value}px`)}
-          className="min-w-0 flex-1 cursor-pointer accent-accent"
+          className="w-0 min-w-0 flex-1 cursor-pointer accent-accent"
         />
-        <input
+        <Input
           id={id}
           type="number"
           min={0}
           max={max}
           value={current}
           onChange={(event) => onChange(`${event.target.value || 0}px`)}
-          className="h-7 w-14 shrink-0 rounded-xs border border-line bg-raised px-1.5 text-right text-sm tabular-nums text-ink"
+          className="w-20 shrink-0 px-3 text-right tabular-nums"
         />
-        <span className="text-2xs text-muted">px</span>
+        <span className="text-base text-muted">px</span>
       </div>
     </div>
   );
@@ -121,9 +122,12 @@ export function RawThemeFields({
 
   return (
     <div className="@container">
-    <div className="grid gap-x-6 gap-y-2.5 @lg:grid-cols-2 @3xl:grid-cols-3">
-      <div className="space-y-2.5">
-        <p className="text-2xs font-medium tracking-wide text-muted uppercase">Page</p>
+    {/* The columns are minmax(0, 1fr), never auto: an auto column is sized by
+        its content, and the slider's own 129px plus the number box pushed a
+        narrow column past the panel's edge. */}
+    <div className="grid grid-cols-1 gap-x-6 gap-y-5 @lg:grid-cols-2 @3xl:grid-cols-3">
+      <div className="min-w-0 space-y-4">
+        <p className="text-xs font-bold tracking-widest text-muted uppercase">Page</p>
         <ColorField
           touch={touch}
           label="Background"
@@ -142,8 +146,8 @@ export function RawThemeFields({
         />
       </div>
 
-      <div className="space-y-2.5">
-        <p className="text-2xs font-medium tracking-wide text-muted uppercase">Card</p>
+      <div className="min-w-0 space-y-4">
+        <p className="text-xs font-bold tracking-widest text-muted uppercase">Card</p>
         <ColorField
           touch={touch}
           label="Background"
@@ -184,8 +188,8 @@ export function RawThemeFields({
         />
       </div>
 
-      <div className="space-y-2.5">
-        <p className="text-2xs font-medium tracking-wide text-muted uppercase">Buttons & links</p>
+      <div className="min-w-0 space-y-4">
+        <p className="text-xs font-bold tracking-widest text-muted uppercase">Buttons & links</p>
         <ColorField
           touch={touch}
           label="Button"

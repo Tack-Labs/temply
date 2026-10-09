@@ -7,6 +7,7 @@ import { OrganizationDirectory } from '~/components/admin/organization-directory
 import { RefreshErrorState } from '~/components/dashboard/refresh-error-state';
 import { Button } from '~/components/ui/button';
 import { Input } from '~/components/ui/input';
+import { Label } from '~/components/ui/label';
 import { PageHeader } from '~/components/ui/surfaces';
 import { serverFetch } from '~/lib/server-fetch';
 
@@ -33,7 +34,7 @@ export default async function AdminPage({ searchParams }: {
     <div className="fade-in-mount space-y-6 motion-reduce:transition-none">
       <PageHeader title="Temply admin" description="Organisations, members, usage and subscriptions across Temply." />
       <form action="/dashboard/admin" method="get" className="space-y-2">
-        <label htmlFor="organisation-search" className="text-sm font-medium text-ink">Find an organisation</label>
+        <Label htmlFor="organisation-search">Find an organisation</Label>
         <div className="flex flex-wrap items-center gap-2">
           <Input id="organisation-search" name="q" defaultValue={query} maxLength={100} placeholder="Name or organisation ID" className="min-w-0 flex-1 basis-48" />
           <Button size="compact" type="submit" variant="secondary">Search</Button>

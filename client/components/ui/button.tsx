@@ -48,7 +48,7 @@ const buttonVariants = cva(
         danger: 'bg-danger text-white shadow-sm hover:brightness-95',
         'danger-quiet': 'text-danger-ink hover:bg-danger-wash',
         // Text in a sentence, so disabled it stays unfilled.
-        link: 'text-accent-ink underline-offset-4 hover:underline disabled:bg-transparent',
+        link: 'text-accent-ink underline-offset-4 hover:underline hover:text-ink disabled:bg-transparent',
       },
       // md and lg are the page-level sizes: 48px and 56px for a fine pointer
       // too, because a button a customer is meant to find is not a dense one,
@@ -78,8 +78,17 @@ const buttonVariants = cva(
       { size: 'sm', touch: true, className: 'pointer-coarse:h-11' },
       { size: 'icon-sm', touch: true, className: 'pointer-coarse:size-11' },
       // The glow belongs to a call to action at page size. On a 28 or 32px
-      // toolbar button it would spill over its neighbours.
-      { variant: 'primary', size: ['md', 'lg'], className: 'shadow-cta' },
+      // toolbar button it would spill over its neighbours. Under the pointer
+      // it rises a hair and the glow widens with it, on the slow beat so the
+      // rise reads as a drift rather than a flick; the press is still on the
+      // fast one, since a press has to answer at once. Reduced motion keeps
+      // the glow and drops the lift.
+      {
+        variant: 'primary',
+        size: ['md', 'lg'],
+        className:
+          'shadow-cta duration-slow hover:shadow-cta-hover hover:-translate-y-0.5 active:translate-y-0 active:duration-fast motion-reduce:hover:translate-y-0',
+      },
     ],
     defaultVariants: {
       variant: 'secondary',

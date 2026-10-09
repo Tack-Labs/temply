@@ -10,6 +10,7 @@ import { toastUploaded, UPLOAD_MIME_TYPES, type Asset } from '~/lib/assets';
 import { Button } from '~/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '~/components/ui/dialog';
 import { Input } from '~/components/ui/input';
+import { PageLoading } from '~/components/ui/page-loading';
 import { EmptyState, ErrorState } from '~/components/ui/surfaces';
 import { AssetGrid, type PendingUpload } from './asset-grid';
 import { useAssets } from './use-assets';
@@ -66,20 +67,20 @@ export function AssetPickerDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="min-w-0 max-w-2xl overflow-hidden p-4">
+      <DialogContent className="min-w-0 max-w-2xl overflow-hidden p-5">
         {/* Dropping anywhere in the window while the picker is open uploads
             into it (useFileDrop); this sheet says so over the dialog. */}
         <div
           aria-hidden={!dragging}
           className={cn(
-            'pointer-events-none absolute inset-0 z-10 flex items-center justify-center rounded-lg bg-raised/85 backdrop-blur-sm transition-opacity duration-base motion-reduce:transition-none',
+            'pointer-events-none absolute inset-0 z-10 flex items-center justify-center rounded-card bg-raised/85 backdrop-blur-sm transition-opacity duration-base motion-reduce:transition-none',
             dragging ? 'opacity-100' : 'opacity-0',
           )}
         >
-          <div className="flex flex-col items-center gap-2 rounded-lg border-2 border-dashed border-accent bg-raised px-8 py-6 text-center shadow-lg">
+          <div className="flex flex-col items-center gap-2 rounded-card border-2 border-dashed border-accent bg-raised px-8 py-6 text-center shadow-xl">
             <ImagePlusIcon className="size-6 text-accent-ink" />
-            <p className="text-sm font-medium text-ink">Drop an image to upload and use it</p>
-            <p className="text-2xs text-muted">JPEG, PNG, GIF or WebP · up to {formatBytes(MAX_IMAGE_BYTES)}</p>
+            <p className="text-base font-bold text-ink">Drop an image to upload and use it</p>
+            <p className="text-sm text-muted">JPEG, PNG, GIF or WebP · up to {formatBytes(MAX_IMAGE_BYTES)}</p>
           </div>
         </div>
 
@@ -106,7 +107,7 @@ export function AssetPickerDialog({
             }}
           />
           <Button size="md" variant="primary" disabled={upload.isPending} onClick={() => fileInput.current?.click()}>
-            {upload.isPending ? <Loader2Icon className="animate-spin" /> : <UploadIcon />}
+            {upload.isPending ? <Loader2Icon className="animate-spin motion-reduce:animate-none" /> : <UploadIcon />}
             Upload
           </Button>
         </div>
@@ -115,9 +116,7 @@ export function AssetPickerDialog({
 
         <div className="max-h-[60vh] overflow-y-auto">
           {query.isLoading ? (
-            <div className="flex items-center justify-center py-16">
-              <Loader2Icon className="size-5 animate-spin text-faint" />
-            </div>
+            <PageLoading label="Loading your images…" />
           ) : query.isError ? (
             <ErrorState description="We could not load your images. They are still there." onRetry={() => query.refetch()} />
           ) : assets.length === 0 && !pendingUpload ? (
@@ -125,7 +124,7 @@ export function AssetPickerDialog({
               icon={ImageIcon}
               title={search ? 'No images match' : 'No images yet'}
               description={search ? 'Try a different file name.' : 'Upload one to use it here'}
-              action={search ? undefined : <Button size="compact" variant="primary" onClick={() => fileInput.current?.click()}>Upload</Button>}
+              action={search ? undefined : <Button variant="primary" onClick={() => fileInput.current?.click()}><UploadIcon />Upload</Button>}
             />
           ) : (
             <AssetGrid mode="pick" size="md" assets={assets} pending={pendingUpload ? [pendingUpload] : []} onPick={onPick} />

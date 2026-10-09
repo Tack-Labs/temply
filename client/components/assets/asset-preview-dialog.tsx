@@ -25,7 +25,7 @@ export function AssetPreviewDialog({
 }) {
   return (
     <Dialog open={asset !== null} onOpenChange={onOpenChange}>
-      <DialogContent className="min-w-0 max-w-3xl overflow-hidden p-4">
+      <DialogContent className="min-w-0 max-w-3xl overflow-hidden p-5">
         {asset && (
           <>
             <DialogHeader>
@@ -35,7 +35,7 @@ export function AssetPreviewDialog({
               </DialogDescription>
             </DialogHeader>
 
-            <div className="flex max-h-[70vh] items-center justify-center overflow-hidden rounded-md bg-sunken">
+            <div className="flex max-h-[70vh] items-center justify-center overflow-hidden rounded-xl bg-sunken">
               <img
                 src={withTransform(asset.url, PREVIEW_TRANSFORM)}
                 alt={asset.name}

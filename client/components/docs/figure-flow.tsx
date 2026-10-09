@@ -8,11 +8,13 @@
  * every plan (`snapshotVersion` in the server's template routes).
  */
 import type { ReactNode } from 'react';
+import { docsPanel } from '~/components/docs/panel';
+import { cn } from '~/lib/classname';
 
 /** Key names inside a card. `bg-surface` because the card itself is raised. */
 function Key({ children }: { children: ReactNode }) {
   return (
-    <code className="rounded-xs border border-line bg-surface px-1 py-0.5 font-mono text-xs text-ink">
+    <code className="rounded-sm bg-sunken px-1.5 py-0.5 font-mono text-sm text-ink">
       {children}
     </code>
   );
@@ -54,19 +56,19 @@ export function FigureFlow() {
           // the four-across strip wider than the measure.
           <li
             key={step.n}
-            className="flex min-w-0 flex-col rounded-md border border-line bg-raised p-3"
+            className={cn(docsPanel, 'flex min-w-0 flex-col p-4')}
           >
-            <span className="flex size-5 shrink-0 items-center justify-center rounded-full bg-accent-wash text-2xs font-medium text-accent-ink">
+            <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-accent-wash text-xs font-semibold text-accent-ink">
               {step.n}
             </span>
-            <p className="mt-2 text-base font-medium text-ink">{step.title}</p>
-            <p className="mt-1 text-sm leading-relaxed text-pretty text-muted">
+            <p className="mt-3 text-ui font-semibold text-ink">{step.title}</p>
+            <p className="mt-1 text-base leading-relaxed text-pretty text-muted">
               {step.body}
             </p>
           </li>
         ))}
       </ol>
-      <figcaption className="mt-4 max-w-xl text-sm text-pretty text-muted">
+      <figcaption className="mt-4 max-w-xl text-base text-pretty text-muted">
         From there: copy the HTML, or have your app fetch the rendered email
         from the API.
       </figcaption>

@@ -106,7 +106,10 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
           colorInputBackground: p.raised,
           colorInputText: p.ink,
           colorDanger: p.danger,
-          borderRadius: '6px',
+          // Clerk derives its smaller radii from this one: a field lands near
+          // `rounded-md`, a card a step above, which is as close as one knob
+          // gets to the app's own ladder.
+          borderRadius: '10px',
           fontFamily: 'var(--font-figtree)',
         },
         elements: {

@@ -138,7 +138,9 @@ function SectionLink({
 // only sets it for a fine pointer, and md has no coarse step, so this holds
 // on a tablet as well. Below `sm` each call site brings its own. No glow: the
 // bar is 72px tall and the shadow `md` carries would spill onto the page.
-const cta = 'shadow-sm sm:h-11.5 sm:px-4 sm:text-ui lg:px-5';
+// No glow at rest and none under the pointer either, and no lift: both would
+// spill past a 72px bar.
+const cta = 'shadow-sm hover:shadow-sm hover:translate-y-0 sm:h-11.5 sm:px-4 sm:text-ui lg:px-5';
 
 // Sign in is drawn twice, once as the link and once as the unseen copy that
 // holds the group's room open, so the two cannot be allowed to drift apart.
@@ -254,7 +256,7 @@ export function Header() {
             its own shape, rather than push the controls out of the gutter or
             scroll the page; the width of the bar is what is measured at
             320px (header.e2e.ts). */}
-        <Link href="/" aria-label="Temply" className="-mx-1 flex min-h-11 min-w-0 items-center rounded-md px-1">
+        <Link href="/" aria-label="Temply" className="-mx-2 flex min-h-11 min-w-0 items-center rounded-field px-2">
           <BrandLogo className="h-6 w-auto max-w-full min-[24rem]:h-7.5" />
         </Link>
 

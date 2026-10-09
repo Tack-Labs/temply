@@ -27,12 +27,12 @@ export function BlockList({ blocks }: BlockListProps) {
           >
             {/* faint is a border-and-icon token, never text — the icon is
                 decorative here because the name beside it says the same thing. */}
-            <Icon aria-hidden className="mt-0.5 size-4 shrink-0 text-faint" />
+            <Icon aria-hidden className="mt-0.5 size-5 shrink-0 text-muted" />
             {/* min-w-0 so long words wrap inside the flex child instead of
                 pushing the row past the viewport at 360px. */}
             <div className="min-w-0">
-              <p className="text-base font-medium text-ink">{block.name}</p>
-              <p className="mt-1 text-base leading-relaxed text-pretty text-muted">
+              <p className="text-ui font-semibold text-ink">{block.name}</p>
+              <p className="mt-1 text-ui leading-relaxed text-pretty text-muted">
                 {block.what} {block.when}
               </p>
             </div>

@@ -31,7 +31,7 @@ export function SaveStatus({ status, onRetry, className }: { status: AutosaveSta
   const icon =
     'absolute inset-0 size-3.5 transition-opacity duration-base ease-out motion-reduce:transition-none';
   return (
-    <span className={cn('flex items-center gap-1 text-xs', className)}>
+    <span className={cn('flex items-center gap-1 text-sm', className)}>
       <span
         aria-hidden
         className={cn(

@@ -38,7 +38,9 @@ const DialogContent = React.forwardRef<
         // A phone gets 1rem of margin on every side: the dialog is centred from
         // its own middle, so the calc width and height leave that much around
         // it, and a body taller than the viewport scrolls inside.
-        'dialog-pop fixed z-50 grid max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] max-w-md gap-4 overflow-y-auto rounded-lg border border-line bg-raised p-5 shadow-xl',
+        // It wears the card's corners and no border: over the scrim the shadow
+        // alone draws its edge, and a hairline would read as a second one.
+        'dialog-pop fixed z-50 grid max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] max-w-md gap-4 overflow-y-auto rounded-card bg-raised p-6 shadow-xl',
         className
       )}
       ref={ref}
@@ -48,10 +50,10 @@ const DialogContent = React.forwardRef<
       {/* On a coarse pointer the close grows to 44px and moves 8px in from
           the corner, so its left edge is 52px from the dialog's edge. The
           title has to end short of that: DialogHeader's coarse padding adds
-          48px to whatever the dialog pads itself with (p-5 by default, p-4
+          48px to whatever the dialog pads itself with (p-6 by default, p-5
           in the compact ones), which keeps 12px or more clear of it. */}
       <DialogPrimitive.Close asChild>
-        <Button variant="ghost" size="icon-sm" touch className="absolute top-4 right-4 pointer-coarse:top-2 pointer-coarse:right-2">
+        <Button variant="ghost" size="icon-sm" touch className="absolute top-5 right-5 pointer-coarse:top-2 pointer-coarse:right-2">
           <X />
           <span className="sr-only">Close</span>
         </Button>
@@ -101,7 +103,9 @@ const DialogTitle = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <DialogPrimitive.Title
     className={cn(
-      'text-base leading-none font-semibold tracking-tight text-ink',
+      // The heading the rails and the panels wear, so a dialog's title is
+      // read as the same rank as the section it opened from.
+      'font-display text-xl font-bold tracking-display text-ink',
       className
     )}
     ref={ref}
@@ -115,7 +119,7 @@ const DialogDescription = React.forwardRef<
   React.ComponentPropsWithoutRef<typeof DialogPrimitive.Description>
 >(({ className, ...props }, ref) => (
   <DialogPrimitive.Description
-    className={cn('text-sm text-muted', className)}
+    className={cn('text-base text-muted', className)}
     ref={ref}
     {...props}
   />

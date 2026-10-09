@@ -45,7 +45,8 @@ const width = async (locator: Locator) => Math.round((await locator.boundingBox(
 const easing = (locator: Locator) => locator.evaluate((el) => getComputedStyle(el).transitionDuration);
 
 /** The one scroller on a wide screen: neither the window nor the frame around the editor scrolls. */
-const scroller = emailCanvas;
+/** The editor's frame: from lg the one box that scrolls, with the rails sticky inside it. */
+const scroller = (page: Page) => page.locator('[data-editor-frame]');
 
 /** Far more lines than any desktop window shows, so the canvas is the long thing on the page. */
 const TALL_DOC = JSON.stringify({
@@ -71,6 +72,23 @@ test.describe('editor rails', () => {
       await expect.poll(() => width(rail(page, landmark))).toBe(open);
       const otherOpen = await width(rail(page, other.landmark));
       const wide = await width(emailCanvas(page));
+      // The email's own box. With both rails open at this width there is no
+      // room to hold the frame's centre line, so the email sits centred
+      // between the rails on the 24px gutters; a fold frees room on one side
+      // and the email takes it, still centred between the strip and the
+      // other rail. It never narrows, and never leaves its gutters.
+      const email = () => emailCanvas(page).locator('article').evaluate((el) => {
+        const { left, width } = el.getBoundingClientRect();
+        const canvas = el.closest('section[aria-label="Email canvas"]')!.getBoundingClientRect();
+        return {
+          width: Math.round(width),
+          offCentre: Math.abs(Math.round(left + width / 2 - (canvas.left + canvas.width / 2))),
+          inset: Math.round(Math.min(left - canvas.left, canvas.right - (left + width))),
+        };
+      });
+      const emailAtRest = await email();
+      expect(emailAtRest.offCentre, 'the email starts centred between the rails').toBeLessThanOrEqual(1);
+      expect(emailAtRest.inset, 'the email keeps the canvas\'s 24px gutter').toBeGreaterThanOrEqual(24);
 
       await panel.getByRole('button', { name: collapse }).click();
       // Focus follows the control: it would otherwise stay on a button that
@@ -81,6 +99,10 @@ test.describe('editor rails', () => {
       await expect.poll(async () => (await width(emailCanvas(page))) - wide).toBe(open - STRIP);
       // The other rail is its own: it neither moves nor gives up width.
       expect(await width(rail(page, other.landmark))).toBe(otherOpen);
+      // The email took the room: no narrower, still centred between the rails, still in its gutters.
+      await expect.poll(async () => (await email()).width).toBeGreaterThanOrEqual(emailAtRest.width);
+      await expect.poll(async () => (await email()).offCentre, 'the email is centred between the strip and the other rail').toBeLessThanOrEqual(1);
+      expect((await email()).inset, 'the email keeps the canvas\'s 24px gutter').toBeGreaterThanOrEqual(24);
 
       await panel.getByRole('button', { name: expand }).click();
       await expect(panel.getByRole('button', { name: collapse })).toHaveAttribute('aria-expanded', 'true');
@@ -322,13 +344,15 @@ test.describe('editor rails', () => {
       const long = await scroller(page).evaluate((el) => ({ scroll: el.scrollHeight, client: el.clientHeight }));
       expect(long.scroll).toBeGreaterThan(long.client);
 
-      const stages = page.getByRole('list', { name: 'Template stages' });
+      // The tab row is the fixed thing above the canvas: it, and the rails,
+      // stay where they are while the canvas scrolls under them.
+      const tabs = page.getByRole('navigation', { name: 'Template' });
       const top = async (locator: Locator) => Math.round((await locator.boundingBox())!.y);
-      const before = [await top(stages), await top(rail(page, 'Components')), await top(rail(page, 'Email settings'))];
+      const before = [await top(tabs), await top(rail(page, 'Components')), await top(rail(page, 'Email settings'))];
       await scroller(page).evaluate((el) => { el.scrollTop = el.scrollHeight; });
       await expect.poll(() => scroller(page).evaluate((el) => el.scrollTop)).toBeGreaterThan(300);
-      expect([await top(stages), await top(rail(page, 'Components')), await top(rail(page, 'Email settings'))]).toEqual(before);
-      await expect(stages).toBeInViewport({ ratio: 1 });
+      expect([await top(tabs), await top(rail(page, 'Components')), await top(rail(page, 'Email settings'))]).toEqual(before);
+      await expect(tabs).toBeInViewport({ ratio: 1 });
     });
 
     test('the template is in view without scrolling, under a bar that is short', async ({ page, api, name }) => {

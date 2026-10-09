@@ -19,7 +19,7 @@ function BrandSwatches({ theme }: { theme: Theme }) {
       {colors.map((color, i) => (
         <span
           key={i}
-          className="size-3.5 rounded-xs border border-line"
+          className="size-3.5 rounded-full border border-line"
           style={{ background: color }}
         />
       ))}

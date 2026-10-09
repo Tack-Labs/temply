@@ -6,7 +6,8 @@ import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { Button } from '~/components/ui/button';
 import { ConfirmDialog } from '~/components/ui/confirm-dialog';
-import { Popover, PopoverContent, PopoverTrigger } from '~/components/ui/popover';
+import { Input } from '~/components/ui/input';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '~/components/ui/dialog';
 import { httpDelete, httpPost } from '~/lib/http';
 import { useBilling } from '~/lib/billing';
 import { useCopyToClipboard } from '~/hooks/use-copy-to-clipboard';
@@ -17,6 +18,11 @@ import { useCopyToClipboard } from '~/hooks/use-copy-to-clipboard';
  * collaboration — no members, no roles — and the one most small teams
  * actually need. The link can be turned off; making a new one afterwards
  * is a new secret, so the old one stays dead.
+ *
+ * A dialog, not a popover, because it opens from an item of the ⋯ menu: a
+ * popover anchored to a menu item lost its focus to the menu the moment the
+ * pointer left the item, and closed before the link could be copied. A
+ * dialog holds focus until it is dismissed, on every pointer.
  */
 export function ShareLinkPopover({
   templateId,
@@ -25,8 +31,8 @@ export function ShareLinkPopover({
 }: {
   templateId: string;
   initialToken: string | null;
-  /** Replaces the default button — the phone opens this from a menu item, and
-   *  a popover trigger has to be the item itself or it has nothing to anchor to. */
+  /** Replaces the default button: the ⋯ menus open this from an item, and
+   *  the dialog's trigger has to be the item itself or the menu eats the press. */
   trigger?: React.ReactElement;
 }) {
   const [token, setToken] = useState<string | null>(initialToken);
@@ -71,32 +77,36 @@ export function ShareLinkPopover({
   };
 
   return (
-    <Popover>
-      <PopoverTrigger asChild>
+    <Dialog>
+      <DialogTrigger asChild>
         {trigger ?? (
           <Button size="compact" aria-label="Share a review link">
             <Link2Icon />
             <span className="hidden sm:inline">Share</span>
           </Button>
         )}
-      </PopoverTrigger>
-      <PopoverContent align="start" className="w-80">
-        <p className="text-sm font-medium text-ink">Review link</p>
-        <p className="mt-1 text-sm text-muted">
-          Anyone with the link can see this email without signing in. It shows your
-          draft, so what they see follows your edits.
-        </p>
+      </DialogTrigger>
+      <DialogContent className="max-w-md p-5">
+        <DialogHeader>
+          <DialogTitle>Review link</DialogTitle>
+          <DialogDescription>
+            Anyone with the link can see this email without signing in. It shows your
+            draft, so what they see follows your edits.
+          </DialogDescription>
+        </DialogHeader>
         {token ? (
           <>
-            <div className="mt-3 flex items-center gap-2">
-              <input
+            <div className="mt-4 flex items-center gap-2">
+              {/* The field at its own height, and the button beside it at the
+                  same one, so the row reads as one control. */}
+              <Input
                 readOnly
                 value={url}
                 aria-label="Review link"
                 onFocus={(event) => event.currentTarget.select()}
-                className="h-8 min-w-0 flex-1 rounded-sm border border-line bg-raised px-2.5 font-mono text-xs text-ink"
+                className="min-w-0 flex-1 px-3 font-mono text-sm"
               />
-              <Button size="sm" onClick={copy} aria-label={copied ? 'Copied' : 'Copy link'}>
+              <Button size="md" className="px-4" onClick={copy} aria-label={copied ? 'Copied' : 'Copy link'}>
                 {copied ? <CheckIcon /> : <CopyIcon />}
                 {copied ? 'Copied' : 'Copy'}
               </Button>
@@ -108,22 +118,22 @@ export function ShareLinkPopover({
                 confirmLabel="Turn off"
                 onConfirm={() => removeLink()}
               >
-                <Button variant="danger-quiet" size="sm" touch disabled={isRemoving}>
-                  {isRemoving ? <Loader2Icon className="animate-spin" /> : null}
+                <Button variant="danger-quiet" size="compact" disabled={isRemoving}>
+                  {isRemoving ? <Loader2Icon className="animate-spin motion-reduce:animate-none" /> : null}
                   Turn off link
                 </Button>
               </ConfirmDialog>
             </div>
           </>
         ) : (
-          <div className="mt-3">
-            <Button size="compact" variant="primary" onClick={() => createLink()} disabled={isCreating || readOnly}>
-              {isCreating ? <Loader2Icon className="animate-spin" /> : <Link2Icon />}
+          <div className="mt-4">
+            <Button variant="primary" onClick={() => createLink()} disabled={isCreating || readOnly}>
+              {isCreating ? <Loader2Icon className="animate-spin motion-reduce:animate-none" /> : <Link2Icon />}
               Create link
             </Button>
           </div>
         )}
-      </PopoverContent>
-    </Popover>
+      </DialogContent>
+    </Dialog>
   );
 }

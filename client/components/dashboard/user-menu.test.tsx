@@ -112,7 +112,7 @@ describe('UserMenu as an icon button', () => {
     const trigger = view.getByRole('button', { name: 'Account', exact: true });
     expect(trigger.getAttribute('aria-label')).toBe('Account');
     const avatar = view.getByText('S');
-    for (const needed of ['size-7', 'bg-peach-wash', 'text-peach-ink']) expect(avatar.className).toContain(needed);
+    for (const needed of ['size-10', 'bg-peach-wash', 'text-peach-ink']) expect(avatar.className).toContain(needed);
     expect(view.queryByText('Sam Rivers')).toBeNull();
     expect(view.queryByText('Northwind')).toBeNull();
     expect(trigger.className).toContain('pointer-coarse:min-w-11');

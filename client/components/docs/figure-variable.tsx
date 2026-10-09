@@ -21,10 +21,10 @@ export function FigureVariable() {
         </Panel>
         <Panel title="3 · In the inbox">
           <div style={CANVAS.card}>Hi Ada,</div>
-          <p className="mt-2 font-mono text-2xs text-muted">{'"firstName": "Ada"'}</p>
+          <p className="mt-2 font-mono text-xs text-muted">{'"firstName": "Ada"'}</p>
         </Panel>
       </div>
-      <figcaption className="mt-4 max-w-xl text-sm text-pretty text-muted">
+      <figcaption className="mt-4 max-w-xl text-base text-pretty text-muted">
         The pill is a name. It leaves the editor as a placeholder and becomes a
         value only when your data supplies one.
       </figcaption>

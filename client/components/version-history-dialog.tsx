@@ -10,6 +10,7 @@ import { httpGet, httpPost } from '~/lib/http';
 import { useBilling } from '~/lib/billing';
 import { parseStamp } from '~/lib/stamp';
 import { Button } from '~/components/ui/button';
+import { PageLoading } from '~/components/ui/page-loading';
 import { ErrorState } from '~/components/ui/surfaces';
 import { storedDocument } from '~/core/editor/utils/replace-deprecated';
 import { TemplateVersionPreview } from './template-version-preview';
@@ -133,7 +134,7 @@ export function VersionHistoryDialog({
   return (
     <Dialog open={open} onOpenChange={(o) => { setOpen(o); setPreviewVersion(null); }}>
       <DialogTrigger asChild>{trigger}</DialogTrigger>
-      <DialogContent className="min-w-0 max-w-lg overflow-hidden p-4">
+      <DialogContent className="min-w-0 max-w-lg overflow-hidden p-5">
         <DialogHeader>
           <DialogTitle>Version history</DialogTitle>
           <DialogDescription>
@@ -146,8 +147,8 @@ export function VersionHistoryDialog({
             back from it lives here too: drop it and stand on the published
             copy. Hidden when there is nothing to drop. */}
         {hasUnpublishedChanges && !previewVersion ? (
-          <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-warn-wash bg-warn-wash/50 px-3 py-2">
-            <p className="text-sm text-ink">
+          <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl bg-warn-wash px-4 py-3">
+            <p className="text-sm font-semibold text-warn-ink">
               Your draft has changes that are not published.
             </p>
             <ConfirmDialog
@@ -157,7 +158,7 @@ export function VersionHistoryDialog({
               onConfirm={() => discardDraft()}
             >
               <Button variant="danger-quiet" size="sm" touch disabled={isDiscarding || readOnly}>
-                {isDiscarding ? <Loader2Icon className="animate-spin" /> : <Undo2Icon />}
+                {isDiscarding ? <Loader2Icon className="animate-spin motion-reduce:animate-none" /> : <Undo2Icon />}
                 Discard changes
               </Button>
             </ConfirmDialog>
@@ -167,7 +168,7 @@ export function VersionHistoryDialog({
         {previewVersion ? (
           <div className="space-y-3">
             <div className="flex items-center justify-between">
-              <h3 className="text-sm font-medium text-ink">
+              <h3 className="text-base font-bold text-ink">
                 Version {previewVersion.version_number}
               </h3>
               <Button variant="ghost" size="sm" touch onClick={() => setPreviewVersion(null)}>
@@ -192,15 +193,13 @@ export function VersionHistoryDialog({
                 onClick={() => restoreVersion(previewVersion.id)}
                 disabled={isRestoring || previewJson === null || readOnly}
               >
-                {isRestoring ? <Loader2Icon className="animate-spin" /> : <RotateCcwIcon />}
+                {isRestoring ? <Loader2Icon className="animate-spin motion-reduce:animate-none" /> : <RotateCcwIcon />}
                 Restore this version
               </Button>
             </div>
           </div>
         ) : isLoading ? (
-          <div className="flex items-center justify-center py-10">
-            <Loader2Icon className="h-6 w-6 animate-spin text-faint" />
-          </div>
+          <PageLoading label="Loading versions…" className="py-8" />
         ) : versions.length === 0 ? (
           <div className="py-8 text-center text-sm text-muted">
             No versions yet. Each publish creates one.

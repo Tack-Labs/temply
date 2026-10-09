@@ -21,7 +21,7 @@ type Errors = Partial<Record<Field, string>>;
 // border the primitive sets.
 const control = 'text-ink aria-invalid:border-danger-ink';
 const labelClass = 'text-base font-semibold';
-const failureClass = 'rounded-md bg-danger-wash px-3.5 py-2.5 text-base text-danger-ink';
+const failureClass = 'rounded-xl bg-danger-wash px-4 py-3.5 text-base text-danger-ink';
 
 // Matches what the server's own check accepts closely enough to catch a typo;
 // the server stays the authority on whether an address is deliverable.
@@ -180,7 +180,7 @@ export function ContactForm() {
   };
 
   return (
-    <Card inset={false} className="relative rounded-2xl p-6 shadow-md sm:p-8">
+    <Card inset={false} className="relative p-6 shadow-md sm:p-8">
       <div className="grid">
         <form
           noValidate

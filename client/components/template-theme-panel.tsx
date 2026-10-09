@@ -132,10 +132,12 @@ export function TemplateThemePanel({
   };
 
   return (
-    <section className={cn('rounded-lg border border-line bg-raised', className)}>
-      <header className="flex items-center justify-between gap-2 border-b border-line px-3.5 py-2">
-        <h2 className="flex items-center gap-1.5 text-sm font-medium text-ink">
-          <PaletteIcon className="size-4 text-faint" />
+    // The same panel as the card under it in the Email settings rail: the
+    // card's corners on a hairline, since its content brings its own padding.
+    <section className={cn('rounded-card border border-line bg-raised', className)}>
+      <header className="flex items-center justify-between gap-2 border-b border-line px-4 py-2.5">
+        <h2 className="flex items-center gap-2 text-base font-bold text-ink">
+          <PaletteIcon className="size-4 text-muted" />
           Brand
         </h2>
         <Button
@@ -148,9 +150,9 @@ export function TemplateThemePanel({
         </Button>
       </header>
 
-      <div className="space-y-4 p-3.5">
+      <div className="space-y-4 p-4">
         <div className="space-y-1.5">
-          <span className="block text-xs font-medium text-ink">Brand</span>
+          <span className="block text-sm font-semibold text-ink">Brand</span>
           <BrandSelect
             value={selectedBrandId}
             onValueChange={handleBrandChange}
@@ -172,7 +174,7 @@ export function TemplateThemePanel({
             type="button"
             onClick={() => setShowAdvanced((v) => !v)}
             aria-expanded={showAdvanced}
-            className="flex items-center gap-1 text-xs font-medium text-muted transition-colors hover:text-ink [&_svg]:size-3.5"
+            className="flex min-h-8 items-center gap-1 text-base font-semibold text-muted transition-colors duration-fast ease-out hover:text-ink motion-reduce:transition-none [&_svg]:size-4"
           >
             <ChevronDownIcon
               className={cn(
