@@ -1058,12 +1058,12 @@ test.describe('editor on the desktop', () => {
     await expectOnScreen(page, menu, 'the section menu where the block was clicked');
 
     // Scrolled the way a customer scrolls, until the block is the first thing
-    // in the pane. The distance is how far the block's top edge is from the
-    // pane's: what the page draws above the email decides that, so it is
-    // read off the page rather than written down. The menu is still the same
-    // menu: nothing was clicked.
+    // in the frame. From lg the editor's frame is the one box that scrolls,
+    // so its top edge is where a block comes to rest; the canvas inside it
+    // scrolls along with the block. The distance is read off the page rather
+    // than written down. The menu is still the same menu: nothing was clicked.
     const below = () =>
-      section.evaluate((el) => Math.round(el.getBoundingClientRect().top - el.closest('section[aria-label="Email canvas"]')!.getBoundingClientRect().top));
+      section.evaluate((el) => Math.round(el.getBoundingClientRect().top - el.closest('[data-editor-frame]')!.getBoundingClientRect().top));
     await page.mouse.move(650, 500);
     await page.mouse.wheel(0, await below());
     await expect.poll(async () => Math.abs(await below()), 'the block rests on the pane\'s top edge').toBeLessThanOrEqual(1);

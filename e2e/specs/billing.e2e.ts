@@ -105,7 +105,7 @@ test.describe('billing', () => {
     await expect(page.getByText(/^20 templates · \$\d+ → \$\d+ a month, prorated from today\.$/)).toBeVisible();
     await page.getByRole('button', { name: 'Update packs' }).click();
     await expect(page.getByText('1 template pack on your plan')).toBeVisible();
-    await expect(page.getByRole('progressbar', { name: 'Templates' })).toHaveAttribute('aria-valuemax', '20');
+    await expect(page.getByRole('progressbar', { name: 'Templates' })).toHaveAttribute('aria-valuetext', / of 20$/);
     await expect(page.getByText('50 per template', { exact: true })).toBeVisible();
     const added = (await fakes.requests('stripe')).filter((r) => r.method === 'POST' && r.path === '/v1/subscription_items');
     expect(added.map((r) => r.body)).toContainEqual(expect.objectContaining({ subscription: subscriptionId, price: STRIPE.prices.templatePack, quantity: '1' }));
@@ -115,7 +115,7 @@ test.describe('billing', () => {
     await page.getByRole('button', { name: 'Update packs' }).click();
     await page.getByRole('dialog', { name: 'Remove all template packs?' }).getByRole('button', { name: 'Remove packs' }).click();
     await expect(page.getByText('Template packs removed')).toBeVisible();
-    await expect(page.getByRole('progressbar', { name: 'Templates' })).toHaveAttribute('aria-valuemax', '10');
+    await expect(page.getByRole('progressbar', { name: 'Templates' })).toHaveAttribute('aria-valuetext', / of 10$/);
     await expect(page.getByText('10 per template', { exact: true })).toBeVisible();
     const removed = (await fakes.requests('stripe')).filter((r) => r.method === 'DELETE' && r.path.startsWith('/v1/subscription_items/'));
     expect(removed).toHaveLength(1);

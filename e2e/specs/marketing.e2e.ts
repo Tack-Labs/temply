@@ -320,7 +320,7 @@ test.describe('marketing', () => {
     });
   });
 
-  test('every pricing card is drawn at the 2xl radius', async ({ page }) => {
+  test('every pricing card is drawn at the card radius', async ({ page }) => {
     await page.goto('/');
     // The token is read through a probe, as the theme cases read the colour
     // ones, so retuning the radius scale cannot break this and only a card
@@ -328,7 +328,7 @@ test.describe('marketing', () => {
     const token = await page.evaluate(() => {
       const probe = document.createElement('div');
       document.body.append(probe);
-      probe.style.cssText = 'border-top-left-radius: var(--radius-2xl)';
+      probe.style.cssText = 'border-top-left-radius: var(--radius-card)';
       const radius = getComputedStyle(probe).borderTopLeftRadius;
       probe.remove();
       return radius;
